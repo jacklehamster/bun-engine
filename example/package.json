@@ -1,0 +1,20 @@
+{
+  "name": "example",
+  "module": "index.ts",
+  "type": "module",
+  "scripts": {
+    "start": "bun run build-icon && bun run index.ts",
+    "build-icon": "png-to-ico ../icon.png > favicon.ico"
+  },
+  "devDependencies": {
+    "bun-types": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "baojs": "^0.2.1",
+    "png-to-ico": "^2.1.8",
+    "serve-static-bun": "^0.5.3"
+  }
+}
