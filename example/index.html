@@ -1,5 +1,19 @@
-<script type="module">
-    import { hello } from './build/hello-world.js';
+<html>
+    <head>
+        <title>Bun Engine</title>
+    </head>
+    <body>
+        <canvas id="root">
+        </canvas>
+    </body>
+    <script>
+        window.global = globalThis;
+    </script>
+    <script type="module">
+        import { testCanvas } from './build/index.js';
+    
+        testCanvas(document.querySelector("#root"));
+    </script>
 
-    hello();
-</script>
+</html>
+

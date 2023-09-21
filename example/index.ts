@@ -1,9 +1,7 @@
-import { hello } from "../build/hello-world";
 import Bao from "baojs";
 import serveStatic from "serve-static-bun";
 
 const app = new Bao();
-hello();
 
 app.get("/*any", serveStatic("/", { middlewareMode: "bao" }));
 

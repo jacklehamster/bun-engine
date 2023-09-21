@@ -1,9 +1,10 @@
-async function bundle(Bun: { build: Function }) {
-    await Bun.build({
-        entrypoints: ['./src/hello-world.tsx'],
-        outdir: './build',
-        minify: true,
-      });
+async function bundle() {
+  await Bun.build({
+      entrypoints: ['./src/index.tsx'],
+      outdir: './build',
+      minify: true,
+      sourcemap: "external",
+    });
 }
 
-bundle(Bun as unknown as { build: Function });
+bundle();
