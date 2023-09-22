@@ -1,3 +1,7 @@
+// To recognize dom types (see https://bun.sh/docs/typescript#dom-types):
+/// <reference lib="dom" />
+/// <reference lib="dom.iterable" />
+
 import { GLPrograms } from "./gl/programs/GLPrograms";
 import { Disposable } from "./disposable/Disposable";
 import { VertexArray } from "./gl/VertexArray";
@@ -5,7 +9,7 @@ import { GLAttributeBuffers } from "./gl/attributes/GLAttributeBuffers";
 import { GLUniforms } from "./gl/uniforms/GLUniforms";
 import { POSITION_LOC } from "./gl/attributes/Contants";
 
-const DEFAULT_ATTRIBUTES = {
+const DEFAULT_ATTRIBUTES: WebGLContextAttributes = {
     alpha: true,
     antialias: false,
     depth: true,
@@ -48,7 +52,7 @@ export class GLEngine extends Disposable {
     attributeBuffers: GLAttributeBuffers;
     uniforms: GLUniforms;
 
-    constructor(canvas: HTMLCanvasElement, attributes?: any) {
+    constructor(canvas: HTMLCanvasElement, attributes?: WebGLContextAttributes) {
         super();
         this.gl = glProxy(canvas.getContext("webgl2", {...DEFAULT_ATTRIBUTES, ...attributes})!);
 
@@ -87,7 +91,7 @@ export class GLEngine extends Disposable {
             index * 3 * 3 * Float32Array.BYTES_PER_ELEMENT);
     }
 
-    draw(count: GLsizei) {
+    drawArrays(count: GLsizei) {
         this.gl.clear(WebGL2RenderingContext.COLOR_BUFFER_BIT);
         this.gl.drawArrays(WebGL2RenderingContext.TRIANGLES, 0, count);
     }

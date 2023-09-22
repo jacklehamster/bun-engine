@@ -26,7 +26,7 @@ export function testCanvas(canvas: HTMLCanvasElement) {
             
             void main() {
                 fragColor = vec4(1.0, 0.0, 0.0, 1.0);
-            }        
+            }
         `);
     engine.programs.useProgram("test");
     engine.initialize();
@@ -35,6 +35,6 @@ export function testCanvas(canvas: HTMLCanvasElement) {
         -0.5, -0.5, 0.0,
         0.5, -0.5, 0.0,
     ]);
-    engine.draw(3);
+    engine.drawArrays(3);
     return engine;
 }

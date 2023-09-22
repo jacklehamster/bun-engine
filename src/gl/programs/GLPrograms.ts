@@ -31,6 +31,6 @@ export class GLPrograms extends Disposable {
     }
 
     getProgram(id?: string): WebGLProgram | undefined {
-        return this.programs[id ?? this.activeProgramId];
+        return this.programs[id ?? this.activeProgramId]?.program;
     }
 }

@@ -26,7 +26,7 @@ export class GLAttributeBuffers extends Disposable {
     }
 
     getAttributeLocation(name: string, programId?: string): GLint {
-        const program = this.programs.getProgram(programId)?.program;
+        const program = this.programs.getProgram(programId);
         return program ? this.gl.getAttribLocation(program, name) ?? -1 : -1;
     }
 
