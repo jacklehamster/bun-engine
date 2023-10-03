@@ -69,7 +69,7 @@ export class GLAttributeBuffers extends Disposable {
         } else {
             this.gl.bufferData(target, bufferSize, glUsage);
         }
-        bufferInfo.bufferSize = bufferSize;
+        bufferInfo.bufferSize = bufferSize || bufferArray?.length;
         bufferInfo.bufferArray = bufferArray ?? new Float32Array(bufferInfo.bufferSize! / Float32Array.BYTES_PER_ELEMENT).fill(0);
         bufferInfo.usage = glUsage;
         bufferInfo.target = target;

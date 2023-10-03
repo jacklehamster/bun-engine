@@ -13,8 +13,10 @@ export function testCanvas(canvas: HTMLCanvasElement) {
             precision highp float;
             
             layout (location=0) in vec4 position;
-            
+            // layout (location=1) in mat4 transform;
+
             void main() {
+                // gl_Position = transform * position;
                 gl_Position = position;
             }
         `,
@@ -25,16 +27,18 @@ export function testCanvas(canvas: HTMLCanvasElement) {
             out vec4 fragColor;
             
             void main() {
-                fragColor = vec4(1.0, 0.0, 0.0, 1.0);
+                fragColor = vec4(1.0, 0.0, 0.0, 0.5);
             }
         `);
     engine.programs.useProgram("test");
     engine.initialize();
-    engine.updateTrianglePosition(0, [
-        0.0, 0.5, 0.0,
-        -0.5, -0.5, 0.0,
-        0.5, -0.5, 0.0,
-    ]);
-    engine.drawArrays(3);
+    // engine.updateTrianglePosition(0, [
+    //     1, 1, 0,
+    //     1, -1, 0,
+    //     -1, -1, 0,
+    //     -1, 1, 0,
+    //   ]);
+//    engine.drawArrays(3);
+    engine.drawElementsInstanced(6, 2);
     return engine;
 }
