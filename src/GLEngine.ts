@@ -80,6 +80,16 @@ export class GLEngine extends Disposable {
             this.attributeBuffers.createBuffer(INDEX_LOC);
             const bufferInfo = this.attributeBuffers.getAttributeBuffer(INDEX_LOC);
             this.attributeBuffers.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, bufferInfo);
+            this.attributeBuffers.bufferData(
+                GL.ELEMENT_ARRAY_BUFFER,
+                INDEX_LOC,
+                Uint16Array.from([
+                    0, 1, 2,
+                    3, 0, 2
+                ]),
+                0,
+                GL.STATIC_DRAW
+            );    
         }
 
         {
@@ -89,63 +99,50 @@ export class GLEngine extends Disposable {
             this.gl.vertexAttribPointer(bufferInfo.location, 3,
                 GL.FLOAT, false, 0, 0);
             this.gl.enableVertexAttribArray(bufferInfo.location);    
+            this.attributeBuffers.bufferData(
+                GL.ARRAY_BUFFER,
+                POSITION_LOC,
+                Float32Array.from([    
+                    1, 1, 0,
+                    1, -1, 0,
+                    -1, -1, 0,
+                    -1, 1, 0,
+                ]),
+                0,
+    //            4 * 3 * MAX_TRIANGLES * Float32Array.BYTES_PER_ELEMENT,
+                GL.STATIC_DRAW
+            );
         }
 
-        // {
-        //     this.attributeBuffers.createBuffer(TRANSFORM_LOC);
-        //     const bufferInfo = this.attributeBuffers.getAttributeBuffer(TRANSFORM_LOC);
-        //     this.attributeBuffers.bindBuffer(GL.ARRAY_BUFFER, bufferInfo);
-        //     for (let i = 0; i < 4; i++) {
-        //         const loc = bufferInfo.location + i;
-        //         this.gl.vertexAttribPointer(loc, 4,
-        //             GL.FLOAT, false, 0, 0);    
-        //         this.gl.enableVertexAttribArray(loc);    
-        //         this.gl.vertexAttribDivisor(loc, 1);
-        //     }
-        // }
+        {
+            this.attributeBuffers.createBuffer(TRANSFORM_LOC);
+            const bufferInfo = this.attributeBuffers.getAttributeBuffer(TRANSFORM_LOC);
+            this.attributeBuffers.bindBuffer(GL.ARRAY_BUFFER, bufferInfo);
+            for (let i = 0; i < 4; i++) {
+                const loc = bufferInfo.location + i;
+                this.gl.vertexAttribPointer(loc, 4,
+                    GL.FLOAT, false, 4 * 4 * Float32Array.BYTES_PER_ELEMENT, i * 4 * Float32Array.BYTES_PER_ELEMENT);    
+                this.gl.enableVertexAttribArray(loc);    
+                this.gl.vertexAttribDivisor(loc, 1);
+            }
+            this.attributeBuffers.bufferData(
+                GL.ARRAY_BUFFER,
+                TRANSFORM_LOC,
+                Float32Array.from([
+                    1, 0, 0, 0,
+                    0, 1, 0, 0,
+                    0, 0, 1, 0,
+                    0, 0, 0, 1,
 
-        // this.bindVertexArray();
-        this.attributeBuffers.bufferData(
-            GL.ARRAY_BUFFER,
-            POSITION_LOC,
-            Float32Array.from([    
-                1, 1, 0,
-                1, -1, 0,
-                -1, -1, 0,
-                -1, 1, 0,
-            ]),
-            4 * 3 * MAX_TRIANGLES * Float32Array.BYTES_PER_ELEMENT,
-            GL.STATIC_DRAW
-        );
-
-        this.attributeBuffers.bufferData(
-            GL.ELEMENT_ARRAY_BUFFER,
-            INDEX_LOC,
-            Uint16Array.from([
-                0, 1, 2,
-                3, 0, 2
-            ]),
-            0,
-            GL.STATIC_DRAW
-        );
-
-        // this.attributeBuffers.bufferData(
-        //     GL.ARRAY_BUFFER,
-        //     TRANSFORM_LOC,
-        //     Float32Array.from([
-        //         1, 0, 0, 0,
-        //         0, 1, 0, 0,
-        //         0, 0, 1, 0,
-        //         0, 0, 0, 1,
-
-        //         1, 0, 0, 0,
-        //         0, 1, 0, 0,
-        //         0, 0, 1, 0,
-        //         0, 0, 0, 1,
-        //     ]),
-        //     0,
-        //     GL.DYNAMIC_DRAW
-        // );
+                    .5, 0, 0, 0,
+                    0, .5, 0, 0,
+                    0, 0, .5, 0,
+                    0, 0, 0, 1,
+                ]),
+                0,
+                GL.DYNAMIC_DRAW
+            );    
+        }
     }
 
     updateTrianglePosition(index: number, vertices: number[]) {
@@ -161,7 +158,7 @@ export class GLEngine extends Disposable {
     }
 
     drawElementsInstanced(vertexCount: GLsizei, instances: GLsizei) {
-        this.gl.clear(GL.COLOR_BUFFER_BIT);
+        this.gl.clear(GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT);
         this.gl.drawElementsInstanced(GL.TRIANGLES, vertexCount, GL.UNSIGNED_SHORT, 0, instances);
     }
 

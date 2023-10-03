@@ -13,11 +13,11 @@ export function testCanvas(canvas: HTMLCanvasElement) {
             precision highp float;
             
             layout (location=0) in vec4 position;
-            // layout (location=1) in mat4 transform;
+            layout (location=1) in mat4 transform;
 
             void main() {
-                // gl_Position = transform * position;
-                gl_Position = position;
+                gl_Position = transform * position;
+                // gl_Position = position;
             }
         `,
         `
