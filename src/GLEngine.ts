@@ -8,6 +8,7 @@ import { VertexArray } from "./gl/VertexArray";
 import { GLAttributeBuffers } from "./gl/attributes/GLAttributeBuffers";
 import { GLUniforms } from "./gl/uniforms/GLUniforms";
 import { POSITION_LOC, INDEX_LOC, TRANSFORM_LOC } from "./gl/attributes/Contants";
+import { mat4 } from "gl-matrix";
 
 const DEFAULT_ATTRIBUTES: WebGLContextAttributes = {
     alpha: true,
@@ -129,15 +130,8 @@ export class GLEngine extends Disposable {
                 GL.ARRAY_BUFFER,
                 TRANSFORM_LOC,
                 Float32Array.from([
-                    1, 0, 0, 0,
-                    0, 1, 0, 0,
-                    0, 0, 1, 0,
-                    0, 0, 0, 1,
-
-                    .5, 0, 0, 0,
-                    0, .5, 0, 0,
-                    0, 0, .5, 0,
-                    0, 0, 0, 1,
+                    ...mat4.identity(mat4.create()),
+                    ...mat4.fromZRotation(mat4.create(), Math.PI / 4),
                 ]),
                 0,
                 GL.DYNAMIC_DRAW
