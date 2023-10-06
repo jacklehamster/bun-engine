@@ -7,8 +7,8 @@ import { Disposable } from "./disposable/Disposable";
 import { VertexArray } from "./gl/VertexArray";
 import { GLAttributeBuffers } from "./gl/attributes/GLAttributeBuffers";
 import { GLUniforms } from "./gl/uniforms/GLUniforms";
-import { POSITION_LOC, INDEX_LOC, TRANSFORM_LOC } from "./gl/attributes/Contants";
-import { mat4 } from "gl-matrix";
+import { POSITION_LOC, INDEX_LOC, TRANSFORM_LOC, CAM_LOC } from "./gl/attributes/Contants";
+import { mat4, quat, vec3 } from "gl-matrix";
 
 const DEFAULT_ATTRIBUTES: WebGLContextAttributes = {
     alpha: true,
@@ -25,6 +25,7 @@ const DEFAULT_ATTRIBUTES: WebGLContextAttributes = {
 const GL = WebGL2RenderingContext;
 
 const MAX_TRIANGLES = 10000;
+const LOG_GL = false;
 
 function glProxy(gl: WebGL2RenderingContext) {
     const proxy = new Proxy<WebGL2RenderingContext>(gl, {
@@ -34,7 +35,9 @@ function glProxy(gl: WebGL2RenderingContext) {
             if (typeof(result) === "function") {
                 const f = (...params: any[]) => {
                     const returnValue = result.apply(t, params);
-                    console.log(`gl.${String(prop)}(`, params, ') = ', returnValue);
+                    if (LOG_GL) {
+                        console.log(`gl.${String(prop)}(`, params, ') = ', returnValue);
+                    }
                     return returnValue;
                 };
                 return f;    
@@ -54,6 +57,9 @@ export class GLEngine extends Disposable {
     programs: GLPrograms;
     attributeBuffers: GLAttributeBuffers;
     uniforms: GLUniforms;
+    cameraMatrix: mat4;
+    camTurnMatrix: mat4;
+    perspectiveMatrix: mat4;
 
     constructor(canvas: HTMLCanvasElement, attributes?: WebGLContextAttributes) {
         super();
@@ -64,6 +70,9 @@ export class GLEngine extends Disposable {
         this.programs = this.own(new GLPrograms(this.gl));
         this.attributeBuffers = this.own(new GLAttributeBuffers(this.gl, this.programs));
         this.uniforms = this.own(new GLUniforms(this.gl, this.programs));
+        this.cameraMatrix = mat4.identity(mat4.create());
+        this.camTurnMatrix = mat4.identity(mat4.create());
+        this.perspectiveMatrix = mat4.identity(mat4.create());
     }
 
     initialize() {
@@ -130,12 +139,49 @@ export class GLEngine extends Disposable {
                 GL.ARRAY_BUFFER,
                 TRANSFORM_LOC,
                 Float32Array.from([
+                    // ...mat4.translate(mat4.create(), mat4.fromYRotation(mat4.create(), Math.PI / 4), vec3.fromValues(0, 0, -2)),
+                    ...mat4.fromYRotation(mat4.create(), Math.PI / 4),
+                    ...mat4.fromYRotation(mat4.create(), Math.PI / 2),
                     ...mat4.identity(mat4.create()),
-                    ...mat4.fromZRotation(mat4.create(), Math.PI / 4),
                 ]),
                 0,
                 GL.DYNAMIC_DRAW
             );    
+        }
+ 
+        {
+            const DEG_TO_RADIANT = Math.PI / 90;
+            this.perspectiveMatrix = mat4.perspective(mat4.create(),
+                45 * DEG_TO_RADIANT,
+                1,
+                0,
+                10000
+              );
+        }
+
+        {
+            const matrix = mat4.ortho(mat4.create(),
+                -2,
+                2,
+                -2,
+                2,
+                -100,
+                100,
+              );
+        }
+
+        this.refreshCam();
+    }
+
+    refreshCam() {
+        const matrix = mat4.identity(mat4.create());
+        mat4.mul(matrix, this.cameraMatrix, matrix);
+        mat4.mul(matrix, this.camTurnMatrix, matrix);
+        mat4.mul(matrix, this.perspectiveMatrix, matrix);
+
+        const loc = this.uniforms.getUniformLocation(CAM_LOC);
+        if (loc) {
+            this.gl.uniformMatrix4fv(loc, false, matrix);
         }
     }
 
@@ -145,6 +191,24 @@ export class GLEngine extends Disposable {
         this.attributeBuffers.bufferSubData(GL.ARRAY_BUFFER,
             Float32Array.from(vertices),
             index * 4 * 3 * Float32Array.BYTES_PER_ELEMENT);
+    }
+
+    moveCam(x: number, z: number) {
+        const q = quat.create();
+        mat4.getRotation(q, this.camTurnMatrix);
+        quat.invert(q, q);
+        const v = vec3.fromValues(-x, 0, z);
+        vec3.transformQuat(v, v, q);
+
+        mat4.translate(this.cameraMatrix, this.cameraMatrix, v);
+
+        this.refreshCam();
+    }
+
+    turnCam(angle: number) {
+        mat4.rotateY(this.camTurnMatrix, this.camTurnMatrix, angle);
+
+        this.refreshCam();
     }
 
     drawArrays(count: GLsizei) {
