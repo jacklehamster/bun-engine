@@ -28,6 +28,9 @@ const MAX_TRIANGLES = 10000;
 const LOG_GL = false;
 
 function glProxy(gl: WebGL2RenderingContext) {
+    if (!LOG_GL) {
+        return gl;
+    }
     const proxy = new Proxy<WebGL2RenderingContext>(gl, {
         get(target, prop) {
             const t = target as any;
@@ -35,9 +38,7 @@ function glProxy(gl: WebGL2RenderingContext) {
             if (typeof(result) === "function") {
                 const f = (...params: any[]) => {
                     const returnValue = result.apply(t, params);
-                    if (LOG_GL) {
-                        console.log(`gl.${String(prop)}(`, params, ') = ', returnValue);
-                    }
+                    console.log(`gl.${String(prop)}(`, params, ') = ', returnValue);
                     return returnValue;
                 };
                 return f;    
