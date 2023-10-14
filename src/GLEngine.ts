@@ -61,19 +61,21 @@ export class GLEngine extends Disposable {
     cameraMatrix: mat4;
     camTurnMatrix: mat4;
     perspectiveMatrix: mat4;
+    orthoMatrix: mat4;
+    projectionMatrix: mat4;
 
     constructor(canvas: HTMLCanvasElement, attributes?: WebGLContextAttributes) {
         super();
         this.gl = glProxy(canvas.getContext("webgl2", {...DEFAULT_ATTRIBUTES, ...attributes})!);
 
-
-
         this.programs = this.own(new GLPrograms(this.gl));
         this.attributeBuffers = this.own(new GLAttributeBuffers(this.gl, this.programs));
         this.uniforms = this.own(new GLUniforms(this.gl, this.programs));
-        this.cameraMatrix = mat4.identity(mat4.create());
+        this.cameraMatrix = mat4.translate(mat4.create(), mat4.identity(mat4.create()), vec3.fromValues(0, 0, -1));
         this.camTurnMatrix = mat4.identity(mat4.create());
         this.perspectiveMatrix = mat4.identity(mat4.create());
+        this.orthoMatrix = mat4.identity(mat4.create());
+        this.projectionMatrix = mat4.identity(mat4.create());
     }
 
     initialize() {
@@ -83,7 +85,6 @@ export class GLEngine extends Disposable {
         //  enable blend
         this.gl.enable(GL.BLEND);
         this.gl.blendFunc(GL.SRC_ALPHA, GL.ONE_MINUS_SRC_ALPHA);
-
 
         this.gl.viewport(0, 0, this.gl.drawingBufferWidth, this.gl.drawingBufferHeight);
 
@@ -149,27 +150,31 @@ export class GLEngine extends Disposable {
                 GL.DYNAMIC_DRAW
             );    
         }
- 
+
+        const ratio = this.gl.drawingBufferWidth / this.gl.drawingBufferHeight;
         {
             const DEG_TO_RADIANT = Math.PI / 90;
             this.perspectiveMatrix = mat4.perspective(mat4.create(),
                 45 * DEG_TO_RADIANT,
-                1,
+                ratio,
                 0,
                 10000
               );
         }
 
         {
-            const matrix = mat4.ortho(mat4.create(),
-                -2,
-                2,
-                -2,
-                2,
+            const size = 1;
+            this.orthoMatrix = mat4.ortho(mat4.create(),
+                -size * ratio,
+                size * ratio,
+                -size,
+                size,
                 -100,
                 100,
               );
         }
+
+        this.setPerspective(1);
 
         this.refreshCam();
     }
@@ -178,7 +183,7 @@ export class GLEngine extends Disposable {
         const matrix = mat4.identity(mat4.create());
         mat4.mul(matrix, this.cameraMatrix, matrix);
         mat4.mul(matrix, this.camTurnMatrix, matrix);
-        mat4.mul(matrix, this.perspectiveMatrix, matrix);
+        mat4.mul(matrix, this.projectionMatrix, matrix);
 
         const loc = this.uniforms.getUniformLocation(CAM_LOC);
         if (loc) {
@@ -194,21 +199,28 @@ export class GLEngine extends Disposable {
             index * 4 * 3 * Float32Array.BYTES_PER_ELEMENT);
     }
 
+    setPerspective(level: number) {
+        const o = mat4.create();
+        mat4.multiplyScalar(o, this.orthoMatrix, 1 - level);
+        const p = mat4.create();
+        mat4.multiplyScalar(p, this.perspectiveMatrix, level);
+        mat4.copy(this.projectionMatrix, o);
+        mat4.add(this.projectionMatrix, this.projectionMatrix, p);
+        this.refreshCam();
+    }
+
     moveCam(x: number, z: number) {
         const q = quat.create();
         mat4.getRotation(q, this.camTurnMatrix);
         quat.invert(q, q);
         const v = vec3.fromValues(-x, 0, z);
         vec3.transformQuat(v, v, q);
-
         mat4.translate(this.cameraMatrix, this.cameraMatrix, v);
-
         this.refreshCam();
     }
 
     turnCam(angle: number) {
         mat4.rotateY(this.camTurnMatrix, this.camTurnMatrix, angle);
-
         this.refreshCam();
     }
 

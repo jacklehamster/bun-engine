@@ -7,6 +7,8 @@ export function hello() {
 export function testCanvas(canvas: HTMLCanvasElement) {
     canvas.style.border = ".5px solid silver";
     const engine = new GLEngine(canvas);
+    (window as any).engine = engine;
+
     engine.programs.addProgram("test",
         `
             #version 300 es
@@ -20,7 +22,6 @@ export function testCanvas(canvas: HTMLCanvasElement) {
 
             void main() {
                 gl_Position = cam * transform * position;
-                // gl_Position = position;
             }
         `,
         `
@@ -47,7 +48,7 @@ export function testCanvas(canvas: HTMLCanvasElement) {
     const keys: Record<string, boolean> = {};
     document.addEventListener("keydown", e => {
         keys[e.code] = true;
-        console.log(keys);
+        // console.log(keys);
     });
 
     document.addEventListener("keyup", e => {
