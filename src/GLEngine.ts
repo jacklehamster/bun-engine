@@ -7,9 +7,9 @@ import { Disposable } from "./disposable/Disposable";
 import { VertexArray } from "./gl/VertexArray";
 import { GLAttributeBuffers } from "./gl/attributes/GLAttributeBuffers";
 import { GLUniforms } from "./gl/uniforms/GLUniforms";
-import { POSITION_LOC, INDEX_LOC, TRANSFORM_LOC, TEX_LOC, CAM_LOC } from "./gl/attributes/Contants";
+import { POSITION_LOC, INDEX_LOC, TRANSFORM_LOC, TEX_LOC, CAM_LOC, GL  } from "./gl/attributes/Contants";
 import { mat4, quat, vec3 } from "gl-matrix";
-import { TextureManager } from "./gl/TextureManager";
+import { TextureManager } from "./gl/texture/TextureManager";
 
 const DEFAULT_ATTRIBUTES: WebGLContextAttributes = {
     alpha: true,
@@ -23,15 +23,15 @@ const DEFAULT_ATTRIBUTES: WebGLContextAttributes = {
     stencil: false,
 };
 
-const GL = WebGL2RenderingContext;
+export const TEXTURE_SLOT_SIZE = 2048;
 
 const LOG_GL = false;
 
-function glProxy(gl: WebGL2RenderingContext) {
+function glProxy(gl: GL) {
     if (!LOG_GL) {
         return gl;
     }
-    const proxy = new Proxy<WebGL2RenderingContext>(gl, {
+    const proxy = new Proxy<GL>(gl, {
         get(target, prop) {
             const t = target as any;
             const result = t[prop];
@@ -54,7 +54,7 @@ function glProxy(gl: WebGL2RenderingContext) {
 
 
 export class GLEngine extends Disposable {
-    private gl: WebGL2RenderingContext;
+    private gl: GL;
     private perspectiveLevel: number = 1;
     programs: GLPrograms;
     attributeBuffers: GLAttributeBuffers;
@@ -97,7 +97,7 @@ export class GLEngine extends Disposable {
         this.configPerspectiveMatrix(ratio);
     }
 
-    initialize() {
+    async initialize() {
         //  enable depth
         this.gl.enable(GL.DEPTH_TEST);
         this.gl.depthFunc(GL.LEQUAL);
@@ -105,6 +105,7 @@ export class GLEngine extends Disposable {
         this.gl.enable(GL.BLEND);
         this.gl.blendFunc(GL.SRC_ALPHA, GL.ONE_MINUS_SRC_ALPHA);
         this.gl.viewport(0, 0, this.gl.drawingBufferWidth, this.gl.drawingBufferHeight);
+        
 
         {
             /*
@@ -196,24 +197,29 @@ export class GLEngine extends Disposable {
         }
 
         {
+            const size = 2048;
             const canvas = document.createElement("canvas");
-            canvas.width = 200; canvas.height = 200;
+            canvas.width = size; canvas.height = size;
             const ctx = canvas.getContext("2d")!;
-            ctx.fillStyle = "red";
+            ctx.imageSmoothingEnabled = true;
+            ctx.fillStyle = "silver";
             ctx.strokeStyle = "black";
-            ctx.fillRect(0, 0, 200, 200);
+            ctx.lineWidth = canvas.width / 50;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
             ctx.beginPath();
-            ctx.arc(100, 100, 80, 0, 2 * Math.PI);
+            ctx.arc(canvas.width/2, canvas.height/2, canvas.width/2 * .8, 0, 2 * Math.PI);
             ctx.moveTo(0, 0);
-            ctx.lineTo(200,200);
-            ctx.moveTo(0, 200);
-            ctx.lineTo(200, 0);
+            ctx.lineTo(canvas.width,canvas.height);
+            ctx.moveTo(0, canvas.height);
+            ctx.lineTo(canvas.width, 0);
             ctx.stroke();
-            this.textureManager.loadCanvas(canvas, "test");
+            
+            await this.textureManager.loadCanvas("test", canvas);
             this.textureManager.assignImageToTexture("test", "TEXTURE0",
-                [0, 0, 200, 200],
-                [0, 0, 256, 256]
+                [0, 0, canvas.width, canvas.height],
+                [0, 0, TEXTURE_SLOT_SIZE, TEXTURE_SLOT_SIZE]
             );
+            this.textureManager.generateMipMap("TEXTURE0");
         }
 
         this.checkCanvasSize();
@@ -301,7 +307,7 @@ export class GLEngine extends Disposable {
         this.gl.drawElementsInstanced(GL.TRIANGLES, vertexCount, GL.UNSIGNED_SHORT, 0, instances);
     }
 
-    private bindVertexArray() {
+    bindVertexArray() {
         return this.own(new VertexArray(this.gl));
     }
 }

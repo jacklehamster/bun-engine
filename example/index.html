@@ -16,9 +16,10 @@
         window.global = globalThis;
     </script>
     <script type="module">
-        import { testCanvas } from './build/index.js';
+        import { testCanvas, hello } from './build/index.js';
     
-        testCanvas(document.querySelector("#root"));
+        const engine = testCanvas(document.querySelector("#root"));
+        hello();
     </script>
 
 </html>

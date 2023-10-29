@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "start": "bun run index.ts",
-    "bundle": "rm -rf build/*.* && bun run bundler/bundler.ts",
+    "bundle": "rm -rf build/*.* && bun run bundler/bundler.ts && bun test",
     "list": "bun run samples/list-scripts.tsx",
     "example": "bun run bundle && cd example && bun start && cd ..",
     "fileSample": "bun run samples/file.tsx && cat samples/data/test.json",
@@ -14,12 +14,17 @@
     "resources"
   ],
   "devDependencies": {
-    "typescript": "^5.2.2",
+    "@types/jest": "^29.5.6",
+    "@types/mocha": "^10.0.3",
     "@types/react": "^18.2.21",
+    "bun": "^1.0.7",
     "bun-types": "latest",
+    "jest": "^29.7.0",
+    "js-yaml": "^4.1.0",
     "png-to-ico": "^2.1.8",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "typescript": "^5.2.2"
   },
   "dependencies": {
     "gl-matrix": "^3.4.3"

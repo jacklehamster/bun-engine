@@ -1,0 +1,31 @@
+#version 300 es
+
+precision highp float;
+
+const float TEXTURE_SIZE = 4096.;
+const float SLOT_SIZE = ~{TEXTURE_SLOT_SIZE}; //  256
+const float SLOT_SIDE_COUNT = TEXTURE_SIZE / SLOT_SIZE;
+
+//  IN
+//  shape
+layout (location=0) in vec4 position;
+layout (location=1) in mat4 transform;
+//  2, 3, 4
+//  animation
+layout (location=5) in vec2 tex;
+
+//  UNIFORM
+uniform mat4 cam;
+
+//  OUT
+out vec2 vTex;
+out float textureIndex;
+out float opacity;
+
+void main() {
+    gl_Position = cam * transform * position;
+    float slotTextSize = SLOT_SIZE / TEXTURE_SIZE;
+    vTex = tex * slotTextSize;
+    textureIndex = 0.;
+    opacity = 1.;
+}
