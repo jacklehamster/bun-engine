@@ -51,18 +51,36 @@ function createProgram(gl: WebGL2RenderingContext, vertex: string, fragment: str
 
     const vertexShader = createShader(vertex, gl.VERTEX_SHADER)!;
     const fragmentShader = createShader(fragment, gl.FRAGMENT_SHADER)!;
+    const vertexInfo = gl.getShaderInfoLog(vertexShader), fragmentInfo = gl.getShaderInfoLog(fragmentShader);
+    if (vertexInfo) {
+        console.log("VERTEX", vertexInfo);
+    }
+    if (fragmentInfo) {
+        console.log("FRAGMENT", fragmentInfo);
+    }
     gl.attachShader(program, vertexShader);
     gl.attachShader(program, fragmentShader);
     gl.linkProgram(program);
+    const programInfo = gl.getProgramInfoLog(program);
+    if (programInfo) {
+        console.log("PROGRAM", programInfo);
+    }
     gl.detachShader(program, vertexShader);
     gl.detachShader(program, fragmentShader);
     gl.deleteShader(vertexShader);
     gl.deleteShader(fragmentShader);
     gl.validateProgram(program);
 
+    Object.entries(WebGL2RenderingContext).forEach(([k, value]) => {
+        if (value && gl.getError() === value) {
+            console.log(`gl.${k}`);
+        }
+    });
+
     if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
         throw new Error("Unable to initialize the shader program:\n" + gl.getProgramInfoLog(program));
     }
+
     return program;
 }
 

@@ -7,8 +7,9 @@ import { Disposable } from "./disposable/Disposable";
 import { VertexArray } from "./gl/VertexArray";
 import { GLAttributeBuffers } from "./gl/attributes/GLAttributeBuffers";
 import { GLUniforms } from "./gl/uniforms/GLUniforms";
-import { POSITION_LOC, INDEX_LOC, TRANSFORM_LOC, CAM_LOC } from "./gl/attributes/Contants";
+import { POSITION_LOC, INDEX_LOC, TRANSFORM_LOC, TEX_LOC, CAM_LOC } from "./gl/attributes/Contants";
 import { mat4, quat, vec3 } from "gl-matrix";
+import { TextureManager } from "./gl/TextureManager";
 
 const DEFAULT_ATTRIBUTES: WebGLContextAttributes = {
     alpha: true,
@@ -24,7 +25,6 @@ const DEFAULT_ATTRIBUTES: WebGLContextAttributes = {
 
 const GL = WebGL2RenderingContext;
 
-const MAX_TRIANGLES = 10000;
 const LOG_GL = false;
 
 function glProxy(gl: WebGL2RenderingContext) {
@@ -55,6 +55,7 @@ function glProxy(gl: WebGL2RenderingContext) {
 
 export class GLEngine extends Disposable {
     private gl: WebGL2RenderingContext;
+    private perspectiveLevel: number = 1;
     programs: GLPrograms;
     attributeBuffers: GLAttributeBuffers;
     uniforms: GLUniforms;
@@ -63,10 +64,16 @@ export class GLEngine extends Disposable {
     perspectiveMatrix: mat4;
     orthoMatrix: mat4;
     projectionMatrix: mat4;
+    canvas: HTMLCanvasElement;
+
+    textureManager: TextureManager;
 
     constructor(canvas: HTMLCanvasElement, attributes?: WebGLContextAttributes) {
         super();
         this.gl = glProxy(canvas.getContext("webgl2", {...DEFAULT_ATTRIBUTES, ...attributes})!);
+        this.canvas = canvas;
+
+        this.textureManager = new TextureManager(this.gl);
 
         this.programs = this.own(new GLPrograms(this.gl));
         this.attributeBuffers = this.own(new GLAttributeBuffers(this.gl, this.programs));
@@ -76,6 +83,18 @@ export class GLEngine extends Disposable {
         this.perspectiveMatrix = mat4.identity(mat4.create());
         this.orthoMatrix = mat4.identity(mat4.create());
         this.projectionMatrix = mat4.identity(mat4.create());
+
+        window.addEventListener("resize", this.checkCanvasSize.bind(this));
+    }
+
+    checkCanvasSize() {
+        this.canvas.width = this.canvas.offsetWidth * 2;
+        this.canvas.height = this.canvas.offsetHeight * 2;
+        this.gl.viewport(0, 0, this.gl.drawingBufferWidth, this.gl.drawingBufferHeight);
+        const ratio = this.gl.drawingBufferWidth / this.gl.drawingBufferHeight;
+
+        this.configOrthoMatrix(ratio);
+        this.configPerspectiveMatrix(ratio);
     }
 
     initialize() {
@@ -85,50 +104,54 @@ export class GLEngine extends Disposable {
         //  enable blend
         this.gl.enable(GL.BLEND);
         this.gl.blendFunc(GL.SRC_ALPHA, GL.ONE_MINUS_SRC_ALPHA);
-
         this.gl.viewport(0, 0, this.gl.drawingBufferWidth, this.gl.drawingBufferHeight);
 
         {
-            this.attributeBuffers.createBuffer(INDEX_LOC);
-            const bufferInfo = this.attributeBuffers.getAttributeBuffer(INDEX_LOC);
+            /*
+                0  1
+                3  2
+            */
+            const location = INDEX_LOC;
+            this.attributeBuffers.createBuffer(location);
+            const bufferInfo = this.attributeBuffers.getAttributeBuffer(location);
             this.attributeBuffers.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, bufferInfo);
             this.attributeBuffers.bufferData(
                 GL.ELEMENT_ARRAY_BUFFER,
-                INDEX_LOC,
+                location,
                 Uint16Array.from([
                     0, 1, 2,
-                    3, 0, 2
+                    2, 3, 0,
                 ]),
                 0,
-                GL.STATIC_DRAW
-            );    
-        }
-
-        {
-            this.attributeBuffers.createBuffer(POSITION_LOC);
-            const bufferInfo = this.attributeBuffers.getAttributeBuffer(POSITION_LOC);
-            this.attributeBuffers.bindBuffer(GL.ARRAY_BUFFER, bufferInfo);
-            this.gl.vertexAttribPointer(bufferInfo.location, 3,
-                GL.FLOAT, false, 0, 0);
-            this.gl.enableVertexAttribArray(bufferInfo.location);    
-            this.attributeBuffers.bufferData(
-                GL.ARRAY_BUFFER,
-                POSITION_LOC,
-                Float32Array.from([    
-                    1, 1, 0,
-                    1, -1, 0,
-                    -1, -1, 0,
-                    -1, 1, 0,
-                ]),
-                0,
-    //            4 * 3 * MAX_TRIANGLES * Float32Array.BYTES_PER_ELEMENT,
                 GL.STATIC_DRAW
             );
         }
 
         {
-            this.attributeBuffers.createBuffer(TRANSFORM_LOC);
-            const bufferInfo = this.attributeBuffers.getAttributeBuffer(TRANSFORM_LOC);
+            const location = POSITION_LOC;
+            this.attributeBuffers.createBuffer(location);
+            const bufferInfo = this.attributeBuffers.getAttributeBuffer(location);
+            this.attributeBuffers.bindBuffer(GL.ARRAY_BUFFER, bufferInfo);
+            this.gl.vertexAttribPointer(bufferInfo.location, 3, GL.FLOAT, false, 0, 0);
+            this.gl.enableVertexAttribArray(bufferInfo.location);    
+            this.attributeBuffers.bufferData(
+                GL.ARRAY_BUFFER,
+                location,
+                Float32Array.from([    
+                    -1, -1, 0,
+                    1, -1, 0,
+                    1, 1, 0,
+                    -1, 1, 0,
+                ]),
+                0,
+                GL.STATIC_DRAW
+            );
+        }
+
+        {
+            const location = TRANSFORM_LOC;
+            this.attributeBuffers.createBuffer(location);
+            const bufferInfo = this.attributeBuffers.getAttributeBuffer(location);
             this.attributeBuffers.bindBuffer(GL.ARRAY_BUFFER, bufferInfo);
             for (let i = 0; i < 4; i++) {
                 const loc = bufferInfo.location + i;
@@ -139,47 +162,89 @@ export class GLEngine extends Disposable {
             }
             this.attributeBuffers.bufferData(
                 GL.ARRAY_BUFFER,
-                TRANSFORM_LOC,
+                location,
                 Float32Array.from([
                     // ...mat4.translate(mat4.create(), mat4.fromYRotation(mat4.create(), Math.PI / 4), vec3.fromValues(0, 0, -2)),
+                    ...mat4.identity(mat4.create()),
                     ...mat4.fromYRotation(mat4.create(), Math.PI / 4),
                     ...mat4.fromYRotation(mat4.create(), Math.PI / 2),
-                    ...mat4.identity(mat4.create()),
                 ]),
                 0,
                 GL.DYNAMIC_DRAW
             );    
         }
 
-        const ratio = this.gl.drawingBufferWidth / this.gl.drawingBufferHeight;
         {
-            const DEG_TO_RADIANT = Math.PI / 90;
-            this.perspectiveMatrix = mat4.perspective(mat4.create(),
-                45 * DEG_TO_RADIANT,
-                ratio,
+            const location = TEX_LOC;
+            this.attributeBuffers.createBuffer(location);
+            const bufferInfo = this.attributeBuffers.getAttributeBuffer(location);
+            this.attributeBuffers.bindBuffer(GL.ARRAY_BUFFER, bufferInfo);
+            this.gl.vertexAttribPointer(bufferInfo.location, 2, GL.FLOAT, false, 0, 0);
+            this.gl.enableVertexAttribArray(bufferInfo.location);    
+            this.attributeBuffers.bufferData(
+                GL.ARRAY_BUFFER,
+                location,
+                Float32Array.from([    
+                    0, 1,
+                    1, 1,
+                    1, 0,
+                    0, 0,
+                ]),
                 0,
-                10000
-              );
+                GL.DYNAMIC_DRAW
+            );
         }
 
         {
-            const size = 1;
-            this.orthoMatrix = mat4.ortho(mat4.create(),
-                -size * ratio,
-                size * ratio,
-                -size,
-                size,
-                -100,
-                100,
-              );
+            const canvas = document.createElement("canvas");
+            canvas.width = 200; canvas.height = 200;
+            const ctx = canvas.getContext("2d")!;
+            ctx.fillStyle = "red";
+            ctx.strokeStyle = "black";
+            ctx.fillRect(0, 0, 200, 200);
+            ctx.beginPath();
+            ctx.arc(100, 100, 80, 0, 2 * Math.PI);
+            ctx.moveTo(0, 0);
+            ctx.lineTo(200,200);
+            ctx.moveTo(0, 200);
+            ctx.lineTo(200, 0);
+            ctx.stroke();
+            this.textureManager.loadCanvas(canvas, "test");
+            this.textureManager.assignImageToTexture("test", "TEXTURE0",
+                [0, 0, 200, 200],
+                [0, 0, 256, 256]
+            );
         }
 
-        this.setPerspective(1);
-
-        this.refreshCam();
+        this.checkCanvasSize();
+        this.refreshCamera();
     }
 
-    refreshCam() {
+    configPerspectiveMatrix(ratio: number) {
+        const DEG_TO_RADIANT = Math.PI / 90;
+        this.perspectiveMatrix = mat4.perspective(mat4.create(),
+            45 * DEG_TO_RADIANT,
+            ratio,
+            0,
+            10000
+          );
+        this.setPerspective();
+    }
+
+    configOrthoMatrix(ratio: number) {
+        const size = 1;
+        this.orthoMatrix = mat4.ortho(mat4.create(),
+            -size * ratio,
+            size * ratio,
+            -size,
+            size,
+            -100,
+            100,
+          );
+        this.setPerspective();
+    }
+
+    refreshCamera() {
         const matrix = mat4.identity(mat4.create());
         mat4.mul(matrix, this.cameraMatrix, matrix);
         mat4.mul(matrix, this.camTurnMatrix, matrix);
@@ -199,14 +264,17 @@ export class GLEngine extends Disposable {
             index * 4 * 3 * Float32Array.BYTES_PER_ELEMENT);
     }
 
-    setPerspective(level: number) {
+    setPerspective(level?: number) {
+        if (level !== undefined) {
+            this.perspectiveLevel = level;
+        }
         const o = mat4.create();
-        mat4.multiplyScalar(o, this.orthoMatrix, 1 - level);
+        mat4.multiplyScalar(o, this.orthoMatrix, 1 - this.perspectiveLevel);
         const p = mat4.create();
-        mat4.multiplyScalar(p, this.perspectiveMatrix, level);
+        mat4.multiplyScalar(p, this.perspectiveMatrix, this.perspectiveLevel);
         mat4.copy(this.projectionMatrix, o);
         mat4.add(this.projectionMatrix, this.projectionMatrix, p);
-        this.refreshCam();
+        this.refreshCamera();
     }
 
     moveCam(x: number, z: number) {
@@ -216,12 +284,12 @@ export class GLEngine extends Disposable {
         const v = vec3.fromValues(-x, 0, z);
         vec3.transformQuat(v, v, q);
         mat4.translate(this.cameraMatrix, this.cameraMatrix, v);
-        this.refreshCam();
+        this.refreshCamera();
     }
 
     turnCam(angle: number) {
         mat4.rotateY(this.camTurnMatrix, this.camTurnMatrix, angle);
-        this.refreshCam();
+        this.refreshCamera();
     }
 
     drawArrays(count: GLsizei) {
@@ -234,6 +302,6 @@ export class GLEngine extends Disposable {
     }
 
     private bindVertexArray() {
-        this.own(new VertexArray(this.gl));
+        return this.own(new VertexArray(this.gl));
     }
 }

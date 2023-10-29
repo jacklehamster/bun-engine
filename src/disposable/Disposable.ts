@@ -1,5 +1,9 @@
+interface Destroyable {
+    destroy: () => void;
+}
+
 export class Disposable {
-    disposables?: Set<Disposable>;
+    disposables?: Set<Destroyable>;
 
     own<D extends Disposable>(disposable: D): D {
         if (!this.disposables) {
@@ -7,6 +11,12 @@ export class Disposable {
         }
         this.disposables.add(disposable);
         return disposable;
+    }
+
+    addOnDestroy(callback: () => void) {
+        this.disposables?.add({
+            destroy: callback,
+        });
     }
 
     destroy() {
