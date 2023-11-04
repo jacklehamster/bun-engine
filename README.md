@@ -1,4 +1,4 @@
-# bun-template
+# bun-engine
 Bun template for creating projects using bunjs
 
 ## Install bun
@@ -20,4 +20,4 @@ curl -fsSL https://bun.sh/install | bash
 
 ## Run example
 
-https://jacklehamster.github.io/bun-template/example/
+https://jacklehamster.github.io/bun-engine/example/
