@@ -1,5 +1,5 @@
 {
-  "name": "bun-template",
+  "name": "bun-engine",
   "module": "index.ts",
   "type": "module",
   "scripts": {
