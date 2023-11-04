@@ -1,6 +1,7 @@
 #version 300 es
-
+//  ~{AUTHOR}
 precision highp float;
+//  ~{AUTHOR}
 
 //  CONST
 const int NUM_TEXTURES = 16;

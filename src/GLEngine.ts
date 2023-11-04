@@ -7,7 +7,7 @@ import { Disposable } from "./disposable/Disposable";
 import { VertexArray } from "./gl/VertexArray";
 import { GLAttributeBuffers } from "./gl/attributes/GLAttributeBuffers";
 import { GLUniforms } from "./gl/uniforms/GLUniforms";
-import { POSITION_LOC, INDEX_LOC, TRANSFORM_LOC, TEX_LOC, CAM_LOC, GL  } from "./gl/attributes/Contants";
+import { POSITION_LOC, INDEX_LOC, TRANSFORM_LOC, TEX_LOC, CAM_LOC, GL, SLOT_SIZE_LOC  } from "./gl/attributes/Contants";
 import { mat4, quat, vec3 } from "gl-matrix";
 import { TextureManager } from "./gl/texture/TextureManager";
 
@@ -22,8 +22,6 @@ const DEFAULT_ATTRIBUTES: WebGLContextAttributes = {
     preserveDrawingBuffer: false,
     stencil: false,
 };
-
-export const TEXTURE_SLOT_SIZE = 2048;
 
 const LOG_GL = false;
 
@@ -192,47 +190,74 @@ export class GLEngine extends Disposable {
                     0, 0,
                 ]),
                 0,
-                GL.DYNAMIC_DRAW
+                GL.STATIC_DRAW
             );
         }
 
-        {
-            const size = TEXTURE_SLOT_SIZE;
-            await this.textureManager.drawImage("test", (ctx) => {
-                const { canvas } = ctx;
-                canvas.width = size;
-                canvas.height = size;
-                ctx.imageSmoothingEnabled = true;
-                ctx.fillStyle = "#ddd";
-                ctx.lineWidth = canvas.width / 50;
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-                ctx.strokeStyle = "black";
-                ctx.fillStyle = "gold";
-                ctx.beginPath();
-                ctx.arc(canvas.width/2, canvas.height/2, canvas.width/2 * .8, 0, 2 * Math.PI);
-                ctx.fill();
-                ctx.stroke();
-                ctx.beginPath();
-                ctx.arc(canvas.width/2, canvas.height/2, canvas.width/2 * .5, 0, Math.PI);
-                ctx.stroke();
-
-                ctx.beginPath();
-                ctx.arc(canvas.width/3, canvas.height/3, canvas.width/2 * .1, 0, Math.PI, true);
-                ctx.stroke();
-                ctx.beginPath();
-                ctx.arc(canvas.width/3*2, canvas.height/3, canvas.width/2 * .1, 0, Math.PI, true);
-                ctx.stroke();
-            });
-            this.textureManager.assignImageToTexture("test", "TEXTURE0",
-                [0, 0, size, size],
-                [0, 0, TEXTURE_SLOT_SIZE, TEXTURE_SLOT_SIZE]
-            );
-            this.textureManager.generateMipMap("TEXTURE0");
-        }
+        await this.loadLogoTexture();
 
         this.checkCanvasSize();
         this.refreshCamera();
+    }
+
+    async loadLogoTexture() {
+        const TEXTURE_SLOT_SIZE = 512;
+        const LOGO_SIZE = 2048;
+
+        {
+            const location = SLOT_SIZE_LOC;
+            this.attributeBuffers.createBuffer(location);
+            const bufferInfo = this.attributeBuffers.getAttributeBuffer(location);
+            this.attributeBuffers.bindBuffer(GL.ARRAY_BUFFER, bufferInfo);
+            const loc = bufferInfo.location;
+            this.gl.vertexAttribPointer(loc, 2,
+                GL.FLOAT, false, 2 * Float32Array.BYTES_PER_ELEMENT, 0);    
+            this.gl.enableVertexAttribArray(loc);    
+            this.gl.vertexAttribDivisor(loc, 1);
+            this.attributeBuffers.bufferData(
+                GL.ARRAY_BUFFER,
+                location,
+                Float32Array.from([
+                    TEXTURE_SLOT_SIZE, TEXTURE_SLOT_SIZE,
+                    TEXTURE_SLOT_SIZE, TEXTURE_SLOT_SIZE,
+                    TEXTURE_SLOT_SIZE, TEXTURE_SLOT_SIZE,
+                ]),
+                0,
+                GL.DYNAMIC_DRAW
+            );    
+        }
+
+        await this.textureManager.drawImage("logo", (ctx) => {
+            const { canvas } = ctx;
+            canvas.width = LOGO_SIZE;
+            canvas.height = LOGO_SIZE;
+            ctx.imageSmoothingEnabled = true;
+            ctx.fillStyle = "#ddd";
+            ctx.lineWidth = canvas.width / 50;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.strokeStyle = "black";
+            ctx.fillStyle = "gold";
+            ctx.beginPath();
+            ctx.arc(canvas.width/2, canvas.height/2, canvas.width/2 * .8, 0, 2 * Math.PI);
+            ctx.fill();
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.arc(canvas.width/2, canvas.height/2, canvas.width/2 * .5, 0, Math.PI);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.arc(canvas.width/3, canvas.height/3, canvas.width/2 * .1, 0, Math.PI, true);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.arc(canvas.width/3*2, canvas.height/3, canvas.width/2 * .1, 0, Math.PI, true);
+            ctx.stroke();
+        });
+        this.textureManager.assignImageToTexture("logo", "TEXTURE0",
+            [0, 0, LOGO_SIZE, LOGO_SIZE],
+            [0, 0, TEXTURE_SLOT_SIZE, TEXTURE_SLOT_SIZE]
+        );
+        this.textureManager.generateMipMap("TEXTURE0");
     }
 
     configPerspectiveMatrix(ratio: number) {

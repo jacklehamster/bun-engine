@@ -1,4 +1,4 @@
-import { GLEngine, TEXTURE_SLOT_SIZE } from "./GLEngine";
+import { GLEngine } from "./GLEngine";
 import vertexShader from "./gl/resources/vertexShader.txt"
 import fragmentShader from "./gl/resources/fragmentShader.txt"
 import { replaceTilda } from "./gl/utils/replaceTilda";
@@ -12,7 +12,7 @@ export function testCanvas(canvas: HTMLCanvasElement) {
     const engine = new GLEngine(canvas);
 
     const replacementMap = {
-      TEXTURE_SLOT_SIZE: TEXTURE_SLOT_SIZE.toFixed(1),
+        AUTHOR: "Vincent Le Quang",
     };
 
     engine.programs.addProgram("test",
