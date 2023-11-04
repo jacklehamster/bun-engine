@@ -12,7 +12,7 @@ export function testCanvas(canvas: HTMLCanvasElement) {
     const engine = new GLEngine(canvas);
 
     const replacementMap = {
-        AUTHOR: "Vincent Le Quang",
+        AUTHOR: "Jack le hamster",
     };
 
     engine.programs.addProgram("test",
@@ -21,14 +21,6 @@ export function testCanvas(canvas: HTMLCanvasElement) {
     );
     engine.programs.useProgram("test");
     engine.initialize();
-    // engine.updateTrianglePosition(0, [
-    //     1, 1, 0,
-    //     1, -1, 0,
-    //     -1, -1, 0,
-    //     -1, 1, 0,
-    //   ]);
-//    engine.drawArrays(3);
-    // engine.drawElementsInstanced(6, 2);
 
     const keys: Record<string, boolean> = {};
     document.addEventListener("keydown", e => {
