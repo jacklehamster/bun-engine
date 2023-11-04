@@ -1,6 +1,6 @@
 # bun-engine
 
-![](icon.png)
+![](https://jacklehamster.github.io/bun-engine/icon.png)
 
 Game engine built using bunjs
 Work in progress.
