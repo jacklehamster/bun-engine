@@ -21,4 +21,4 @@ curl -fsSL https://bun.sh/install | bash
 
 ## Run example
 
-![https://jacklehamster.github.io/bun-engine/example/](https://jacklehamster.github.io/bun-engine/example/)
+[https://jacklehamster.github.io/bun-engine/example/](https://jacklehamster.github.io/bun-engine/example/)
