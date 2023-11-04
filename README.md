@@ -1,4 +1,7 @@
 # bun-engine
+
+![](icon.png)
+
 Game engine built using bunjs
 Work in progress.
 
