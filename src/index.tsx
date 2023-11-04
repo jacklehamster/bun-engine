@@ -43,10 +43,10 @@ export function testCanvas(canvas: HTMLCanvasElement) {
     function loop() {
         const speed = .5 / 2;
         const turnspeed = 0.1 / 2;
-        if (keys.KeyW) {
+        if (keys.KeyW || keys.ArrowUp) {
             engine.moveCam(0, speed);
         }
-        if (keys.KeyS) {
+        if (keys.KeyS || keys.ArrowDown) {
             engine.moveCam(0, -speed);
         }
         if (keys.KeyA) {
@@ -55,10 +55,10 @@ export function testCanvas(canvas: HTMLCanvasElement) {
         if (keys.KeyD) {
             engine.moveCam(speed, 0);
         }
-        if (keys.KeyQ) {
+        if (keys.KeyQ || keys.ArrowLeft) {
             engine.turnCam(-turnspeed);
         }
-        if (keys.KeyE) {
+        if (keys.KeyE || keys.ArrowRight) {
             engine.turnCam(turnspeed);
         }
         const vertexCount = 6;

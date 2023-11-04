@@ -197,26 +197,35 @@ export class GLEngine extends Disposable {
         }
 
         {
-            const size = 2048;
-            const canvas = document.createElement("canvas");
-            canvas.width = size; canvas.height = size;
-            const ctx = canvas.getContext("2d")!;
-            ctx.imageSmoothingEnabled = true;
-            ctx.fillStyle = "silver";
-            ctx.strokeStyle = "black";
-            ctx.lineWidth = canvas.width / 50;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.beginPath();
-            ctx.arc(canvas.width/2, canvas.height/2, canvas.width/2 * .8, 0, 2 * Math.PI);
-            ctx.moveTo(0, 0);
-            ctx.lineTo(canvas.width,canvas.height);
-            ctx.moveTo(0, canvas.height);
-            ctx.lineTo(canvas.width, 0);
-            ctx.stroke();
-            
-            await this.textureManager.loadCanvas("test", canvas);
+            const size = TEXTURE_SLOT_SIZE;
+            await this.textureManager.drawImage("test", (ctx) => {
+                const { canvas } = ctx;
+                canvas.width = size;
+                canvas.height = size;
+                ctx.imageSmoothingEnabled = true;
+                ctx.fillStyle = "#ddd";
+                ctx.lineWidth = canvas.width / 50;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                ctx.strokeStyle = "black";
+                ctx.fillStyle = "gold";
+                ctx.beginPath();
+                ctx.arc(canvas.width/2, canvas.height/2, canvas.width/2 * .8, 0, 2 * Math.PI);
+                ctx.fill();
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.arc(canvas.width/2, canvas.height/2, canvas.width/2 * .5, 0, Math.PI);
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.arc(canvas.width/3, canvas.height/3, canvas.width/2 * .1, 0, Math.PI, true);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.arc(canvas.width/3*2, canvas.height/3, canvas.width/2 * .1, 0, Math.PI, true);
+                ctx.stroke();
+            });
             this.textureManager.assignImageToTexture("test", "TEXTURE0",
-                [0, 0, canvas.width, canvas.height],
+                [0, 0, size, size],
                 [0, 0, TEXTURE_SLOT_SIZE, TEXTURE_SLOT_SIZE]
             );
             this.textureManager.generateMipMap("TEXTURE0");

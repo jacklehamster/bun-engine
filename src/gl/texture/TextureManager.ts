@@ -11,25 +11,18 @@ export type Url = string;
 export type ImageId = string;
 
 const MAX_TEXTURE_SIZE = 4096;
-const DEBUG = false;
-
 
 export class TextureManager extends Disposable {
     private gl: GL;
     private textureBuffers: Record<TextureId | string, WebGLTexture> = {};
     private images: Record<ImageId, MediaInfo> = {};
-    private tempCanvas = document.createElement("canvas");
+    private tempCanvas = new OffscreenCanvas(1, 1);
     private tempContext = this.tempCanvas.getContext("2d")!;
 
     constructor(gl: GL) {
         super();
         this.gl = gl;
         this.tempContext.imageSmoothingEnabled = true;
-        if (DEBUG) {
-            this.tempCanvas.style.width = "400px";
-            this.tempCanvas.style.height = "400px";
-            document.body.appendChild(this.tempCanvas);
-        }
     }
 
     private getTexture(textureId: TextureId) {
@@ -65,30 +58,44 @@ export class TextureManager extends Disposable {
             mediaInfo: MediaInfo,
             [srcX, srcY, srcWidth, srcHeight]: number[],
             [dstX, dstY, dstWidth, dstHeight]: number[]): void {
-        const canvas = this.tempContext.canvas;
-        if (mediaInfo.texImgSrc instanceof ImageData) {
-            canvas.width = dstWidth || mediaInfo.width;
-            canvas.height = dstHeight || mediaInfo.height;
-            this.tempContext.putImageData(mediaInfo.texImgSrc, 0, 0);
-            if (srcX || srcY) {
-                console.warn("Offset not available when sending imageData");
-            }
+        if (srcWidth === dstWidth && srcHeight === dstHeight && !srcX && !srcY) {
+            this.gl.texSubImage2D(GL.TEXTURE_2D, 0, dstX, dstY, srcWidth, srcHeight, GL.RGBA, GL.UNSIGNED_BYTE, mediaInfo.texImgSrc);
         } else {
-            const sourceWidth = srcWidth || mediaInfo.width;
-            const sourceHeight = srcHeight || mediaInfo.height;
-            canvas.width = dstWidth || sourceWidth;
-            canvas.height = dstHeight || sourceHeight;
-            this.tempContext.drawImage(mediaInfo.texImgSrc, srcX, srcY, sourceWidth, sourceHeight, 0, 0, canvas.width, canvas.height);
+            console.log("Used canvas");
+            const canvas = this.tempContext.canvas;
+            if (mediaInfo.texImgSrc instanceof ImageData) {
+                canvas.width = dstWidth || mediaInfo.width;
+                canvas.height = dstHeight || mediaInfo.height;
+                this.tempContext.putImageData(mediaInfo.texImgSrc, 0, 0);
+                if (srcX || srcY) {
+                    console.warn("Offset not available when sending imageData");
+                }
+            } else {
+                const sourceWidth = srcWidth || mediaInfo.width;
+                const sourceHeight = srcHeight || mediaInfo.height;
+                canvas.width = dstWidth || sourceWidth;
+                canvas.height = dstHeight || sourceHeight;
+                this.tempContext.drawImage(mediaInfo.texImgSrc, srcX, srcY, sourceWidth, sourceHeight, 0, 0, canvas.width, canvas.height);
+            }
+            this.gl.texSubImage2D(GL.TEXTURE_2D, 0, dstX, dstY, canvas.width, canvas.height, GL.RGBA, GL.UNSIGNED_BYTE, canvas);    
         }
-        this.gl.texSubImage2D(GL.TEXTURE_2D, 0, dstX, dstY, canvas.width, canvas.height, GL.RGBA, GL.UNSIGNED_BYTE, canvas);
     }
 
     hasImageId(imageId: ImageId): boolean {
         return !!this.images[imageId];
     }
 
+    async drawImage(imageId: ImageId, drawProcedure: (context: OffscreenCanvasRenderingContext2D) => void): Promise<MediaInfo> {
+        const canvas = new OffscreenCanvas(1, 1);
+        drawProcedure(canvas.getContext("2d")!);
+        const imageInfo = new MediaInfo(canvas);
+        this.images[imageId] = this.own(imageInfo);
+        return imageInfo;
+    }
+
     async loadCanvas(imageId: ImageId, canvas: HTMLCanvasElement): Promise<MediaInfo> {
         const imageInfo = new MediaInfo(canvas);
+        canvas.getContext("2d");
         this.images[imageId] = this.own(imageInfo);
         return imageInfo;
     }
