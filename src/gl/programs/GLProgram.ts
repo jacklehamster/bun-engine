@@ -1,4 +1,4 @@
-import { Disposable } from "../../disposable/Disposable";
+import { Disposable } from '../../disposable/Disposable';
 
 export class GLProgram extends Disposable {
   gl: WebGL2RenderingContext;
@@ -27,9 +27,9 @@ function createProgram(
   function createShader(shaderSource: string, type: GLenum) {
     function typeName(type: number) {
       return type === gl?.VERTEX_SHADER
-        ? "vertex"
+        ? 'vertex'
         : type === gl?.FRAGMENT_SHADER
-        ? "fragment"
+        ? 'fragment'
         : undefined;
     }
 
@@ -63,17 +63,17 @@ function createProgram(
   const vertexInfo = gl.getShaderInfoLog(vertexShader),
     fragmentInfo = gl.getShaderInfoLog(fragmentShader);
   if (vertexInfo) {
-    console.log("VERTEX", vertexInfo);
+    console.log('VERTEX', vertexInfo);
   }
   if (fragmentInfo) {
-    console.log("FRAGMENT", fragmentInfo);
+    console.log('FRAGMENT', fragmentInfo);
   }
   gl.attachShader(program, vertexShader);
   gl.attachShader(program, fragmentShader);
   gl.linkProgram(program);
   const programInfo = gl.getProgramInfoLog(program);
   if (programInfo) {
-    console.log("PROGRAM", programInfo);
+    console.log('PROGRAM', programInfo);
   }
   gl.detachShader(program, vertexShader);
   gl.detachShader(program, fragmentShader);
@@ -89,7 +89,7 @@ function createProgram(
 
   if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
     throw new Error(
-      "Unable to initialize the shader program:\n" +
+      'Unable to initialize the shader program:\n' +
         gl.getProgramInfoLog(program),
     );
   }

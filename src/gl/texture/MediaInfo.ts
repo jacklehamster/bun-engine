@@ -1,4 +1,4 @@
-import { Disposable } from "../../disposable/Disposable";
+import { Disposable } from '../../disposable/Disposable';
 
 export class MediaInfo extends Disposable {
   texImgSrc: TexImageSource;
@@ -29,10 +29,10 @@ export class MediaInfo extends Disposable {
       const imageInfo = new MediaInfo(image);
       const imageLoaded = () => resolve(imageInfo);
       const imageError = (e: ErrorEvent) => reject(e.error);
-      image.addEventListener("error", imageError);
-      image.addEventListener("load", imageLoaded, { once: true });
+      image.addEventListener('error', imageError);
+      image.addEventListener('load', imageLoaded, { once: true });
       imageInfo.addOnDestroy(() =>
-        image.removeEventListener("load", imageLoaded),
+        image.removeEventListener('load', imageLoaded),
       );
       image.src = src;
     });
@@ -40,7 +40,7 @@ export class MediaInfo extends Disposable {
 
   static async loadVideo(src: string, volume?: number): Promise<MediaInfo> {
     return new Promise((resolve, reject) => {
-      const video = document.createElement("video");
+      const video = document.createElement('video');
       const videoInfo = new MediaInfo(video);
       video.loop = true;
       if (volume !== undefined) {
@@ -49,30 +49,30 @@ export class MediaInfo extends Disposable {
       const startVideo = () => video.play();
       const onVideoPlaying = () => resolve(videoInfo);
 
-      video.addEventListener("loadedmetadata", startVideo);
-      video.addEventListener("playing", onVideoPlaying, { once: true });
-      video.addEventListener("error", (e: ErrorEvent) => reject(e.error));
+      video.addEventListener('loadedmetadata', startVideo);
+      video.addEventListener('playing', onVideoPlaying, { once: true });
+      video.addEventListener('error', (e: ErrorEvent) => reject(e.error));
       video.src = src;
 
       videoInfo.addOnDestroy(() => {
         video.pause();
-        video.removeEventListener("playing", onVideoPlaying);
-        video.removeEventListener("loadmetadata", startVideo);
+        video.removeEventListener('playing', onVideoPlaying);
+        video.removeEventListener('loadmetadata', startVideo);
       });
     });
   }
 
   static async loadWebcam(deviceId?: string): Promise<MediaInfo> {
     return new Promise((resolve, reject) => {
-      const video = document.createElement("video");
+      const video = document.createElement('video');
       const videoInfo = new MediaInfo(video);
       video.loop = true;
       const startVideo = () => video.play();
       const onVideoPlaying = () => resolve(videoInfo);
 
-      video.addEventListener("loadedmetadata", startVideo);
-      video.addEventListener("playing", onVideoPlaying, { once: true });
-      video.addEventListener("error", (e: ErrorEvent) => reject(e.error));
+      video.addEventListener('loadedmetadata', startVideo);
+      video.addEventListener('playing', onVideoPlaying, { once: true });
+      video.addEventListener('error', (e: ErrorEvent) => reject(e.error));
       let cancelled = false;
       navigator.mediaDevices
         .getUserMedia({ video: { deviceId } })
@@ -88,8 +88,8 @@ export class MediaInfo extends Disposable {
       videoInfo.addOnDestroy(() => {
         cancelled = true;
         video.pause();
-        video.removeEventListener("playing", onVideoPlaying);
-        video.removeEventListener("loadmetadata", startVideo);
+        video.removeEventListener('playing', onVideoPlaying);
+        video.removeEventListener('loadmetadata', startVideo);
       });
     });
   }

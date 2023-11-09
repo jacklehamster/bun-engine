@@ -1,35 +1,22 @@
-import { GLEngine } from "./GLEngine";
-import vertexShader from "./generated/src/gl/resources/vertexShader.txt";
-import fragmentShader from "./generated/src/gl/resources/fragmentShader.txt";
-import { replaceTilda } from "./gl/utils/replaceTilda";
+import { GLEngine } from './GLEngine';
 
 export async function hello() {
-  console.log("Hello World!");
+  console.log('Hello World!');
 }
 
 export function testCanvas(canvas: HTMLCanvasElement) {
-  canvas.style.border = ".5px solid silver";
+  canvas.style.border = '.5px solid silver';
   const engine = new GLEngine(canvas);
 
-  const replacementMap = {
-    AUTHOR: "Jack le hamster",
-  };
-
-  engine.programs.addProgram(
-    "test",
-    replaceTilda(vertexShader, replacementMap),
-    replaceTilda(fragmentShader, replacementMap)
-  );
-  engine.programs.useProgram("test");
   engine.initialize();
 
   const keys: Record<string, boolean> = {};
-  document.addEventListener("keydown", (e) => {
+  document.addEventListener('keydown', (e) => {
     keys[e.code] = true;
     // console.log(keys);
   });
 
-  document.addEventListener("keyup", (e) => {
+  document.addEventListener('keyup', (e) => {
     keys[e.code] = false;
   });
 
@@ -55,7 +42,7 @@ export function testCanvas(canvas: HTMLCanvasElement) {
       engine.turnCam(turnspeed);
     }
     const vertexCount = 6;
-    const instanceCount = 1;
+    const instanceCount = 3;
     engine.drawElementsInstanced(vertexCount, instanceCount);
     requestAnimationFrame(loop);
   }

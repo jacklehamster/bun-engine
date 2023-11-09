@@ -1,8 +1,8 @@
-import { Disposable } from "../../disposable/Disposable";
-import { GLProgram } from "./GLProgram";
+import { Disposable } from '../../disposable/Disposable';
+import { GLProgram } from './GLProgram';
 
 export class GLPrograms extends Disposable {
-  activeProgramId: string = "";
+  activeProgramId: string = '';
   private gl: WebGL2RenderingContext;
   private programs: Record<string, GLProgram> = {};
 

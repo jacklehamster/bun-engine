@@ -1,37 +1,35 @@
 {
-    "compilerOptions": {
-        "jsx": "react",
-        "types": ["bun-types"],
-        "resolveJsonModule": true,
-        "esModuleInterop": true,
-        "lib": ["dom", "esnext"],
-        "strict": true,
-        "outDir": "dist",
-        "module": "esnext",
-        "moduleResolution": "node",
-        "sourceMap": true,
-        "declaration": true,
-        "noImplicitReturns": true,
-        "noImplicitThis": true,
-        "noImplicitAny": true,
-        "strictNullChecks": true,
-        "noUnusedLocals": true,
-        "noUnusedParameters": true,
-        "allowSyntheticDefaultImports": true,
-        "forceConsistentCasingInFileNames": true,
-        "target": "es5",
-        "allowJs": true,
-        "skipLibCheck": true,
-        "isolatedModules": true,
-        "noEmit": true,
-        "downlevelIteration": true
-    },
-    "include": [
-        "src",
-        "bundler",
-    ],
-    "exclude": [
-        "node_modules",
-        "build"
-    ]    
+  "compilerOptions": {
+    "jsx": "react",
+    "types": ["bun-types"],
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "lib": ["dom", "esnext"],
+    "strict": true,
+    "outDir": "dist",
+    "module": "esnext",
+    "moduleResolution": "node",
+    "sourceMap": true,
+    "declaration": true,
+    "noImplicitReturns": true,
+    "noImplicitThis": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+    "target": "es5",
+    "allowJs": true,
+    "skipLibCheck": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "downlevelIteration": true,
+    "baseUrl": ".",
+    "paths": {
+      "*": ["src/*"]
+    }
+  },
+  "include": ["src", "bundler"],
+  "exclude": ["node_modules", "build"]
 }

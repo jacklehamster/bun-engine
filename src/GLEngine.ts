@@ -2,11 +2,11 @@
 /// <reference lib="dom" />
 /// <reference lib="dom.iterable" />
 
-import { GLPrograms } from "./gl/programs/GLPrograms";
-import { Disposable } from "./disposable/Disposable";
-import { VertexArray } from "./gl/VertexArray";
-import { GLAttributeBuffers } from "./gl/attributes/GLAttributeBuffers";
-import { GLUniforms } from "./gl/uniforms/GLUniforms";
+import { GLPrograms } from './gl/programs/GLPrograms';
+import { Disposable } from './disposable/Disposable';
+import { VertexArray } from './gl/VertexArray';
+import { GLAttributeBuffers } from './gl/attributes/GLAttributeBuffers';
+import { GLUniforms } from './gl/uniforms/GLUniforms';
 import {
   POSITION_LOC,
   INDEX_LOC,
@@ -15,9 +15,13 @@ import {
   CAM_LOC,
   GL,
   SLOT_SIZE_LOC,
-} from "./gl/attributes/Contants";
-import { mat4, quat, vec3 } from "gl-matrix";
-import { TextureManager } from "./gl/texture/TextureManager";
+} from './gl/attributes/Contants';
+import { mat4, quat, vec3 } from 'gl-matrix';
+import { TextureManager } from './gl/texture/TextureManager';
+import vertexShader from 'generated/src/gl/resources/vertexShader.txt';
+import fragmentShader from 'generated/src/gl/resources/fragmentShader.txt';
+import { replaceTilda } from 'gl/utils/replaceTilda';
+import Matrix from 'gl/transform/Matrix';
 
 const DEFAULT_ATTRIBUTES: WebGLContextAttributes = {
   alpha: true,
@@ -25,7 +29,7 @@ const DEFAULT_ATTRIBUTES: WebGLContextAttributes = {
   depth: true,
   desynchronized: true,
   failIfMajorPerformanceCaveat: undefined,
-  powerPreference: "default",
+  powerPreference: 'default',
   premultipliedAlpha: true,
   preserveDrawingBuffer: false,
   stencil: false,
@@ -41,10 +45,10 @@ function glProxy(gl: GL) {
     get(target, prop) {
       const t = target as any;
       const result = t[prop];
-      if (typeof result === "function") {
+      if (typeof result === 'function') {
         const f = (...params: any[]) => {
           const returnValue = result.apply(t, params);
-          console.log(`gl.${String(prop)}(`, params, ") = ", returnValue);
+          console.log(`gl.${String(prop)}(`, params, ') = ', returnValue);
           return returnValue;
         };
         return f;
@@ -75,7 +79,7 @@ export class GLEngine extends Disposable {
   constructor(canvas: HTMLCanvasElement, attributes?: WebGLContextAttributes) {
     super();
     this.gl = glProxy(
-      canvas.getContext("webgl2", { ...DEFAULT_ATTRIBUTES, ...attributes })!,
+      canvas.getContext('webgl2', { ...DEFAULT_ATTRIBUTES, ...attributes })!,
     );
     this.canvas = canvas;
 
@@ -96,7 +100,7 @@ export class GLEngine extends Disposable {
     this.orthoMatrix = mat4.identity(mat4.create());
     this.projectionMatrix = mat4.identity(mat4.create());
 
-    window.addEventListener("resize", this.checkCanvasSize.bind(this));
+    window.addEventListener('resize', this.checkCanvasSize.bind(this));
   }
 
   checkCanvasSize() {
@@ -115,6 +119,17 @@ export class GLEngine extends Disposable {
   }
 
   async initialize() {
+    const PROGRAM_NAME = 'main';
+    const replacementMap = {
+      AUTHOR: 'Jack le hamster',
+    };
+    this.programs.addProgram(
+      PROGRAM_NAME,
+      replaceTilda(vertexShader, replacementMap),
+      replaceTilda(fragmentShader, replacementMap),
+    );
+    this.programs.useProgram(PROGRAM_NAME);
+
     //  enable depth
     this.gl.enable(GL.DEPTH_TEST);
     this.gl.depthFunc(GL.LEQUAL);
@@ -192,9 +207,9 @@ export class GLEngine extends Disposable {
         location,
         Float32Array.from([
           // ...mat4.translate(mat4.create(), mat4.fromYRotation(mat4.create(), Math.PI / 4), vec3.fromValues(0, 0, -2)),
-          ...mat4.identity(mat4.create()),
-          ...mat4.fromYRotation(mat4.create(), Math.PI / 4),
-          ...mat4.fromYRotation(mat4.create(), Math.PI / 2),
+          ...Matrix.create().getMatrix(),
+          ...Matrix.create().translate(-1, 0, 1).rotateY(Math.PI / 2).getMatrix(),
+          ...Matrix.create().translate(1, 0, 1).rotateY(-Math.PI / 2).getMatrix(),
         ]),
         0,
         GL.DYNAMIC_DRAW,
@@ -266,17 +281,17 @@ export class GLEngine extends Disposable {
       );
     }
 
-    await this.textureManager.drawImage("logo", (ctx) => {
+    await this.textureManager.drawImage('logo', (ctx) => {
       const { canvas } = ctx;
       canvas.width = LOGO_SIZE;
       canvas.height = LOGO_SIZE;
       ctx.imageSmoothingEnabled = true;
-      ctx.fillStyle = "#ddd";
+      ctx.fillStyle = '#ddd';
       ctx.lineWidth = canvas.width / 50;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      ctx.strokeStyle = "black";
-      ctx.fillStyle = "gold";
+      ctx.strokeStyle = 'black';
+      ctx.fillStyle = 'gold';
       ctx.beginPath();
       ctx.arc(
         canvas.width / 2,
@@ -313,18 +328,18 @@ export class GLEngine extends Disposable {
         canvas.height / 3,
         (canvas.width / 2) * 0.1,
         0,
-        Math.PI,
+        Math.PI * 2,
         true,
       );
       ctx.stroke();
     });
     this.textureManager.assignImageToTexture(
-      "logo",
-      "TEXTURE0",
+      'logo',
+      'TEXTURE0',
       [0, 0, LOGO_SIZE, LOGO_SIZE],
       [0, 0, TEXTURE_SLOT_SIZE, TEXTURE_SLOT_SIZE],
     );
-    this.textureManager.generateMipMap("TEXTURE0");
+    this.textureManager.generateMipMap('TEXTURE0');
   }
 
   configPerspectiveMatrix(ratio: number) {

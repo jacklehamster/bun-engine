@@ -1,5 +1,5 @@
-import { Disposable } from "../../disposable/Disposable";
-import { GLPrograms } from "../programs/GLPrograms";
+import { Disposable } from '../../disposable/Disposable';
+import { GLPrograms } from '../programs/GLPrograms';
 
 export class GLUniforms extends Disposable {
   private gl: WebGL2RenderingContext;

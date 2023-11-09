@@ -1,4 +1,4 @@
-import { Disposable } from "../disposable/Disposable";
+import { Disposable } from '../disposable/Disposable';
 
 export class VertexArray extends Disposable {
   private gl: WebGL2RenderingContext;

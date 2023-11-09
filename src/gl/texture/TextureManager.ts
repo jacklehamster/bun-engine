@@ -1,40 +1,40 @@
-import { Disposable } from "../../disposable/Disposable";
-import { GL } from "../attributes/Contants";
-import { MediaInfo } from "./MediaInfo";
+import { Disposable } from '../../disposable/Disposable';
+import { GL } from '../attributes/Contants';
+import { MediaInfo } from './MediaInfo';
 
 export type TextureId =
-  | "TEXTURE0"
-  | "TEXTURE1"
-  | "TEXTURE2"
-  | "TEXTURE3"
-  | "TEXTURE4"
-  | "TEXTURE5"
-  | "TEXTURE6"
-  | "TEXTURE7"
-  | "TEXTURE8"
-  | "TEXTURE9"
-  | "TEXTURE10"
-  | "TEXTURE11"
-  | "TEXTURE12"
-  | "TEXTURE13"
-  | "TEXTURE14"
-  | "TEXTURE15"
-  | "TEXTURE16"
-  | "TEXTURE17"
-  | "TEXTURE18"
-  | "TEXTURE19"
-  | "TEXTURE20"
-  | "TEXTURE21"
-  | "TEXTURE22"
-  | "TEXTURE23"
-  | "TEXTURE24"
-  | "TEXTURE25"
-  | "TEXTURE26"
-  | "TEXTURE27"
-  | "TEXTURE28"
-  | "TEXTURE29"
-  | "TEXTURE30"
-  | "TEXTURE31";
+  | 'TEXTURE0'
+  | 'TEXTURE1'
+  | 'TEXTURE2'
+  | 'TEXTURE3'
+  | 'TEXTURE4'
+  | 'TEXTURE5'
+  | 'TEXTURE6'
+  | 'TEXTURE7'
+  | 'TEXTURE8'
+  | 'TEXTURE9'
+  | 'TEXTURE10'
+  | 'TEXTURE11'
+  | 'TEXTURE12'
+  | 'TEXTURE13'
+  | 'TEXTURE14'
+  | 'TEXTURE15'
+  | 'TEXTURE16'
+  | 'TEXTURE17'
+  | 'TEXTURE18'
+  | 'TEXTURE19'
+  | 'TEXTURE20'
+  | 'TEXTURE21'
+  | 'TEXTURE22'
+  | 'TEXTURE23'
+  | 'TEXTURE24'
+  | 'TEXTURE25'
+  | 'TEXTURE26'
+  | 'TEXTURE27'
+  | 'TEXTURE28'
+  | 'TEXTURE29'
+  | 'TEXTURE30'
+  | 'TEXTURE31';
 
 export type Url = string;
 export type ImageId = string;
@@ -46,7 +46,7 @@ export class TextureManager extends Disposable {
   private textureBuffers: Record<TextureId | string, WebGLTexture> = {};
   private images: Record<ImageId, MediaInfo> = {};
   private tempCanvas = new OffscreenCanvas(1, 1);
-  private tempContext = this.tempCanvas.getContext("2d")!;
+  private tempContext = this.tempCanvas.getContext('2d')!;
 
   constructor(gl: GL) {
     super();
@@ -116,14 +116,14 @@ export class TextureManager extends Disposable {
         mediaInfo.texImgSrc,
       );
     } else {
-      console.log("Used canvas");
+      console.log('Used canvas');
       const canvas = this.tempContext.canvas;
       if (mediaInfo.texImgSrc instanceof ImageData) {
         canvas.width = dstWidth || mediaInfo.width;
         canvas.height = dstHeight || mediaInfo.height;
         this.tempContext.putImageData(mediaInfo.texImgSrc, 0, 0);
         if (srcX || srcY) {
-          console.warn("Offset not available when sending imageData");
+          console.warn('Offset not available when sending imageData');
         }
       } else {
         const sourceWidth = srcWidth || mediaInfo.width;
@@ -165,7 +165,7 @@ export class TextureManager extends Disposable {
     drawProcedure: (context: OffscreenCanvasRenderingContext2D) => void,
   ): Promise<MediaInfo> {
     const canvas = new OffscreenCanvas(1, 1);
-    drawProcedure(canvas.getContext("2d")!);
+    drawProcedure(canvas.getContext('2d')!);
     const imageInfo = new MediaInfo(canvas);
     this.images[imageId] = this.own(imageInfo);
     return imageInfo;
@@ -176,7 +176,7 @@ export class TextureManager extends Disposable {
     canvas: HTMLCanvasElement,
   ): Promise<MediaInfo> {
     const imageInfo = new MediaInfo(canvas);
-    canvas.getContext("2d");
+    canvas.getContext('2d');
     this.images[imageId] = this.own(imageInfo);
     return imageInfo;
   }
@@ -213,7 +213,7 @@ export class TextureManager extends Disposable {
     destRect?: [number, number, number, number],
   ): void {
     if (!this.getTexture(textureId)) {
-      console.warn("Invalid texture Id");
+      console.warn('Invalid texture Id');
       return;
     }
     const imageInfo = this.images[imageId];
@@ -241,7 +241,7 @@ export class TextureManager extends Disposable {
       this.gl.activeTexture(GL[textureId]);
       this.gl.bindTexture(GL.TEXTURE_2D, texture);
       this.gl.generateMipmap(GL.TEXTURE_2D);
-      console.log("GENERATED MIPMAP");
+      console.log('GENERATED MIPMAP');
     }
   }
 }
