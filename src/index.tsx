@@ -1,6 +1,6 @@
 import { GLEngine } from "./GLEngine";
-import vertexShader from "./gl/resources/vertexShader.txt"
-import fragmentShader from "./gl/resources/fragmentShader.txt"
+import vertexShader from "./generated/src/gl/resources/vertexShader.txt"
+import fragmentShader from "./generated/src/gl/resources/fragmentShader.txt"
 import { replaceTilda } from "./gl/utils/replaceTilda";
 
 export async function hello() {

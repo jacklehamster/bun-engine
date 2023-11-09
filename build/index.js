@@ -7,12 +7,12 @@ const float TEXTURE_SIZE = 4096.;
 
 //  IN
 //  shape
-layout (location=0) in vec4 position;
-layout (location=1) in mat4 transform;
+layout(location = 0) in vec4 position;
+layout(location = 1) in mat4 transform;
 //  2, 3, 4
 //  animation
-layout (location=5) in vec2 tex;
-layout (location=6) in vec2 slotSize;
+layout(location = 5) in vec2 tex;
+layout(location = 6) in vec2 slotSize;
 
 //  UNIFORM
 uniform mat4 cam;
@@ -23,15 +23,14 @@ out float textureIndex;
 out float opacity;
 
 void main() {
-    gl_Position = cam * transform * position;
-    vTex = tex * (slotSize / TEXTURE_SIZE);
-    textureIndex = 0.;
-    opacity = 1.;
+  gl_Position = cam * transform * position;
+  vTex = tex * (slotSize / TEXTURE_SIZE);
+  textureIndex = 0.;
+  opacity = 1.;
 }
 `;var KQ=`#version 300 es
 //  ~{AUTHOR}
 precision highp float;
-//  ~{AUTHOR}
 
 //  CONST
 const int NUM_TEXTURES = 16;
@@ -51,64 +50,64 @@ out vec4 fragColor;
 vec4 getTextureColor(float textureSlot, vec2 vTexturePoint);
 
 void main() {
-    vec4 color = getTextureColor(textureIndex, vTex);
-    if (color.a <= .01) {
-        discard;
-    };
-    fragColor = vec4(color.rgb, 1.);
+  vec4 color = getTextureColor(textureIndex, vTex);
+  if (color.a <= .01) {
+    discard;
+  };
+  fragColor = vec4(color.rgb, 1.);
 }
 
 vec4 getTextureColor(float textureSlot, vec2 vTexturePoint) {
-    if (abs(0.0 - textureSlot) < threshold) {
-        return texture(uTextures[0], vTexturePoint);
-    }
-    if (abs(1.0 - textureSlot) < threshold) {
-        return texture(uTextures[1], vTexturePoint);
-    }
-    if (abs(2.0 - textureSlot) < threshold) {
-        return texture(uTextures[2], vTexturePoint);
-    }
-    if (abs(3.0 - textureSlot) < threshold) {
-        return texture(uTextures[3], vTexturePoint);
-    }
-    if (abs(4.0 - textureSlot) < threshold) {
-        return texture(uTextures[4], vTexturePoint);
-    }
-    if (abs(5.0 - textureSlot) < threshold) {
-        return texture(uTextures[5], vTexturePoint);
-    }
-    if (abs(6.0 - textureSlot) < threshold) {
-        return texture(uTextures[6], vTexturePoint);
-    }
-    if (abs(7.0 - textureSlot) < threshold) {
-        return texture(uTextures[7], vTexturePoint);
-    }
-    if (abs(8.0 - textureSlot) < threshold) {
-        return texture(uTextures[8], vTexturePoint);
-    }
-    if (abs(9.0 - textureSlot) < threshold) {
-        return texture(uTextures[9], vTexturePoint);
-    }
-    if (abs(10.0 - textureSlot) < threshold) {
-        return texture(uTextures[10], vTexturePoint);
-    }
-    if (abs(11.0 - textureSlot) < threshold) {
-        return texture(uTextures[11], vTexturePoint);
-    }
-    if (abs(12.0 - textureSlot) < threshold) {
-        return texture(uTextures[12], vTexturePoint);
-    }
-    if (abs(13.0 - textureSlot) < threshold) {
-        return texture(uTextures[13], vTexturePoint);
-    }
-    if (abs(14.0 - textureSlot) < threshold) {
-        return texture(uTextures[14], vTexturePoint);
-    }
-    if (abs(15.0 - textureSlot) < threshold) {
-        return texture(uTextures[15], vTexturePoint);
-    }
+  if (abs(0.0 - textureSlot) < threshold) {
     return texture(uTextures[0], vTexturePoint);
-}            
-`;function B0(Q,K){return Q.replace(/~\{(\w+)\}/g,($,Z)=>{return K?.[Z]||$})}async function u$(){console.log("Hello World!")}function o$(Q){Q.style.border=".5px solid silver";const K=new V0(Q),$={AUTHOR:"Vincent Le Quang"};K.programs.addProgram("test",B0(QQ,$),B0(KQ,$)),K.programs.useProgram("test"),K.initialize();const Z={};document.addEventListener("keydown",(N)=>{Z[N.code]=!0}),document.addEventListener("keyup",(N)=>{Z[N.code]=!1});function J(){if(Z.KeyW||Z.ArrowUp)K.moveCam(0,0.25);if(Z.KeyS||Z.ArrowDown)K.moveCam(0,-0.25);if(Z.KeyA)K.moveCam(-0.25,0);if(Z.KeyD)K.moveCam(0.25,0);if(Z.KeyQ||Z.ArrowLeft)K.turnCam(-0.05);if(Z.KeyE||Z.ArrowRight)K.turnCam(0.05);const V=6,B=1;K.drawElementsInstanced(V,B),requestAnimationFrame(J)}return J(),K}export{o$ as testCanvas,u$ as hello};
+  }
+  if (abs(1.0 - textureSlot) < threshold) {
+    return texture(uTextures[1], vTexturePoint);
+  }
+  if (abs(2.0 - textureSlot) < threshold) {
+    return texture(uTextures[2], vTexturePoint);
+  }
+  if (abs(3.0 - textureSlot) < threshold) {
+    return texture(uTextures[3], vTexturePoint);
+  }
+  if (abs(4.0 - textureSlot) < threshold) {
+    return texture(uTextures[4], vTexturePoint);
+  }
+  if (abs(5.0 - textureSlot) < threshold) {
+    return texture(uTextures[5], vTexturePoint);
+  }
+  if (abs(6.0 - textureSlot) < threshold) {
+    return texture(uTextures[6], vTexturePoint);
+  }
+  if (abs(7.0 - textureSlot) < threshold) {
+    return texture(uTextures[7], vTexturePoint);
+  }
+  if (abs(8.0 - textureSlot) < threshold) {
+    return texture(uTextures[8], vTexturePoint);
+  }
+  if (abs(9.0 - textureSlot) < threshold) {
+    return texture(uTextures[9], vTexturePoint);
+  }
+  if (abs(10.0 - textureSlot) < threshold) {
+    return texture(uTextures[10], vTexturePoint);
+  }
+  if (abs(11.0 - textureSlot) < threshold) {
+    return texture(uTextures[11], vTexturePoint);
+  }
+  if (abs(12.0 - textureSlot) < threshold) {
+    return texture(uTextures[12], vTexturePoint);
+  }
+  if (abs(13.0 - textureSlot) < threshold) {
+    return texture(uTextures[13], vTexturePoint);
+  }
+  if (abs(14.0 - textureSlot) < threshold) {
+    return texture(uTextures[14], vTexturePoint);
+  }
+  if (abs(15.0 - textureSlot) < threshold) {
+    return texture(uTextures[15], vTexturePoint);
+  }
+  return texture(uTextures[0], vTexturePoint);
+}
+`;function B0(Q,K){return Q.replace(/~\{(\w+)\}/g,($,Z)=>{return K?.[Z]||$})}async function u$(){console.log("Hello World!")}function o$(Q){Q.style.border=".5px solid silver";const K=new V0(Q),$={AUTHOR:"Jack le hamster"};K.programs.addProgram("test",B0(QQ,$),B0(KQ,$)),K.programs.useProgram("test"),K.initialize();const Z={};document.addEventListener("keydown",(N)=>{Z[N.code]=!0}),document.addEventListener("keyup",(N)=>{Z[N.code]=!1});function J(){if(Z.KeyW||Z.ArrowUp)K.moveCam(0,0.25);if(Z.KeyS||Z.ArrowDown)K.moveCam(0,-0.25);if(Z.KeyA)K.moveCam(-0.25,0);if(Z.KeyD)K.moveCam(0.25,0);if(Z.KeyQ||Z.ArrowLeft)K.turnCam(-0.05);if(Z.KeyE||Z.ArrowRight)K.turnCam(0.05);const V=6,B=1;K.drawElementsInstanced(V,B),requestAnimationFrame(J)}return J(),K}export{o$ as testCanvas,u$ as hello};
 
-//# debugId=D934496B691A1E9764756e2164756e21
+//# debugId=BC9CBDCCA2D0AAF164756e2164756e21
