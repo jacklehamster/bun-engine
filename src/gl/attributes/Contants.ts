@@ -13,5 +13,3 @@ export const SLOT_SIZE_LOC: LocationName = "slotSize";
 
 //  Uniform
 export const CAM_LOC: LocationName = "cam";
-
-
