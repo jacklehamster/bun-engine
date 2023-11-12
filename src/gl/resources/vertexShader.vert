@@ -7,7 +7,7 @@ const float TEXTURE_SIZE = 4096.;
 
 //  IN
 //  shape
-layout(location = 0) in vec4 position;
+layout(location = 0) in vec2 position;
 layout(location = 1) in mat4 transform;
 //  2, 3, 4
 //  animation
@@ -16,15 +16,14 @@ layout(location = 6) in vec2 slotSize;
 
 //  UNIFORM
 uniform mat4 cam;
+uniform mat4 projection;
 
 //  OUT
 out vec2 vTex;
 out float textureIndex;
-out float opacity;
 
 void main() {
-  gl_Position = cam * transform * position;
+  gl_Position = projection * cam * transform * vec4(position, 0.0, 1.0);
   vTex = tex * (slotSize / TEXTURE_SIZE);
   textureIndex = 0.;
-  opacity = 1.;
 }

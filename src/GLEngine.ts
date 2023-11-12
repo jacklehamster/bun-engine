@@ -13,6 +13,7 @@ import {
   TRANSFORM_LOC,
   TEX_LOC,
   CAM_LOC,
+  PROJECTION_LOC,
   GL,
   SLOT_SIZE_LOC,
 } from './gl/attributes/Contants';
@@ -62,7 +63,7 @@ function glProxy(gl: GL) {
 }
 
 export class GLEngine extends Disposable {
-  private gl: GL;
+  gl: GL;
   private perspectiveLevel: number = 1;
   programs: GLPrograms;
   attributeBuffers: GLAttributeBuffers;
@@ -90,15 +91,11 @@ export class GLEngine extends Disposable {
       new GLAttributeBuffers(this.gl, this.programs),
     );
     this.uniforms = this.own(new GLUniforms(this.gl, this.programs));
-    this.cameraMatrix = mat4.translate(
-      mat4.create(),
-      mat4.identity(mat4.create()),
-      vec3.fromValues(0, 0, -1),
-    );
-    this.camTurnMatrix = mat4.identity(mat4.create());
-    this.perspectiveMatrix = mat4.identity(mat4.create());
-    this.orthoMatrix = mat4.identity(mat4.create());
-    this.projectionMatrix = mat4.identity(mat4.create());
+    this.cameraMatrix = Matrix.create().translate(0, 0, -1).getMatrix();
+    this.camTurnMatrix = Matrix.create().getMatrix();
+    this.perspectiveMatrix = Matrix.create().getMatrix();
+    this.orthoMatrix = Matrix.create().getMatrix();
+    this.projectionMatrix = Matrix.create().getMatrix();
 
     window.addEventListener('resize', this.checkCanvasSize.bind(this));
   }
@@ -132,7 +129,7 @@ export class GLEngine extends Disposable {
 
     //  enable depth
     this.gl.enable(GL.DEPTH_TEST);
-    this.gl.depthFunc(GL.LEQUAL);
+    this.gl.depthFunc(GL.LESS);
     //  enable blend
     this.gl.enable(GL.BLEND);
     this.gl.blendFunc(GL.SRC_ALPHA, GL.ONE_MINUS_SRC_ALPHA);
@@ -168,7 +165,7 @@ export class GLEngine extends Disposable {
       this.attributeBuffers.bindBuffer(GL.ARRAY_BUFFER, bufferInfo);
       this.gl.vertexAttribPointer(
         bufferInfo.location,
-        3,
+        2,
         GL.FLOAT,
         false,
         0,
@@ -178,7 +175,12 @@ export class GLEngine extends Disposable {
       this.attributeBuffers.bufferData(
         GL.ARRAY_BUFFER,
         location,
-        Float32Array.from([-1, -1, 0, 1, -1, 0, 1, 1, 0, -1, 1, 0]),
+        Float32Array.from([
+          -1, -1,
+          1, -1,
+          1, 1,
+          -1, 1,
+        ]),
         0,
         GL.STATIC_DRAW,
       );
@@ -206,7 +208,6 @@ export class GLEngine extends Disposable {
         GL.ARRAY_BUFFER,
         location,
         Float32Array.from([
-          // ...mat4.translate(mat4.create(), mat4.fromYRotation(mat4.create(), Math.PI / 4), vec3.fromValues(0, 0, -2)),
           ...Matrix.create().getMatrix(),
           ...Matrix.create().translate(-1, 0, 1).rotateY(Math.PI / 2).getMatrix(),
           ...Matrix.create().translate(1, 0, 1).rotateY(-Math.PI / 2).getMatrix(),
@@ -343,40 +344,22 @@ export class GLEngine extends Disposable {
   }
 
   configPerspectiveMatrix(ratio: number) {
-    const DEG_TO_RADIANT = Math.PI / 90;
-    this.perspectiveMatrix = mat4.perspective(
-      mat4.create(),
-      45 * DEG_TO_RADIANT,
-      ratio,
-      0,
-      10000,
-    );
-    this.setPerspective();
+    this.perspectiveMatrix = Matrix.create().perspective(45, ratio, 0.1, 1000).getMatrix();
+    this.updatePerspective();
   }
 
   configOrthoMatrix(ratio: number) {
-    const size = 1;
-    this.orthoMatrix = mat4.ortho(
-      mat4.create(),
-      -size * ratio,
-      size * ratio,
-      -size,
-      size,
-      -100,
-      100,
-    );
-    this.setPerspective();
+    this.orthoMatrix = Matrix.create().ortho(-ratio, ratio, -1, 1, -1000, 1000).getMatrix();
+    this.updatePerspective();
   }
 
+  private camMatrix: mat4 = mat4.create();
   refreshCamera() {
-    const matrix = mat4.identity(mat4.create());
-    mat4.mul(matrix, this.cameraMatrix, matrix);
-    mat4.mul(matrix, this.camTurnMatrix, matrix);
-    mat4.mul(matrix, this.projectionMatrix, matrix);
+    mat4.mul(this.camMatrix, this.camTurnMatrix, this.cameraMatrix);
 
     const loc = this.uniforms.getUniformLocation(CAM_LOC);
     if (loc) {
-      this.gl.uniformMatrix4fv(loc, false, matrix);
+      this.gl.uniformMatrix4fv(loc, false, this.camMatrix);
     }
   }
 
@@ -390,16 +373,18 @@ export class GLEngine extends Disposable {
     );
   }
 
-  setPerspective(level?: number) {
+  orthoTemp = mat4.create();
+  perspectiveTemp = mat4.create();
+  updatePerspective(level?: number) {
     if (level !== undefined) {
       this.perspectiveLevel = level;
     }
-    const o = mat4.create();
-    mat4.multiplyScalar(o, this.orthoMatrix, 1 - this.perspectiveLevel);
-    const p = mat4.create();
-    mat4.multiplyScalar(p, this.perspectiveMatrix, this.perspectiveLevel);
-    mat4.copy(this.projectionMatrix, o);
-    mat4.add(this.projectionMatrix, this.projectionMatrix, p);
+    Matrix.combineMat4(this.projectionMatrix, this.orthoMatrix, this.perspectiveMatrix, this.perspectiveLevel);
+    const loc = this.uniforms.getUniformLocation(PROJECTION_LOC);
+    if (loc) {
+      this.gl.uniformMatrix4fv(loc, false, this.projectionMatrix);
+    }
+
     this.refreshCamera();
   }
 
@@ -423,6 +408,7 @@ export class GLEngine extends Disposable {
   }
 
   drawElementsInstanced(vertexCount: GLsizei, instances: GLsizei) {
+    this.gl.clearDepth(1.0);
     this.gl.clear(GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT);
     this.gl.drawElementsInstanced(
       GL.TRIANGLES,

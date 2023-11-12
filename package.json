@@ -6,7 +6,7 @@
     "start": "bun run index.ts",
     "bundle": "rm -rf build/*.* && bun run bundler/bundler.ts && bun test",
     "list": "bun run samples/list-scripts.tsx",
-    "example": "bun run bundle && cd example && bun start && cd ..",
+    "example": "cd example && bun start && cd ..",
     "fileSample": "bun run samples/file.tsx && cat samples/data/test.json",
     "httpSample": "bun run samples/server.tsx"
   },

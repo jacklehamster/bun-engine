@@ -24,7 +24,7 @@ void main() {
   if (color.a <= .01) {
     discard;
   };
-  fragColor = vec4(color.rgb, 1.);
+  fragColor = color;
 }
 
 vec4 getTextureColor(float textureSlot, vec2 vTexturePoint) {

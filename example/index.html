@@ -1,26 +1,23 @@
 <html>
-    <head>
-        <title>Bun Engine</title>
-    </head>
-    <style>
-        #root {
-            width: 100%;
-            height: 100%;
-        }
-    </style>
-    <body>
-        <canvas id="root">
-        </canvas>
-    </body>
-    <script>
-        window.global = globalThis;
-    </script>
-    <script type="module">
-        import { testCanvas, hello } from './build/index.js';
-    
-        const engine = testCanvas(document.querySelector("#root"));
-        hello();
-    </script>
+  <head>
+    <title>Bun Engine</title>
+  </head>
+  <style>
+    #root {
+      width: 100%;
+      height: 100%;
+    }
+  </style>
+  <body>
+    <canvas id="root"> </canvas>
+  </body>
+  <script>
+    window.global = globalThis;
+  </script>
+  <script type="module">
+    import { testCanvas, hello } from './build/index.js';
 
+    window.engine = testCanvas(document.querySelector('#root'));
+    hello();
+  </script>
 </html>
-

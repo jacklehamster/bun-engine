@@ -1,5 +1,7 @@
 import { mat4 } from 'gl-matrix';
 
+const DEG_TO_RADIANT = Math.PI / 90;
+
 class Matrix {
   private matrix: mat4;
 
@@ -34,6 +36,30 @@ class Matrix {
   public scale(x: number, y: number, z: number): Matrix {
     mat4.scale(this.matrix, this.matrix, [x, y, z]);
     return this;
+  }
+
+  public perspective(degAngle: number, ratio: number, near: number, far: number): Matrix {
+    mat4.perspective(
+      this.matrix,
+      degAngle * DEG_TO_RADIANT,
+      ratio,
+      near,
+      far,
+    );
+    return this;
+  }
+
+  public ortho(left: number, right: number, bottom: number, top: number, near: number, far: number): Matrix {
+    mat4.ortho(this.matrix, left, right, bottom, top, near, far);
+    return this;
+  }
+
+  static aTemp = mat4.create();
+  static bTemp = mat4.create();
+  static combineMat4(result: mat4, a: mat4, b: mat4, level: number = .5): void {
+    mat4.multiplyScalar(this.aTemp, a, 1 - level);
+    mat4.multiplyScalar(this.bTemp, b, level);
+    mat4.add(result, this.aTemp, this.bTemp);
   }
 
   public getMatrix(): mat4 {
