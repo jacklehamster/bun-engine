@@ -17,7 +17,7 @@ import {
   GL,
   SLOT_SIZE_LOC,
 } from './gl/attributes/Contants';
-import { mat4, quat, vec3 } from 'gl-matrix';
+import { mat4 } from 'gl-matrix';
 import { TextureManager } from './gl/texture/TextureManager';
 import vertexShader from 'generated/src/gl/resources/vertexShader.txt';
 import fragmentShader from 'generated/src/gl/resources/fragmentShader.txt';
@@ -142,9 +142,9 @@ export class GLEngine extends Disposable {
 
     {
       /*
-                0  1
-                3  2
-            */
+          0  1
+          3  2
+      */
       const location = INDEX_LOC;
       this.attributeBuffers.createBuffer(location);
       const bufferInfo = this.attributeBuffers.getAttributeBuffer(location);
@@ -399,7 +399,6 @@ export class GLEngine extends Disposable {
   }
 
   tilt(angle: number) {
-    console.log('tilt', angle);
     mat4.rotateX(this.camTurnMatrix, this.camTurnMatrix, angle);
     this.refreshCamera();
   }
