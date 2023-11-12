@@ -5,8 +5,15 @@ export async function hello() {
 }
 
 export function testCanvas(canvas: HTMLCanvasElement) {
-  canvas.style.border = '.5px solid silver';
-  canvas.style.pointerEvents = 'none';
+  canvas.style.border = '2px solid silver';
+  canvas.style.cursor = 'grab';
+  canvas.addEventListener('mouseenter', () => {
+    canvas.style.borderColor = 'black';
+  });
+  canvas.addEventListener('mouseleave', () => {
+    canvas.style.borderColor = 'silver';
+  });
+  //  canvas.style.pointerEvents = 'none';
   const engine = new GLEngine(canvas);
 
   engine.initialize();
@@ -14,7 +21,7 @@ export function testCanvas(canvas: HTMLCanvasElement) {
   const keys: Record<string, boolean> = {};
   document.addEventListener('keydown', (e) => {
     keys[e.code] = true;
-    // console.log(keys);
+    console.log(keys);
   });
 
   document.addEventListener('keyup', (e) => {
@@ -33,23 +40,35 @@ export function testCanvas(canvas: HTMLCanvasElement) {
 
     const speed = 0.5 / 2;
     const turnspeed = 0.1 / 2;
-    if (keys.KeyW || keys.ArrowUp) {
-      engine.moveCam(0, speed);
+    if (keys.KeyW) {
+      engine.moveCam(0, 0, speed);
     }
-    if (keys.KeyS || keys.ArrowDown) {
-      engine.moveCam(0, -speed);
+    if (keys.KeyS) {
+      engine.moveCam(0, 0, -speed);
     }
-    if (keys.KeyA) {
-      engine.moveCam(-speed, 0);
+    if (keys.ArrowUp && !keys.ShiftRight) {
+      engine.moveCam(0, -speed, 0);
     }
-    if (keys.KeyD) {
-      engine.moveCam(speed, 0);
+    if (keys.ArrowDown && !keys.ShiftRight) {
+      engine.moveCam(0, speed, 0);
     }
-    if (keys.KeyQ || keys.ArrowLeft) {
+    if (keys.KeyA || (keys.ArrowLeft && !keys.ShiftRight)) {
+      engine.moveCam(-speed, 0, 0);
+    }
+    if (keys.KeyD || (keys.ArrowRight && !keys.ShiftRight)) {
+      engine.moveCam(speed, 0, 0);
+    }
+    if (keys.KeyQ || (keys.ArrowLeft && keys.ShiftRight)) {
       engine.turnCam(-turnspeed);
     }
-    if (keys.KeyE || keys.ArrowRight) {
+    if (keys.KeyE || (keys.ArrowRight && keys.ShiftRight)) {
       engine.turnCam(turnspeed);
+    }
+    if (keys.ArrowUp && keys.ShiftRight) {
+      engine.tilt(-turnspeed);
+    }
+    if (keys.ArrowDown && keys.ShiftRight) {
+      engine.tilt(turnspeed);
     }
     const vertexCount = 6;
     const instanceCount = 3;

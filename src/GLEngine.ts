@@ -388,18 +388,19 @@ export class GLEngine extends Disposable {
     this.refreshCamera();
   }
 
-  moveCam(x: number, z: number) {
-    const q = quat.create();
-    mat4.getRotation(q, this.camTurnMatrix);
-    quat.invert(q, q);
-    const v = vec3.fromValues(-x, 0, z);
-    vec3.transformQuat(v, v, q);
-    mat4.translate(this.cameraMatrix, this.cameraMatrix, v);
+  moveCam(x: number, y: number, z: number) {
+    Matrix.moveMatrix(this.cameraMatrix, x, y, z, this.camTurnMatrix);
     this.refreshCamera();
   }
 
   turnCam(angle: number) {
     mat4.rotateY(this.camTurnMatrix, this.camTurnMatrix, angle);
+    this.refreshCamera();
+  }
+
+  tilt(angle: number) {
+    console.log('tilt', angle);
+    mat4.rotateX(this.camTurnMatrix, this.camTurnMatrix, angle);
     this.refreshCamera();
   }
 

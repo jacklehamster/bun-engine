@@ -1,4 +1,4 @@
-import { mat4 } from 'gl-matrix';
+import { mat4, quat, vec3 } from 'gl-matrix';
 
 const DEG_TO_RADIANT = Math.PI / 90;
 
@@ -60,6 +60,15 @@ class Matrix {
     mat4.multiplyScalar(this.aTemp, a, 1 - level);
     mat4.multiplyScalar(this.bTemp, b, level);
     mat4.add(result, this.aTemp, this.bTemp);
+  }
+
+  static tempQuat = quat.create();
+  static moveMatrix(result: mat4, x: number, y: number, z: number, turnMatrix: mat4) {
+    mat4.getRotation(this.tempQuat, turnMatrix);
+    quat.invert(this.tempQuat, this.tempQuat);
+    const v = vec3.fromValues(-x, y, z);
+    vec3.transformQuat(v, v, this.tempQuat);
+    mat4.translate(result, result, v);
   }
 
   public getMatrix(): mat4 {
