@@ -29,3 +29,7 @@ curl -fsSL https://bun.sh/install | bash
 ## Github Source
 
 [https://github.com/jacklehamster/bun-engine/](https://github.com/jacklehamster/bun-engine/)
+
+## Dev log
+
+[https://dev.to/jacklehamster/started-a-repo-for-my-new-game-engine-54cc](https://dev.to/jacklehamster/started-a-repo-for-my-new-game-engine-54cc)
