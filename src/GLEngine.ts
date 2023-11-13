@@ -69,7 +69,6 @@ export class GLEngine extends Disposable {
   attributeBuffers: GLAttributeBuffers;
   uniforms: GLUniforms;
   cameraMatrix: mat4;
-  camTurnMatrix: mat4;
   perspectiveMatrix: mat4;
   orthoMatrix: mat4;
   projectionMatrix: mat4;
@@ -92,7 +91,6 @@ export class GLEngine extends Disposable {
     );
     this.uniforms = this.own(new GLUniforms(this.gl, this.programs));
     this.cameraMatrix = Matrix.create().translate(0, 0, -1).getMatrix();
-    this.camTurnMatrix = Matrix.create().getMatrix();
     this.perspectiveMatrix = Matrix.create().getMatrix();
     this.orthoMatrix = Matrix.create().getMatrix();
     this.projectionMatrix = Matrix.create().getMatrix();
@@ -353,9 +351,13 @@ export class GLEngine extends Disposable {
     this.updatePerspective();
   }
 
+  private camTiltMatrix = Matrix.create().getMatrix();
+  private camTurnMatrix = Matrix.create().getMatrix();
   private camMatrix: mat4 = mat4.create();
   refreshCamera() {
-    mat4.mul(this.camMatrix, this.camTurnMatrix, this.cameraMatrix);
+    //  camMatrix =  camTiltMatrix * camTurnMatrix * cameraMatrix;
+    mat4.mul(this.camMatrix, this.camTiltMatrix, this.camTurnMatrix);
+    mat4.mul(this.camMatrix, this.camMatrix, this.cameraMatrix);
 
     const loc = this.uniforms.getUniformLocation(CAM_LOC);
     if (loc) {
@@ -399,7 +401,7 @@ export class GLEngine extends Disposable {
   }
 
   tilt(angle: number) {
-    mat4.rotateX(this.camTurnMatrix, this.camTurnMatrix, angle);
+    mat4.rotateX(this.camTiltMatrix, this.camTiltMatrix, angle);
     this.refreshCamera();
   }
 

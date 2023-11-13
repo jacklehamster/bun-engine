@@ -63,11 +63,14 @@ class Matrix {
   }
 
   static tempQuat = quat.create();
-  static moveMatrix(result: mat4, x: number, y: number, z: number, turnMatrix: mat4) {
-    mat4.getRotation(this.tempQuat, turnMatrix);
-    quat.invert(this.tempQuat, this.tempQuat);
+  static moveMatrix(result: mat4, x: number, y: number, z: number,
+    turnMatrix: mat4 | null = null) {
     const v = vec3.fromValues(-x, y, z);
-    vec3.transformQuat(v, v, this.tempQuat);
+    if (turnMatrix) {
+      mat4.getRotation(this.tempQuat, turnMatrix);
+      quat.invert(this.tempQuat, this.tempQuat);
+      vec3.transformQuat(v, v, this.tempQuat);
+    }
     mat4.translate(result, result, v);
   }
 
