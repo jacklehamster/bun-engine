@@ -12,17 +12,15 @@ import {
   INDEX_LOC,
   TRANSFORM_LOC,
   TEX_LOC,
-  CAM_LOC,
-  PROJECTION_LOC,
   GL,
   SLOT_SIZE_LOC,
 } from './gl/attributes/Contants';
-import { mat4 } from 'gl-matrix';
 import { TextureManager } from './gl/texture/TextureManager';
 import vertexShader from 'generated/src/gl/resources/vertexShader.txt';
 import fragmentShader from 'generated/src/gl/resources/fragmentShader.txt';
 import { replaceTilda } from 'gl/utils/replaceTilda';
 import Matrix from 'gl/transform/Matrix';
+import { GLCamera } from 'gl/camera/GLCamera';
 
 const DEFAULT_ATTRIBUTES: WebGLContextAttributes = {
   alpha: true,
@@ -64,17 +62,13 @@ function glProxy(gl: GL) {
 
 export class GLEngine extends Disposable {
   gl: GL;
-  private perspectiveLevel: number = 1;
   programs: GLPrograms;
   attributeBuffers: GLAttributeBuffers;
   uniforms: GLUniforms;
-  cameraMatrix: mat4;
-  perspectiveMatrix: mat4;
-  orthoMatrix: mat4;
-  projectionMatrix: mat4;
   canvas: HTMLCanvasElement;
 
   textureManager: TextureManager;
+  camera: GLCamera;
 
   constructor(canvas: HTMLCanvasElement, attributes?: WebGLContextAttributes) {
     super();
@@ -83,17 +77,14 @@ export class GLEngine extends Disposable {
     );
     this.canvas = canvas;
 
-    this.textureManager = new TextureManager(this.gl);
-
     this.programs = this.own(new GLPrograms(this.gl));
+    this.uniforms = this.own(new GLUniforms(this.gl, this.programs));
     this.attributeBuffers = this.own(
       new GLAttributeBuffers(this.gl, this.programs),
     );
-    this.uniforms = this.own(new GLUniforms(this.gl, this.programs));
-    this.cameraMatrix = Matrix.create().translate(0, 0, -1).getMatrix();
-    this.perspectiveMatrix = Matrix.create().getMatrix();
-    this.orthoMatrix = Matrix.create().getMatrix();
-    this.projectionMatrix = Matrix.create().getMatrix();
+
+    this.textureManager = new TextureManager(this.gl);
+    this.camera = new GLCamera(this.gl, this.uniforms);
 
     window.addEventListener('resize', this.checkCanvasSize.bind(this));
   }
@@ -109,8 +100,8 @@ export class GLEngine extends Disposable {
     );
     const ratio = this.gl.drawingBufferWidth / this.gl.drawingBufferHeight;
 
-    this.configOrthoMatrix(ratio);
-    this.configPerspectiveMatrix(ratio);
+    this.camera.configOrthoMatrix(ratio);
+    this.camera.configPerspectiveMatrix(ratio);
   }
 
   async initialize() {
@@ -241,7 +232,7 @@ export class GLEngine extends Disposable {
     await this.loadLogoTexture();
 
     this.checkCanvasSize();
-    this.refreshCamera();
+    this.camera.refresh();
   }
 
   async loadLogoTexture() {
@@ -341,30 +332,6 @@ export class GLEngine extends Disposable {
     this.textureManager.generateMipMap('TEXTURE0');
   }
 
-  configPerspectiveMatrix(ratio: number) {
-    this.perspectiveMatrix = Matrix.create().perspective(45, ratio, 0.1, 1000).getMatrix();
-    this.updatePerspective();
-  }
-
-  configOrthoMatrix(ratio: number) {
-    this.orthoMatrix = Matrix.create().ortho(-ratio, ratio, -1, 1, -1000, 1000).getMatrix();
-    this.updatePerspective();
-  }
-
-  private camTiltMatrix = Matrix.create().getMatrix();
-  private camTurnMatrix = Matrix.create().getMatrix();
-  private camMatrix: mat4 = mat4.create();
-  refreshCamera() {
-    //  camMatrix =  camTiltMatrix * camTurnMatrix * cameraMatrix;
-    mat4.mul(this.camMatrix, this.camTiltMatrix, this.camTurnMatrix);
-    mat4.mul(this.camMatrix, this.camMatrix, this.cameraMatrix);
-
-    const loc = this.uniforms.getUniformLocation(CAM_LOC);
-    if (loc) {
-      this.gl.uniformMatrix4fv(loc, false, this.camMatrix);
-    }
-  }
-
   updateTrianglePosition(index: number, vertices: number[]) {
     const bufferInfo = this.attributeBuffers.getAttributeBuffer(POSITION_LOC);
     this.attributeBuffers.bindBuffer(GL.ARRAY_BUFFER, bufferInfo);
@@ -373,36 +340,6 @@ export class GLEngine extends Disposable {
       Float32Array.from(vertices),
       index * 4 * 3 * Float32Array.BYTES_PER_ELEMENT,
     );
-  }
-
-  orthoTemp = mat4.create();
-  perspectiveTemp = mat4.create();
-  updatePerspective(level?: number) {
-    if (level !== undefined) {
-      this.perspectiveLevel = level;
-    }
-    Matrix.combineMat4(this.projectionMatrix, this.orthoMatrix, this.perspectiveMatrix, this.perspectiveLevel);
-    const loc = this.uniforms.getUniformLocation(PROJECTION_LOC);
-    if (loc) {
-      this.gl.uniformMatrix4fv(loc, false, this.projectionMatrix);
-    }
-
-    this.refreshCamera();
-  }
-
-  moveCam(x: number, y: number, z: number) {
-    Matrix.moveMatrix(this.cameraMatrix, x, y, z, this.camTurnMatrix);
-    this.refreshCamera();
-  }
-
-  turnCam(angle: number) {
-    mat4.rotateY(this.camTurnMatrix, this.camTurnMatrix, angle);
-    this.refreshCamera();
-  }
-
-  tilt(angle: number) {
-    mat4.rotateX(this.camTiltMatrix, this.camTiltMatrix, angle);
-    this.refreshCamera();
   }
 
   drawArrays(count: GLsizei) {

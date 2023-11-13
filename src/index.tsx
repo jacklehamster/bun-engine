@@ -41,34 +41,34 @@ export function testCanvas(canvas: HTMLCanvasElement) {
     const speed = 0.5 / 2;
     const turnspeed = 0.1 / 2;
     if (keys.KeyW) {
-      engine.moveCam(0, 0, speed);
+      engine.camera.moveCam(0, 0, speed);
     }
     if (keys.KeyS) {
-      engine.moveCam(0, 0, -speed);
+      engine.camera.moveCam(0, 0, -speed);
     }
     if (keys.ArrowUp && !keys.ShiftRight) {
-      engine.moveCam(0, -speed, 0);
+      engine.camera.moveCam(0, -speed, 0);
     }
     if (keys.ArrowDown && !keys.ShiftRight) {
-      engine.moveCam(0, speed, 0);
+      engine.camera.moveCam(0, speed, 0);
     }
     if (keys.KeyA || (keys.ArrowLeft && !keys.ShiftRight)) {
-      engine.moveCam(-speed, 0, 0);
+      engine.camera.moveCam(-speed, 0, 0);
     }
     if (keys.KeyD || (keys.ArrowRight && !keys.ShiftRight)) {
-      engine.moveCam(speed, 0, 0);
+      engine.camera.moveCam(speed, 0, 0);
     }
     if (keys.KeyQ || (keys.ArrowLeft && keys.ShiftRight)) {
-      engine.turnCam(-turnspeed);
+      engine.camera.turnCam(-turnspeed);
     }
     if (keys.KeyE || (keys.ArrowRight && keys.ShiftRight)) {
-      engine.turnCam(turnspeed);
+      engine.camera.turnCam(turnspeed);
     }
     if (keys.ArrowUp && keys.ShiftRight) {
-      engine.tilt(-turnspeed);
+      engine.camera.tilt(-turnspeed);
     }
     if (keys.ArrowDown && keys.ShiftRight) {
-      engine.tilt(turnspeed);
+      engine.camera.tilt(turnspeed);
     }
     const vertexCount = 6;
     const instanceCount = 3;
