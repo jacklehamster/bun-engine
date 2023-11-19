@@ -21,6 +21,7 @@ import fragmentShader from 'generated/src/gl/resources/fragmentShader.txt';
 import { replaceTilda } from 'gl/utils/replaceTilda';
 import Matrix from 'gl/transform/Matrix';
 import { GLCamera } from 'gl/camera/GLCamera';
+import { ImageManager } from 'gl/texture/ImageManager';
 
 const DEFAULT_ATTRIBUTES: WebGLContextAttributes = {
   alpha: true,
@@ -68,6 +69,7 @@ export class GLEngine extends Disposable {
   canvas: HTMLCanvasElement;
 
   textureManager: TextureManager;
+  imageManager: ImageManager;
   camera: GLCamera;
 
   constructor(canvas: HTMLCanvasElement, attributes?: WebGLContextAttributes) {
@@ -84,6 +86,7 @@ export class GLEngine extends Disposable {
     );
 
     this.textureManager = new TextureManager(this.gl);
+    this.imageManager = new ImageManager();
     this.camera = new GLCamera(this.gl, this.uniforms);
 
     window.addEventListener('resize', this.checkCanvasSize.bind(this));
@@ -197,9 +200,11 @@ export class GLEngine extends Disposable {
         GL.ARRAY_BUFFER,
         location,
         Float32Array.from([
-          ...Matrix.create().getMatrix(),
-          ...Matrix.create().translate(-1, 0, 1).rotateY(Math.PI / 2).getMatrix(),
-          ...Matrix.create().translate(1, 0, 1).rotateY(-Math.PI / 2).getMatrix(),
+          ...Matrix.create().translate(0, 0, -1).getMatrix(),
+          ...Matrix.create().translate(-1, 0, 0).rotateY(Math.PI / 2).getMatrix(),
+          ...Matrix.create().translate(1, 0, 0).rotateY(-Math.PI / 2).getMatrix(),
+
+          ...Matrix.create().translate(0, -1, 0).rotateX(-Math.PI / 2).getMatrix(),
         ]),
         0,
         GL.DYNAMIC_DRAW,
@@ -265,13 +270,16 @@ export class GLEngine extends Disposable {
           TEXTURE_SLOT_SIZE,
           TEXTURE_SLOT_SIZE,
           TEXTURE_SLOT_SIZE,
+
+          TEXTURE_SLOT_SIZE,
+          TEXTURE_SLOT_SIZE,
         ]),
         0,
         GL.DYNAMIC_DRAW,
       );
     }
 
-    await this.textureManager.drawImage('logo', (ctx) => {
+    await this.imageManager.drawImage('logo', (ctx) => {
       const { canvas } = ctx;
       canvas.width = LOGO_SIZE;
       canvas.height = LOGO_SIZE;
@@ -324,7 +332,7 @@ export class GLEngine extends Disposable {
       ctx.stroke();
     });
     this.textureManager.assignImageToTexture(
-      'logo',
+      this.imageManager.getMedia('logo'),
       'TEXTURE0',
       [0, 0, LOGO_SIZE, LOGO_SIZE],
       [0, 0, TEXTURE_SLOT_SIZE, TEXTURE_SLOT_SIZE],
@@ -347,8 +355,6 @@ export class GLEngine extends Disposable {
   }
 
   drawElementsInstanced(vertexCount: GLsizei, instances: GLsizei) {
-    this.gl.clearDepth(1.0);
-    this.gl.clear(GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT);
     this.gl.drawElementsInstanced(
       GL.TRIANGLES,
       vertexCount,
@@ -356,6 +362,14 @@ export class GLEngine extends Disposable {
       0,
       instances,
     );
+  }
+
+  refresh() {
+    this.gl.clearDepth(1.0);
+    this.gl.clear(GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT);
+    const vertexCount = 6;
+    const instanceCount = 4;
+    this.drawElementsInstanced(vertexCount, instanceCount);
   }
 
   bindVertexArray() {

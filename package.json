@@ -28,6 +28,7 @@
     "typescript": "^5.2.2"
   },
   "dependencies": {
+    "avl": "^1.5.3",
     "gl-matrix": "^3.4.3"
   }
 }

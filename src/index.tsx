@@ -30,14 +30,6 @@ export function testCanvas(canvas: HTMLCanvasElement) {
 
   function loop() {
     engine.gl.enable(engine.gl.DEPTH_TEST);
-
-    // Set the depth function to less than or equal
-    engine.gl.depthFunc(engine.gl.LEQUAL);
-
-    // Clear the color and depth buffer
-    engine.gl.clearDepth(1.0);
-    engine.gl.clear(engine.gl.COLOR_BUFFER_BIT | engine.gl.DEPTH_BUFFER_BIT);
-
     const speed = 0.5 / 2;
     const turnspeed = 0.1 / 2;
     if (keys.KeyW) {
@@ -70,9 +62,7 @@ export function testCanvas(canvas: HTMLCanvasElement) {
     if (keys.ArrowDown && keys.ShiftRight) {
       engine.camera.tilt(turnspeed);
     }
-    const vertexCount = 6;
-    const instanceCount = 3;
-    engine.drawElementsInstanced(vertexCount, instanceCount);
+    engine.refresh();
     requestAnimationFrame(loop);
   }
   loop();
