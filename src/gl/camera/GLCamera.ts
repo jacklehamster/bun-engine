@@ -17,6 +17,7 @@ export class GLCamera {
     this.uniforms = uniforms;
   }
 
+
   configPerspectiveMatrix(ratio: number) {
     this.perspectiveMatrix = Matrix.create().perspective(45, ratio, 0.1, 1000).getMatrix();
     this.updatePerspective();

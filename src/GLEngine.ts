@@ -8,13 +8,14 @@ import { VertexArray } from './gl/VertexArray';
 import { GLAttributeBuffers } from './gl/attributes/GLAttributeBuffers';
 import { GLUniforms } from './gl/uniforms/GLUniforms';
 import {
+  GL,
   POSITION_TEX_LOC,
   INDEX_LOC,
   TRANSFORM_LOC,
-  GL,
   SLOT_SIZE_LOC,
+  CAM_LOC,
 } from './gl/attributes/Contants';
-import { TextureId, TextureIndex, TextureManager } from './gl/texture/TextureManager';
+import { TextureManager } from './gl/texture/TextureManager';
 import vertexShader from 'generated/src/gl/resources/vertexShader.txt';
 import fragmentShader from 'generated/src/gl/resources/fragmentShader.txt';
 import { replaceTilda } from 'gl/utils/replaceTilda';
@@ -22,7 +23,6 @@ import Matrix from 'gl/transform/Matrix';
 import { GLCamera } from 'gl/camera/GLCamera';
 import { ImageManager } from 'gl/texture/ImageManager';
 import { TextureSlotAllocator } from 'gl/texture/TextureSlotAllocator';
-import { calculatePosition, calculateTextureIndex } from 'gl/texture/TextureSlot';
 
 const DEFAULT_ATTRIBUTES: WebGLContextAttributes = {
   alpha: true,
@@ -123,6 +123,7 @@ export class GLEngine extends Disposable {
       replaceTilda(fragmentShader, replacementMap),
     );
     this.programs.useProgram(PROGRAM_NAME);
+    console.log(this.uniforms.getUniformLocation(CAM_LOC));
 
     //  enable depth
     this.gl.enable(GL.DEPTH_TEST);
@@ -278,17 +279,8 @@ export class GLEngine extends Disposable {
       ctx.stroke();
     });
     const slot = this.textureAllocator.allocate(TEXTURE_SLOT_SIZE, TEXTURE_SLOT_SIZE);
-    const slotPosition = calculatePosition(slot);
-    const textureIndex: TextureIndex = calculateTextureIndex(slot);
-    const textureId: TextureId = `TEXTURE${textureIndex}`;
-
-    this.textureManager.assignImageToTexture(
-      this.imageManager.getMedia('logo'),
-      textureId,
-      [0, 0, LOGO_SIZE, LOGO_SIZE],
-      [slotPosition.x, slotPosition.y, ...slotPosition.size],
-    );
-    this.textureManager.generateMipMap(textureId);
+    const logoMediaInfo = this.imageManager.getMedia('logo');
+    this.textureManager.applyImageToSlot(logoMediaInfo, slot, true)
 
     {
       const location = SLOT_SIZE_LOC;

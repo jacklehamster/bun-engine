@@ -1,6 +1,7 @@
 import { Disposable } from '../../disposable/Disposable';
 import { GL } from '../attributes/Contants';
 import { MediaInfo } from './MediaInfo';
+import { Slot, calculatePosition, calculateTextureIndex } from './TextureSlot';
 
 export type TextureIndex = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28 | 29 | 30 | 31;
 
@@ -119,32 +120,59 @@ export class TextureManager extends Disposable {
     }
   }
 
-  assignImageToTexture(
+  /**
+   * Assign a media to a texture slot
+   * @param mediaInfo Image or video
+   * @param slot texture slot
+   * @param generateMipMap if true, generate the mip map
+   * @returns null or a callback to refresh the texture. Mainly used to refresh videos on texture
+   */
+  applyImageToSlot(mediaInfo: MediaInfo, slot: Slot, generateMipMap: boolean): (() => void) | null {
+    const slotPosition = calculatePosition(slot);
+    const textureIndex: TextureIndex = calculateTextureIndex(slot);
+    const textureId: TextureId = `TEXTURE${textureIndex}`;
+    const webGLTexture = this.getTexture(textureId);
+    if (!webGLTexture) {
+      console.warn(`Invalid texture Id ${textureId}`);
+      return null;
+    }
+
+    const refreshCallback = this.assignImageToTexture(
+      mediaInfo,
+      textureId,
+      webGLTexture,
+      [0, 0, mediaInfo.width, mediaInfo.height],
+      [slotPosition.x, slotPosition.y, ...slotPosition.size],
+    );
+    if (generateMipMap) {
+      this.generateMipMap(textureId);
+    }
+    return refreshCallback;
+  }
+
+  private assignImageToTexture(
     imageInfo: MediaInfo,
     textureId: TextureId,
+    texture: WebGLTexture,
     sourceRect?: [number, number, number, number],
     destRect?: [number, number, number, number],
-  ): void {
-    if (!this.getTexture(textureId)) {
-      console.warn('Invalid texture Id');
-      return;
-    }
+  ): (() => void) | null {
     if (imageInfo) {
-      const texture = this.getTexture(textureId);
-      if (texture) {
-        const srcRect = sourceRect ?? [0, 0, imageInfo.width, imageInfo.height];
-        const dstRect = destRect ?? [0, 0, srcRect[2], srcRect[3]];
-        if (imageInfo.active) {
+      const srcRect = sourceRect ?? [0, 0, imageInfo.width, imageInfo.height];
+      const dstRect = destRect ?? [0, 0, srcRect[2], srcRect[3]];
+      if (imageInfo.active) {
+        const refreshTexture = () => {
           this.gl.bindTexture(GL.TEXTURE_2D, texture);
           this.applyTexImage2d(imageInfo, srcRect, dstRect);
-        } else {
-          this.loadTexture(imageInfo, textureId, texture, srcRect, dstRect);
-          imageInfo.active = true;
-        }
+        };
+        refreshTexture();
+        return refreshTexture;
       } else {
-        console.warn(`Texture not found: ${textureId}`);
+        this.loadTexture(imageInfo, textureId, texture, srcRect, dstRect);
+        imageInfo.active = true;
       }
     }
+    return null;
   }
 
   generateMipMap(textureId: TextureId) {

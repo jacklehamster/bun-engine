@@ -1,12 +1,12 @@
 import { Disposable } from '../../disposable/Disposable';
 
 export class MediaInfo extends Disposable {
-  texImgSrc: TexImageSource;
+  readonly texImgSrc: TexImageSource;
   active: boolean = false;
-  width: number;
-  height: number;
+  readonly width: number;
+  readonly height: number;
 
-  constructor(image: TexImageSource) {
+  private constructor(image: TexImageSource) {
     super();
     this.texImgSrc = image;
     this.width =
@@ -21,6 +21,13 @@ export class MediaInfo extends Disposable {
         : image instanceof VideoFrame
           ? image.displayHeight
           : image.width;
+    if (!this.width || !this.height) {
+      throw new Error('Invalid image');
+    }
+  }
+
+  static createFromCanvas(canvas: OffscreenCanvas | HTMLCanvasElement): MediaInfo {
+    return new MediaInfo(canvas);
   }
 
   static async loadImage(src: string): Promise<MediaInfo> {

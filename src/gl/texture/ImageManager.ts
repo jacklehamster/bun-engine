@@ -19,7 +19,7 @@ export class ImageManager extends Disposable {
   ): Promise<MediaInfo> {
     const canvas = new OffscreenCanvas(1, 1);
     drawProcedure(canvas.getContext('2d')!);
-    const imageInfo = new MediaInfo(canvas);
+    const imageInfo = MediaInfo.createFromCanvas(canvas);
     this.images[imageId] = this.own(imageInfo);
     return imageInfo;
   }
@@ -28,7 +28,7 @@ export class ImageManager extends Disposable {
     imageId: ImageId,
     canvas: HTMLCanvasElement,
   ): Promise<MediaInfo> {
-    const imageInfo = new MediaInfo(canvas);
+    const imageInfo = MediaInfo.createFromCanvas(canvas);
     canvas.getContext('2d');
     this.images[imageId] = this.own(imageInfo);
     return imageInfo;
