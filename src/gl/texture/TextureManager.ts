@@ -2,39 +2,9 @@ import { Disposable } from '../../disposable/Disposable';
 import { GL } from '../attributes/Contants';
 import { MediaInfo } from './MediaInfo';
 
-export type TextureId =
-  | 'TEXTURE0'
-  | 'TEXTURE1'
-  | 'TEXTURE2'
-  | 'TEXTURE3'
-  | 'TEXTURE4'
-  | 'TEXTURE5'
-  | 'TEXTURE6'
-  | 'TEXTURE7'
-  | 'TEXTURE8'
-  | 'TEXTURE9'
-  | 'TEXTURE10'
-  | 'TEXTURE11'
-  | 'TEXTURE12'
-  | 'TEXTURE13'
-  | 'TEXTURE14'
-  | 'TEXTURE15'
-  | 'TEXTURE16'
-  | 'TEXTURE17'
-  | 'TEXTURE18'
-  | 'TEXTURE19'
-  | 'TEXTURE20'
-  | 'TEXTURE21'
-  | 'TEXTURE22'
-  | 'TEXTURE23'
-  | 'TEXTURE24'
-  | 'TEXTURE25'
-  | 'TEXTURE26'
-  | 'TEXTURE27'
-  | 'TEXTURE28'
-  | 'TEXTURE29'
-  | 'TEXTURE30'
-  | 'TEXTURE31';
+export type TextureIndex = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28 | 29 | 30 | 31;
+
+type TextureId = `TEXTURE${TextureIndex}`;
 
 export type Url = string;
 export type ImageId = string;
@@ -164,12 +134,12 @@ export class TextureManager extends Disposable {
       if (texture) {
         const srcRect = sourceRect ?? [0, 0, imageInfo.width, imageInfo.height];
         const dstRect = destRect ?? [0, 0, srcRect[2], srcRect[3]];
-        if (imageInfo.activated) {
+        if (imageInfo.active) {
           this.gl.bindTexture(GL.TEXTURE_2D, texture);
           this.applyTexImage2d(imageInfo, srcRect, dstRect);
         } else {
           this.loadTexture(imageInfo, textureId, texture, srcRect, dstRect);
-          imageInfo.activated = true;
+          imageInfo.active = true;
         }
       } else {
         console.warn(`Texture not found: ${textureId}`);

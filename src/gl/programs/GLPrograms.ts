@@ -1,12 +1,13 @@
+import { GL } from 'gl/attributes/Contants';
 import { Disposable } from '../../disposable/Disposable';
 import { GLProgram } from './GLProgram';
 
 export class GLPrograms extends Disposable {
   activeProgramId: string = '';
-  private gl: WebGL2RenderingContext;
+  private gl: GL;
   private programs: Record<string, GLProgram> = {};
 
-  constructor(gl: WebGL2RenderingContext) {
+  constructor(gl: GL) {
     super();
     this.gl = gl;
   }

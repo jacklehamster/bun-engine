@@ -9,11 +9,10 @@ export type GL = WebGL2RenderingContext | any;
 export const GL = typeof globalThis.WebGL2RenderingContext !== undefined ? globalThis.WebGL2RenderingContext : {} as any;
 
 //  Attributes
-export const POSITION_LOC: LocationName = 'position';
+export const POSITION_TEX_LOC: LocationName = 'position_and_tex';
 export const INDEX_LOC: LocationName = 'index';
 export const TRANSFORM_LOC: LocationName = 'transform';
-export const TEX_LOC: LocationName = 'tex';
-export const SLOT_SIZE_LOC: LocationName = 'slotSize';
+export const SLOT_SIZE_LOC: LocationName = 'slotSize_and_number';
 
 //  Uniform
 export const CAM_LOC: LocationName = 'cam';

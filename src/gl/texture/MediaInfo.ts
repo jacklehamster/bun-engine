@@ -2,7 +2,7 @@ import { Disposable } from '../../disposable/Disposable';
 
 export class MediaInfo extends Disposable {
   texImgSrc: TexImageSource;
-  activated: boolean = false;
+  active: boolean = false;
   width: number;
   height: number;
 
@@ -13,14 +13,14 @@ export class MediaInfo extends Disposable {
       image instanceof HTMLImageElement
         ? image.naturalWidth
         : image instanceof VideoFrame
-        ? image.displayWidth
-        : image.width;
+          ? image.displayWidth
+          : image.width;
     this.height =
       image instanceof HTMLImageElement
         ? image.naturalHeight
         : image instanceof VideoFrame
-        ? image.displayHeight
-        : image.width;
+          ? image.displayHeight
+          : image.width;
   }
 
   static async loadImage(src: string): Promise<MediaInfo> {

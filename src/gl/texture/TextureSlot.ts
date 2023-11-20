@@ -1,13 +1,34 @@
+import { TextureIndex } from "./TextureManager";
 import { TexturePosition, TextureSize } from "./TexturePosition";
 
 export const MAX_TEXTURE_SIZE = 4096;
 export const MIN_TEXTURE_SIZE = 16;
 
-export class TextureSlot {
-  size: [TextureSize, TextureSize];
-  slotNumber: number;
-  used: boolean = false;
-  parent?: TextureSlot;
+export interface Slot {
+  readonly size: [TextureSize, TextureSize];
+  readonly slotNumber: number;
+}
+
+export function calculateTextureIndex({ size, slotNumber }: Slot): TextureIndex {
+  const [w, h] = size;
+  const slotsPerTexture = (MAX_TEXTURE_SIZE / w) * (MAX_TEXTURE_SIZE / h);
+  return Math.floor(slotNumber / slotsPerTexture) as TextureIndex;
+}
+
+export function calculatePosition(slot: Slot) {
+  const { size, slotNumber } = slot;
+  const [w, h] = size;
+  const slotsPerRow = MAX_TEXTURE_SIZE / w;
+  const slotsPerColumn = MAX_TEXTURE_SIZE / h;
+  const x = (slotNumber % slotsPerRow) * w;
+  const y = (Math.floor(slotNumber / slotsPerRow) % slotsPerColumn) * h;
+  return { x, y, size: size, textureIndex: calculateTextureIndex(slot) };
+}
+
+export class TextureSlot implements Slot {
+  readonly size: [TextureSize, TextureSize];
+  readonly slotNumber: number;
+  readonly parent?: TextureSlot;
   sibbling?: TextureSlot;
 
   constructor(size: [TextureSize, TextureSize], slotNumber: number, parent?: TextureSlot) {
@@ -18,22 +39,19 @@ export class TextureSlot {
   }
 
   getTag() {
-    return `${this.size[0]}x${this.size[1]}-#${this.slotNumber}`;
+    return TextureSlot.getTag(this);
+  }
+
+  static getTag(slot: Slot) {
+    return `${slot.size[0]}x${slot.size[1]}-#${slot.slotNumber}`;
   }
 
   getTextureIndex(): number {
-    const [w, h] = this.size;
-    const slotsPerTexture = (MAX_TEXTURE_SIZE / w) * (MAX_TEXTURE_SIZE / h);
-    return Math.floor(this.slotNumber / slotsPerTexture);
+    return calculateTextureIndex(this);
   }
 
   getTexturePosition(): TexturePosition {
-    const [w, h] = this.size;
-    const slotsPerRow = MAX_TEXTURE_SIZE / w;
-    const slotsPerColumn = MAX_TEXTURE_SIZE / h;
-    const x = (this.slotNumber % slotsPerRow) * w;
-    const y = (Math.floor(this.slotNumber / slotsPerRow) % slotsPerColumn) * h;
-    return { x, y, size: this.size, textureIndex: this.getTextureIndex() };
+    return calculatePosition(this);
   }
 
   static positionToTextureSlot(position: TexturePosition, parent?: TextureSlot): TextureSlot {
@@ -45,14 +63,14 @@ export class TextureSlot {
     return new TextureSlot(size, slotNumber, parent);
   }
 
-  canSplitHorizontally() {
+  canSplitHorizontally(minHeight: number = MIN_TEXTURE_SIZE) {
     const [, h] = this.size;
-    return h > MIN_TEXTURE_SIZE;
+    return h > minHeight;
   }
 
-  canSplitVertically() {
+  canSplitVertically(minWidth: number = MIN_TEXTURE_SIZE) {
     const [w,] = this.size;
-    return w > MIN_TEXTURE_SIZE;
+    return w > minWidth;
   }
 
   splitHorizontally(): [TextureSlot, TextureSlot] {

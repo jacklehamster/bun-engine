@@ -1,9 +1,10 @@
+import { GL } from 'gl/attributes/Contants';
 import { Disposable } from '../../disposable/Disposable';
 
 export class GLProgram extends Disposable {
-  gl: WebGL2RenderingContext;
+  gl: GL;
   program: WebGLProgram;
-  constructor(gl: WebGL2RenderingContext, vertex: string, fragment: string) {
+  constructor(gl: GL, vertex: string, fragment: string) {
     super();
     this.gl = gl;
     this.program = createProgram(gl, vertex.trim(), fragment.trim());
@@ -20,7 +21,7 @@ export class GLProgram extends Disposable {
 }
 
 function createProgram(
-  gl: WebGL2RenderingContext,
+  gl: GL,
   vertex: string,
   fragment: string,
 ): WebGLProgram {
@@ -29,8 +30,8 @@ function createProgram(
       return type === gl?.VERTEX_SHADER
         ? 'vertex'
         : type === gl?.FRAGMENT_SHADER
-        ? 'fragment'
-        : undefined;
+          ? 'fragment'
+          : undefined;
     }
 
     if (type !== gl.VERTEX_SHADER && type !== gl.FRAGMENT_SHADER) {
@@ -47,7 +48,7 @@ function createProgram(
       // Something went wrong during compilation; get the error
       console.error(
         `Shader compile error in ${typeName(type)}:` +
-          gl.getShaderInfoLog(shader),
+        gl.getShaderInfoLog(shader),
       );
     }
     return shader;
@@ -81,7 +82,7 @@ function createProgram(
   gl.deleteShader(fragmentShader);
   gl.validateProgram(program);
 
-  Object.entries(WebGL2RenderingContext).forEach(([k, value]) => {
+  Object.entries(GL).forEach(([k, value]) => {
     if (value && gl.getError() === value) {
       console.log(`gl.${k}`);
     }
@@ -90,13 +91,13 @@ function createProgram(
   if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
     throw new Error(
       'Unable to initialize the shader program:\n' +
-        gl.getProgramInfoLog(program),
+      gl.getProgramInfoLog(program),
     );
   }
 
   return program;
 }
 
-function deleteProgram(gl: WebGL2RenderingContext, program: WebGLProgram) {
+function deleteProgram(gl: GL, program: WebGLProgram) {
   gl.deleteProgram(program);
 }

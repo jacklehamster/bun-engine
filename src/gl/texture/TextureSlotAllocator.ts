@@ -1,10 +1,17 @@
 import AVLTree from 'avl';
-import { MAX_TEXTURE_SIZE, TextureSlot } from './TextureSlot';
+import { MAX_TEXTURE_SIZE, MIN_TEXTURE_SIZE, Slot, TextureSlot } from './TextureSlot';
 import { getFlexSizes } from './TextureUtils';
 import { TextureSize } from './TexturePosition';
 import { DEBUG } from 'gl/attributes/Contants';
 
+export interface Props {
+  numTextureSheets?: number;
+  minTextureWidth?: TextureSize;
+  minTextureHeight?: TextureSize;
+}
+
 export class TextureSlotAllocator {
+  //  AVL tree of texture slots, sorted by size
   textureSlots = new AVLTree<TextureSlot, TextureSlot>((slot1, slot2) => {
     const sizeDiff = slot1.size[0] * slot1.size[1] - slot2.size[0] * slot2.size[1];
     if (sizeDiff !== 0) {
@@ -13,7 +20,12 @@ export class TextureSlotAllocator {
     return slot1.slotNumber - slot2.slotNumber;
   }, false);
 
-  constructor(numTextureSheets: number = 16) {
+  //  Allocated texture slots
+  allocatedTextures: Record<string, TextureSlot> = {};
+  private minTextureSize: [TextureSize, TextureSize];
+
+  constructor({ numTextureSheets = 16, minTextureWidth = MIN_TEXTURE_SIZE, minTextureHeight = MIN_TEXTURE_SIZE }: Props = {}) {
+    this.minTextureSize = [minTextureWidth, minTextureHeight];
     for (let i = 0; i < numTextureSheets; i++) {
       this.textureSlots.insert(new TextureSlot([MAX_TEXTURE_SIZE, MAX_TEXTURE_SIZE], i));
     }
@@ -55,7 +67,24 @@ export class TextureSlotAllocator {
     return [bestWidth, flexSizes.get(bestWidth)!];
   }
 
-  allocate(w: number, h: number, count: number = 1): TextureSlot {
+  private isSlotUsed(slot: Slot): boolean {
+    return !!this.allocatedTextures[TextureSlot.getTag(slot)];
+  }
+
+  allocate(w: number, h: number, count: number = 1): Slot {
+    const { size, slotNumber } = this.allocateHelper(w, h, count);
+    return { size, slotNumber };
+  }
+
+  deallocate(slot: Slot): void {
+    if (!this.isSlotUsed(slot)) {
+      throw new Error('Slot is not allocated');
+    }
+    const textureSlot = this.allocatedTextures[TextureSlot.getTag(slot)];
+    this.deallocateHelper(textureSlot);
+  }
+
+  private allocateHelper(w: number, h: number, count: number = 1): TextureSlot {
     const flexSizes = getFlexSizes(w, h, count);
 
     const slot = this.findSlot(flexSizes);
@@ -69,24 +98,24 @@ export class TextureSlotAllocator {
     return this.fitSlot(slot, bestWidth, bestHeight);
   }
 
-  deallocate(slot: TextureSlot): void {
+  private deallocateHelper(slot: TextureSlot): void {
     //  check if we can merge with the sibbling
-    if (slot.parent && slot.sibbling?.used === false) {
+    if (slot.parent && slot.sibbling && !this.isSlotUsed(slot.sibbling)) {
       const sibbling = slot.sibbling;
       this.textureSlots.remove(sibbling);
       if (DEBUG && this.textureSlots.find(slot)) {
         throw new Error('Slot is not expected to be in the tree');
       }
       const parent = slot.parent;
-      this.deallocate(parent);
+      this.deallocateHelper(parent);
       return;
     }
     this.textureSlots.insert(slot);
-    slot.used = false;
+    delete this.allocatedTextures[slot.getTag()];
   }
 
   private trySplitHorizontally(slot: TextureSlot, w: number, h: number): TextureSlot | null {
-    if (slot.canSplitHorizontally()) {
+    if (slot.canSplitHorizontally(this.minTextureSize[1])) {
       const [leftColumn, rightColumn] = slot.splitHorizontally();
       // First try to split vertically
       if (leftColumn.size[0] >= w) {
@@ -98,7 +127,7 @@ export class TextureSlotAllocator {
   }
 
   private trySplitVertically(slot: TextureSlot, w: number, h: number): TextureSlot | null {
-    if (slot.canSplitVertically()) {
+    if (slot.canSplitVertically(this.minTextureSize[0])) {
       const [topRow, bottomRow] = slot.splitVertically();
       // Then try to split vertically
       if (topRow.size[1] >= h) {
@@ -109,8 +138,8 @@ export class TextureSlotAllocator {
     return null;
   }
 
-  fitSlot(slot: TextureSlot, w: number, h: number): TextureSlot {
-    slot.used = true;
+  private fitSlot(slot: TextureSlot, w: number, h: number): TextureSlot {
+    this.allocatedTextures[slot.getTag()] = slot;
     if (slot.size[0] > slot.size[1]) {
       const splitAttempt = this.trySplitHorizontally(slot, w, h)
         ?? this.trySplitVertically(slot, w, h);

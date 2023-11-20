@@ -1,5 +1,6 @@
 import { Disposable } from '../../disposable/Disposable';
 import { GLPrograms } from '../programs/GLPrograms';
+import { GL } from './Contants';
 
 export interface BufferInfo {
   buffer: WebGLBuffer;
@@ -15,10 +16,10 @@ export type LocationName = string;
 export class GLAttributeBuffers extends Disposable {
   private readonly bufferRecord: Record<LocationName, BufferInfo> = {};
   private lastBoundBuffer?: BufferInfo;
-  private readonly gl: WebGL2RenderingContext;
+  private readonly gl: GL;
   private readonly programs: GLPrograms;
 
-  constructor(gl: WebGL2RenderingContext, programs: GLPrograms) {
+  constructor(gl: GL, programs: GLPrograms) {
     super();
     this.gl = gl;
     this.programs = programs;

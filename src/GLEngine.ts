@@ -8,20 +8,21 @@ import { VertexArray } from './gl/VertexArray';
 import { GLAttributeBuffers } from './gl/attributes/GLAttributeBuffers';
 import { GLUniforms } from './gl/uniforms/GLUniforms';
 import {
-  POSITION_LOC,
+  POSITION_TEX_LOC,
   INDEX_LOC,
   TRANSFORM_LOC,
-  TEX_LOC,
   GL,
   SLOT_SIZE_LOC,
 } from './gl/attributes/Contants';
-import { TextureManager } from './gl/texture/TextureManager';
+import { TextureId, TextureIndex, TextureManager } from './gl/texture/TextureManager';
 import vertexShader from 'generated/src/gl/resources/vertexShader.txt';
 import fragmentShader from 'generated/src/gl/resources/fragmentShader.txt';
 import { replaceTilda } from 'gl/utils/replaceTilda';
 import Matrix from 'gl/transform/Matrix';
 import { GLCamera } from 'gl/camera/GLCamera';
 import { ImageManager } from 'gl/texture/ImageManager';
+import { TextureSlotAllocator } from 'gl/texture/TextureSlotAllocator';
+import { calculatePosition, calculateTextureIndex } from 'gl/texture/TextureSlot';
 
 const DEFAULT_ATTRIBUTES: WebGLContextAttributes = {
   alpha: true,
@@ -69,6 +70,7 @@ export class GLEngine extends Disposable {
   canvas: HTMLCanvasElement;
 
   textureManager: TextureManager;
+  textureAllocator: TextureSlotAllocator
   imageManager: ImageManager;
   camera: GLCamera;
 
@@ -86,10 +88,13 @@ export class GLEngine extends Disposable {
     );
 
     this.textureManager = new TextureManager(this.gl);
+    this.textureAllocator = new TextureSlotAllocator();
     this.imageManager = new ImageManager();
     this.camera = new GLCamera(this.gl, this.uniforms);
 
     window.addEventListener('resize', this.checkCanvasSize.bind(this));
+
+    console.log(this.gl.getParameter(GL.MAX_VERTEX_ATTRIBS));
   }
 
   checkCanvasSize() {
@@ -151,13 +156,13 @@ export class GLEngine extends Disposable {
     }
 
     {
-      const location = POSITION_LOC;
+      const location = POSITION_TEX_LOC;
       this.attributeBuffers.createBuffer(location);
       const bufferInfo = this.attributeBuffers.getAttributeBuffer(location);
       this.attributeBuffers.bindBuffer(GL.ARRAY_BUFFER, bufferInfo);
       this.gl.vertexAttribPointer(
         bufferInfo.location,
-        2,
+        4,
         GL.FLOAT,
         false,
         0,
@@ -168,10 +173,10 @@ export class GLEngine extends Disposable {
         GL.ARRAY_BUFFER,
         location,
         Float32Array.from([
-          -1, -1,
-          1, -1,
-          1, 1,
-          -1, 1,
+          -1, -1, 0, 1,
+          1, -1, 1, 1,
+          1, 1, 1, 0,
+          -1, 1, 0, 0,
         ]),
         0,
         GL.STATIC_DRAW,
@@ -200,37 +205,14 @@ export class GLEngine extends Disposable {
         GL.ARRAY_BUFFER,
         location,
         Float32Array.from([
-          ...Matrix.create().translate(0, 0, -1).getMatrix(),
-          ...Matrix.create().translate(-1, 0, 0).rotateY(Math.PI / 2).getMatrix(),
-          ...Matrix.create().translate(1, 0, 0).rotateY(-Math.PI / 2).getMatrix(),
+          ...Matrix.create().translate(0, 0, 0).getMatrix(),
+          ...Matrix.create().translate(-1, 0, 1).rotateY(Math.PI / 2).getMatrix(),
+          ...Matrix.create().translate(1, 0, 1).rotateY(-Math.PI / 2).getMatrix(),
 
-          ...Matrix.create().translate(0, -1, 0).rotateX(-Math.PI / 2).getMatrix(),
+          ...Matrix.create().translate(0, -1, 1).rotateX(-Math.PI / 2).getMatrix(),
         ]),
         0,
         GL.DYNAMIC_DRAW,
-      );
-    }
-
-    {
-      const location = TEX_LOC;
-      this.attributeBuffers.createBuffer(location);
-      const bufferInfo = this.attributeBuffers.getAttributeBuffer(location);
-      this.attributeBuffers.bindBuffer(GL.ARRAY_BUFFER, bufferInfo);
-      this.gl.vertexAttribPointer(
-        bufferInfo.location,
-        2,
-        GL.FLOAT,
-        false,
-        0,
-        0,
-      );
-      this.gl.enableVertexAttribArray(bufferInfo.location);
-      this.attributeBuffers.bufferData(
-        GL.ARRAY_BUFFER,
-        location,
-        Float32Array.from([0, 1, 1, 1, 1, 0, 0, 0]),
-        0,
-        GL.STATIC_DRAW,
       );
     }
 
@@ -243,42 +225,6 @@ export class GLEngine extends Disposable {
   async loadLogoTexture() {
     const TEXTURE_SLOT_SIZE = 512;
     const LOGO_SIZE = 2048;
-
-    {
-      const location = SLOT_SIZE_LOC;
-      this.attributeBuffers.createBuffer(location);
-      const bufferInfo = this.attributeBuffers.getAttributeBuffer(location);
-      this.attributeBuffers.bindBuffer(GL.ARRAY_BUFFER, bufferInfo);
-      const loc = bufferInfo.location;
-      this.gl.vertexAttribPointer(
-        loc,
-        2,
-        GL.FLOAT,
-        false,
-        2 * Float32Array.BYTES_PER_ELEMENT,
-        0,
-      );
-      this.gl.enableVertexAttribArray(loc);
-      this.gl.vertexAttribDivisor(loc, 1);
-      this.attributeBuffers.bufferData(
-        GL.ARRAY_BUFFER,
-        location,
-        Float32Array.from([
-          TEXTURE_SLOT_SIZE,
-          TEXTURE_SLOT_SIZE,
-          TEXTURE_SLOT_SIZE,
-          TEXTURE_SLOT_SIZE,
-          TEXTURE_SLOT_SIZE,
-          TEXTURE_SLOT_SIZE,
-
-          TEXTURE_SLOT_SIZE,
-          TEXTURE_SLOT_SIZE,
-        ]),
-        0,
-        GL.DYNAMIC_DRAW,
-      );
-    }
-
     await this.imageManager.drawImage('logo', (ctx) => {
       const { canvas } = ctx;
       canvas.width = LOGO_SIZE;
@@ -331,23 +277,48 @@ export class GLEngine extends Disposable {
       );
       ctx.stroke();
     });
+    const slot = this.textureAllocator.allocate(TEXTURE_SLOT_SIZE, TEXTURE_SLOT_SIZE);
+    const slotPosition = calculatePosition(slot);
+    const textureIndex: TextureIndex = calculateTextureIndex(slot);
+    const textureId: TextureId = `TEXTURE${textureIndex}`;
+
     this.textureManager.assignImageToTexture(
       this.imageManager.getMedia('logo'),
-      'TEXTURE0',
+      textureId,
       [0, 0, LOGO_SIZE, LOGO_SIZE],
-      [0, 0, TEXTURE_SLOT_SIZE, TEXTURE_SLOT_SIZE],
+      [slotPosition.x, slotPosition.y, ...slotPosition.size],
     );
-    this.textureManager.generateMipMap('TEXTURE0');
-  }
+    this.textureManager.generateMipMap(textureId);
 
-  updateTrianglePosition(index: number, vertices: number[]) {
-    const bufferInfo = this.attributeBuffers.getAttributeBuffer(POSITION_LOC);
-    this.attributeBuffers.bindBuffer(GL.ARRAY_BUFFER, bufferInfo);
-    this.attributeBuffers.bufferSubData(
-      GL.ARRAY_BUFFER,
-      Float32Array.from(vertices),
-      index * 4 * 3 * Float32Array.BYTES_PER_ELEMENT,
-    );
+    {
+      const location = SLOT_SIZE_LOC;
+      this.attributeBuffers.createBuffer(location);
+      const bufferInfo = this.attributeBuffers.getAttributeBuffer(location);
+      this.attributeBuffers.bindBuffer(GL.ARRAY_BUFFER, bufferInfo);
+      const loc = bufferInfo.location;
+      this.gl.vertexAttribPointer(
+        loc,
+        3,
+        GL.FLOAT,
+        false,
+        3 * Float32Array.BYTES_PER_ELEMENT,
+        0,
+      );
+      this.gl.enableVertexAttribArray(loc);
+      this.gl.vertexAttribDivisor(loc, 1);
+      this.attributeBuffers.bufferData(
+        GL.ARRAY_BUFFER,
+        location,
+        Float32Array.from([
+          ...slot.size, slot.slotNumber,
+          ...slot.size, slot.slotNumber,
+          ...slot.size, slot.slotNumber,
+          ...slot.size, slot.slotNumber,
+        ]),
+        0,
+        GL.DYNAMIC_DRAW,
+      );
+    }
   }
 
   drawArrays(count: GLsizei) {
