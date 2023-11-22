@@ -6,11 +6,15 @@ export class ImageManager extends Disposable {
   private images: Record<ImageId, MediaInfo> = {};
 
   hasImageId(imageId: ImageId): boolean {
-    return !!this.images[imageId];
+    return !!this.getMedia(imageId);
   }
 
   getMedia(imageId: ImageId): MediaInfo {
     return this.images[imageId];
+  }
+
+  setImage(imageId: ImageId, mediaInfo: MediaInfo): void {
+    this.images[imageId] = mediaInfo;
   }
 
   async drawImage(
@@ -26,7 +30,7 @@ export class ImageManager extends Disposable {
 
   async loadCanvas(
     imageId: ImageId,
-    canvas: HTMLCanvasElement,
+    canvas: HTMLCanvasElement | OffscreenCanvas,
   ): Promise<MediaInfo> {
     const imageInfo = MediaInfo.createFromCanvas(canvas);
     canvas.getContext('2d');

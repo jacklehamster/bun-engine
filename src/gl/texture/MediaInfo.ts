@@ -6,21 +6,21 @@ export class MediaInfo extends Disposable {
   readonly width: number;
   readonly height: number;
 
-  private constructor(image: TexImageSource) {
+  constructor(image: TexImageSource) {
     super();
     this.texImgSrc = image;
     this.width =
-      image instanceof HTMLImageElement
+      image instanceof Image
         ? image.naturalWidth
         : image instanceof VideoFrame
           ? image.displayWidth
           : image.width;
     this.height =
-      image instanceof HTMLImageElement
+      image instanceof Image
         ? image.naturalHeight
         : image instanceof VideoFrame
           ? image.displayHeight
-          : image.width;
+          : image.height;
     if (!this.width || !this.height) {
       throw new Error('Invalid image');
     }

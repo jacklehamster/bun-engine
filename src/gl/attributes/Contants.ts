@@ -6,7 +6,7 @@ import { LocationName } from './GLAttributeBuffers';
 
 //  GL
 export type GL = WebGL2RenderingContext | any;
-export const GL = typeof globalThis.WebGL2RenderingContext !== undefined ? globalThis.WebGL2RenderingContext : {} as any;
+export const GL = globalThis.WebGL2RenderingContext !== undefined ? globalThis.WebGL2RenderingContext : {} as any;
 
 //  Attributes
 export const POSITION_TEX_LOC: LocationName = 'position_and_tex';

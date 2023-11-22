@@ -206,11 +206,14 @@ export class GLEngine extends Disposable {
         GL.ARRAY_BUFFER,
         location,
         Float32Array.from([
+          //  face wall
           ...Matrix.create().translate(0, 0, 0).getMatrix(),
-          ...Matrix.create().translate(-1, 0, 1).rotateY(Math.PI / 2).getMatrix(),
-          ...Matrix.create().translate(1, 0, 1).rotateY(-Math.PI / 2).getMatrix(),
-
-          ...Matrix.create().translate(0, -1, 1).rotateX(-Math.PI / 2).getMatrix(),
+          //  left wall
+          ...Matrix.create().translate(-1, 0, 1).rotateY(Math.PI / 2).scale(1, 1, 1).getMatrix(),
+          //  right wall
+          ...Matrix.create().translate(1, 0, 1).rotateY(-Math.PI / 2).scale(1, 1, 1).getMatrix(),
+          //  ground
+          ...Matrix.create().translate(0, -1, 1).rotateX(-Math.PI / 2).scale(1, 1, 1).getMatrix(),
         ]),
         0,
         GL.DYNAMIC_DRAW,
@@ -230,6 +233,8 @@ export class GLEngine extends Disposable {
       const { canvas } = ctx;
       canvas.width = LOGO_SIZE;
       canvas.height = LOGO_SIZE;
+      const centerX = canvas.width / 2, centerY = canvas.height / 2;
+      const halfSize = canvas.width / 2;
       ctx.imageSmoothingEnabled = true;
       ctx.fillStyle = '#ddd';
       ctx.lineWidth = canvas.width / 50;
@@ -237,45 +242,24 @@ export class GLEngine extends Disposable {
 
       ctx.strokeStyle = 'black';
       ctx.fillStyle = 'gold';
+
+      //  face
       ctx.beginPath();
-      ctx.arc(
-        canvas.width / 2,
-        canvas.height / 2,
-        (canvas.width / 2) * 0.8,
-        0,
-        2 * Math.PI,
-      );
+      ctx.arc(centerX, centerY, halfSize * 0.8, 0, 2 * Math.PI);
       ctx.fill();
       ctx.stroke();
+
+      //  smile
       ctx.beginPath();
-      ctx.arc(
-        canvas.width / 2,
-        canvas.height / 2,
-        (canvas.width / 2) * 0.5,
-        0,
-        Math.PI,
-      );
+      ctx.arc(centerX, centerY, halfSize * 0.5, 0, Math.PI);
       ctx.stroke();
 
+      //  left eye
       ctx.beginPath();
-      ctx.arc(
-        canvas.width / 3,
-        canvas.height / 3,
-        (canvas.width / 2) * 0.1,
-        0,
-        Math.PI,
-        true,
-      );
+      ctx.arc(canvas.width / 3, canvas.height / 3, halfSize * 0.1, 0, Math.PI, true);
       ctx.stroke();
       ctx.beginPath();
-      ctx.arc(
-        (canvas.width / 3) * 2,
-        canvas.height / 3,
-        (canvas.width / 2) * 0.1,
-        0,
-        Math.PI * 2,
-        true,
-      );
+      ctx.arc((canvas.width / 3) * 2, canvas.height / 3, halfSize * 0.1, 0, Math.PI * 2, true);
       ctx.stroke();
     });
     const slot = this.textureAllocator.allocate(TEXTURE_SLOT_SIZE, TEXTURE_SLOT_SIZE);
@@ -311,10 +295,6 @@ export class GLEngine extends Disposable {
         GL.DYNAMIC_DRAW,
       );
     }
-  }
-
-  drawArrays(count: GLsizei) {
-    this.gl.drawArrays(GL.TRIANGLES, 0, count);
   }
 
   drawElementsInstanced(vertexCount: GLsizei, instances: GLsizei) {

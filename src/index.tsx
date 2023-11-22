@@ -21,7 +21,6 @@ export function testCanvas(canvas: HTMLCanvasElement) {
   const keys: Record<string, boolean> = {};
   document.addEventListener('keydown', (e) => {
     keys[e.code] = true;
-    console.log(keys);
   });
 
   document.addEventListener('keyup', (e) => {
