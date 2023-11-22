@@ -26,8 +26,9 @@ void main() {
   vec2 tex = position_and_tex.zw;
   vec2 slotSize = slotSize_and_number.xy;
   float slotNumber = slotSize_and_number.z;
+  vec2 slotOffset = vec2(mod(slotNumber, slotSize.x), floor(slotNumber / slotSize.x));
 
   gl_Position = projection * cam * transform * vec4(position, 0.0, 1.0);
-  vTex = tex * (slotSize / TEXTURE_SIZE);
+  vTex = (slotOffset + tex) * (slotSize / TEXTURE_SIZE);
   textureIndex = 0.;
 }

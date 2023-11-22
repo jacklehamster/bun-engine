@@ -2,7 +2,7 @@
   constructor(public width: number, public height: number) {
   }
 
-  getContext(contextType: string) {
+  getContext(_contextType: string) {
     // Return a mock context
     return {
       imageSmoothingEnabled: true,

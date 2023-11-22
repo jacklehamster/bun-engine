@@ -127,7 +127,7 @@ export class TextureManager extends Disposable {
    * @param generateMipMap if true, generate the mip map
    * @returns null or a callback to refresh the texture. Mainly used to refresh videos on texture
    */
-  applyImageToSlot(mediaInfo: MediaInfo, slot: Slot, generateMipMap: boolean): (() => void) | null {
+  applyImageToSlot(mediaInfo: MediaInfo, slot: Slot, generateMipMap: boolean = false): (() => void) | null {
     const slotPosition = calculatePosition(slot);
     const textureIndex: TextureIndex = calculateTextureIndex(slot);
     const textureId: TextureId = `TEXTURE${textureIndex}`;

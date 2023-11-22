@@ -213,7 +213,14 @@ export class GLEngine extends Disposable {
           //  right wall
           ...Matrix.create().translate(1, 0, 1).rotateY(-Math.PI / 2).scale(1, 1, 1).getMatrix(),
           //  ground
+
+          //  floor
           ...Matrix.create().translate(0, -1, 1).rotateX(-Math.PI / 2).scale(1, 1, 1).getMatrix(),
+          ...Matrix.create().translate(0, -1, 3).rotateX(-Math.PI / 2).scale(1, 1, 1).getMatrix(),
+          ...Matrix.create().translate(-2, -1, 3).rotateX(-Math.PI / 2).scale(1, 1, 1).getMatrix(),
+          ...Matrix.create().translate(2, -1, 3).rotateX(-Math.PI / 2).scale(1, 1, 1).getMatrix(),
+
+
         ]),
         0,
         GL.DYNAMIC_DRAW,
@@ -262,9 +269,37 @@ export class GLEngine extends Disposable {
       ctx.arc((canvas.width / 3) * 2, canvas.height / 3, halfSize * 0.1, 0, Math.PI * 2, true);
       ctx.stroke();
     });
+
+    await this.imageManager.drawImage('ground', (ctx) => {
+      const { canvas } = ctx;
+      canvas.width = LOGO_SIZE;
+      canvas.height = LOGO_SIZE;
+      ctx.imageSmoothingEnabled = true;
+      ctx.fillStyle = '#ddd';
+      ctx.lineWidth = canvas.width / 50;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.strokeStyle = 'black';
+      ctx.fillStyle = 'silver';
+
+      //  face
+      ctx.beginPath();
+      ctx.rect(canvas.width * .2, canvas.height * .2, canvas.width * .6, canvas.height * .6);
+      ctx.fill();
+      ctx.stroke();
+    });
+
     const slot = this.textureAllocator.allocate(TEXTURE_SLOT_SIZE, TEXTURE_SLOT_SIZE);
     const logoMediaInfo = this.imageManager.getMedia('logo');
-    this.textureManager.applyImageToSlot(logoMediaInfo, slot, true)
+    this.textureManager.applyImageToSlot(logoMediaInfo, slot)
+
+    const groundSlot = this.textureAllocator.allocate(TEXTURE_SLOT_SIZE, TEXTURE_SLOT_SIZE);
+    const groundMediaInfo = this.imageManager.getMedia('ground');
+    this.textureManager.applyImageToSlot(groundMediaInfo, groundSlot)
+
+    console.log(slot, groundSlot);
+
+    this.textureManager.generateMipMap("TEXTURE0");
 
     {
       const location = SLOT_SIZE_LOC;
@@ -289,7 +324,11 @@ export class GLEngine extends Disposable {
           ...slot.size, slot.slotNumber,
           ...slot.size, slot.slotNumber,
           ...slot.size, slot.slotNumber,
-          ...slot.size, slot.slotNumber,
+
+          ...groundSlot.size, groundSlot.slotNumber,
+          ...groundSlot.size, groundSlot.slotNumber,
+          ...groundSlot.size, groundSlot.slotNumber,
+          ...groundSlot.size, groundSlot.slotNumber,
         ]),
         0,
         GL.DYNAMIC_DRAW,
@@ -311,7 +350,7 @@ export class GLEngine extends Disposable {
     this.gl.clearDepth(1.0);
     this.gl.clear(GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT);
     const vertexCount = 6;
-    const instanceCount = 4;
+    const instanceCount = 7;
     this.drawElementsInstanced(vertexCount, instanceCount);
   }
 
