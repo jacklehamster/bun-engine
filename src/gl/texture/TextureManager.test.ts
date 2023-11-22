@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it, jest } from 'bun:test';
-import { TextureManager, GL } from './TextureManager';
+import { TextureManager } from './TextureManager';
 import "../../test/GLMock";
 import "../../test/MockCanvas";
+import { GL } from 'gl/attributes/Contants';
 
 describe('TextureManager', () => {
   let gl: Partial<GL>;
