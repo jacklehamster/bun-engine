@@ -128,6 +128,8 @@ export class GLEngine extends Disposable {
     //  enable depth
     this.gl.enable(GL.DEPTH_TEST);
     this.gl.depthFunc(GL.LESS);
+    this.gl.clearDepth(1.0);
+
     //  enable blend
     this.gl.enable(GL.BLEND);
     this.gl.blendFunc(GL.SRC_ALPHA, GL.ONE_MINUS_SRC_ALPHA);
@@ -220,7 +222,8 @@ export class GLEngine extends Disposable {
           ...Matrix.create().translate(-2, -1, 3).rotateX(-Math.PI / 2).scale(1, 1, 1).getMatrix(),
           ...Matrix.create().translate(2, -1, 3).rotateX(-Math.PI / 2).scale(1, 1, 1).getMatrix(),
 
-
+          //  sprite
+          ...Matrix.create().translate(0, 0, 0).getMatrix(),
         ]),
         0,
         GL.DYNAMIC_DRAW,
@@ -231,6 +234,34 @@ export class GLEngine extends Disposable {
 
     this.checkCanvasSize();
     this.camera.refresh();
+  }
+
+  syncHud() {
+    this.attributeBuffers.bindBuffer(GL.ARRAY_BUFFER, this.attributeBuffers.getAttributeBuffer(TRANSFORM_LOC));
+
+    const cameraPosition = [
+      -this.camera.cameraMatrix[12],
+      -this.camera.cameraMatrix[13],
+      -this.camera.cameraMatrix[14]
+    ];
+
+    // Create a copy of camTurnMatrix and invert it
+    const invertedCamTurnMatrix = Matrix.create().copy(this.camera.camTurnMatrix).invert().getMatrix();
+    const invertedCamTiltMatrix = Matrix.create().copy(this.camera.camTiltMatrix).invert().getMatrix();
+
+    this.attributeBuffers.bufferSubData(
+      GL.ARRAY_BUFFER,
+      Float32Array.from([
+        //  sprite
+        ...Matrix.create()
+          .translate(cameraPosition[0], cameraPosition[1], cameraPosition[2])
+          .multiply(invertedCamTurnMatrix)
+          .multiply(invertedCamTiltMatrix)
+          .translate(0, 0, -2)
+          .getMatrix()
+      ]),
+      (4 * 4 * Float32Array.BYTES_PER_ELEMENT) * 7,
+    );
   }
 
   async loadLogoTexture() {
@@ -329,6 +360,8 @@ export class GLEngine extends Disposable {
           ...groundSlot.size, groundSlot.slotNumber,
           ...groundSlot.size, groundSlot.slotNumber,
           ...groundSlot.size, groundSlot.slotNumber,
+
+          ...slot.size, slot.slotNumber,
         ]),
         0,
         GL.DYNAMIC_DRAW,
@@ -347,10 +380,10 @@ export class GLEngine extends Disposable {
   }
 
   refresh() {
-    this.gl.clearDepth(1.0);
     this.gl.clear(GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT);
     const vertexCount = 6;
-    const instanceCount = 7;
+    const instanceCount = 8;
+    this.syncHud();
     this.drawElementsInstanced(vertexCount, instanceCount);
   }
 

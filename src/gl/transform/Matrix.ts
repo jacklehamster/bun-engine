@@ -13,6 +13,21 @@ class Matrix {
     return new Matrix();
   }
 
+  public copy(matrix: mat4): Matrix {
+    mat4.copy(this.matrix, matrix);
+    return this;
+  }
+
+  public invert(): Matrix {
+    mat4.invert(this.matrix, this.matrix);
+    return this;
+  }
+
+  public multiply(matrix: mat4): Matrix {
+    mat4.multiply(this.matrix, this.matrix, matrix);
+    return this;
+  }
+
   public translate(x: number, y: number, z: number): Matrix {
     mat4.translate(this.matrix, this.matrix, [x, y, z]);
     return this;

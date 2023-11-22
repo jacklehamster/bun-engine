@@ -28,8 +28,8 @@ export class GLCamera {
     this.updatePerspective();
   }
 
-  private camTiltMatrix = Matrix.create().getMatrix();
-  private camTurnMatrix = Matrix.create().getMatrix();
+  camTiltMatrix = Matrix.create().getMatrix();
+  camTurnMatrix = Matrix.create().getMatrix();
   private camMatrix: mat4 = mat4.create();
   refresh() {
     //  camMatrix =  camTiltMatrix * camTurnMatrix * cameraMatrix;
