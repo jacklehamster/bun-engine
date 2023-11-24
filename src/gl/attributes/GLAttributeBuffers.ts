@@ -1,6 +1,6 @@
 import { Disposable } from '../../disposable/Disposable';
 import { GLPrograms } from '../programs/GLPrograms';
-import { GL } from './Contants';
+import { GL } from './Constants';
 
 export interface BufferInfo {
   buffer: WebGLBuffer;

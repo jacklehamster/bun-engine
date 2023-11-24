@@ -1,4 +1,4 @@
-import { GL } from 'gl/attributes/Contants';
+import { GL } from 'gl/attributes/Constants';
 import { Disposable } from '../../disposable/Disposable';
 import { GLPrograms } from '../programs/GLPrograms';
 
@@ -16,9 +16,7 @@ export class GLUniforms extends Disposable {
     name: string,
     programId?: string,
   ): WebGLUniformLocation | undefined {
-    const program = this.programs.getProgram(programId);
-    return program
-      ? this.gl.getUniformLocation(program, name) ?? undefined
-      : undefined;
+    const program = this.programs.getProgram(programId)!;
+    return this.gl.getUniformLocation(program, name)!;
   }
 }

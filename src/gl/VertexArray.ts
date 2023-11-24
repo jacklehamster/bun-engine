@@ -1,5 +1,5 @@
 import { Disposable } from '../disposable/Disposable';
-import { GL } from './attributes/Contants';
+import { GL } from './attributes/Constants';
 
 export class VertexArray extends Disposable {
   private gl: GL;

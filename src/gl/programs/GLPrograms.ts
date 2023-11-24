@@ -1,4 +1,4 @@
-import { GL } from 'gl/attributes/Contants';
+import { GL } from 'gl/attributes/Constants';
 import { Disposable } from '../../disposable/Disposable';
 import { GLProgram } from './GLProgram';
 

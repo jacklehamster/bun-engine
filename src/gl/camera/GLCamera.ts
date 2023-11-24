@@ -1,5 +1,5 @@
 import { mat4 } from "gl-matrix";
-import { CAM_LOC, GL, PROJECTION_LOC } from "gl/attributes/Contants";
+import { CAM_LOC, GL, PROJECTION_LOC } from "gl/attributes/Constants";
 import Matrix from "gl/transform/Matrix";
 import { GLUniforms } from "gl/uniforms/GLUniforms";
 
@@ -7,9 +7,9 @@ export class GLCamera {
   gl: GL;
   uniforms: GLUniforms;
   cameraMatrix: mat4 = Matrix.create().translate(0, 0, -1).getMatrix();
-  perspectiveMatrix: mat4 = Matrix.create().getMatrix();
-  orthoMatrix: mat4 = Matrix.create().getMatrix();
-  projectionMatrix: mat4 = Matrix.create().getMatrix();
+  private perspectiveMatrix: mat4 = Matrix.create().getMatrix();
+  private orthoMatrix: mat4 = Matrix.create().getMatrix();
+  private projectionMatrix: mat4 = Matrix.create().getMatrix();
   private perspectiveLevel: number = 1;
 
   constructor(gl: GL, uniforms: GLUniforms) {
@@ -19,7 +19,7 @@ export class GLCamera {
 
 
   configPerspectiveMatrix(ratio: number) {
-    this.perspectiveMatrix = Matrix.create().perspective(45, ratio, 0.1, 1000).getMatrix();
+    this.perspectiveMatrix = Matrix.create().perspective(45, ratio, 0.01, 1000).getMatrix();
     this.updatePerspective();
   }
 
@@ -38,9 +38,7 @@ export class GLCamera {
     mat4.mul(this.camMatrix, this.camMatrix, this.cameraMatrix);
 
     const loc = this.uniforms.getUniformLocation(CAM_LOC);
-    if (loc) {
-      this.gl.uniformMatrix4fv(loc, false, this.camMatrix);
-    }
+    this.gl.uniformMatrix4fv(loc, false, this.camMatrix);
   }
 
 
@@ -52,9 +50,7 @@ export class GLCamera {
     }
     Matrix.combineMat4(this.projectionMatrix, this.orthoMatrix, this.perspectiveMatrix, this.perspectiveLevel);
     const loc = this.uniforms.getUniformLocation(PROJECTION_LOC);
-    if (loc) {
-      this.gl.uniformMatrix4fv(loc, false, this.projectionMatrix);
-    }
+    this.gl.uniformMatrix4fv(loc, false, this.projectionMatrix);
 
     this.refresh();
   }

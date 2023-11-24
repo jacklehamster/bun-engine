@@ -18,5 +18,4 @@ export const SLOT_SIZE_LOC: LocationName = 'slotSize_and_number';
 export const CAM_LOC: LocationName = 'cam';
 export const PROJECTION_LOC: LocationName = 'projection';
 export const MAX_TEXTURE_SIZE_LOC: LocationName = 'maxTextureSize';
-
-export const DEBUG = false;
+export const TEXTURE_UNIFORM_LOC: LocationName = 'uTextures';

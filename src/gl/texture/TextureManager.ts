@@ -1,25 +1,33 @@
+import { GLUniforms } from 'gl/uniforms/GLUniforms';
 import { Disposable } from '../../disposable/Disposable';
-import { GL } from '../attributes/Contants';
+import { GL, MAX_TEXTURE_SIZE_LOC, TEXTURE_UNIFORM_LOC } from '../attributes/Constants';
 import { MediaInfo } from './MediaInfo';
 import { Slot, TextureIndex } from "texture-slot-allocator/dist/src/texture/TextureSlot";
+import { TextureSlotAllocator } from 'texture-slot-allocator/dist/src/texture/TextureSlotAllocator';
 
-type TextureId = `TEXTURE${TextureIndex}`;
+export type TextureId = `TEXTURE${TextureIndex}`;
 
 export type Url = string;
 export type ImageId = string;
 
-const MAX_TEXTURE_SIZE = 4096;
-
 export class TextureManager extends Disposable {
   private gl: GL;
+  private uniforms: GLUniforms;
   private textureBuffers: Record<TextureId | string, WebGLTexture> = {};
   private tempCanvas = new OffscreenCanvas(1, 1);
   private tempContext = this.tempCanvas.getContext('2d')!;
+  private textureSlotAllocator = new TextureSlotAllocator();
 
-  constructor(gl: GL) {
+  constructor(gl: GL, uniforms: GLUniforms) {
     super();
     this.gl = gl;
+    this.uniforms = uniforms;
     this.tempContext.imageSmoothingEnabled = true;
+  }
+
+  initialize() {
+    this.initTextureUniforms();
+    this.initMaxTexture();
   }
 
   private getTexture(textureId: TextureId) {
@@ -33,8 +41,8 @@ export class TextureManager extends Disposable {
         GL.TEXTURE_2D,
         0,
         GL.RGBA,
-        MAX_TEXTURE_SIZE,
-        MAX_TEXTURE_SIZE,
+        this.textureSlotAllocator.maxTextureSize,
+        this.textureSlotAllocator.maxTextureSize,
         0,
         GL.RGBA,
         GL.UNSIGNED_BYTE,
@@ -118,19 +126,12 @@ export class TextureManager extends Disposable {
     }
   }
 
-  /**
-   * Assign a media to a texture slot
-   * @param mediaInfo Image or video
-   * @param slot texture slot
-   * @param generateMipMap if true, generate the mip map
-   * @returns null or a callback to refresh the texture. Mainly used to refresh videos on texture
-   */
-  applyImageToSlot(mediaInfo: MediaInfo, slot: Slot, generateMipMap: boolean = false): (() => void) | null {
+  allocateSlotForImage(mediaInfo: MediaInfo): { slot: Slot, refreshCallback: (() => void) | null } {
+    const slot = this.textureSlotAllocator.allocate(mediaInfo.width, mediaInfo.height);
     const textureId: TextureId = `TEXTURE${slot.textureIndex}`;
     const webGLTexture = this.getTexture(textureId);
     if (!webGLTexture) {
-      console.warn(`Invalid texture Id ${textureId}`);
-      return null;
+      throw new Error(`Invalid texture Id ${textureId}`);
     }
 
     const refreshCallback = this.assignImageToTexture(
@@ -140,10 +141,7 @@ export class TextureManager extends Disposable {
       [0, 0, mediaInfo.width, mediaInfo.height],
       [slot.x, slot.y, ...slot.size],
     );
-    if (generateMipMap) {
-      this.generateMipMap(textureId);
-    }
-    return refreshCallback;
+    return { slot, refreshCallback };
   }
 
   private assignImageToTexture(
@@ -171,7 +169,7 @@ export class TextureManager extends Disposable {
     return null;
   }
 
-  generateMipMap(textureId: TextureId) {
+  private generateMipMap(textureId: TextureId) {
     const texture = this.getTexture(textureId);
     if (texture) {
       this.gl.activeTexture(GL[textureId]);
@@ -182,5 +180,25 @@ export class TextureManager extends Disposable {
       this.gl.generateMipmap(GL.TEXTURE_2D);
       console.log('GENERATED MIPMAP');
     }
+  }
+
+  generateMipMaps() {
+    const count = this.textureSlotAllocator.countUsedTextureSheets;
+    for (let i: TextureIndex = 0; i < count; i++) {
+      const textureId = `TEXTURE${i}` as TextureId;
+      this.generateMipMap(textureId);
+    }
+  }
+
+  private initTextureUniforms() {
+    const maxTextureUnits = this.gl.getParameter(GL.MAX_TEXTURE_IMAGE_UNITS);
+    const arrayOfTextureIndex = new Array(maxTextureUnits).fill(null).map((_, index) => index);	//	0, 1, 2, 3... 16
+    const textureUniformLocation = this.uniforms.getUniformLocation(TEXTURE_UNIFORM_LOC);
+    this.gl.uniform1iv(textureUniformLocation, arrayOfTextureIndex);
+  }
+
+  private initMaxTexture() {
+    const loc = this.uniforms.getUniformLocation(MAX_TEXTURE_SIZE_LOC);
+    this.gl.uniform1f(loc, this.textureSlotAllocator.maxTextureSize);
   }
 }

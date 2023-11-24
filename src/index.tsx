@@ -64,9 +64,7 @@ export function testCanvas(canvas: HTMLCanvasElement) {
     engine.refresh();
     requestAnimationFrame(loop);
   }
-  console.log(performance.now(), '<<');
   engine.refresh();
-  console.log(performance.now(), '<<<');
 
   loop();
 

@@ -2,10 +2,12 @@ import { beforeEach, describe, expect, it, jest } from 'bun:test';
 import { TextureManager } from './TextureManager';
 import "../../test/GLMock";
 import "../../test/MockCanvas";
-import { GL } from 'gl/attributes/Contants';
+import { GL } from 'gl/attributes/Constants';
+import { GLUniforms } from 'gl/uniforms/GLUniforms';
 
 describe('TextureManager', () => {
   let gl: Partial<GL>;
+  let uniforms: Partial<GLUniforms>;
   let textureManager: TextureManager;
 
   beforeEach(() => {
@@ -14,9 +16,16 @@ describe('TextureManager', () => {
       createTexture: jest.fn().mockReturnValue({}),
       bindTexture: jest.fn(),
       texImage2D: jest.fn(),
+      getParameter: jest.fn().mockReturnValue(16),
+      uniform1iv: jest.fn(),
+      uniform1f: jest.fn(),
     };
 
-    textureManager = new TextureManager(gl as GL);
+    uniforms = {
+      getUniformLocation: jest.fn(),
+    };
+
+    textureManager = new TextureManager(gl as GL, uniforms as GLUniforms);
   });
 
   it('should construct properly', () => {
@@ -42,5 +51,12 @@ describe('TextureManager', () => {
     textureManager['getTexture'](textureId);
 
     expect(gl.createTexture).not.toHaveBeenCalled();
+  });
+
+  it('should initialize', () => {
+    textureManager.initialize();
+    expect(gl.getParameter);
+    expect(gl.uniform1iv);
+    expect(gl.uniform1f);
   });
 });
