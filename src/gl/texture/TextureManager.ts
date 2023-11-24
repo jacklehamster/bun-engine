@@ -1,9 +1,7 @@
 import { Disposable } from '../../disposable/Disposable';
 import { GL } from '../attributes/Contants';
 import { MediaInfo } from './MediaInfo';
-import { Slot, calculatePosition, calculateTextureIndex } from './TextureSlot';
-
-export type TextureIndex = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28 | 29 | 30 | 31;
+import { Slot, TextureIndex } from "texture-slot-allocator/dist/src/texture/TextureSlot";
 
 type TextureId = `TEXTURE${TextureIndex}`;
 
@@ -128,9 +126,7 @@ export class TextureManager extends Disposable {
    * @returns null or a callback to refresh the texture. Mainly used to refresh videos on texture
    */
   applyImageToSlot(mediaInfo: MediaInfo, slot: Slot, generateMipMap: boolean = false): (() => void) | null {
-    const slotPosition = calculatePosition(slot);
-    const textureIndex: TextureIndex = calculateTextureIndex(slot);
-    const textureId: TextureId = `TEXTURE${textureIndex}`;
+    const textureId: TextureId = `TEXTURE${slot.textureIndex}`;
     const webGLTexture = this.getTexture(textureId);
     if (!webGLTexture) {
       console.warn(`Invalid texture Id ${textureId}`);
@@ -142,7 +138,7 @@ export class TextureManager extends Disposable {
       textureId,
       webGLTexture,
       [0, 0, mediaInfo.width, mediaInfo.height],
-      [slotPosition.x, slotPosition.y, ...slotPosition.size],
+      [slot.x, slot.y, ...slot.size],
     );
     if (generateMipMap) {
       this.generateMipMap(textureId);

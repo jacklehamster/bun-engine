@@ -31,6 +31,7 @@ export class GLCamera {
   camTiltMatrix = Matrix.create().getMatrix();
   camTurnMatrix = Matrix.create().getMatrix();
   private camMatrix: mat4 = mat4.create();
+
   refresh() {
     //  camMatrix =  camTiltMatrix * camTurnMatrix * cameraMatrix;
     mat4.mul(this.camMatrix, this.camTiltMatrix, this.camTurnMatrix);

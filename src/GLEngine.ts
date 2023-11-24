@@ -14,15 +14,17 @@ import {
   TRANSFORM_LOC,
   SLOT_SIZE_LOC,
   CAM_LOC,
+  MAX_TEXTURE_SIZE_LOC,
 } from './gl/attributes/Contants';
 import { TextureManager } from './gl/texture/TextureManager';
+import { ImageManager } from 'gl/texture/ImageManager';
 import vertexShader from 'generated/src/gl/resources/vertexShader.txt';
 import fragmentShader from 'generated/src/gl/resources/fragmentShader.txt';
 import { replaceTilda } from 'gl/utils/replaceTilda';
 import Matrix from 'gl/transform/Matrix';
 import { GLCamera } from 'gl/camera/GLCamera';
-import { ImageManager } from 'gl/texture/ImageManager';
-import { TextureSlotAllocator } from 'gl/texture/TextureSlotAllocator';
+//import { TextureSlotAllocator } from 'gl/texture/TextureSlotAllocator';
+import { TextureSlotAllocator } from 'texture-slot-allocator/src';
 
 const DEFAULT_ATTRIBUTES: WebGLContextAttributes = {
   alpha: true,
@@ -93,8 +95,6 @@ export class GLEngine extends Disposable {
     this.camera = new GLCamera(this.gl, this.uniforms);
 
     window.addEventListener('resize', this.checkCanvasSize.bind(this));
-
-    console.log(this.gl.getParameter(GL.MAX_VERTEX_ATTRIBS));
   }
 
   checkCanvasSize() {
@@ -122,9 +122,12 @@ export class GLEngine extends Disposable {
       replaceTilda(vertexShader, replacementMap),
       replaceTilda(fragmentShader, replacementMap),
     );
+
+    console.log(performance.now(), 11);
     this.programs.useProgram(PROGRAM_NAME);
     console.log(this.uniforms.getUniformLocation(CAM_LOC));
 
+    console.log(performance.now(), 22);
     //  enable depth
     this.gl.enable(GL.DEPTH_TEST);
     this.gl.depthFunc(GL.LESS);
@@ -140,6 +143,7 @@ export class GLEngine extends Disposable {
       this.gl.drawingBufferHeight,
     );
 
+    console.log(performance.now(), 33);
     {
       /*
           0  1
@@ -185,6 +189,7 @@ export class GLEngine extends Disposable {
         GL.STATIC_DRAW,
       );
     }
+    console.log(performance.now(), 44);
 
     {
       const location = TRANSFORM_LOC;
@@ -228,6 +233,13 @@ export class GLEngine extends Disposable {
         0,
         GL.DYNAMIC_DRAW,
       );
+
+      const loc = this.uniforms.getUniformLocation(MAX_TEXTURE_SIZE_LOC);
+      if (loc) {
+        this.gl.uniform1f(loc, this.textureAllocator.maxTextureSize);
+      }
+
+      console.log(performance.now(), 55);
     }
 
     await this.loadLogoTexture();
@@ -265,8 +277,9 @@ export class GLEngine extends Disposable {
   }
 
   async loadLogoTexture() {
-    const TEXTURE_SLOT_SIZE = 512;
-    const LOGO_SIZE = 2048;
+    const maxTextureSize = this.textureAllocator.maxTextureSize;
+    const TEXTURE_SLOT_SIZE = maxTextureSize;
+    const LOGO_SIZE = maxTextureSize / 4;
     await this.imageManager.drawImage('logo', (ctx) => {
       const { canvas } = ctx;
       canvas.width = LOGO_SIZE;
@@ -320,16 +333,23 @@ export class GLEngine extends Disposable {
       ctx.stroke();
     });
 
+    console.log(performance.now(), 1);
     const slot = this.textureAllocator.allocate(TEXTURE_SLOT_SIZE, TEXTURE_SLOT_SIZE);
     const logoMediaInfo = this.imageManager.getMedia('logo');
+    console.log(performance.now(), 2);
     this.textureManager.applyImageToSlot(logoMediaInfo, slot)
+    console.log(performance.now(), 3);
 
     const groundSlot = this.textureAllocator.allocate(TEXTURE_SLOT_SIZE, TEXTURE_SLOT_SIZE);
+    console.log(performance.now(), 4);
     const groundMediaInfo = this.imageManager.getMedia('ground');
+    console.log(performance.now(), 5);
     this.textureManager.applyImageToSlot(groundMediaInfo, groundSlot)
+    console.log(performance.now(), 6);
 
     console.log(slot, groundSlot);
 
+    console.log(performance.now(), 7);
     this.textureManager.generateMipMap("TEXTURE0");
 
     {
