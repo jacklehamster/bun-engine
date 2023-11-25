@@ -14,31 +14,31 @@ describe('ImageManager', () => {
   });
 
   it('should check if imageId exists', () => {
-    imageManager.setImage('1', mockMediaInfo);
-    expect(imageManager.hasImageId('1')).toBe(true);
-    expect(imageManager.hasImageId('2')).toBe(false);
+    imageManager.setImage(1, mockMediaInfo);
+    expect(imageManager.hasImageId(1)).toBe(true);
+    expect(imageManager.hasImageId(2)).toBe(false);
   });
 
   it('should get media by imageId', () => {
-    imageManager.setImage('1', mockMediaInfo);
-    expect(imageManager.getMedia('1')).toBe(mockMediaInfo);
-    expect(imageManager.getMedia('2')).toBeUndefined();
+    imageManager.setImage(1, mockMediaInfo);
+    expect(imageManager.getMedia(1)).toBe(mockMediaInfo);
+    expect(imageManager.getMedia(2)).toBeUndefined();
   });
 
   it('should draw image and add to images', async () => {
     const drawProcedure = jest.fn();
-    const imageInfo = await imageManager.drawImage('1', drawProcedure);
+    const imageInfo = await imageManager.drawImage(1, drawProcedure);
 
     expect(drawProcedure).toHaveBeenCalled();
     expect(imageInfo).toBeInstanceOf(MediaInfo);
-    expect(imageManager.getMedia('1')).toBe(imageInfo);
+    expect(imageManager.getMedia(1)).toBe(imageInfo);
   });
 
   it('should load canvas and add to images', async () => {
     const canvas = new OffscreenCanvas(1, 1);
-    const imageInfo = await imageManager.loadCanvas('1', canvas);
+    const imageInfo = await imageManager.loadCanvas(1, canvas);
 
     expect(imageInfo).toBeInstanceOf(MediaInfo);
-    expect(imageManager.getMedia('1')).toBe(imageInfo);
+    expect(imageManager.getMedia(1)).toBe(imageInfo);
   });
 });

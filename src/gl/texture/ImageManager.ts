@@ -1,9 +1,11 @@
 import { Disposable } from "disposable/Disposable";
-import { ImageId, Url } from "./TextureManager";
+import { Url } from "./TextureManager";
 import { MediaInfo } from "./MediaInfo";
 
+type ImageId = number;
+
 export class ImageManager extends Disposable {
-  private images: Record<ImageId, MediaInfo> = {};
+  private images: MediaInfo[] = [];
 
   hasImageId(imageId: ImageId): boolean {
     return !!this.getMedia(imageId);

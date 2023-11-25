@@ -8,7 +8,6 @@ import { TextureSlotAllocator } from 'texture-slot-allocator/dist/src/texture/Te
 export type TextureId = `TEXTURE${TextureIndex}`;
 
 export type Url = string;
-export type ImageId = string;
 
 export class TextureManager extends Disposable {
   private gl: GL;

@@ -21,6 +21,7 @@ import fragmentShader from 'generated/src/gl/resources/fragmentShader.txt';
 import { replaceTilda } from 'gl/utils/replaceTilda';
 import Matrix from 'gl/transform/Matrix';
 import { GLCamera } from 'gl/camera/GLCamera';
+import World from 'world/World';
 
 const DEFAULT_ATTRIBUTES: WebGLContextAttributes = {
   alpha: true,
@@ -60,6 +61,11 @@ function glProxy(gl: GL) {
   return proxy;
 }
 
+export interface Props {
+  attributes?: WebGLContextAttributes;
+  world?: World;
+}
+
 export class GLEngine extends Disposable {
   gl: GL;
   programs: GLPrograms;
@@ -71,7 +77,10 @@ export class GLEngine extends Disposable {
   imageManager: ImageManager;
   camera: GLCamera;
 
-  constructor(canvas: HTMLCanvasElement, attributes?: WebGLContextAttributes) {
+  constructor(canvas: HTMLCanvasElement, {
+    attributes,
+    world,
+  }: Props = {}) {
     super();
     this.gl = glProxy(
       canvas.getContext('webgl2', { ...DEFAULT_ATTRIBUTES, ...attributes })!,
@@ -225,7 +234,7 @@ export class GLEngine extends Disposable {
       this.textureManager.initialize();
     }
 
-    await this.loadLogoTexture();
+    await this.loadTextures();
 
     this.checkCanvasSize();
   }
@@ -258,9 +267,10 @@ export class GLEngine extends Disposable {
     );
   }
 
-  async loadLogoTexture() {
+  async loadTextures() {
+    const LOGO = 0, GROUND = 1, HUD = 2;
     const LOGO_SIZE = 512;
-    await this.imageManager.drawImage('logo', (ctx) => {
+    await this.imageManager.drawImage(LOGO, (ctx) => {
       const { canvas } = ctx;
       canvas.width = LOGO_SIZE;
       canvas.height = LOGO_SIZE;
@@ -294,7 +304,7 @@ export class GLEngine extends Disposable {
       ctx.stroke();
     });
 
-    await this.imageManager.drawImage('ground', (ctx) => {
+    await this.imageManager.drawImage(GROUND, (ctx) => {
       const { canvas } = ctx;
       canvas.width = LOGO_SIZE;
       canvas.height = LOGO_SIZE;
@@ -313,7 +323,7 @@ export class GLEngine extends Disposable {
       ctx.stroke();
     });
 
-    await this.imageManager.drawImage('hud', (ctx) => {
+    await this.imageManager.drawImage(HUD, (ctx) => {
       const { canvas } = ctx;
       canvas.width = LOGO_SIZE;
       canvas.height = LOGO_SIZE;
@@ -330,13 +340,13 @@ export class GLEngine extends Disposable {
       ctx.stroke();
     });
 
-    const logoMediaInfo = this.imageManager.getMedia('logo');
+    const logoMediaInfo = this.imageManager.getMedia(LOGO);
     const { slot } = this.textureManager.allocateSlotForImage(logoMediaInfo);
 
-    const groundMediaInfo = this.imageManager.getMedia('ground');
+    const groundMediaInfo = this.imageManager.getMedia(GROUND);
     const { slot: groundSlot } = this.textureManager.allocateSlotForImage(groundMediaInfo);
 
-    const hudMediaInfo = this.imageManager.getMedia('hud');
+    const hudMediaInfo = this.imageManager.getMedia(HUD);
     const { slot: hudSlot } = this.textureManager.allocateSlotForImage(hudMediaInfo);
 
 
