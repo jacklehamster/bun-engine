@@ -228,9 +228,11 @@ export class GLEngine extends Disposable {
     await this.loadLogoTexture();
 
     this.checkCanvasSize();
-    this.camera.refresh();
   }
 
+  private static syncHudMatrix: Matrix = Matrix.create();
+  private static invertedCamTurnMatrix: Matrix = Matrix.create();
+  private static invertedCamTiltMatrix: Matrix = Matrix.create();
   syncHud() {
     this.attributeBuffers.bindBuffer(GL.ARRAY_BUFFER, this.attributeBuffers.getAttributeBuffer(TRANSFORM_LOC));
 
@@ -241,20 +243,17 @@ export class GLEngine extends Disposable {
     ];
 
     // Create a copy of camTurnMatrix and invert it
-    const invertedCamTurnMatrix = Matrix.create().copy(this.camera.camTurnMatrix).invert().getMatrix();
-    const invertedCamTiltMatrix = Matrix.create().copy(this.camera.camTiltMatrix).invert().getMatrix();
+    GLEngine.invertedCamTurnMatrix.copy(this.camera.camTurnMatrix).invert().getMatrix();
+    GLEngine.invertedCamTiltMatrix.copy(this.camera.camTiltMatrix).invert().getMatrix();
 
     this.attributeBuffers.bufferSubData(
       GL.ARRAY_BUFFER,
-      Float32Array.from([
-        //  sprite
-        ...Matrix.create()
-          .translate(cameraPosition[0], cameraPosition[1], cameraPosition[2])
-          .multiply(invertedCamTurnMatrix)
-          .multiply(invertedCamTiltMatrix)
-          .translate(0, 0, -.9)
-          .getMatrix()
-      ]),
+      GLEngine.syncHudMatrix.identity()
+        .translate(cameraPosition[0], cameraPosition[1], cameraPosition[2])
+        .multiply(GLEngine.invertedCamTurnMatrix.getMatrix())
+        .multiply(GLEngine.invertedCamTiltMatrix.getMatrix())
+        .translate(0, 0, -.9)
+        .getMatrix(),
       4 * 4 * Float32Array.BYTES_PER_ELEMENT * 7,
     );
   }
@@ -394,6 +393,7 @@ export class GLEngine extends Disposable {
     this.gl.clear(GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT);
     const vertexCount = 6;
     const instanceCount = 8;
+    this.camera.refresh();
     this.syncHud();
     this.drawElementsInstanced(vertexCount, instanceCount);
   }

@@ -3,14 +3,19 @@ import { mat4, quat, vec3 } from 'gl-matrix';
 const DEG_TO_RADIANT = Math.PI / 90;
 
 class Matrix {
-  private matrix: mat4;
+  private matrix = Float32Array.from(mat4.create());
 
   constructor() {
-    this.matrix = mat4.create();
+    mat4.identity(this.matrix);
   }
 
   static create() {
     return new Matrix();
+  }
+
+  public identity(): Matrix {
+    mat4.identity(this.matrix);
+    return this;
   }
 
   public copy(matrix: mat4): Matrix {
@@ -89,7 +94,7 @@ class Matrix {
     mat4.translate(result, result, v);
   }
 
-  public getMatrix(): mat4 {
+  public getMatrix(): Float32Array {
     return this.matrix;
   }
 }

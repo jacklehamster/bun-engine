@@ -28,7 +28,6 @@ export function testCanvas(canvas: HTMLCanvasElement) {
   });
 
   function loop() {
-    engine.gl.enable(engine.gl.DEPTH_TEST);
     const speed = 0.5 / 2;
     const turnspeed = 0.1 / 2;
     if (keys.KeyW) {

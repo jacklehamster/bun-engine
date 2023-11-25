@@ -11,6 +11,7 @@ export class GLCamera {
   private orthoMatrix: mat4 = Matrix.create().getMatrix();
   private projectionMatrix: mat4 = Matrix.create().getMatrix();
   private perspectiveLevel: number = 1;
+  private needsRefresh = false;
 
   constructor(gl: GL, uniforms: GLUniforms) {
     this.gl = gl;
@@ -30,9 +31,12 @@ export class GLCamera {
 
   camTiltMatrix = Matrix.create().getMatrix();
   camTurnMatrix = Matrix.create().getMatrix();
-  private camMatrix: mat4 = mat4.create();
+  private camMatrix = Matrix.create().getMatrix();
 
   refresh() {
+    if (!this.needsRefresh) {
+      return;
+    }
     //  camMatrix =  camTiltMatrix * camTurnMatrix * cameraMatrix;
     mat4.mul(this.camMatrix, this.camTiltMatrix, this.camTurnMatrix);
     mat4.mul(this.camMatrix, this.camMatrix, this.cameraMatrix);
@@ -41,9 +45,6 @@ export class GLCamera {
     this.gl.uniformMatrix4fv(loc, false, this.camMatrix);
   }
 
-
-  orthoTemp = mat4.create();
-  perspectiveTemp = mat4.create();
   updatePerspective(level?: number) {
     if (level !== undefined) {
       this.perspectiveLevel = level;
@@ -51,22 +52,21 @@ export class GLCamera {
     Matrix.combineMat4(this.projectionMatrix, this.orthoMatrix, this.perspectiveMatrix, this.perspectiveLevel);
     const loc = this.uniforms.getUniformLocation(PROJECTION_LOC);
     this.gl.uniformMatrix4fv(loc, false, this.projectionMatrix);
-
-    this.refresh();
+    this.needsRefresh = true;
   }
 
   moveCam(x: number, y: number, z: number) {
     Matrix.moveMatrix(this.cameraMatrix, x, y, z, this.camTurnMatrix);
-    this.refresh();
+    this.needsRefresh = true;
   }
 
   turnCam(angle: number) {
     mat4.rotateY(this.camTurnMatrix, this.camTurnMatrix, angle);
-    this.refresh();
+    this.needsRefresh = true;
   }
 
   tilt(angle: number) {
     mat4.rotateX(this.camTiltMatrix, this.camTiltMatrix, angle);
-    this.refresh();
+    this.needsRefresh = true;
   }
 }

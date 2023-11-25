@@ -14,8 +14,7 @@ export class TextureManager extends Disposable {
   private gl: GL;
   private uniforms: GLUniforms;
   private textureBuffers: Record<TextureId | string, WebGLTexture> = {};
-  private tempCanvas = new OffscreenCanvas(1, 1);
-  private tempContext = this.tempCanvas.getContext('2d')!;
+  private tempContext = (new OffscreenCanvas(1, 1)).getContext('2d')!;
   private textureSlotAllocator = new TextureSlotAllocator();
 
   constructor(gl: GL, uniforms: GLUniforms) {
@@ -79,14 +78,13 @@ export class TextureManager extends Disposable {
         0,
         dstX,
         dstY,
-        srcWidth,
-        srcHeight,
+        dstWidth,
+        dstHeight,
         GL.RGBA,
         GL.UNSIGNED_BYTE,
         mediaInfo.texImgSrc,
       );
     } else {
-      console.log('Used canvas');
       const canvas = this.tempContext.canvas;
       if (mediaInfo.texImgSrc instanceof ImageData) {
         canvas.width = dstWidth || mediaInfo.width;
