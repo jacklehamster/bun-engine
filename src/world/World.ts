@@ -6,7 +6,8 @@ interface World {
   activate(): (() => void) | void;
   getMaxSpriteCount(): number;
   getSprite(index: number): Sprite | null;
-  getUpdatedSprites(): Set<number>;
+  getUpdatedSpriteTransforms(): Set<number>;
+  getUpdatedSpriteTextureSlot(): Set<number>;
   getNumImages(): number;
   drawImage(imageId: ImageId, imageManager: ImageManager): Promise<void>;
   syncWithCamera(camera: GLCamera): void;

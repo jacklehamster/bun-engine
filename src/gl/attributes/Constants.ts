@@ -9,7 +9,7 @@ export type GL = WebGL2RenderingContext;
 export const GL = globalThis.WebGL2RenderingContext ?? {} as any;
 
 //  Attributes
-export const POSITION_TEX_LOC: LocationName = 'position_and_tex';
+export const POSITION_LOC: LocationName = 'position';
 export const INDEX_LOC: LocationName = 'index';
 export const TRANSFORM_LOC: LocationName = 'transform';
 export const SLOT_SIZE_LOC: LocationName = 'slotSize_and_number';

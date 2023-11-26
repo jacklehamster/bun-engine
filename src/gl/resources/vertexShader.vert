@@ -5,7 +5,7 @@ precision highp float;
 
 //  IN
 //  shape
-layout(location = 0) in vec4 position_and_tex;
+layout(location = 0) in vec2 position;
 layout(location = 1) in mat4 transform;
 //  2, 3, 4
 //  animation
@@ -21,8 +21,7 @@ out vec2 vTex;
 out float textureIndex;
 
 void main() {
-  vec2 position = position_and_tex.xy;
-  vec2 tex = position_and_tex.zw;
+  vec2 tex = position.xy * -0.5 + 0.5;
   vec2 slotSize = slotSize_and_number.xy;
   float slotNumber = slotSize_and_number.z;
   float maxCols = maxTextureSize / slotSize.x;

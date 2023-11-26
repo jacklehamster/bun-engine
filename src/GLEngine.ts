@@ -9,7 +9,7 @@ import { GLAttributeBuffers } from './gl/attributes/GLAttributeBuffers';
 import { GLUniforms } from './gl/uniforms/GLUniforms';
 import {
   GL,
-  POSITION_TEX_LOC,
+  POSITION_LOC,
   INDEX_LOC,
   TRANSFORM_LOC,
   SLOT_SIZE_LOC,
@@ -182,13 +182,13 @@ export class GLEngine extends Disposable {
     }
 
     {
-      const location = POSITION_TEX_LOC;
+      const location = POSITION_LOC;
       this.attributeBuffers.createBuffer(location);
       const bufferInfo = this.attributeBuffers.getAttributeBuffer(location);
       this.attributeBuffers.bindBuffer(GL.ARRAY_BUFFER, bufferInfo);
       this.gl.vertexAttribPointer(
         bufferInfo.location,
-        4,
+        2,
         GL.FLOAT,
         false,
         0,
@@ -199,10 +199,10 @@ export class GLEngine extends Disposable {
         GL.ARRAY_BUFFER,
         location,
         Float32Array.from([
-          -1, -1, 0, 1,
-          1, -1, 1, 1,
-          1, 1, 1, 0,
-          -1, 1, 0, 0,
+          -1, -1,
+          1, -1,
+          1, 1,
+          -1, 1,
         ]),
         0,
         GL.STATIC_DRAW,
@@ -302,34 +302,35 @@ export class GLEngine extends Disposable {
   }
 
   private updateSprites() {
-    const spriteIdsToUpdate = this.world?.getUpdatedSprites();
+    const spriteIdsToUpdate = this.world?.getUpdatedSpriteTransforms();
     if (spriteIdsToUpdate?.size) {
-      {
-        const bufferInfo = this.attributeBuffers.getAttributeBuffer(TRANSFORM_LOC);
-        this.attributeBuffers.bindBuffer(GL.ARRAY_BUFFER, bufferInfo);
-        spriteIdsToUpdate?.forEach(spriteId => {
-          if (this.updateSprite(spriteId)) {
-            this.topVisibleSprite = Math.max(this.topVisibleSprite, spriteId);
-          }
-        });
-      }
-      {
-        const bufferInfo = this.attributeBuffers.getAttributeBuffer(SLOT_SIZE_LOC);
-        this.attributeBuffers.bindBuffer(GL.ARRAY_BUFFER, bufferInfo);
-        spriteIdsToUpdate?.forEach(spriteId => {
-          const sprite = this.world?.getSprite(spriteId);
-          if (sprite?.imageId !== undefined) {
-            const { buffer } = this.textureSlots[sprite.imageId];
-            this.attributeBuffers.bufferSubData(
-              GL.ARRAY_BUFFER,
-              buffer,
-              3 * Float32Array.BYTES_PER_ELEMENT * spriteId,
-            );
-          }
-        });
-      }
+      const bufferInfo = this.attributeBuffers.getAttributeBuffer(TRANSFORM_LOC);
+      this.attributeBuffers.bindBuffer(GL.ARRAY_BUFFER, bufferInfo);
+      spriteIdsToUpdate?.forEach(spriteId => {
+        if (this.updateSprite(spriteId)) {
+          this.topVisibleSprite = Math.max(this.topVisibleSprite, spriteId);
+        }
+      });
       spriteIdsToUpdate?.clear();
     }
+
+    const spriteIdTextureSlotsToUpdate = this.world?.getUpdatedSpriteTextureSlot();
+    if (spriteIdTextureSlotsToUpdate?.size) {
+      const bufferInfo = this.attributeBuffers.getAttributeBuffer(SLOT_SIZE_LOC);
+      this.attributeBuffers.bindBuffer(GL.ARRAY_BUFFER, bufferInfo);
+      spriteIdTextureSlotsToUpdate?.forEach(spriteId => {
+        const sprite = this.world?.getSprite(spriteId);
+        if (sprite?.imageId !== undefined) {
+          const { buffer } = this.textureSlots[sprite.imageId];
+          this.attributeBuffers.bufferSubData(
+            GL.ARRAY_BUFFER,
+            buffer,
+            3 * Float32Array.BYTES_PER_ELEMENT * spriteId,
+          );
+        }
+      });
+    }
+    spriteIdTextureSlotsToUpdate?.clear();
 
     while (!this.world?.getSprite(this.topVisibleSprite)) {
       this.topVisibleSprite--;

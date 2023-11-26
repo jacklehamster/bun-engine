@@ -7,11 +7,18 @@ import { GLCamera } from "gl/camera/GLCamera";
 const LOGO = 0, GROUND = 1, HUD = 2;
 
 export class DemoWorld implements World {
-  private updatedSprites: Set<number> = new Set();
+  private updatedSpriteTransforms: Set<number> = new Set();
+  private updatedSpriteTextureSlots: Set<number> = new Set();
   private readonly hudSpriteId = 0;
 
   constructor() {
-    this.sprites.forEach((_, index) => this.updatedSprites.add(index));
+    this.sprites.forEach((_, index) => {
+      this.updatedSpriteTransforms.add(index);
+      this.updatedSpriteTextureSlots.add(index);
+    });
+  }
+  getUpdatedSpriteTextureSlot(): Set<number> {
+    return this.updatedSpriteTextureSlots
   }
 
   getNumImages(): number {
@@ -160,12 +167,12 @@ export class DemoWorld implements World {
 
     if (camera.refresh()) {
       camera.syncHud(this.hudMatrix);
-      this.updatedSprites.add(this.hudSpriteId);
+      this.updatedSpriteTransforms.add(this.hudSpriteId);
     }
   }
 
-  getUpdatedSprites(): Set<number> {
-    return this.updatedSprites;
+  getUpdatedSpriteTransforms(): Set<number> {
+    return this.updatedSpriteTransforms;
   }
 
   private keys: Record<string, boolean> = {};
