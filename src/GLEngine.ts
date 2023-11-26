@@ -260,7 +260,13 @@ export class GLEngine extends Disposable {
       await this.world?.drawImage(i, this.imageManager);
       const mediaInfo = this.imageManager.getMedia(i);
       const { slot, refreshCallback } = this.textureManager.allocateSlotForImage(mediaInfo);
-      this.textureSlots[i] = { refreshCallback, buffer: Float32Array.from([...slot.size, slot.slotNumber]) };
+      const slotW = Math.log2(slot.size[0]);
+      const slotH = Math.log2(slot.size[1]);
+      const wh = slotW * 16 + slotH;
+      this.textureSlots[i] = {
+        refreshCallback,
+        buffer: Float32Array.from([wh, slot.slotNumber]),
+      };
     }
 
     this.textureManager.generateMipMaps();
@@ -273,10 +279,10 @@ export class GLEngine extends Disposable {
       const loc = bufferInfo.location;
       this.gl.vertexAttribPointer(
         loc,
-        3,
+        2,
         GL.FLOAT,
         false,
-        3 * Float32Array.BYTES_PER_ELEMENT,
+        2 * Float32Array.BYTES_PER_ELEMENT,
         0,
       );
       this.gl.enableVertexAttribArray(loc);
@@ -325,7 +331,7 @@ export class GLEngine extends Disposable {
           this.attributeBuffers.bufferSubData(
             GL.ARRAY_BUFFER,
             buffer,
-            3 * Float32Array.BYTES_PER_ELEMENT * spriteId,
+            2 * Float32Array.BYTES_PER_ELEMENT * spriteId,
           );
         }
       });
