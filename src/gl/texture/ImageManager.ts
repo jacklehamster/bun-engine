@@ -2,7 +2,7 @@ import { Disposable } from "disposable/Disposable";
 import { Url } from "./TextureManager";
 import { MediaInfo } from "./MediaInfo";
 
-type ImageId = number;
+export type ImageId = number;
 
 export class ImageManager extends Disposable {
   private images: MediaInfo[] = [];

@@ -1,4 +1,3 @@
-import { mat4 } from "gl-matrix";
 import { CAM_LOC, GL, PROJECTION_LOC } from "gl/attributes/Constants";
 import Matrix from "gl/transform/Matrix";
 import { GLUniforms } from "gl/uniforms/GLUniforms";
@@ -6,10 +5,10 @@ import { GLUniforms } from "gl/uniforms/GLUniforms";
 export class GLCamera {
   gl: GL;
   uniforms: GLUniforms;
-  cameraMatrix: mat4 = Matrix.create().translate(0, 0, -1).getMatrix();
-  private perspectiveMatrix: mat4 = Matrix.create().getMatrix();
-  private orthoMatrix: mat4 = Matrix.create().getMatrix();
-  private projectionMatrix: mat4 = Matrix.create().getMatrix();
+  camPositionMatrix: Matrix = Matrix.create().translate(0, 0, -1);
+  private readonly perspectiveMatrix = Matrix.create();
+  private readonly orthoMatrix = Matrix.create();
+  private projectionMatrix = Matrix.create();
   private perspectiveLevel: number = 1;
   private needsRefresh = false;
 
@@ -20,53 +19,52 @@ export class GLCamera {
 
 
   configPerspectiveMatrix(ratio: number) {
-    this.perspectiveMatrix = Matrix.create().perspective(45, ratio, 0.01, 1000).getMatrix();
+    this.perspectiveMatrix.perspective(45, ratio, 0.01, 1000);
     this.updatePerspective();
   }
 
   configOrthoMatrix(ratio: number) {
-    this.orthoMatrix = Matrix.create().ortho(-ratio, ratio, -1, 1, -1000, 1000).getMatrix();
+    this.orthoMatrix.ortho(-ratio, ratio, -1, 1, -1000, 1000);
     this.updatePerspective();
   }
 
-  camTiltMatrix = Matrix.create().getMatrix();
-  camTurnMatrix = Matrix.create().getMatrix();
-  private camMatrix = Matrix.create().getMatrix();
+  readonly camTiltMatrix = Matrix.create();
+  readonly camTurnMatrix = Matrix.create();
+  private readonly camMatrix = Matrix.create();
 
   refresh() {
     if (!this.needsRefresh) {
       return;
     }
-    //  camMatrix =  camTiltMatrix * camTurnMatrix * cameraMatrix;
-    mat4.mul(this.camMatrix, this.camTiltMatrix, this.camTurnMatrix);
-    mat4.mul(this.camMatrix, this.camMatrix, this.cameraMatrix);
+    //  camMatrix =  camTiltMatrix * camTurnMatrix * camPositionMatrix;
+    this.camMatrix.multiply3(this.camTiltMatrix, this.camTurnMatrix, this.camPositionMatrix);
 
     const loc = this.uniforms.getUniformLocation(CAM_LOC);
-    this.gl.uniformMatrix4fv(loc, false, this.camMatrix);
+    this.gl.uniformMatrix4fv(loc, false, this.camMatrix.getMatrix());
   }
 
   updatePerspective(level?: number) {
     if (level !== undefined) {
       this.perspectiveLevel = level;
     }
-    Matrix.combineMat4(this.projectionMatrix, this.orthoMatrix, this.perspectiveMatrix, this.perspectiveLevel);
+    this.projectionMatrix.combine(this.orthoMatrix, this.perspectiveMatrix, this.perspectiveLevel);
     const loc = this.uniforms.getUniformLocation(PROJECTION_LOC);
-    this.gl.uniformMatrix4fv(loc, false, this.projectionMatrix);
+    this.gl.uniformMatrix4fv(loc, false, this.projectionMatrix.getMatrix());
     this.needsRefresh = true;
   }
 
   moveCam(x: number, y: number, z: number) {
-    Matrix.moveMatrix(this.cameraMatrix, x, y, z, this.camTurnMatrix);
+    this.camPositionMatrix.moveMatrix(x, y, z, this.camTurnMatrix);
     this.needsRefresh = true;
   }
 
   turnCam(angle: number) {
-    mat4.rotateY(this.camTurnMatrix, this.camTurnMatrix, angle);
+    this.camTurnMatrix.rotateY(angle);
     this.needsRefresh = true;
   }
 
   tilt(angle: number) {
-    mat4.rotateX(this.camTiltMatrix, this.camTiltMatrix, angle);
+    this.camTiltMatrix.rotateX(angle);
     this.needsRefresh = true;
   }
 }

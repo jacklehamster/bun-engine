@@ -15,7 +15,7 @@ export class GLUniforms extends Disposable {
   getUniformLocation(
     name: string,
     programId?: string,
-  ): WebGLUniformLocation | undefined {
+  ): WebGLUniformLocation {
     const program = this.programs.getProgram(programId)!;
     return this.gl.getUniformLocation(program, name)!;
   }

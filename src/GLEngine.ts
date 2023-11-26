@@ -245,22 +245,12 @@ export class GLEngine extends Disposable {
   syncHud() {
     this.attributeBuffers.bindBuffer(GL.ARRAY_BUFFER, this.attributeBuffers.getAttributeBuffer(TRANSFORM_LOC));
 
-    const cameraPosition = [
-      -this.camera.cameraMatrix[12],
-      -this.camera.cameraMatrix[13],
-      -this.camera.cameraMatrix[14]
-    ];
-
-    // Create a copy of camTurnMatrix and invert it
-    GLEngine.invertedCamTurnMatrix.copy(this.camera.camTurnMatrix).invert().getMatrix();
-    GLEngine.invertedCamTiltMatrix.copy(this.camera.camTiltMatrix).invert().getMatrix();
-
     this.attributeBuffers.bufferSubData(
       GL.ARRAY_BUFFER,
       GLEngine.syncHudMatrix.identity()
-        .translate(cameraPosition[0], cameraPosition[1], cameraPosition[2])
-        .multiply(GLEngine.invertedCamTurnMatrix.getMatrix())
-        .multiply(GLEngine.invertedCamTiltMatrix.getMatrix())
+        .translateToMatrix(this.camera.camPositionMatrix)
+        .multiply(GLEngine.invertedCamTurnMatrix.invert(this.camera.camTurnMatrix))
+        .multiply(GLEngine.invertedCamTiltMatrix.invert(this.camera.camTiltMatrix))
         .translate(0, 0, -.9)
         .getMatrix(),
       4 * 4 * Float32Array.BYTES_PER_ELEMENT * 7,

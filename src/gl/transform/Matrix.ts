@@ -3,10 +3,10 @@ import { mat4, quat, vec3 } from 'gl-matrix';
 const DEG_TO_RADIANT = Math.PI / 90;
 
 class Matrix {
-  private matrix = Float32Array.from(mat4.create());
+  private m4 = Float32Array.from(mat4.create());
 
   constructor() {
-    mat4.identity(this.matrix);
+    this.identity();
   }
 
   static create() {
@@ -14,53 +14,65 @@ class Matrix {
   }
 
   public identity(): Matrix {
-    mat4.identity(this.matrix);
+    mat4.identity(this.m4);
     return this;
   }
 
-  public copy(matrix: mat4): Matrix {
-    mat4.copy(this.matrix, matrix);
+  public invert(matrix: Matrix): Matrix {
+    mat4.invert(this.m4, matrix.getMatrix());
     return this;
   }
 
-  public invert(): Matrix {
-    mat4.invert(this.matrix, this.matrix);
+  public multiply(matrix: Matrix): Matrix {
+    mat4.multiply(this.m4, this.m4, matrix.getMatrix());
     return this;
   }
 
-  public multiply(matrix: mat4): Matrix {
-    mat4.multiply(this.matrix, this.matrix, matrix);
+  public multiply2(matrix1: Matrix, matrix2: Matrix): Matrix {
+    mat4.multiply(this.m4, matrix1.getMatrix(), matrix2.getMatrix());
+    return this;
+  }
+
+  public multiply3(matrix1: Matrix, matrix2: Matrix, matrix3: Matrix): Matrix {
+    this.multiply2(matrix1, matrix2);
+    this.multiply(matrix3);
     return this;
   }
 
   public translate(x: number, y: number, z: number): Matrix {
-    mat4.translate(this.matrix, this.matrix, [x, y, z]);
+    mat4.translate(this.m4, this.m4, [x, y, z]);
+    return this;
+  }
+
+  public translateToMatrix(matrix: Matrix): Matrix {
+    const m4 = matrix.getMatrix();
+    this.translate(-m4[12], -m4[13], -m4[14])
     return this;
   }
 
   public rotateX(angle: number): Matrix {
-    mat4.rotateX(this.matrix, this.matrix, angle);
+    mat4.rotateX(this.m4, this.m4, angle);
     return this;
   }
 
   public rotateY(angle: number): Matrix {
-    mat4.rotateY(this.matrix, this.matrix, angle);
+    mat4.rotateY(this.m4, this.m4, angle);
     return this;
   }
 
   public rotateZ(angle: number): Matrix {
-    mat4.rotateZ(this.matrix, this.matrix, angle);
+    mat4.rotateZ(this.m4, this.m4, angle);
     return this;
   }
 
   public scale(x: number, y: number, z: number): Matrix {
-    mat4.scale(this.matrix, this.matrix, [x, y, z]);
+    mat4.scale(this.m4, this.m4, [x, y, z]);
     return this;
   }
 
   public perspective(degAngle: number, ratio: number, near: number, far: number): Matrix {
     mat4.perspective(
-      this.matrix,
+      this.m4,
       degAngle * DEG_TO_RADIANT,
       ratio,
       near,
@@ -70,32 +82,33 @@ class Matrix {
   }
 
   public ortho(left: number, right: number, bottom: number, top: number, near: number, far: number): Matrix {
-    mat4.ortho(this.matrix, left, right, bottom, top, near, far);
+    mat4.ortho(this.m4, left, right, bottom, top, near, far);
     return this;
   }
 
   static aTemp = mat4.create();
   static bTemp = mat4.create();
-  static combineMat4(result: mat4, a: mat4, b: mat4, level: number = .5): void {
-    mat4.multiplyScalar(this.aTemp, a, 1 - level);
-    mat4.multiplyScalar(this.bTemp, b, level);
-    mat4.add(result, this.aTemp, this.bTemp);
+  combine(matrix1: Matrix, matrix2: Matrix, level: number = .5): Matrix {
+    mat4.multiplyScalar(Matrix.aTemp, matrix1.getMatrix(), 1 - level);
+    mat4.multiplyScalar(Matrix.bTemp, matrix2.getMatrix(), level);
+    mat4.add(this.m4, Matrix.aTemp, Matrix.bTemp);
+    return this;
   }
 
   static tempQuat = quat.create();
-  static moveMatrix(result: mat4, x: number, y: number, z: number,
-    turnMatrix: mat4 | null = null) {
+  moveMatrix(x: number, y: number, z: number, turnMatrix?: Matrix) {
     const v = vec3.fromValues(-x, y, z);
     if (turnMatrix) {
-      mat4.getRotation(this.tempQuat, turnMatrix);
-      quat.invert(this.tempQuat, this.tempQuat);
-      vec3.transformQuat(v, v, this.tempQuat);
+      mat4.getRotation(Matrix.tempQuat, turnMatrix.getMatrix());
+      quat.invert(Matrix.tempQuat, Matrix.tempQuat);
+      vec3.transformQuat(v, v, Matrix.tempQuat);
     }
-    mat4.translate(result, result, v);
+    mat4.translate(this.m4, this.m4, v);
+    return this;
   }
 
   public getMatrix(): Float32Array {
-    return this.matrix;
+    return this.m4;
   }
 }
 
