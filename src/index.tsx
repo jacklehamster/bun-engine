@@ -1,3 +1,4 @@
+import { DemoWorld } from 'world/DemoWorld';
 import { GLEngine } from './GLEngine';
 
 export async function hello() {
@@ -14,7 +15,9 @@ export function testCanvas(canvas: HTMLCanvasElement) {
     canvas.style.borderColor = 'silver';
   });
   //  canvas.style.pointerEvents = 'none';
-  const engine = new GLEngine(canvas);
+  const engine = new GLEngine(canvas, {
+    world: new DemoWorld(),
+  });
 
   engine.initialize();
 

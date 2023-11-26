@@ -175,7 +175,6 @@ export class TextureManager extends Disposable {
       this.gl.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_MIN_FILTER, GL.LINEAR_MIPMAP_LINEAR);
       this.gl.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_MAG_FILTER, GL.LINEAR);
       this.gl.generateMipmap(GL.TEXTURE_2D);
-      console.log('GENERATED MIPMAP');
     }
   }
 

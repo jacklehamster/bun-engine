@@ -22,6 +22,7 @@ import { replaceTilda } from 'gl/utils/replaceTilda';
 import Matrix from 'gl/transform/Matrix';
 import { GLCamera } from 'gl/camera/GLCamera';
 import World from 'world/World';
+import { mat4 } from 'gl-matrix';
 
 const DEFAULT_ATTRIBUTES: WebGLContextAttributes = {
   alpha: true,
@@ -77,6 +78,8 @@ export class GLEngine extends Disposable {
   imageManager: ImageManager;
   camera: GLCamera;
 
+  private world?: World;
+
   constructor(canvas: HTMLCanvasElement, {
     attributes,
     world,
@@ -97,6 +100,8 @@ export class GLEngine extends Disposable {
     this.imageManager = new ImageManager();
     this.camera = new GLCamera(this.gl, this.uniforms);
 
+    this.world = world;
+
     window.addEventListener('resize', this.checkCanvasSize.bind(this));
   }
 
@@ -110,8 +115,7 @@ export class GLEngine extends Disposable {
     );
     const ratio = this.gl.drawingBufferWidth / this.gl.drawingBufferHeight;
 
-    this.camera.configOrthoMatrix(ratio);
-    this.camera.configPerspectiveMatrix(ratio);
+    this.camera.configProjectionMatrix(ratio);
   }
 
   async initialize() {
@@ -206,30 +210,19 @@ export class GLEngine extends Disposable {
         this.gl.enableVertexAttribArray(loc);
         this.gl.vertexAttribDivisor(loc, 1);
       }
+
+      const spriteCount = this.world?.getSpriteCount() ?? 0;
       this.attributeBuffers.bufferData(
         GL.ARRAY_BUFFER,
         location,
-        Float32Array.from([
-          //  face wall
-          ...Matrix.create().translate(0, 0, 0).getMatrix(),
-          //  left wall
-          ...Matrix.create().translate(-1, 0, 1).rotateY(Math.PI / 2).scale(1, 1, 1).getMatrix(),
-          //  right wall
-          ...Matrix.create().translate(1, 0, 1).rotateY(-Math.PI / 2).scale(1, 1, 1).getMatrix(),
-          //  ground
-
-          //  floor
-          ...Matrix.create().translate(0, -1, 1).rotateX(-Math.PI / 2).scale(1, 1, 1).getMatrix(),
-          ...Matrix.create().translate(0, -1, 3).rotateX(-Math.PI / 2).scale(1, 1, 1).getMatrix(),
-          ...Matrix.create().translate(-2, -1, 3).rotateX(-Math.PI / 2).scale(1, 1, 1).getMatrix(),
-          ...Matrix.create().translate(2, -1, 3).rotateX(-Math.PI / 2).scale(1, 1, 1).getMatrix(),
-
-          //  sprite
-          ...Matrix.create().getMatrix(),
-        ]),
+        new Float32Array(spriteCount * 4 * 4),
         0,
         GL.DYNAMIC_DRAW,
       );
+
+      for (let i = 0; i < spriteCount; i++) {
+        this.updateSprite(i);
+      }
 
       this.textureManager.initialize();
     }
@@ -239,106 +232,22 @@ export class GLEngine extends Disposable {
     this.checkCanvasSize();
   }
 
-  private static syncHudMatrix: Matrix = Matrix.create();
-  private static invertedCamTurnMatrix: Matrix = Matrix.create();
-  private static invertedCamTiltMatrix: Matrix = Matrix.create();
-  syncHud() {
-    this.attributeBuffers.bindBuffer(GL.ARRAY_BUFFER, this.attributeBuffers.getAttributeBuffer(TRANSFORM_LOC));
-
-    this.attributeBuffers.bufferSubData(
-      GL.ARRAY_BUFFER,
-      GLEngine.syncHudMatrix.identity()
-        .translateToMatrix(this.camera.camPositionMatrix)
-        .multiply(GLEngine.invertedCamTurnMatrix.invert(this.camera.camTurnMatrix))
-        .multiply(GLEngine.invertedCamTiltMatrix.invert(this.camera.camTiltMatrix))
-        .translate(0, 0, -.9)
-        .getMatrix(),
-      4 * 4 * Float32Array.BYTES_PER_ELEMENT * 7,
-    );
+  private static readonly spriteMatrix = Matrix.create();
+  private updateSprite(spriteIndex: number) {
+    GLEngine.spriteMatrix.identity();
+    const matrix = GLEngine.spriteMatrix.getMatrix();
+    const sprite = this.world?.getSprite(spriteIndex);
+    sprite?.transforms.forEach(transform => mat4.multiply(matrix, matrix, transform));
+    this.attributeBuffers.bufferSubData(GL.ARRAY_BUFFER, matrix, 4 * 4 * Float32Array.BYTES_PER_ELEMENT * spriteIndex);
   }
 
   async loadTextures() {
-    const LOGO = 0, GROUND = 1, HUD = 2;
-    const LOGO_SIZE = 512;
-    await this.imageManager.drawImage(LOGO, (ctx) => {
-      const { canvas } = ctx;
-      canvas.width = LOGO_SIZE;
-      canvas.height = LOGO_SIZE;
-      const centerX = canvas.width / 2, centerY = canvas.height / 2;
-      const halfSize = canvas.width / 2;
-      ctx.imageSmoothingEnabled = true;
-      ctx.fillStyle = '#ddd';
-      ctx.lineWidth = canvas.width / 50;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      ctx.strokeStyle = 'black';
-      ctx.fillStyle = 'gold';
-
-      //  face
-      ctx.beginPath();
-      ctx.arc(centerX, centerY, halfSize * 0.8, 0, 2 * Math.PI);
-      ctx.fill();
-      ctx.stroke();
-
-      //  smile
-      ctx.beginPath();
-      ctx.arc(centerX, centerY, halfSize * 0.5, 0, Math.PI);
-      ctx.stroke();
-
-      //  left eye
-      ctx.beginPath();
-      ctx.arc(canvas.width / 3, canvas.height / 3, halfSize * 0.1, 0, Math.PI, true);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.arc((canvas.width / 3) * 2, canvas.height / 3, halfSize * 0.1, 0, Math.PI * 2, true);
-      ctx.stroke();
-    });
-
-    await this.imageManager.drawImage(GROUND, (ctx) => {
-      const { canvas } = ctx;
-      canvas.width = LOGO_SIZE;
-      canvas.height = LOGO_SIZE;
-      ctx.imageSmoothingEnabled = true;
-      ctx.fillStyle = '#ddd';
-      ctx.lineWidth = canvas.width / 50;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      ctx.strokeStyle = 'black';
-      ctx.fillStyle = 'silver';
-
-      //  face
-      ctx.beginPath();
-      ctx.rect(canvas.width * .2, canvas.height * .2, canvas.width * .6, canvas.height * .6);
-      ctx.fill();
-      ctx.stroke();
-    });
-
-    await this.imageManager.drawImage(HUD, (ctx) => {
-      const { canvas } = ctx;
-      canvas.width = LOGO_SIZE;
-      canvas.height = LOGO_SIZE;
-      ctx.imageSmoothingEnabled = true;
-      ctx.fillStyle = '#ddd';
-      ctx.lineWidth = canvas.width / 50;
-
-      ctx.strokeStyle = 'black';
-      ctx.fillStyle = 'silver';
-
-      //  face
-      ctx.beginPath();
-      ctx.rect(30, 30, canvas.width - 60, canvas.height - 60);
-      ctx.stroke();
-    });
-
-    const logoMediaInfo = this.imageManager.getMedia(LOGO);
-    const { slot } = this.textureManager.allocateSlotForImage(logoMediaInfo);
-
-    const groundMediaInfo = this.imageManager.getMedia(GROUND);
-    const { slot: groundSlot } = this.textureManager.allocateSlotForImage(groundMediaInfo);
-
-    const hudMediaInfo = this.imageManager.getMedia(HUD);
-    const { slot: hudSlot } = this.textureManager.allocateSlotForImage(hudMediaInfo);
-
+    const numImages = this.world?.getSpriteCount() ?? 0;
+    for (let i = 0; i < numImages; i++) {
+      await this.imageManager.drawImage(i, (ctx) => {
+        this.world?.drawImage(i, ctx);
+      });
+    }
 
     this.textureManager.generateMipMaps();
 
@@ -361,21 +270,25 @@ export class GLEngine extends Disposable {
       this.attributeBuffers.bufferData(
         GL.ARRAY_BUFFER,
         location,
-        Float32Array.from([
-          ...slot.size, slot.slotNumber,
-          ...slot.size, slot.slotNumber,
-          ...slot.size, slot.slotNumber,
-
-          ...groundSlot.size, groundSlot.slotNumber,
-          ...groundSlot.size, groundSlot.slotNumber,
-          ...groundSlot.size, groundSlot.slotNumber,
-          ...groundSlot.size, groundSlot.slotNumber,
-
-          ...hudSlot.size, hudSlot.slotNumber,
-        ]),
+        new Float32Array((this.world?.getSpriteCount() ?? 0) * 3),
         0,
         GL.DYNAMIC_DRAW,
       );
+    }
+
+    const spriteCount = this.world?.getSpriteCount() ?? 0;
+
+    for (let i = 0; i < spriteCount; i++) {
+      const sprite = this.world?.getSprite(i);
+      if (sprite?.imageId !== undefined) {
+        const mediaInfo = this.imageManager.getMedia(sprite.imageId);
+        const { slot } = this.textureManager.allocateSlotForImage(mediaInfo);
+        this.attributeBuffers.bufferSubData(
+          GL.ARRAY_BUFFER,
+          Float32Array.from([...slot.size, slot.slotNumber]),
+          3 * Float32Array.BYTES_PER_ELEMENT * i,
+        );
+      }
     }
   }
 
@@ -392,9 +305,17 @@ export class GLEngine extends Disposable {
   refresh() {
     this.gl.clear(GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT);
     const vertexCount = 6;
-    const instanceCount = 8;
-    this.camera.refresh();
-    this.syncHud();
+    const instanceCount = this.world?.getSpriteCount() ?? 0;
+    if (this.camera.refresh()) {
+      const hudSpriteId = this.world?.getHudSpriteId();
+      if (hudSpriteId !== undefined) {
+        GLCamera.syncHud(this.camera, this.world?.getHudMatrix());
+
+        const bufferInfo = this.attributeBuffers.getAttributeBuffer(TRANSFORM_LOC);
+        this.attributeBuffers.bindBuffer(GL.ARRAY_BUFFER, bufferInfo);
+        this.updateSprite(hudSpriteId);
+      }
+    }
     this.drawElementsInstanced(vertexCount, instanceCount);
   }
 
