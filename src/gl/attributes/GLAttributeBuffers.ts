@@ -1,4 +1,4 @@
-import { Disposable } from '../../disposable/Disposable';
+import { Disposable } from '../../lifecycle/Disposable';
 import { GLPrograms } from '../programs/GLPrograms';
 import { GL } from './Constants';
 

@@ -3,7 +3,7 @@
 /// <reference lib="dom.iterable" />
 
 import { GLPrograms } from './gl/programs/GLPrograms';
-import { Disposable } from './disposable/Disposable';
+import { Disposable } from './lifecycle/Disposable';
 import { VertexArray } from './gl/VertexArray';
 import { GLAttributeBuffers } from './gl/attributes/GLAttributeBuffers';
 import { GLUniforms } from './gl/uniforms/GLUniforms';
@@ -82,6 +82,7 @@ export class GLEngine extends Disposable {
   textureSlots: { slot: Slot, refreshCallback: (() => void) | null }[] = [];
 
   private world?: World;
+  private onDeactivateWorld: () => void = () => { };
 
   constructor(canvas: HTMLCanvasElement, {
     attributes,
@@ -103,9 +104,17 @@ export class GLEngine extends Disposable {
     this.imageManager = new ImageManager();
     this.camera = new GLCamera(this.gl, this.uniforms);
 
-    this.world = world;
-
     window.addEventListener('resize', this.checkCanvasSize.bind(this));
+    this.setWorld(world);
+  }
+
+  setWorld(world?: World): void {
+    this.onDeactivateWorld();
+    this.world = world;
+    const onDeactivateWorld = this.world?.activate();
+    if (onDeactivateWorld) {
+      this.onDeactivateWorld = onDeactivateWorld;
+    }
   }
 
   checkCanvasSize() {
@@ -315,14 +324,25 @@ export class GLEngine extends Disposable {
     this.gl.clear(GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT);
     const vertexCount = 6;
     const instanceCount = this.world?.getSpriteCount() ?? 0;
-    if (this.camera.refresh()) {
-      this.world?.syncWithCamera(this.camera);
-    }
+    this.world?.syncWithCamera(this.camera);
     this.updateSprites();
     this.drawElementsInstanced(vertexCount, instanceCount);
   }
 
   bindVertexArray() {
     return this.own(new VertexArray(this.gl));
+  }
+
+  start() {
+    let handle = 0;
+    const loop = () => {
+      this.refresh();
+      handle = requestAnimationFrame(loop);
+    };
+    this.refresh();
+    loop();
+    () => {
+      cancelAnimationFrame(handle);
+    };
   }
 }

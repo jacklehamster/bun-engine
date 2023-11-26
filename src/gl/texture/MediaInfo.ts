@@ -1,4 +1,4 @@
-import { Disposable } from '../../disposable/Disposable';
+import { Disposable } from '../../lifecycle/Disposable';
 
 export class MediaInfo extends Disposable {
   readonly texImgSrc: TexImageSource;

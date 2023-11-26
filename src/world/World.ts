@@ -3,6 +3,7 @@ import { ImageId, ImageManager } from "gl/texture/ImageManager";
 import { GLCamera } from "gl/camera/GLCamera";
 
 interface World {
+  activate(): (() => void) | void;
   getSpriteCount(): number;
   getSprite(index: number): Sprite;
   getNumImages(): number;

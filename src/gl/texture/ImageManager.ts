@@ -1,4 +1,4 @@
-import { Disposable } from "disposable/Disposable";
+import { Disposable } from "lifecycle/Disposable";
 import { Url } from "./TextureManager";
 import { MediaInfo } from "./MediaInfo";
 

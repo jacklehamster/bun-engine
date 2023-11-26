@@ -1,5 +1,5 @@
 import { GL } from 'gl/attributes/Constants';
-import { Disposable } from '../../disposable/Disposable';
+import { Disposable } from '../../lifecycle/Disposable';
 import { GLPrograms } from '../programs/GLPrograms';
 
 export class GLUniforms extends Disposable {

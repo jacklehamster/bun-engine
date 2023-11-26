@@ -1,4 +1,4 @@
-import { Disposable } from '../disposable/Disposable';
+import { Disposable } from '../lifecycle/Disposable';
 import { GL } from './attributes/Constants';
 
 export class VertexArray extends Disposable {

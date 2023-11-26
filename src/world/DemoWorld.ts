@@ -14,6 +14,9 @@ export class DemoWorld implements World {
     this.sprites.forEach((_, index) => this.updatedSprites.add(index));
   }
 
+  reset(): void {
+  }
+
   getNumImages(): number {
     return 3;
   }
@@ -125,11 +128,58 @@ export class DemoWorld implements World {
   }
 
   syncWithCamera(camera: GLCamera): void {
-    GLCamera.syncHud(camera, this.hudMatrix);
-    this.updatedSprites.add(this.hudSpriteId);
+    const speed = 0.5 / 2;
+    const turnspeed = 0.1 / 2;
+    if (this.keys.KeyW) {
+      camera.moveCam(0, 0, speed);
+    }
+    if (this.keys.KeyS) {
+      camera.moveCam(0, 0, -speed);
+    }
+    if (this.keys.ArrowUp && !this.keys.ShiftRight) {
+      camera.moveCam(0, -speed, 0);
+    }
+    if (this.keys.ArrowDown && !this.keys.ShiftRight) {
+      camera.moveCam(0, speed, 0);
+    }
+    if (this.keys.KeyA || (this.keys.ArrowLeft && !this.keys.ShiftRight)) {
+      camera.moveCam(-speed, 0, 0);
+    }
+    if (this.keys.KeyD || (this.keys.ArrowRight && !this.keys.ShiftRight)) {
+      camera.moveCam(speed, 0, 0);
+    }
+    if (this.keys.KeyQ || (this.keys.ArrowLeft && this.keys.ShiftRight)) {
+      camera.turnCam(-turnspeed);
+    }
+    if (this.keys.KeyE || (this.keys.ArrowRight && this.keys.ShiftRight)) {
+      camera.turnCam(turnspeed);
+    }
+    if (this.keys.ArrowUp && this.keys.ShiftRight) {
+      camera.tilt(-turnspeed);
+    }
+    if (this.keys.ArrowDown && this.keys.ShiftRight) {
+      camera.tilt(turnspeed);
+    }
+
+    if (camera.refresh()) {
+      GLCamera.syncHud(camera, this.hudMatrix);
+      this.updatedSprites.add(this.hudSpriteId);
+    }
   }
 
   getUpdatedSprites(): Set<number> {
     return this.updatedSprites;
+  }
+
+  private keys: Record<string, boolean> = {};
+  activate(): () => void {
+    const keyDown = (e: KeyboardEvent) => this.keys[e.code] = true;
+    const keyUp = (e: KeyboardEvent) => this.keys[e.code] = false;
+    document.addEventListener('keydown', keyDown);
+    document.addEventListener('keyup', keyUp);
+    return () => {
+      document.removeEventListener('keydown', keyDown);
+      document.removeEventListener('keyup', keyUp);
+    };
   }
 }
