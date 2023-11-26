@@ -4,12 +4,12 @@ import { GLCamera } from "gl/camera/GLCamera";
 
 interface World {
   activate(): (() => void) | void;
-  getSpriteCount(): number;
-  getSprite(index: number): Sprite;
+  getMaxSpriteCount(): number;
+  getSprite(index: number): Sprite | null;
+  getUpdatedSprites(): Set<number>;
   getNumImages(): number;
   drawImage(imageId: ImageId, imageManager: ImageManager): Promise<void>;
   syncWithCamera(camera: GLCamera): void;
-  getUpdatedSprites(): Set<number>;
 }
 
 export default World;

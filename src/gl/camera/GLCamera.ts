@@ -4,9 +4,9 @@ import { ProjectionMatrix } from "gl/transform/ProjectionMatrix";
 import { GLUniforms } from "gl/uniforms/GLUniforms";
 
 export class GLCamera {
-  gl: GL;
-  uniforms: GLUniforms;
-  camPositionMatrix: Matrix = Matrix.create().translate(0, 0, -1);
+  private gl: GL;
+  private uniforms: GLUniforms;
+  private camPositionMatrix: Matrix = Matrix.create().translate(0, 0, -1);
   private projectionMatrix = new ProjectionMatrix();
   private needsRefresh = false;
 
@@ -29,9 +29,12 @@ export class GLCamera {
       return false;
     }
     //  camMatrix =  camTiltMatrix * camTurnMatrix * camPositionMatrix;
+    this.invertedCamTiltMatrix.invert(this.camTiltMatrix);
+    this.invertedCamTurnMatrix.invert(this.camTurnMatrix);
     this.camMatrix.multiply3(this.camTiltMatrix, this.camTurnMatrix, this.camPositionMatrix);
     const loc = this.uniforms.getUniformLocation(CAM_LOC);
     this.gl.uniformMatrix4fv(loc, false, this.camMatrix.getMatrix());
+    this.needsRefresh = false;
     return true;
   }
 
@@ -57,13 +60,13 @@ export class GLCamera {
     this.needsRefresh = true;
   }
 
-  private static invertedCamTurnMatrix: Matrix = Matrix.create();
-  private static invertedCamTiltMatrix: Matrix = Matrix.create();
-  static syncHud(cam: GLCamera, matrix?: Matrix) {
+  private invertedCamTurnMatrix: Matrix = Matrix.create();
+  private invertedCamTiltMatrix: Matrix = Matrix.create();
+  syncHud(matrix?: Matrix) {
     matrix?.identity()
-      .translateToMatrix(cam.camPositionMatrix)
-      .multiply(GLCamera.invertedCamTurnMatrix.invert(cam.camTurnMatrix))
-      .multiply(GLCamera.invertedCamTiltMatrix.invert(cam.camTiltMatrix))
+      .translateToMatrix(this.camPositionMatrix)
+      .multiply(this.invertedCamTurnMatrix)
+      .multiply(this.invertedCamTiltMatrix)
       .translate(0, 0, -.9);
   }
 }

@@ -5,7 +5,7 @@ export async function hello() {
   console.log('Hello World!');
 }
 
-export function testCanvas(canvas: HTMLCanvasElement) {
+export async function testCanvas(canvas: HTMLCanvasElement) {
   canvas.style.border = '2px solid silver';
   canvas.style.cursor = 'grab';
   canvas.addEventListener('mouseenter', () => {
@@ -19,7 +19,7 @@ export function testCanvas(canvas: HTMLCanvasElement) {
     world: new DemoWorld(),
   });
 
-  engine.initialize();
+  await engine.initialize();
   engine.start();
   return engine;
 }

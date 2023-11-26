@@ -14,9 +14,6 @@ export class DemoWorld implements World {
     this.sprites.forEach((_, index) => this.updatedSprites.add(index));
   }
 
-  reset(): void {
-  }
-
   getNumImages(): number {
     return 3;
   }
@@ -119,7 +116,7 @@ export class DemoWorld implements World {
     ].map(transform => ({ imageId: GROUND, transforms: [transform] })),
   ];
 
-  getSpriteCount(): number {
+  getMaxSpriteCount(): number {
     return this.sprites.length;
   }
 
@@ -162,7 +159,7 @@ export class DemoWorld implements World {
     }
 
     if (camera.refresh()) {
-      GLCamera.syncHud(camera, this.hudMatrix);
+      camera.syncHud(this.hudMatrix);
       this.updatedSprites.add(this.hudSpriteId);
     }
   }
