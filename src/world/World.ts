@@ -1,14 +1,14 @@
-import Matrix from "gl/transform/Matrix";
 import { Sprite } from "./Sprite";
-import { ImageId } from "gl/texture/ImageManager";
+import { ImageId, ImageManager } from "gl/texture/ImageManager";
+import { GLCamera } from "gl/camera/GLCamera";
 
 interface World {
   getSpriteCount(): number;
   getSprite(index: number): Sprite;
-  getHudMatrix(): Matrix;
   getNumImages(): number;
-  drawImage(imageId: ImageId, ctx: OffscreenCanvasRenderingContext2D): void;
-  getHudSpriteId(): number;
+  drawImage(imageId: ImageId, imageManager: ImageManager): Promise<void>;
+  syncWithCamera(camera: GLCamera): void;
+  getUpdatedSprites(): Set<number>;
 }
 
 export default World;

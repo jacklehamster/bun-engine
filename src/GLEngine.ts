@@ -23,6 +23,7 @@ import Matrix from 'gl/transform/Matrix';
 import { GLCamera } from 'gl/camera/GLCamera';
 import World from 'world/World';
 import { mat4 } from 'gl-matrix';
+import { Slot } from 'texture-slot-allocator/dist/src/texture/TextureSlot';
 
 const DEFAULT_ATTRIBUTES: WebGLContextAttributes = {
   alpha: true,
@@ -77,6 +78,8 @@ export class GLEngine extends Disposable {
   textureManager: TextureManager;
   imageManager: ImageManager;
   camera: GLCamera;
+
+  textureSlots: { slot: Slot, refreshCallback: (() => void) | null }[] = [];
 
   private world?: World;
 
@@ -219,11 +222,6 @@ export class GLEngine extends Disposable {
         0,
         GL.DYNAMIC_DRAW,
       );
-
-      for (let i = 0; i < spriteCount; i++) {
-        this.updateSprite(i);
-      }
-
       this.textureManager.initialize();
     }
 
@@ -244,9 +242,7 @@ export class GLEngine extends Disposable {
   async loadTextures() {
     const numImages = this.world?.getSpriteCount() ?? 0;
     for (let i = 0; i < numImages; i++) {
-      await this.imageManager.drawImage(i, (ctx) => {
-        this.world?.drawImage(i, ctx);
-      });
+      await this.world?.drawImage(i, this.imageManager);
     }
 
     this.textureManager.generateMipMaps();
@@ -282,12 +278,15 @@ export class GLEngine extends Disposable {
       const sprite = this.world?.getSprite(i);
       if (sprite?.imageId !== undefined) {
         const mediaInfo = this.imageManager.getMedia(sprite.imageId);
-        const { slot } = this.textureManager.allocateSlotForImage(mediaInfo);
+        const { slot, refreshCallback } = this.textureManager.allocateSlotForImage(mediaInfo);
+
         this.attributeBuffers.bufferSubData(
           GL.ARRAY_BUFFER,
           Float32Array.from([...slot.size, slot.slotNumber]),
           3 * Float32Array.BYTES_PER_ELEMENT * i,
         );
+
+        this.textureSlots.push({ slot, refreshCallback });
       }
     }
   }
@@ -302,20 +301,24 @@ export class GLEngine extends Disposable {
     );
   }
 
+  private updateSprites() {
+    const spriteIdsToUpdate = this.world?.getUpdatedSprites();
+    if (spriteIdsToUpdate?.size) {
+      const bufferInfo = this.attributeBuffers.getAttributeBuffer(TRANSFORM_LOC);
+      this.attributeBuffers.bindBuffer(GL.ARRAY_BUFFER, bufferInfo);
+      spriteIdsToUpdate?.forEach(spriteId => this.updateSprite(spriteId));
+      spriteIdsToUpdate?.clear();
+    }
+  }
+
   refresh() {
     this.gl.clear(GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT);
     const vertexCount = 6;
     const instanceCount = this.world?.getSpriteCount() ?? 0;
     if (this.camera.refresh()) {
-      const hudSpriteId = this.world?.getHudSpriteId();
-      if (hudSpriteId !== undefined) {
-        GLCamera.syncHud(this.camera, this.world?.getHudMatrix());
-
-        const bufferInfo = this.attributeBuffers.getAttributeBuffer(TRANSFORM_LOC);
-        this.attributeBuffers.bindBuffer(GL.ARRAY_BUFFER, bufferInfo);
-        this.updateSprite(hudSpriteId);
-      }
+      this.world?.syncWithCamera(this.camera);
     }
+    this.updateSprites();
     this.drawElementsInstanced(vertexCount, instanceCount);
   }
 

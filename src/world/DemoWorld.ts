@@ -1,22 +1,28 @@
 import Matrix from "gl/transform/Matrix";
 import { Sprite } from "./Sprite";
 import World from "./World";
-import { ImageId } from "gl/texture/ImageManager";
+import { ImageId, ImageManager } from "gl/texture/ImageManager";
+import { GLCamera } from "gl/camera/GLCamera";
 
 const LOGO = 0, GROUND = 1, HUD = 2;
 
 export class DemoWorld implements World {
-  getHudSpriteId(): number {
-    return 0;
+  private updatedSprites: Set<number> = new Set();
+  private readonly hudSpriteId = 0;
+
+  constructor() {
+    this.sprites.forEach((_, index) => this.updatedSprites.add(index));
   }
+
   getNumImages(): number {
     return 3;
   }
-  drawImage(id: ImageId, ctx: OffscreenCanvasRenderingContext2D): void {
+
+  async drawImage(id: ImageId, imageManager: ImageManager): Promise<void> {
     const LOGO_SIZE = 512;
     switch (id) {
       case LOGO:
-        {
+        imageManager.drawImage(id, ctx => {
           const { canvas } = ctx;
           canvas.width = LOGO_SIZE;
           canvas.height = LOGO_SIZE;
@@ -48,10 +54,10 @@ export class DemoWorld implements World {
           ctx.beginPath();
           ctx.arc((canvas.width / 3) * 2, canvas.height / 3, halfSize * 0.1, 0, Math.PI * 2, true);
           ctx.stroke();
-        }
+        });
         break;
       case GROUND:
-        {
+        imageManager.drawImage(id, ctx => {
           const { canvas } = ctx;
           canvas.width = LOGO_SIZE;
           canvas.height = LOGO_SIZE;
@@ -68,10 +74,10 @@ export class DemoWorld implements World {
           ctx.rect(canvas.width * .2, canvas.height * .2, canvas.width * .6, canvas.height * .6);
           ctx.fill();
           ctx.stroke();
-        }
+        });
         break;
       case HUD:
-        {
+        imageManager.drawImage(id, ctx => {
           const { canvas } = ctx;
           canvas.width = LOGO_SIZE;
           canvas.height = LOGO_SIZE;
@@ -85,7 +91,7 @@ export class DemoWorld implements World {
           ctx.beginPath();
           ctx.rect(30, 30, canvas.width - 60, canvas.height - 60);
           ctx.stroke();
-        }
+        });
         break;
     }
   }
@@ -110,15 +116,20 @@ export class DemoWorld implements World {
     ].map(transform => ({ imageId: GROUND, transforms: [transform] })),
   ];
 
-  getHudMatrix(): Matrix {
-    return this.hudMatrix;
-  }
-
   getSpriteCount(): number {
     return this.sprites.length;
   }
 
   getSprite(index: number): Sprite {
     return this.sprites[index];
+  }
+
+  syncWithCamera(camera: GLCamera): void {
+    GLCamera.syncHud(camera, this.hudMatrix);
+    this.updatedSprites.add(this.hudSpriteId);
+  }
+
+  getUpdatedSprites(): Set<number> {
+    return this.updatedSprites;
   }
 }
