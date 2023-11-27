@@ -138,7 +138,7 @@ export class DemoWorld implements World {
     {
       imageId: VIDEO,
       transforms: [
-        Matrix.create().translate(0, 6, -10).scale(10, 10, 10).getMatrix(),
+        Matrix.create().translate(0, 5, -10).scale(480 / 50, 270 / 50, 1).getMatrix(),
       ],
     },
   ];

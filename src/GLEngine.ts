@@ -13,6 +13,8 @@ import {
   INDEX_LOC,
   TRANSFORM_LOC,
   SLOT_SIZE_LOC,
+  CAM_LOC,
+  PROJECTION_LOC,
 } from './gl/attributes/Constants';
 import { TEXTURE_INDEX_FOR_VIDEO, TextureId, TextureManager } from './gl/texture/TextureManager';
 import { ImageId, ImageManager } from 'gl/texture/ImageManager';
@@ -363,11 +365,12 @@ export class GLEngine extends Disposable {
   }
 
   toggle = 0;
-  refresh(world: World) {
+  refresh(world: World, deltaTime: number) {
     this.toggle = (this.toggle + 1) % 2;
     if (this.toggle) {
       this.refreshers.forEach(refresher => refresher());
     }
+    world.refresh?.(deltaTime);
     world.syncWithCamera(this.camera);
     const imageIds = world.getUpdateImageIds();
     if (imageIds.size) {
@@ -385,15 +388,28 @@ export class GLEngine extends Disposable {
 
   start() {
     let handle = 0;
-    const loop = () => {
-      if (this.world) {
-        this.refresh(this.world);
-      }
+    let lastTime = 0;
+    const loop: FrameRequestCallback = (time) => {
+      const deltaTime = time - lastTime;
       handle = requestAnimationFrame(loop);
+      lastTime = time;
+      if (this.world) {
+        this.refresh(this.world, deltaTime);
+      }
     };
-    loop();
-    () => {
-      cancelAnimationFrame(handle);
-    };
+    requestAnimationFrame(loop);
+    this.stop = () => cancelAnimationFrame(handle)
+  }
+
+  stop: () => void = () => { };
+
+  updateProjectionMatrix(matrix: Matrix) {
+    const loc = this.uniforms.getUniformLocation(PROJECTION_LOC);
+    this.gl.uniformMatrix4fv(loc, false, matrix.getMatrix());
+  }
+
+  updateCameraMatrix(matrix: Matrix) {
+    const loc = this.uniforms.getUniformLocation(CAM_LOC);
+    this.gl.uniformMatrix4fv(loc, false, matrix.getMatrix());
   }
 }

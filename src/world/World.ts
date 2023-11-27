@@ -11,6 +11,7 @@ interface World {
   getUpdateImageIds(): Set<ImageId>;
   drawImage(imageId: ImageId, imageManager: ImageManager): Promise<void>;
   syncWithCamera(camera: GLCamera): void;
+  refresh?(deltaTime: number): void;
 }
 
 export default World;
