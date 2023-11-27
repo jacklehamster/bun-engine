@@ -4,18 +4,16 @@ import { GL } from './Constants';
 
 export interface BufferInfo {
   buffer: WebGLBuffer;
-  target?: GLenum;
+  // target?: GLenum;
   location: number;
-  bufferArray?: TypedArray;
-  bufferSize?: number;
-  usage?: GLenum;
+  // bufferSize?: number;
+  // usage?: GLenum;
 }
 
 export type LocationName = string;
 
 export class GLAttributeBuffers extends Disposable {
   private readonly bufferRecord: Record<LocationName, BufferInfo> = {};
-  private lastBoundBuffer?: BufferInfo;
   private readonly gl: GL;
   private readonly programs: GLPrograms;
 
@@ -51,67 +49,14 @@ export class GLAttributeBuffers extends Disposable {
     }
   }
 
-  getAttributeBuffer(location: LocationName, autoCreate?: boolean): BufferInfo {
+  getAttributeBuffer(location: LocationName): BufferInfo {
     const attribute = this.bufferRecord[location];
     if (!attribute) {
-      if (autoCreate) {
-        return this.createBuffer(location);
-      }
       throw new Error(
         `Attribute "${location}" not created. Make sure "createBuffer" is called.`,
       );
     }
     return attribute;
-  }
-
-  bufferData(
-    target: GLenum,
-    location: LocationName,
-    bufferArray: TypedArray | undefined,
-    bufferSize: number,
-    glUsage: GLenum,
-  ) {
-    const bufferInfo = this.getAttributeBuffer(location);
-    if (bufferArray) {
-      this.gl.bufferData(target, bufferArray, glUsage);
-    } else {
-      this.gl.bufferData(target, bufferSize, glUsage);
-    }
-    bufferInfo.bufferSize = bufferSize || bufferArray?.length;
-    bufferInfo.bufferArray =
-      bufferArray ??
-      new Float32Array(
-        bufferInfo.bufferSize! / Float32Array.BYTES_PER_ELEMENT,
-      ).fill(0);
-    bufferInfo.usage = glUsage;
-    bufferInfo.target = target;
-  }
-
-  bufferSubData(
-    target: GLenum,
-    bufferArray: TypedArray,
-    dstByteOffset: number,
-    srcOffset?: number,
-    length?: number,
-  ) {
-    if (srcOffset) {
-      this.gl.bufferSubData(
-        target,
-        dstByteOffset,
-        bufferArray,
-        srcOffset,
-        length,
-      );
-    } else {
-      this.gl.bufferSubData(target, dstByteOffset, bufferArray);
-    }
-  }
-
-  bindBuffer(target: GLenum, bufferInfo: BufferInfo) {
-    if (this.lastBoundBuffer !== bufferInfo) {
-      this.lastBoundBuffer = bufferInfo;
-      this.gl.bindBuffer(target, bufferInfo.buffer);
-    }
   }
 
   destroy(): void {

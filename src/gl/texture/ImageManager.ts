@@ -49,9 +49,10 @@ export class ImageManager extends Disposable {
   async loadVideo(
     imageId: ImageId,
     src: Url,
-    volume: number | undefined,
+    volume?: number,
+    fps?: number
   ): Promise<MediaInfo> {
-    const videoInfo = await MediaInfo.loadVideo(src, volume);
+    const videoInfo = await MediaInfo.loadVideo(src, volume, fps);
     this.images[imageId] = this.own(videoInfo);
     return videoInfo;
   }

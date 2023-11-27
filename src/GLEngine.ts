@@ -5,7 +5,7 @@
 import { GLPrograms } from './gl/programs/GLPrograms';
 import { Disposable } from './lifecycle/Disposable';
 import { VertexArray } from './gl/VertexArray';
-import { GLAttributeBuffers } from './gl/attributes/GLAttributeBuffers';
+import { GLAttributeBuffers, LocationName } from './gl/attributes/GLAttributeBuffers';
 import { GLUniforms } from './gl/uniforms/GLUniforms';
 import {
   GL,
@@ -14,8 +14,8 @@ import {
   TRANSFORM_LOC,
   SLOT_SIZE_LOC,
 } from './gl/attributes/Constants';
-import { TextureManager } from './gl/texture/TextureManager';
-import { ImageManager } from 'gl/texture/ImageManager';
+import { TEXTURE_INDEX_FOR_VIDEO, TextureId, TextureManager } from './gl/texture/TextureManager';
+import { ImageId, ImageManager } from 'gl/texture/ImageManager';
 import vertexShader from 'generated/src/gl/resources/vertexShader.txt';
 import fragmentShader from 'generated/src/gl/resources/fragmentShader.txt';
 import { replaceTilda } from 'gl/utils/replaceTilda';
@@ -23,6 +23,7 @@ import Matrix from 'gl/transform/Matrix';
 import { GLCamera } from 'gl/camera/GLCamera';
 import World from 'world/World';
 import { mat4 } from 'gl-matrix';
+import { TextureIndex } from 'texture-slot-allocator/dist/src/texture/TextureSlot';
 
 const DEFAULT_ATTRIBUTES: WebGLContextAttributes = {
   alpha: true,
@@ -66,29 +67,32 @@ function glProxy(gl: GL) {
 
 export interface Props {
   attributes?: WebGLContextAttributes;
-  world?: World;
 }
 
 export class GLEngine extends Disposable {
-  gl: GL;
-  programs: GLPrograms;
-  attributeBuffers: GLAttributeBuffers;
-  uniforms: GLUniforms;
-  canvas: HTMLCanvasElement;
+  private gl: GL;
+  private programs: GLPrograms;
+  private attributeBuffers: GLAttributeBuffers;
+  private uniforms: GLUniforms;
+  private canvas: HTMLCanvasElement;
 
-  textureManager: TextureManager;
-  imageManager: ImageManager;
-  camera: GLCamera;
+  private textureManager: TextureManager;
+  private imageManager: ImageManager;
+  private camera: GLCamera;
 
-  textureSlots: { buffer: Float32Array, refreshCallback: (() => void) | null }[] = [];
+  private textureSlots: {
+    buffer: Float32Array,
+    refreshCallback: (() => void) | null
+  }[] = [];
 
   private world?: World;
-  private onDeactivateWorld: () => void = () => { };
+  private onDeactivateWorlds: Set<() => void> = new Set();
+  private onCleanupBuffers: Set<() => void> = new Set();
   private topVisibleSprite = -1;
+  private refreshers: Set<() => void> = new Set();
 
   constructor(canvas: HTMLCanvasElement, {
     attributes,
-    world,
   }: Props = {}) {
     super();
     this.gl = glProxy(
@@ -104,21 +108,32 @@ export class GLEngine extends Disposable {
     this.imageManager = new ImageManager();
     this.camera = new GLCamera(this.gl, this.uniforms);
 
-    window.addEventListener('resize', this.checkCanvasSize.bind(this));
-    this.setWorld(world);
+    const onResize = this.checkCanvasSize.bind(this);
+    window.addEventListener('resize', onResize);
+    this.addOnDestroy(() => window.removeEventListener('resize', onResize));
+
+    this.addOnDestroy(() => this.resetWorld());
+
+    this.initialize();
   }
 
   resetWorld(): void {
+    this.refreshers.clear();
     this.textureSlots.length = 0;
-    this.onDeactivateWorld();
+    this.onDeactivateWorlds.forEach(callback => callback());
+    this.onDeactivateWorlds.clear();
+    this.onCleanupBuffers.forEach(cleanup => cleanup());
+    this.onCleanupBuffers.clear();
   }
 
   setWorld(world?: World): void {
     this.resetWorld();
     this.world = world;
+    this.initializeBuffers(world?.getMaxSpriteCount() ?? 0);
+
     const onDeactivateWorld = this.world?.activate();
     if (onDeactivateWorld) {
-      this.onDeactivateWorld = onDeactivateWorld;
+      this.onDeactivateWorlds.add(onDeactivateWorld);
     }
   }
 
@@ -135,7 +150,7 @@ export class GLEngine extends Disposable {
     this.camera.configProjectionMatrix(ratio);
   }
 
-  async initialize() {
+  private initialize() {
     const PROGRAM_NAME = 'main';
     const replacementMap = {
       AUTHOR: 'Jack le hamster',
@@ -158,85 +173,112 @@ export class GLEngine extends Disposable {
     this.gl.blendFunc(GL.SRC_ALPHA, GL.ONE_MINUS_SRC_ALPHA);
     this.gl.viewport(0, 0, this.gl.drawingBufferWidth, this.gl.drawingBufferHeight);
 
-    {
-      /*
-          0  1
-          3  2
-      */
-      const location = INDEX_LOC;
-      this.attributeBuffers.createBuffer(location);
-      const bufferInfo = this.attributeBuffers.getAttributeBuffer(location);
-      this.attributeBuffers.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, bufferInfo);
-      this.attributeBuffers.bufferData(
-        GL.ELEMENT_ARRAY_BUFFER,
-        location,
-        Uint16Array.from([0, 1, 2, 2, 3, 0]),
-        0,
-        GL.STATIC_DRAW,
-      );
-    }
+    // disable face culling
+    this.gl.disable(this.gl.CULL_FACE);
 
-    {
-      const location = POSITION_LOC;
-      this.attributeBuffers.createBuffer(location);
-      const bufferInfo = this.attributeBuffers.getAttributeBuffer(location);
-      this.attributeBuffers.bindBuffer(GL.ARRAY_BUFFER, bufferInfo);
+    const maxSpriteCount = this.world?.getMaxSpriteCount() ?? 0;
+    this.initializeBuffers(maxSpriteCount);
+
+    this.textureManager.initialize();
+    this.checkCanvasSize();
+  }
+
+  initializeBuffers(maxSpriteCount: number) {
+    this.onCleanupBuffers.forEach(cleanup => cleanup());
+    this.onCleanupBuffers.clear();
+    if (maxSpriteCount) {
+      const cleanups = [
+        this.initializeIndexBuffer(INDEX_LOC),
+        this.initializePositionBuffer(POSITION_LOC),
+        this.initializeTransformBuffer(TRANSFORM_LOC, maxSpriteCount),
+        this.initializeSlotSizeBuffer(SLOT_SIZE_LOC, maxSpriteCount),
+      ];
+      cleanups.forEach(cleanup => this.onCleanupBuffers.add(cleanup));
+    }
+  }
+
+  private initializeIndexBuffer(location: LocationName) {
+    /*
+        0  1
+        3  2
+    */
+    const bufferInfo = this.attributeBuffers.createBuffer(location);
+    this.gl.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, bufferInfo.buffer);
+    this.gl.bufferData(GL.ELEMENT_ARRAY_BUFFER,
+      Uint16Array.from([0, 1, 2, 2, 3, 0]),
+      GL.STATIC_DRAW);
+    return () => {
+      this.attributeBuffers.deleteBuffer(location);
+    };
+  }
+
+  private initializePositionBuffer(location: LocationName) {
+    const bufferInfo = this.attributeBuffers.createBuffer(location);
+    this.gl.bindBuffer(GL.ARRAY_BUFFER, bufferInfo.buffer);
+    this.gl.vertexAttribPointer(
+      bufferInfo.location,
+      2,
+      GL.FLOAT,
+      false,
+      0,
+      0,
+    );
+    this.gl.enableVertexAttribArray(bufferInfo.location);
+    this.gl.bufferData(GL.ARRAY_BUFFER,
+      Float32Array.from([-1, -1, 1, -1, 1, 1, -1, 1]),
+      GL.STATIC_DRAW);
+    return () => {
+      this.gl.disableVertexAttribArray(bufferInfo.location);
+      this.attributeBuffers.deleteBuffer(location);
+    };
+  }
+
+  private initializeTransformBuffer(location: LocationName, spriteCount: number) {
+    const bufferInfo = this.attributeBuffers.createBuffer(location);
+    this.gl.bindBuffer(GL.ARRAY_BUFFER, bufferInfo.buffer);
+    for (let i = 0; i < 4; i++) {
+      const loc = bufferInfo.location + i;
       this.gl.vertexAttribPointer(
-        bufferInfo.location,
-        2,
+        loc,
+        4,
         GL.FLOAT,
         false,
-        0,
-        0,
+        4 * 4 * Float32Array.BYTES_PER_ELEMENT,
+        i * 4 * Float32Array.BYTES_PER_ELEMENT,
       );
-      this.gl.enableVertexAttribArray(bufferInfo.location);
-      this.attributeBuffers.bufferData(
-        GL.ARRAY_BUFFER,
-        location,
-        Float32Array.from([
-          -1, -1,
-          1, -1,
-          1, 1,
-          -1, 1,
-        ]),
-        0,
-        GL.STATIC_DRAW,
-      );
+      this.gl.enableVertexAttribArray(loc);
+      this.gl.vertexAttribDivisor(loc, 1);
     }
+    this.gl.bufferData(GL.ARRAY_BUFFER,
+      spriteCount * 4 * 4 * Float32Array.BYTES_PER_ELEMENT,
+      GL.DYNAMIC_DRAW);
+    return () => {
+      this.gl.disableVertexAttribArray(bufferInfo.location);
+      this.attributeBuffers.deleteBuffer(location);
+    };
+  }
 
-    {
-      const location = TRANSFORM_LOC;
-      this.attributeBuffers.createBuffer(location);
-      const bufferInfo = this.attributeBuffers.getAttributeBuffer(location);
-      this.attributeBuffers.bindBuffer(GL.ARRAY_BUFFER, bufferInfo);
-      for (let i = 0; i < 4; i++) {
-        const loc = bufferInfo.location + i;
-        this.gl.vertexAttribPointer(
-          loc,
-          4,
-          GL.FLOAT,
-          false,
-          4 * 4 * Float32Array.BYTES_PER_ELEMENT,
-          i * 4 * Float32Array.BYTES_PER_ELEMENT,
-        );
-        this.gl.enableVertexAttribArray(loc);
-        this.gl.vertexAttribDivisor(loc, 1);
-      }
-
-      const spriteCount = this.world?.getMaxSpriteCount() ?? 0;
-      this.attributeBuffers.bufferData(
-        GL.ARRAY_BUFFER,
-        location,
-        new Float32Array(spriteCount * 4 * 4),
-        0,
-        GL.DYNAMIC_DRAW,
-      );
-      this.textureManager.initialize();
-    }
-
-    await this.loadTextures();
-
-    this.checkCanvasSize();
+  private initializeSlotSizeBuffer(location: LocationName, spriteCount: number) {
+    const bufferInfo = this.attributeBuffers.createBuffer(location);
+    this.gl.bindBuffer(GL.ARRAY_BUFFER, bufferInfo.buffer);
+    const loc = bufferInfo.location;
+    this.gl.vertexAttribPointer(
+      loc,
+      2,
+      GL.FLOAT,
+      false,
+      2 * Float32Array.BYTES_PER_ELEMENT,
+      0,
+    );
+    this.gl.enableVertexAttribArray(loc);
+    this.gl.vertexAttribDivisor(loc, 1);
+    this.gl.bufferData(GL.ARRAY_BUFFER,
+      spriteCount * 2 * Float32Array.BYTES_PER_ELEMENT,
+      GL.DYNAMIC_DRAW);
+    return () => {
+      this.gl.disableVertexAttribArray(bufferInfo.location);
+      this.attributeBuffers.deleteBuffer(location);
+    };
   }
 
   private static readonly spriteMatrix = Matrix.create();
@@ -245,50 +287,34 @@ export class GLEngine extends Disposable {
     const matrix = GLEngine.spriteMatrix.getMatrix();
     const sprite = this.world?.getSprite(spriteIndex);
     sprite?.transforms.forEach(transform => mat4.multiply(matrix, matrix, transform));
-    this.attributeBuffers.bufferSubData(GL.ARRAY_BUFFER, matrix, 4 * 4 * Float32Array.BYTES_PER_ELEMENT * spriteIndex);
+    this.gl.bufferSubData(GL.ARRAY_BUFFER, 4 * 4 * Float32Array.BYTES_PER_ELEMENT * spriteIndex, matrix);
     return !!sprite;
   }
 
-  async loadTextures() {
-    const numImages = this.world?.getNumImages() ?? 0;
-    for (let i = 0; i < numImages; i++) {
-      await this.world?.drawImage(i, this.imageManager);
-      const mediaInfo = this.imageManager.getMedia(i);
+  private async updateTextures(imageIds: ImageId[], world: World): Promise<void> {
+    const textureIndices = await Promise.all(imageIds.map(imageId => new Promise<TextureIndex>(async (resolve) => {
+      await world.drawImage(imageId, this.imageManager);
+      const mediaInfo = this.imageManager.getMedia(imageId);
       const { slot, refreshCallback } = this.textureManager.allocateSlotForImage(mediaInfo);
       const slotW = Math.log2(slot.size[0]), slotH = Math.log2(slot.size[1]);
       const wh = slotW * 16 + slotH;
-      this.textureSlots[i] = {
+      this.textureSlots[imageId] = {
         refreshCallback,
         buffer: Float32Array.from([wh, slot.slotNumber]),
       };
-    }
-
-    this.textureManager.generateMipMaps();
-
-    {
-      const location = SLOT_SIZE_LOC;
-      this.attributeBuffers.createBuffer(location);
-      const bufferInfo = this.attributeBuffers.getAttributeBuffer(location);
-      this.attributeBuffers.bindBuffer(GL.ARRAY_BUFFER, bufferInfo);
-      const loc = bufferInfo.location;
-      this.gl.vertexAttribPointer(
-        loc,
-        2,
-        GL.FLOAT,
-        false,
-        2 * Float32Array.BYTES_PER_ELEMENT,
-        0,
-      );
-      this.gl.enableVertexAttribArray(loc);
-      this.gl.vertexAttribDivisor(loc, 1);
-      this.attributeBuffers.bufferData(
-        GL.ARRAY_BUFFER,
-        location,
-        new Float32Array((this.world?.getMaxSpriteCount() ?? 0) * 3),
-        0,
-        GL.DYNAMIC_DRAW,
-      );
-    }
+      if (mediaInfo.isVideo && refreshCallback) {
+        this.refreshers.add(refreshCallback);
+      }
+      return resolve(slot.textureIndex);
+    })));
+    const textureIndicesSet = new Set(textureIndices);
+    textureIndicesSet.forEach(textureIndex => {
+      if (textureIndex === TEXTURE_INDEX_FOR_VIDEO) {
+        this.textureManager.setupTextureForVideo(`TEXTURE${textureIndex}` as TextureId);
+      } else {
+        this.textureManager.generateMipMap(`TEXTURE${textureIndex}` as TextureId);
+      }
+    });;
   }
 
   private drawElementsInstanced(vertexCount: GLsizei, instances: GLsizei) {
@@ -301,48 +327,55 @@ export class GLEngine extends Disposable {
     );
   }
 
-  private updateSprites() {
-    const spriteIdsToUpdate = this.world?.getUpdatedSpriteTransforms();
-    if (spriteIdsToUpdate?.size) {
+  private updateSprites(world: World) {
+    const spriteIdsToUpdate = world.getUpdatedSpriteTransforms();
+    if (spriteIdsToUpdate.size) {
       const bufferInfo = this.attributeBuffers.getAttributeBuffer(TRANSFORM_LOC);
-      this.attributeBuffers.bindBuffer(GL.ARRAY_BUFFER, bufferInfo);
+      this.gl.bindBuffer(GL.ARRAY_BUFFER, bufferInfo.buffer);
       spriteIdsToUpdate?.forEach(spriteId => {
         if (this.updateSprite(spriteId)) {
           this.topVisibleSprite = Math.max(this.topVisibleSprite, spriteId);
         }
       });
-      spriteIdsToUpdate?.clear();
+      spriteIdsToUpdate.clear();
     }
 
-    const spriteIdTextureSlotsToUpdate = this.world?.getUpdatedSpriteTextureSlot();
-    if (spriteIdTextureSlotsToUpdate?.size) {
+    const spriteIdTextureSlotsToUpdate = world.getUpdatedSpriteTextureSlot();
+    if (spriteIdTextureSlotsToUpdate.size) {
       const bufferInfo = this.attributeBuffers.getAttributeBuffer(SLOT_SIZE_LOC);
-      this.attributeBuffers.bindBuffer(GL.ARRAY_BUFFER, bufferInfo);
+      this.gl.bindBuffer(GL.ARRAY_BUFFER, bufferInfo.buffer);
       spriteIdTextureSlotsToUpdate?.forEach(spriteId => {
-        const sprite = this.world?.getSprite(spriteId);
-        if (sprite?.imageId !== undefined) {
-          const { buffer } = this.textureSlots[sprite.imageId];
-          this.attributeBuffers.bufferSubData(
-            GL.ARRAY_BUFFER,
-            buffer,
-            2 * Float32Array.BYTES_PER_ELEMENT * spriteId,
-          );
+        const sprite = world.getSprite(spriteId);
+        const slotObj = this.textureSlots[sprite?.imageId ?? -1];
+        if (slotObj) {
+          const { buffer } = slotObj;
+          this.gl.bufferSubData(GL.ARRAY_BUFFER, 2 * Float32Array.BYTES_PER_ELEMENT * spriteId, buffer);
+          spriteIdTextureSlotsToUpdate.delete(spriteId);
         }
       });
     }
-    spriteIdTextureSlotsToUpdate?.clear();
 
-    while (!this.world?.getSprite(this.topVisibleSprite)) {
+    while (!world.getSprite(this.topVisibleSprite)) {
       this.topVisibleSprite--;
     }
 
     return this.topVisibleSprite + 1;
   }
 
-  refresh() {
-    this.gl.clear(GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT);
-    this.world?.syncWithCamera(this.camera);
-    const instanceCount = this.updateSprites();
+  toggle = 0;
+  refresh(world: World) {
+    this.toggle = (this.toggle + 1) % 2;
+    if (this.toggle) {
+      this.refreshers.forEach(refresher => refresher());
+    }
+    world.syncWithCamera(this.camera);
+    const imageIds = world.getUpdateImageIds();
+    if (imageIds.size) {
+      const images = Array.from(imageIds.keys());
+      imageIds.clear();
+      this.updateTextures(images, world);
+    }
+    const instanceCount = this.updateSprites(world);
     this.drawElementsInstanced(VERTEX_COUNT, instanceCount);
   }
 
@@ -353,10 +386,11 @@ export class GLEngine extends Disposable {
   start() {
     let handle = 0;
     const loop = () => {
-      this.refresh();
+      if (this.world) {
+        this.refresh(this.world);
+      }
       handle = requestAnimationFrame(loop);
     };
-    this.refresh();
     loop();
     () => {
       cancelAnimationFrame(handle);

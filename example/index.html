@@ -34,9 +34,10 @@
     window.global = globalThis;
   </script>
   <script type="module">
-    import { testCanvas, hello } from './build/index.js';
+    import { testCanvas, hello, DemoWorld } from './build/index.js';
 
-    window.engine = testCanvas(document.querySelector('#root'));
+    window.DemoWorld = DemoWorld;
+    window.engine = await testCanvas(document.querySelector('#root'));
     hello();
   </script>
 </html>

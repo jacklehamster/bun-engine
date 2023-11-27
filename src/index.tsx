@@ -15,11 +15,10 @@ export async function testCanvas(canvas: HTMLCanvasElement) {
     canvas.style.borderColor = 'silver';
   });
   //  canvas.style.pointerEvents = 'none';
-  const engine = new GLEngine(canvas, {
-    world: new DemoWorld(),
-  });
-
-  await engine.initialize();
+  const engine = new GLEngine(canvas);
   engine.start();
+  engine.setWorld(new DemoWorld());
   return engine;
 }
+
+export { DemoWorld };

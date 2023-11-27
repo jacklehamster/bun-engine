@@ -1,14 +1,15 @@
 import Matrix from "gl/transform/Matrix";
-import { Sprite } from "./Sprite";
+import { Sprite, SpriteId } from "./Sprite";
 import World from "./World";
 import { ImageId, ImageManager } from "gl/texture/ImageManager";
 import { GLCamera } from "gl/camera/GLCamera";
 
-const LOGO = 0, GROUND = 1, HUD = 2;
+const DOBUKI = 0, LOGO = 1, GROUND = 2, HUD = 3, VIDEO = 4;
 
 export class DemoWorld implements World {
-  private updatedSpriteTransforms: Set<number> = new Set();
-  private updatedSpriteTextureSlots: Set<number> = new Set();
+  private readonly updatedSpriteTransforms: Set<SpriteId> = new Set();
+  private readonly updatedSpriteTextureSlots: Set<SpriteId> = new Set();
+  private readonly updateSpriteIds: Set<ImageId> = new Set();
   private readonly hudSpriteId = 0;
 
   constructor() {
@@ -16,18 +17,26 @@ export class DemoWorld implements World {
       this.updatedSpriteTransforms.add(index);
       this.updatedSpriteTextureSlots.add(index);
     });
-  }
-  getUpdatedSpriteTextureSlot(): Set<number> {
-    return this.updatedSpriteTextureSlots
+    [LOGO, GROUND, HUD, DOBUKI, VIDEO].forEach(id => this.updateSpriteIds.add(id));
   }
 
-  getNumImages(): number {
-    return 3;
+  getUpdateImageIds(): Set<ImageId> {
+    return this.updateSpriteIds;
+  }
+
+  getUpdatedSpriteTextureSlot(): Set<SpriteId> {
+    return this.updatedSpriteTextureSlots
   }
 
   async drawImage(id: ImageId, imageManager: ImageManager): Promise<void> {
     const LOGO_SIZE = 512;
     switch (id) {
+      case VIDEO:
+        await imageManager.loadVideo(id, 'sample.mp4', 0);
+        break;
+      case DOBUKI:
+        await imageManager.loadImage(id, 'dobuki.png');
+        break;
       case LOGO:
         imageManager.drawImage(id, ctx => {
           const { canvas } = ctx;
@@ -110,8 +119,13 @@ export class DemoWorld implements World {
         this.hudMatrix.getMatrix(),
       ],
     },
+    {
+      imageId: DOBUKI,
+      transforms: [
+        Matrix.create().translate(0, 0, 0).getMatrix(),
+      ],
+    },
     ...[
-      Matrix.create().translate(0, 0, 0).getMatrix(),
       Matrix.create().translate(-1, 0, 1).rotateY(Math.PI / 2).scale(1, 1, 1).getMatrix(),
       Matrix.create().translate(1, 0, 1).rotateY(-Math.PI / 2).scale(1, 1, 1).getMatrix(),
     ].map(transform => ({ imageId: LOGO, transforms: [transform] })),
@@ -121,6 +135,12 @@ export class DemoWorld implements World {
       Matrix.create().translate(-2, -1, 3).rotateX(-Math.PI / 2).scale(1, 1, 1).getMatrix(),
       Matrix.create().translate(2, -1, 3).rotateX(-Math.PI / 2).scale(1, 1, 1).getMatrix(),
     ].map(transform => ({ imageId: GROUND, transforms: [transform] })),
+    {
+      imageId: VIDEO,
+      transforms: [
+        Matrix.create().translate(0, 6, -10).scale(10, 10, 10).getMatrix(),
+      ],
+    },
   ];
 
   getMaxSpriteCount(): number {
@@ -171,7 +191,7 @@ export class DemoWorld implements World {
     }
   }
 
-  getUpdatedSpriteTransforms(): Set<number> {
+  getUpdatedSpriteTransforms(): Set<SpriteId> {
     return this.updatedSpriteTransforms;
   }
 

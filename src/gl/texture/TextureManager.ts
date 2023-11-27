@@ -6,6 +6,7 @@ import { Slot, TextureIndex } from "texture-slot-allocator/dist/src/texture/Text
 import { TextureSlotAllocator } from 'texture-slot-allocator/dist/src/texture/TextureSlotAllocator';
 
 export type TextureId = `TEXTURE${TextureIndex}`;
+export const TEXTURE_INDEX_FOR_VIDEO = 15;
 
 export type Url = string;
 
@@ -14,7 +15,12 @@ export class TextureManager extends Disposable {
   private uniforms: GLUniforms;
   private textureBuffers: Record<TextureId | string, WebGLTexture> = {};
   private tempContext = (new OffscreenCanvas(1, 1)).getContext('2d')!;
-  private textureSlotAllocator = new TextureSlotAllocator();
+  private textureSlotAllocator = new TextureSlotAllocator({
+    excludeTexture: (tex) => tex === TEXTURE_INDEX_FOR_VIDEO
+  });
+  private textureSlotAllocatorForVideo = new TextureSlotAllocator({
+    excludeTexture: (tex) => tex !== TEXTURE_INDEX_FOR_VIDEO
+  });
 
   constructor(gl: GL, uniforms: GLUniforms) {
     super();
@@ -124,7 +130,8 @@ export class TextureManager extends Disposable {
   }
 
   allocateSlotForImage(mediaInfo: MediaInfo): { slot: Slot, refreshCallback: (() => void) | null } {
-    const slot = this.textureSlotAllocator.allocate(mediaInfo.width, mediaInfo.height);
+    const allocator = mediaInfo.isVideo ? this.textureSlotAllocatorForVideo : this.textureSlotAllocator;
+    const slot = allocator.allocate(mediaInfo.width, mediaInfo.height);
     const textureId: TextureId = `TEXTURE${slot.textureIndex}`;
     const webGLTexture = this.getTexture(textureId);
     if (!webGLTexture) {
@@ -151,22 +158,34 @@ export class TextureManager extends Disposable {
     if (imageInfo) {
       const srcRect = sourceRect ?? [0, 0, imageInfo.width, imageInfo.height];
       const dstRect = destRect ?? [0, 0, srcRect[2], srcRect[3]];
+      const refreshTexture = () => {
+        this.gl.bindTexture(GL.TEXTURE_2D, texture);
+        this.applyTexImage2d(imageInfo, srcRect, dstRect);
+      };
+
       if (imageInfo.active) {
-        const refreshTexture = () => {
-          this.gl.bindTexture(GL.TEXTURE_2D, texture);
-          this.applyTexImage2d(imageInfo, srcRect, dstRect);
-        };
         refreshTexture();
-        return refreshTexture;
       } else {
         this.loadTexture(imageInfo, textureId, texture, srcRect, dstRect);
         imageInfo.active = true;
       }
+      return refreshTexture;
     }
     return null;
   }
 
-  private generateMipMap(textureId: TextureId) {
+  setupTextureForVideo(textureId: TextureId) {
+    const texture = this.getTexture(textureId);
+    if (texture) {
+      this.gl.activeTexture(GL[textureId]);
+      this.gl.bindTexture(GL.TEXTURE_2D, texture);
+
+      this.gl.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_MIN_FILTER, GL.NEAREST);
+      this.gl.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_MAG_FILTER, GL.LINEAR);
+    }
+  }
+
+  generateMipMap(textureId: TextureId) {
     const texture = this.getTexture(textureId);
     if (texture) {
       this.gl.activeTexture(GL[textureId]);
@@ -175,14 +194,6 @@ export class TextureManager extends Disposable {
       this.gl.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_MIN_FILTER, GL.LINEAR_MIPMAP_LINEAR);
       this.gl.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_MAG_FILTER, GL.LINEAR);
       this.gl.generateMipmap(GL.TEXTURE_2D);
-    }
-  }
-
-  generateMipMaps() {
-    const count = this.textureSlotAllocator.countUsedTextureSheets;
-    for (let i: TextureIndex = 0; i < count; i++) {
-      const textureId = `TEXTURE${i}` as TextureId;
-      this.generateMipMap(textureId);
     }
   }
 

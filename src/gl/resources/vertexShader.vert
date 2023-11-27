@@ -21,7 +21,7 @@ out vec2 vTex;
 out float textureIndex;
 
 void main() {
-  vec2 tex = position.xy * -0.5 + 0.5;
+  vec2 tex = position.xy * vec2(0.5, -0.5) + 0.5;
   vec2 slotSize = vec2(
     pow(2.0, floor(slotSize_and_number.x / 16.0)),
     pow(2.0, mod(slotSize_and_number.x, 16.0)));
