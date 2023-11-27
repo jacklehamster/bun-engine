@@ -132,8 +132,8 @@ export class DemoWorld implements World {
   }
 
   syncWithCamera(camera: GLCamera): void {
-    const speed = 0.5 / 2;
-    const turnspeed = 0.1 / 2;
+    const speed = 1 / 4;
+    const turnspeed = 1 / 20;
     if (this.keys.KeyW) {
       camera.moveCam(0, 0, speed);
     }

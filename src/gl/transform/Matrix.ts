@@ -46,8 +46,7 @@ class Matrix {
 
   public translateToMatrix(matrix: Matrix): Matrix {
     const m4 = matrix.getMatrix();
-    this.translate(-m4[12], -m4[13], -m4[14])
-    return this;
+    return this.translate(-m4[12], -m4[13], -m4[14]);
   }
 
   public rotateX(angle: number): Matrix {

@@ -36,6 +36,8 @@ const DEFAULT_ATTRIBUTES: WebGLContextAttributes = {
   stencil: false,
 };
 
+const VERTEX_COUNT = 6;
+
 const LOG_GL = false;
 
 function glProxy(gl: GL) {
@@ -96,9 +98,7 @@ export class GLEngine extends Disposable {
 
     this.programs = this.own(new GLPrograms(this.gl));
     this.uniforms = this.own(new GLUniforms(this.gl, this.programs));
-    this.attributeBuffers = this.own(
-      new GLAttributeBuffers(this.gl, this.programs),
-    );
+    this.attributeBuffers = this.own(new GLAttributeBuffers(this.gl, this.programs));
 
     this.textureManager = new TextureManager(this.gl, this.uniforms);
     this.imageManager = new ImageManager();
@@ -156,12 +156,7 @@ export class GLEngine extends Disposable {
     //  enable blend
     this.gl.enable(GL.BLEND);
     this.gl.blendFunc(GL.SRC_ALPHA, GL.ONE_MINUS_SRC_ALPHA);
-    this.gl.viewport(
-      0,
-      0,
-      this.gl.drawingBufferWidth,
-      this.gl.drawingBufferHeight,
-    );
+    this.gl.viewport(0, 0, this.gl.drawingBufferWidth, this.gl.drawingBufferHeight);
 
     {
       /*
@@ -260,8 +255,7 @@ export class GLEngine extends Disposable {
       await this.world?.drawImage(i, this.imageManager);
       const mediaInfo = this.imageManager.getMedia(i);
       const { slot, refreshCallback } = this.textureManager.allocateSlotForImage(mediaInfo);
-      const slotW = Math.log2(slot.size[0]);
-      const slotH = Math.log2(slot.size[1]);
+      const slotW = Math.log2(slot.size[0]), slotH = Math.log2(slot.size[1]);
       const wh = slotW * 16 + slotH;
       this.textureSlots[i] = {
         refreshCallback,
@@ -297,7 +291,7 @@ export class GLEngine extends Disposable {
     }
   }
 
-  drawElementsInstanced(vertexCount: GLsizei, instances: GLsizei) {
+  private drawElementsInstanced(vertexCount: GLsizei, instances: GLsizei) {
     this.gl.drawElementsInstanced(
       GL.TRIANGLES,
       vertexCount,
@@ -347,10 +341,9 @@ export class GLEngine extends Disposable {
 
   refresh() {
     this.gl.clear(GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT);
-    const vertexCount = 6;
     this.world?.syncWithCamera(this.camera);
     const instanceCount = this.updateSprites();
-    this.drawElementsInstanced(vertexCount, instanceCount);
+    this.drawElementsInstanced(VERTEX_COUNT, instanceCount);
   }
 
   bindVertexArray() {
