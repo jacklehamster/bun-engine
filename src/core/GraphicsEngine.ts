@@ -147,6 +147,7 @@ export class GraphicsEngine extends Disposable implements Update {
     );
     const ratio = this.gl.drawingBufferWidth / this.gl.drawingBufferHeight;
     this.world?.getCamera()?.configProjectionMatrix(ratio);
+    //  TODO: we need to update "updatedCameraMatrices" in world.
   }
 
   private initialize() {
