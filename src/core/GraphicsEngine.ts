@@ -2,11 +2,11 @@
 /// <reference lib="dom" />
 /// <reference lib="dom.iterable" />
 
-import { GLPrograms } from './gl/programs/GLPrograms';
-import { Disposable } from './lifecycle/Disposable';
-import { VertexArray } from './gl/VertexArray';
-import { GLAttributeBuffers, LocationName } from './gl/attributes/GLAttributeBuffers';
-import { GLUniforms } from './gl/uniforms/GLUniforms';
+import { GLPrograms } from '../gl/programs/GLPrograms';
+import { Disposable } from '../lifecycle/Disposable';
+import { VertexArray } from '../gl/VertexArray';
+import { GLAttributeBuffers, LocationName } from '../gl/attributes/GLAttributeBuffers';
+import { GLUniforms } from '../gl/uniforms/GLUniforms';
 import {
   GL,
   POSITION_LOC,
@@ -15,17 +15,18 @@ import {
   SLOT_SIZE_LOC,
   CAM_LOC,
   PROJECTION_LOC,
-} from './gl/attributes/Constants';
-import { TEXTURE_INDEX_FOR_VIDEO, TextureId, TextureManager } from './gl/texture/TextureManager';
+} from '../gl/attributes/Constants';
+import { TEXTURE_INDEX_FOR_VIDEO, TextureId, TextureManager } from '../gl/texture/TextureManager';
 import { ImageId, ImageManager } from 'gl/texture/ImageManager';
 import vertexShader from 'generated/src/gl/resources/vertexShader.txt';
 import fragmentShader from 'generated/src/gl/resources/fragmentShader.txt';
 import { replaceTilda } from 'gl/utils/replaceTilda';
 import Matrix from 'gl/transform/Matrix';
-import { GLCamera } from 'gl/camera/GLCamera';
+import { CameraMatrixType } from 'gl/camera/Camera';
 import World from 'world/World';
 import { mat4 } from 'gl-matrix';
-import { TextureIndex } from 'texture-slot-allocator/dist/src/texture/TextureSlot';
+import { Motor, Update } from './Motor';
+import { MediaInfo } from 'gl/texture/MediaInfo';
 
 const DEFAULT_ATTRIBUTES: WebGLContextAttributes = {
   alpha: true,
@@ -71,7 +72,7 @@ export interface Props {
   attributes?: WebGLContextAttributes;
 }
 
-export class GLEngine extends Disposable {
+export class GraphicsEngine extends Disposable implements Update {
   private gl: GL;
   private programs: GLPrograms;
   private attributeBuffers: GLAttributeBuffers;
@@ -80,18 +81,16 @@ export class GLEngine extends Disposable {
 
   private textureManager: TextureManager;
   private imageManager: ImageManager;
-  private camera: GLCamera;
 
   private textureSlots: {
     buffer: Float32Array,
-    refreshCallback: (() => void) | null
   }[] = [];
 
   private world?: World;
   private onDeactivateWorlds: Set<() => void> = new Set();
   private onCleanupBuffers: Set<() => void> = new Set();
   private topVisibleSprite = -1;
-  private refreshers: Set<() => void> = new Set();
+  private cameraMatrixUniforms: Record<CameraMatrixType | any, WebGLUniformLocation> = {};
 
   constructor(canvas: HTMLCanvasElement, {
     attributes,
@@ -108,7 +107,6 @@ export class GLEngine extends Disposable {
 
     this.textureManager = new TextureManager(this.gl, this.uniforms);
     this.imageManager = new ImageManager();
-    this.camera = new GLCamera(this.gl, this.uniforms);
 
     const onResize = this.checkCanvasSize.bind(this);
     window.addEventListener('resize', onResize);
@@ -120,7 +118,6 @@ export class GLEngine extends Disposable {
   }
 
   resetWorld(): void {
-    this.refreshers.clear();
     this.textureSlots.length = 0;
     this.onDeactivateWorlds.forEach(callback => callback());
     this.onDeactivateWorlds.clear();
@@ -133,7 +130,10 @@ export class GLEngine extends Disposable {
     this.world = world;
     this.initializeBuffers(world?.getMaxSpriteCount() ?? 0);
 
-    const onDeactivateWorld = this.world?.activate();
+    const ratio = this.gl.drawingBufferWidth / this.gl.drawingBufferHeight;
+    world?.getCamera()?.configProjectionMatrix(ratio);
+
+    const onDeactivateWorld = world?.activate();
     if (onDeactivateWorld) {
       this.onDeactivateWorlds.add(onDeactivateWorld);
     }
@@ -148,8 +148,7 @@ export class GLEngine extends Disposable {
       this.gl.drawingBufferHeight,
     );
     const ratio = this.gl.drawingBufferWidth / this.gl.drawingBufferHeight;
-
-    this.camera.configProjectionMatrix(ratio);
+    this.world?.getCamera()?.configProjectionMatrix(ratio);
   }
 
   private initialize() {
@@ -164,6 +163,9 @@ export class GLEngine extends Disposable {
     );
 
     this.programs.useProgram(PROGRAM_NAME);
+
+    this.cameraMatrixUniforms[CameraMatrixType.PROJECTION] = this.uniforms.getUniformLocation(PROJECTION_LOC, PROGRAM_NAME);
+    this.cameraMatrixUniforms[CameraMatrixType.VIEW] = this.uniforms.getUniformLocation(CAM_LOC, PROGRAM_NAME);
 
     //  enable depth
     this.gl.enable(GL.DEPTH_TEST);
@@ -285,30 +287,29 @@ export class GLEngine extends Disposable {
 
   private static readonly spriteMatrix = Matrix.create();
   private updateSprite(spriteIndex: number): boolean {
-    GLEngine.spriteMatrix.identity();
-    const matrix = GLEngine.spriteMatrix.getMatrix();
+    GraphicsEngine.spriteMatrix.identity();
+    const matrix = GraphicsEngine.spriteMatrix.getMatrix();
     const sprite = this.world?.getSprite(spriteIndex);
     sprite?.transforms.forEach(transform => mat4.multiply(matrix, matrix, transform));
     this.gl.bufferSubData(GL.ARRAY_BUFFER, 4 * 4 * Float32Array.BYTES_PER_ELEMENT * spriteIndex, matrix);
     return !!sprite;
   }
 
-  private async updateTextures(imageIds: ImageId[], world: World): Promise<void> {
-    const textureIndices = await Promise.all(imageIds.map(imageId => new Promise<TextureIndex>(async (resolve) => {
+  private async updateTextures(imageIds: ImageId[], world: World): Promise<MediaInfo[]> {
+    const mediaInfos = await Promise.all(imageIds.map(async imageId => {
       await world.drawImage(imageId, this.imageManager);
-      const mediaInfo = this.imageManager.getMedia(imageId);
+      return { mediaInfo: this.imageManager.getMedia(imageId), imageId };
+    }));
+    const textureIndices = await Promise.all(mediaInfos.map(async ({ mediaInfo, imageId }) => {
       const { slot, refreshCallback } = this.textureManager.allocateSlotForImage(mediaInfo);
       const slotW = Math.log2(slot.size[0]), slotH = Math.log2(slot.size[1]);
       const wh = slotW * 16 + slotH;
       this.textureSlots[imageId] = {
-        refreshCallback,
         buffer: Float32Array.from([wh, slot.slotNumber]),
       };
-      if (mediaInfo.isVideo && refreshCallback) {
-        this.refreshers.add(refreshCallback);
-      }
-      return resolve(slot.textureIndex);
-    })));
+      mediaInfo.refreshCallback = refreshCallback;
+      return slot.textureIndex;
+    }));
     const textureIndicesSet = new Set(textureIndices);
     textureIndicesSet.forEach(textureIndex => {
       if (textureIndex === TEXTURE_INDEX_FOR_VIDEO) {
@@ -316,7 +317,8 @@ export class GLEngine extends Disposable {
       } else {
         this.textureManager.generateMipMap(`TEXTURE${textureIndex}` as TextureId);
       }
-    });;
+    });
+    return mediaInfos.map(({ mediaInfo }) => mediaInfo);;
   }
 
   private drawElementsInstanced(vertexCount: GLsizei, instances: GLsizei) {
@@ -364,19 +366,27 @@ export class GLEngine extends Disposable {
     return this.topVisibleSprite + 1;
   }
 
-  toggle = 0;
-  refresh(world: World, deltaTime: number) {
-    this.toggle = (this.toggle + 1) % 2;
-    if (this.toggle) {
-      this.refreshers.forEach(refresher => refresher());
+  refresh(world: World, motor: Motor) {
+    const camsUpdated = world.getUpdatedCamMatrices();
+    if (camsUpdated.size) {
+      camsUpdated.forEach(type => {
+        const matrix = world.getCameraMatrix(type);
+        this.gl.uniformMatrix4fv(this.cameraMatrixUniforms[type], false, matrix);
+      });
+      camsUpdated.clear();
     }
-    world.refresh?.(deltaTime);
-    world.syncWithCamera(this.camera);
+
     const imageIds = world.getUpdateImageIds();
     if (imageIds.size) {
       const images = Array.from(imageIds.keys());
       imageIds.clear();
-      this.updateTextures(images, world);
+      this.updateTextures(images, world).then(mediaInfos => {
+        mediaInfos.forEach(mediaInfo => {
+          if (mediaInfo.isVideo) {
+            motor.addUpdate(mediaInfo);
+          }
+        });
+      });
     }
     const instanceCount = this.updateSprites(world);
     this.drawElementsInstanced(VERTEX_COUNT, instanceCount);
@@ -386,30 +396,12 @@ export class GLEngine extends Disposable {
     return this.own(new VertexArray(this.gl));
   }
 
-  start() {
-    let handle = 0;
-    let lastTime = 0;
-    const loop: FrameRequestCallback = (time) => {
-      const deltaTime = time - lastTime;
-      handle = requestAnimationFrame(loop);
-      lastTime = time;
-      if (this.world) {
-        this.refresh(this.world, deltaTime);
-      }
-    };
-    requestAnimationFrame(loop);
-    this.stop = () => cancelAnimationFrame(handle)
+  update(motor: Motor, deltaTime: number): void {
+    if (this.world) {
+      this.world.refresh?.(deltaTime);
+      this.refresh(this.world, motor);
+    }
   }
 
-  stop: () => void = () => { };
-
-  updateProjectionMatrix(matrix: Matrix) {
-    const loc = this.uniforms.getUniformLocation(PROJECTION_LOC);
-    this.gl.uniformMatrix4fv(loc, false, matrix.getMatrix());
-  }
-
-  updateCameraMatrix(matrix: Matrix) {
-    const loc = this.uniforms.getUniformLocation(CAM_LOC);
-    this.gl.uniformMatrix4fv(loc, false, matrix.getMatrix());
-  }
+  period = 1;
 }

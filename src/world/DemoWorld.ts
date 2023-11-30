@@ -2,22 +2,37 @@ import Matrix from "gl/transform/Matrix";
 import { Sprite, SpriteId } from "./Sprite";
 import World from "./World";
 import { ImageId, ImageManager } from "gl/texture/ImageManager";
-import { GLCamera } from "gl/camera/GLCamera";
+import { CameraMatrixType, Camera } from "gl/camera/Camera";
 
-const DOBUKI = 0, LOGO = 1, GROUND = 2, HUD = 3, VIDEO = 4;
+const DOBUKI = 0, LOGO = 1, GROUND = 2, HUD = 3, VIDEO = 4, GRID = 5;
 
 export class DemoWorld implements World {
   private readonly updatedSpriteTransforms: Set<SpriteId> = new Set();
   private readonly updatedSpriteTextureSlots: Set<SpriteId> = new Set();
   private readonly updateSpriteIds: Set<ImageId> = new Set();
+  private readonly updatedCameraMatrices: Set<CameraMatrixType> = new Set();
   private readonly hudSpriteId = 0;
+  private readonly camera: Camera = new Camera();
 
   constructor() {
     this.sprites.forEach((_, index) => {
       this.updatedSpriteTransforms.add(index);
       this.updatedSpriteTextureSlots.add(index);
     });
-    [LOGO, GROUND, HUD, DOBUKI, VIDEO].forEach(id => this.updateSpriteIds.add(id));
+    [LOGO, GROUND, HUD, DOBUKI, VIDEO, GRID].forEach(id => this.updateSpriteIds.add(id));
+    this.updatedCameraMatrices.add(CameraMatrixType.PROJECTION);
+    this.updatedCameraMatrices.add(CameraMatrixType.VIEW);
+  }
+  getCamera(): Camera {
+    return this.camera;
+  }
+
+  getCameraMatrix(cameraMatrixType: CameraMatrixType): Float32Array {
+    return this.camera.getCameraMatrix(cameraMatrixType);
+  }
+
+  getUpdatedCamMatrices(): Set<CameraMatrixType> {
+    return this.updatedCameraMatrices;
   }
 
   getUpdateImageIds(): Set<ImageId> {
@@ -85,7 +100,6 @@ export class DemoWorld implements World {
           ctx.strokeStyle = 'black';
           ctx.fillStyle = 'silver';
 
-          //  face
           ctx.beginPath();
           ctx.rect(canvas.width * .2, canvas.height * .2, canvas.width * .6, canvas.height * .6);
           ctx.fill();
@@ -97,15 +111,27 @@ export class DemoWorld implements World {
           const { canvas } = ctx;
           canvas.width = LOGO_SIZE;
           canvas.height = LOGO_SIZE;
-          ctx.imageSmoothingEnabled = true;
-          ctx.fillStyle = '#ddd';
           ctx.lineWidth = canvas.width / 50;
 
           ctx.strokeStyle = 'black';
-          ctx.fillStyle = 'silver';
 
           ctx.beginPath();
           ctx.rect(30, 30, canvas.width - 60, canvas.height - 60);
+          ctx.stroke();
+        });
+        break;
+      case GRID:
+        imageManager.drawImage(id, ctx => {
+          const { canvas } = ctx;
+          canvas.width = LOGO_SIZE;
+          canvas.height = LOGO_SIZE;
+          ctx.imageSmoothingEnabled = true;
+          ctx.lineWidth = 5;
+
+          ctx.strokeStyle = 'green';
+
+          ctx.beginPath();
+          ctx.rect(10, 10, canvas.width - 20, canvas.height - 20);
           ctx.stroke();
         });
         break;
@@ -141,6 +167,9 @@ export class DemoWorld implements World {
         Matrix.create().translate(0, 5, -10).scale(480 / 50, 270 / 50, 1).getMatrix(),
       ],
     },
+    ...new Array(400).fill(0).map((_, index) =>
+      Matrix.create().translate(index % 20 - 10, -1.5, Math.floor(index / 20) - 10).rotateX(-Math.PI / 2).scale(1, 1, 1).getMatrix(),
+    ).map(transform => ({ imageId: GRID, transforms: [transform] })),
   ];
 
   getMaxSpriteCount(): number {
@@ -151,42 +180,37 @@ export class DemoWorld implements World {
     return this.sprites[index];
   }
 
-  syncWithCamera(camera: GLCamera): void {
-    const speed = 1 / 4;
-    const turnspeed = 1 / 20;
-    if (this.keys.KeyW) {
-      camera.moveCam(0, 0, speed);
+  refresh(deltaTime: number): void {
+    const speed = 1 / 4 * deltaTime / 20;
+    const turnspeed = 1 / 20 * deltaTime / 20;
+    if (this.keys.KeyW || this.keys.ArrowUp && !this.keys.ShiftRight) {
+      this.camera.moveCam(0, 0, speed);
     }
-    if (this.keys.KeyS) {
-      camera.moveCam(0, 0, -speed);
-    }
-    if (this.keys.ArrowUp && !this.keys.ShiftRight) {
-      camera.moveCam(0, -speed, 0);
-    }
-    if (this.keys.ArrowDown && !this.keys.ShiftRight) {
-      camera.moveCam(0, speed, 0);
+    if (this.keys.KeyS || this.keys.ArrowDown && !this.keys.ShiftRight) {
+      this.camera.moveCam(0, 0, -speed);
     }
     if (this.keys.KeyA || (this.keys.ArrowLeft && !this.keys.ShiftRight)) {
-      camera.moveCam(-speed, 0, 0);
+      this.camera.moveCam(-speed, 0, 0);
     }
     if (this.keys.KeyD || (this.keys.ArrowRight && !this.keys.ShiftRight)) {
-      camera.moveCam(speed, 0, 0);
+      this.camera.moveCam(speed, 0, 0);
     }
     if (this.keys.KeyQ || (this.keys.ArrowLeft && this.keys.ShiftRight)) {
-      camera.turnCam(-turnspeed);
+      this.camera.turnCam(-turnspeed);
     }
     if (this.keys.KeyE || (this.keys.ArrowRight && this.keys.ShiftRight)) {
-      camera.turnCam(turnspeed);
+      this.camera.turnCam(turnspeed);
     }
     if (this.keys.ArrowUp && this.keys.ShiftRight) {
-      camera.tilt(-turnspeed);
+      this.camera.tilt(-turnspeed);
     }
     if (this.keys.ArrowDown && this.keys.ShiftRight) {
-      camera.tilt(turnspeed);
+      this.camera.tilt(turnspeed);
     }
 
-    if (camera.refresh()) {
-      camera.syncHud(this.hudMatrix);
+    if (this.camera.refresh()) {
+      this.updatedCameraMatrices.add(CameraMatrixType.VIEW);
+      this.camera.syncHud(this.hudMatrix);
       this.updatedSpriteTransforms.add(this.hudSpriteId);
     }
   }

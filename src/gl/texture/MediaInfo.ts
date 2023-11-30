@@ -1,22 +1,30 @@
+import { Update } from 'core/Motor';
 import { Disposable } from '../../lifecycle/Disposable';
 
-export class MediaInfo extends Disposable {
+export class MediaInfo extends Disposable implements Update {
   readonly texImgSrc: TexImageSource;
   active: boolean = false;
   readonly width: number;
   readonly height: number;
   readonly isVideo: boolean;
+  refreshCallback?(): void;
+  period: number | undefined;
 
-  constructor(image: TexImageSource, public fps = 25) {
+  constructor(image: TexImageSource, fps?: number) {
     super();
     this.texImgSrc = image;
     const img: any = image;
     this.isVideo = !!(img.videoWidth || img.videoHeight);
     this.width = img.naturalWidth ?? img.videoWidth ?? img.displayWidth ?? img.width?.baseValue?.value ?? img.width;
     this.height = img.naturalHeight ?? img.videoHeight ?? img.displayHeight ?? img.height?.baseValue?.value ?? img.height;
+    this.period = fps ? 1000 / fps : undefined;
     if (!this.width || !this.height) {
       throw new Error('Invalid image');
     }
+  }
+
+  update(): void {
+    this.refreshCallback?.();
   }
 
   static createFromCanvas(canvas: OffscreenCanvas | HTMLCanvasElement): MediaInfo {

@@ -1,19 +1,15 @@
-import { CAM_LOC, GL, PROJECTION_LOC } from "gl/attributes/Constants";
 import Matrix from "gl/transform/Matrix";
 import { ProjectionMatrix } from "gl/transform/ProjectionMatrix";
-import { GLUniforms } from "gl/uniforms/GLUniforms";
 
-export class GLCamera {
-  private gl: GL;
-  private uniforms: GLUniforms;
+export enum CameraMatrixType {
+  PROJECTION = 'PROJECTION',
+  VIEW = 'VIEW',
+}
+
+export class Camera {
   private camPositionMatrix: Matrix = Matrix.create().translate(0, 0, -1);
   private projectionMatrix = new ProjectionMatrix();
   private needsRefresh = false;
-
-  constructor(gl: GL, uniforms: GLUniforms) {
-    this.gl = gl;
-    this.uniforms = uniforms;
-  }
 
   configProjectionMatrix(ratio: number) {
     this.projectionMatrix.configure(ratio);
@@ -24,6 +20,11 @@ export class GLCamera {
   readonly camTurnMatrix = Matrix.create();
   private readonly camMatrix = Matrix.create();
 
+  private readonly cameraMatrices: Record<CameraMatrixType, Matrix> = {
+    [CameraMatrixType.PROJECTION]: this.projectionMatrix,
+    [CameraMatrixType.VIEW]: this.camMatrix,
+  };
+
   refresh() {
     if (!this.needsRefresh) {
       return false;
@@ -32,17 +33,17 @@ export class GLCamera {
     this.invertedCamTiltMatrix.invert(this.camTiltMatrix);
     this.invertedCamTurnMatrix.invert(this.camTurnMatrix);
     this.camMatrix.multiply3(this.camTiltMatrix, this.camTurnMatrix, this.camPositionMatrix);
-    const loc = this.uniforms.getUniformLocation(CAM_LOC);
-    this.gl.uniformMatrix4fv(loc, false, this.camMatrix.getMatrix());
     this.needsRefresh = false;
     return true;
   }
 
   updatePerspective(level: number) {
     this.projectionMatrix.setPerspective(level);
-    const loc = this.uniforms.getUniformLocation(PROJECTION_LOC);
-    this.gl.uniformMatrix4fv(loc, false, this.projectionMatrix.getMatrix());
     this.needsRefresh = true;
+  }
+
+  getCameraMatrix(cameraMatrixType: CameraMatrixType): Float32Array {
+    return this.cameraMatrices[cameraMatrixType].getMatrix();
   }
 
   moveCam(x: number, y: number, z: number) {

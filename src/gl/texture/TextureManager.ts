@@ -129,7 +129,7 @@ export class TextureManager extends Disposable {
     }
   }
 
-  allocateSlotForImage(mediaInfo: MediaInfo): { slot: Slot, refreshCallback: (() => void) | null } {
+  allocateSlotForImage(mediaInfo: MediaInfo): { slot: Slot, refreshCallback: () => void } {
     const allocator = mediaInfo.isVideo ? this.textureSlotAllocatorForVideo : this.textureSlotAllocator;
     const slot = allocator.allocate(mediaInfo.width, mediaInfo.height);
     const textureId: TextureId = `TEXTURE${slot.textureIndex}`;
@@ -154,24 +154,21 @@ export class TextureManager extends Disposable {
     texture: WebGLTexture,
     sourceRect?: [number, number, number, number],
     destRect?: [number, number, number, number],
-  ): (() => void) | null {
-    if (imageInfo) {
-      const srcRect = sourceRect ?? [0, 0, imageInfo.width, imageInfo.height];
-      const dstRect = destRect ?? [0, 0, srcRect[2], srcRect[3]];
-      const refreshTexture = () => {
-        this.gl.bindTexture(GL.TEXTURE_2D, texture);
-        this.applyTexImage2d(imageInfo, srcRect, dstRect);
-      };
+  ): () => void {
+    const srcRect = sourceRect ?? [0, 0, imageInfo.width, imageInfo.height];
+    const dstRect = destRect ?? [0, 0, srcRect[2], srcRect[3]];
+    const refreshTexture = () => {
+      this.gl.bindTexture(GL.TEXTURE_2D, texture);
+      this.applyTexImage2d(imageInfo, srcRect, dstRect);
+    };
 
-      if (imageInfo.active) {
-        refreshTexture();
-      } else {
-        this.loadTexture(imageInfo, textureId, texture, srcRect, dstRect);
-        imageInfo.active = true;
-      }
-      return refreshTexture;
+    if (imageInfo.active) {
+      refreshTexture();
+    } else {
+      this.loadTexture(imageInfo, textureId, texture, srcRect, dstRect);
+      imageInfo.active = true;
     }
-    return null;
+    return refreshTexture;
   }
 
   setupTextureForVideo(textureId: TextureId) {
@@ -180,7 +177,7 @@ export class TextureManager extends Disposable {
       this.gl.activeTexture(GL[textureId]);
       this.gl.bindTexture(GL.TEXTURE_2D, texture);
 
-      this.gl.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_MIN_FILTER, GL.NEAREST);
+      this.gl.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_MIN_FILTER, GL.LINEAR);
       this.gl.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_MAG_FILTER, GL.LINEAR);
     }
   }
