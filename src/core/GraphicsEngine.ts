@@ -111,9 +111,7 @@ export class GraphicsEngine extends Disposable implements Update {
     const onResize = this.checkCanvasSize.bind(this);
     window.addEventListener('resize', onResize);
     this.addOnDestroy(() => window.removeEventListener('resize', onResize));
-
     this.addOnDestroy(() => this.resetWorld());
-
     this.initialize();
   }
 
@@ -297,8 +295,8 @@ export class GraphicsEngine extends Disposable implements Update {
 
   private async updateTextures(imageIds: ImageId[], world: World): Promise<MediaInfo[]> {
     const mediaInfos = await Promise.all(imageIds.map(async imageId => {
-      await world.drawImage(imageId, this.imageManager);
-      return { mediaInfo: this.imageManager.getMedia(imageId), imageId };
+      const mediaInfo = (await world.drawImage(imageId, this.imageManager))!;
+      return { mediaInfo, imageId };
     }));
     const textureIndices = await Promise.all(mediaInfos.map(async ({ mediaInfo, imageId }) => {
       const { slot, refreshCallback } = this.textureManager.allocateSlotForImage(mediaInfo);

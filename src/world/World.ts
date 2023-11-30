@@ -1,6 +1,7 @@
 import { Sprite, SpriteId } from "./Sprite";
 import { ImageId, ImageManager } from "gl/texture/ImageManager";
 import { CameraMatrixType, Camera } from "gl/camera/Camera";
+import { MediaInfo } from "gl/texture/MediaInfo";
 
 interface World {
   activate(): (() => void) | void;
@@ -12,7 +13,7 @@ interface World {
   getUpdatedSpriteTextureSlot(): Set<SpriteId>;
   getUpdatedCamMatrices(): Set<CameraMatrixType>
   getUpdateImageIds(): Set<ImageId>;
-  drawImage(imageId: ImageId, imageManager: ImageManager): Promise<void>;
+  drawImage(imageId: ImageId, imageManager: ImageManager): Promise<MediaInfo | undefined>;
   refresh?(deltaTime: number): void;
 }
 

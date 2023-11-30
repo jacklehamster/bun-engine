@@ -3,6 +3,7 @@ import { Sprite, SpriteId } from "./Sprite";
 import World from "./World";
 import { ImageId, ImageManager } from "gl/texture/ImageManager";
 import { CameraMatrixType, Camera } from "gl/camera/Camera";
+import { MediaInfo } from "gl/texture/MediaInfo";
 
 const DOBUKI = 0, LOGO = 1, GROUND = 2, HUD = 3, VIDEO = 4, GRID = 5;
 
@@ -43,17 +44,15 @@ export class DemoWorld implements World {
     return this.updatedSpriteTextureSlots
   }
 
-  async drawImage(id: ImageId, imageManager: ImageManager): Promise<void> {
+  async drawImage(id: ImageId, imageManager: ImageManager): Promise<MediaInfo | undefined> {
     const LOGO_SIZE = 512;
     switch (id) {
       case VIDEO:
-        await imageManager.loadVideo(id, 'sample.mp4', 0);
-        break;
+        return await imageManager.loadVideo(id, 'sample.mp4', 0);
       case DOBUKI:
-        await imageManager.loadImage(id, 'dobuki.png');
-        break;
+        return await imageManager.loadImage(id, 'dobuki.png');
       case LOGO:
-        imageManager.drawImage(id, ctx => {
+        return await imageManager.drawImage(id, ctx => {
           const { canvas } = ctx;
           canvas.width = LOGO_SIZE;
           canvas.height = LOGO_SIZE;
@@ -86,9 +85,8 @@ export class DemoWorld implements World {
           ctx.arc((canvas.width / 3) * 2, canvas.height / 3, halfSize * 0.1, 0, Math.PI * 2, true);
           ctx.stroke();
         });
-        break;
       case GROUND:
-        imageManager.drawImage(id, ctx => {
+        return await imageManager.drawImage(id, ctx => {
           const { canvas } = ctx;
           canvas.width = LOGO_SIZE;
           canvas.height = LOGO_SIZE;
@@ -105,9 +103,8 @@ export class DemoWorld implements World {
           ctx.fill();
           ctx.stroke();
         });
-        break;
       case HUD:
-        imageManager.drawImage(id, ctx => {
+        return await imageManager.drawImage(id, ctx => {
           const { canvas } = ctx;
           canvas.width = LOGO_SIZE;
           canvas.height = LOGO_SIZE;
@@ -119,9 +116,8 @@ export class DemoWorld implements World {
           ctx.rect(30, 30, canvas.width - 60, canvas.height - 60);
           ctx.stroke();
         });
-        break;
       case GRID:
-        imageManager.drawImage(id, ctx => {
+        return await imageManager.drawImage(id, ctx => {
           const { canvas } = ctx;
           canvas.width = LOGO_SIZE;
           canvas.height = LOGO_SIZE;
@@ -134,8 +130,8 @@ export class DemoWorld implements World {
           ctx.rect(10, 10, canvas.width - 20, canvas.height - 20);
           ctx.stroke();
         });
-        break;
     }
+    return;
   }
   private readonly hudMatrix: Matrix = Matrix.create();
   private readonly sprites: Sprite[] = [
@@ -181,8 +177,8 @@ export class DemoWorld implements World {
   }
 
   refresh(deltaTime: number): void {
-    const speed = 1 / 4 * deltaTime / 20;
-    const turnspeed = 1 / 20 * deltaTime / 20;
+    const speed = deltaTime / 80;
+    const turnspeed = deltaTime / 400;
     if (this.keys.KeyW || this.keys.ArrowUp && !this.keys.ShiftRight) {
       this.camera.moveCam(0, 0, speed);
     }

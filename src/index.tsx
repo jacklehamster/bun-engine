@@ -1,5 +1,5 @@
 import { DemoWorld } from 'world/DemoWorld';
-import { GraphicsEngine as GraphicsEngine } from './core/GraphicsEngine';
+import { GraphicsEngine } from './core/GraphicsEngine';
 import { Motor } from 'core/Motor';
 
 export async function hello() {
