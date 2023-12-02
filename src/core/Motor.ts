@@ -1,21 +1,29 @@
+import { Update, Updates } from "../updates/Update";
+
 /**
  * Continously runs a loop which feeds a world into the GL Engine.
  */
 const MAX_DELTA_TIME = 1000 / 20;
 
-export type Update = {
+export interface Schedule {
   triggerTime?: number;
-  update(motor: Motor, deltaTime?: number): void;
   period?: number;
+  expirationTime?: number;
 }
 
 export class Motor {
-  private readonly updates: Set<Update> = new Set();
+  private readonly updateSchedule: Map<Updates, Schedule> = new Map();
   time: number = 0;
 
-  addUpdate(update: Update, triggerTime?: number): void {
-    update.triggerTime = triggerTime ?? this.time;
-    this.updates.add(update);
+  loop(update: Updates, frameRate?: number, expirationTime?: number) {
+    this.registerUpdate(update, { period: frameRate ? 1000 / frameRate : 1, expirationTime });
+  }
+
+  registerUpdate(update: Updates, schedule: Schedule = {}): void {
+    schedule.triggerTime = schedule.triggerTime ?? this.time;
+    schedule.expirationTime = schedule.expirationTime ?? Infinity;
+    schedule.period = schedule.period;
+    this.updateSchedule.set(update, schedule);
   }
 
   start() {
@@ -26,15 +34,16 @@ export class Motor {
       handle = requestAnimationFrame(loop);
       lastTime = time;
       this.time = time;
-      this.updates.forEach(update => {
-        if (time < update.triggerTime!) {
+      this.updateSchedule.forEach((schedule, update) => {
+        if (time < schedule.triggerTime!) {
           return;
         }
-        update.update(this, deltaTime);
-        if (update.period) {
-          update.triggerTime = Math.max(update.triggerTime! + update.period, time);
+        const updates: Update[] = Array.isArray(update) ? update : [update];
+        updates.forEach(update => update.update(this, deltaTime));
+        if (schedule.period && time < schedule.expirationTime!) {
+          schedule.triggerTime = Math.max(schedule.triggerTime! + schedule.period, time);
         } else {
-          this.updates.delete(update);
+          this.updateSchedule.delete(update);
         }
       });
     };

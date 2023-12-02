@@ -1,6 +1,5 @@
-import { DemoWorld } from 'world/DemoWorld';
-import { GraphicsEngine } from './core/GraphicsEngine';
-import { Motor } from 'core/Motor';
+import { World } from 'world/World';
+import { Core } from 'core/Core';
 
 export async function hello() {
   console.log('Hello World!');
@@ -16,13 +15,13 @@ export async function testCanvas(canvas: HTMLCanvasElement) {
     canvas.style.borderColor = 'silver';
   });
   //  canvas.style.pointerEvents = 'none';
-  const motor = new Motor();
-  const engine = new GraphicsEngine(canvas);
-  motor.addUpdate(engine);
-  engine.setWorld(new DemoWorld());
 
-  motor.start();
-  return engine;
+  const core = new Core({
+    canvas,
+  });
+  const world = new World(core);
+  core.start(world);
+  return core;
 }
 
-export { DemoWorld };
+export { World };

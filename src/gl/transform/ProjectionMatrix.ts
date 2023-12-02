@@ -13,7 +13,8 @@ export class ProjectionMatrix extends Matrix {
     this.orthoMatrix.ortho(-ratio, ratio, -1, 1, -1000, 1000);
   }
 
-  configure(ratio: number) {
+  configure(width: number, height: number) {
+    const ratio: number = width / height;
     this.configPerspectiveMatrix(ratio);
     this.configOrthoMatrix(ratio);
   }

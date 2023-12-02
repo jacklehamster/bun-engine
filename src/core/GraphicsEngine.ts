@@ -23,10 +23,11 @@ import fragmentShader from 'generated/src/gl/resources/fragmentShader.txt';
 import { replaceTilda } from 'gl/utils/replaceTilda';
 import Matrix from 'gl/transform/Matrix';
 import { CameraMatrixType } from 'gl/camera/Camera';
-import World from 'world/World';
+import IWorld from 'world/IWorld';
 import { mat4 } from 'gl-matrix';
-import { Motor, Update } from './Motor';
+import { Motor } from './Motor';
 import { MediaInfo } from 'gl/texture/MediaInfo';
+import { Update } from '../updates/Update';
 
 const DEFAULT_ATTRIBUTES: WebGLContextAttributes = {
   alpha: true,
@@ -77,7 +78,7 @@ export class GraphicsEngine extends Disposable implements Update {
   private programs: GLPrograms;
   private attributeBuffers: GLAttributeBuffers;
   private uniforms: GLUniforms;
-  private canvas: HTMLCanvasElement;
+  private canvas: HTMLCanvasElement | OffscreenCanvas;
 
   private textureManager: TextureManager;
   private imageManager: ImageManager;
@@ -86,19 +87,19 @@ export class GraphicsEngine extends Disposable implements Update {
     buffer: Float32Array,
   }[] = [];
 
-  private world?: World;
+  private world?: IWorld;
   private onDeactivateWorlds: Set<() => void> = new Set();
   private onCleanupBuffers: Set<() => void> = new Set();
+  private onResize: Set<(w: number, h: number) => void> = new Set();
   private topVisibleSprite = -1;
   private cameraMatrixUniforms: Record<CameraMatrixType | any, WebGLUniformLocation> = {};
 
-  constructor(canvas: HTMLCanvasElement, {
+  constructor(canvas: HTMLCanvasElement | OffscreenCanvas, {
     attributes,
   }: Props = {}) {
     super();
-    this.gl = glProxy(
-      canvas.getContext('webgl2', { ...DEFAULT_ATTRIBUTES, ...attributes })!,
-    );
+    const gl: WebGL2RenderingContext = canvas.getContext('webgl2', { ...DEFAULT_ATTRIBUTES, ...attributes })! as WebGL2RenderingContext;
+    this.gl = glProxy(gl);
     this.canvas = canvas;
 
     this.programs = this.own(new GLPrograms(this.gl));
@@ -115,6 +116,15 @@ export class GraphicsEngine extends Disposable implements Update {
     this.initialize();
   }
 
+  addResizeListener(listener: (w: number, h: number) => void) {
+    listener(this.gl.drawingBufferWidth, this.gl.drawingBufferHeight);
+    this.onResize.add(listener);
+  }
+
+  removeResizeListener(listener: (w: number, h: number) => void) {
+    this.onResize.delete(listener);
+  }
+
   resetWorld(): void {
     this.textureSlots.length = 0;
     this.onDeactivateWorlds.forEach(callback => callback());
@@ -123,13 +133,10 @@ export class GraphicsEngine extends Disposable implements Update {
     this.onCleanupBuffers.clear();
   }
 
-  setWorld(world?: World): void {
+  setWorld(world?: IWorld): void {
     this.resetWorld();
     this.world = world;
     this.initializeBuffers(world?.getMaxSpriteCount() ?? 0);
-
-    const ratio = this.gl.drawingBufferWidth / this.gl.drawingBufferHeight;
-    world?.getCamera()?.configProjectionMatrix(ratio);
 
     const onDeactivateWorld = world?.activate();
     if (onDeactivateWorld) {
@@ -138,16 +145,16 @@ export class GraphicsEngine extends Disposable implements Update {
   }
 
   checkCanvasSize() {
-    this.canvas.width = this.canvas.offsetWidth * 2;
-    this.canvas.height = this.canvas.offsetHeight * 2;
+    if (this.canvas instanceof HTMLCanvasElement) {
+      this.canvas.width = this.canvas.offsetWidth * 2;
+      this.canvas.height = this.canvas.offsetHeight * 2;
+    }
     this.gl.viewport(
       0, 0,
       this.gl.drawingBufferWidth,
       this.gl.drawingBufferHeight,
     );
-    const ratio = this.gl.drawingBufferWidth / this.gl.drawingBufferHeight;
-    this.world?.getCamera()?.configProjectionMatrix(ratio);
-    //  TODO: we need to update "updatedCameraMatrices" in world.
+    this.onResize.forEach(callback => callback(this.gl.drawingBufferWidth, this.gl.drawingBufferHeight));
   }
 
   private initialize() {
@@ -178,9 +185,6 @@ export class GraphicsEngine extends Disposable implements Update {
 
     // disable face culling
     this.gl.disable(this.gl.CULL_FACE);
-
-    const maxSpriteCount = this.world?.getMaxSpriteCount() ?? 0;
-    this.initializeBuffers(maxSpriteCount);
 
     this.textureManager.initialize();
     this.checkCanvasSize();
@@ -285,16 +289,16 @@ export class GraphicsEngine extends Disposable implements Update {
   }
 
   private static readonly spriteMatrix = Matrix.create();
-  private updateSprite(spriteIndex: number): boolean {
+  private updateSprite(spriteIndex: number, world: IWorld): boolean {
     GraphicsEngine.spriteMatrix.identity();
     const matrix = GraphicsEngine.spriteMatrix.getMatrix();
-    const sprite = this.world?.getSprite(spriteIndex);
+    const sprite = world.getSprite(spriteIndex);
     sprite?.transforms.forEach(transform => mat4.multiply(matrix, matrix, transform));
     this.gl.bufferSubData(GL.ARRAY_BUFFER, 4 * 4 * Float32Array.BYTES_PER_ELEMENT * spriteIndex, matrix);
     return !!sprite;
   }
 
-  private async updateTextures(imageIds: ImageId[], world: World): Promise<MediaInfo[]> {
+  private async updateTextures(imageIds: ImageId[], world: IWorld): Promise<MediaInfo[]> {
     const mediaInfos = await Promise.all(imageIds.map(async imageId => {
       const mediaInfo = (await world.drawImage(imageId, this.imageManager))!;
       return { mediaInfo, imageId };
@@ -330,13 +334,13 @@ export class GraphicsEngine extends Disposable implements Update {
     );
   }
 
-  private updateSprites(world: World) {
+  private updateSprites(world: IWorld) {
     const spriteIdsToUpdate = world.getUpdatedSpriteTransforms();
     if (spriteIdsToUpdate.size) {
       const bufferInfo = this.attributeBuffers.getAttributeBuffer(TRANSFORM_LOC);
       this.gl.bindBuffer(GL.ARRAY_BUFFER, bufferInfo.buffer);
       spriteIdsToUpdate?.forEach(spriteId => {
-        if (this.updateSprite(spriteId)) {
+        if (this.updateSprite(spriteId, world)) {
           this.topVisibleSprite = Math.max(this.topVisibleSprite, spriteId);
         }
       });
@@ -365,16 +369,11 @@ export class GraphicsEngine extends Disposable implements Update {
     return this.topVisibleSprite + 1;
   }
 
-  refresh(world: World, motor: Motor) {
-    const camsUpdated = world.getUpdatedCamMatrices();
-    if (camsUpdated.size) {
-      camsUpdated.forEach(type => {
-        const matrix = world.getCameraMatrix(type);
-        this.gl.uniformMatrix4fv(this.cameraMatrixUniforms[type], false, matrix);
-      });
-      camsUpdated.clear();
-    }
+  updateCameraMatrix(type: CameraMatrixType, matrix: Float32Array) {
+    this.gl.uniformMatrix4fv(this.cameraMatrixUniforms[type], false, matrix);
+  }
 
+  refresh(world: IWorld, motor: Motor) {
     const imageIds = world.getUpdateImageIds();
     if (imageIds.size) {
       const images = Array.from(imageIds.keys());
@@ -382,7 +381,7 @@ export class GraphicsEngine extends Disposable implements Update {
       this.updateTextures(images, world).then(mediaInfos => {
         mediaInfos.forEach(mediaInfo => {
           if (mediaInfo.isVideo) {
-            motor.addUpdate(mediaInfo);
+            motor.registerUpdate(mediaInfo, mediaInfo.schedule);
           }
         });
       });
@@ -395,12 +394,9 @@ export class GraphicsEngine extends Disposable implements Update {
     return this.own(new VertexArray(this.gl));
   }
 
-  update(motor: Motor, deltaTime: number): void {
+  update(motor: Motor): void {
     if (this.world) {
-      this.world.refresh?.(deltaTime);
       this.refresh(this.world, motor);
     }
   }
-
-  period = 1;
 }

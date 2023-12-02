@@ -1,5 +1,6 @@
-import { Update } from 'core/Motor';
+import { Update } from 'updates/Update';
 import { Disposable } from '../../lifecycle/Disposable';
+import { Schedule } from 'core/Motor';
 
 export class MediaInfo extends Disposable implements Update {
   readonly texImgSrc: TexImageSource;
@@ -8,7 +9,7 @@ export class MediaInfo extends Disposable implements Update {
   readonly height: number;
   readonly isVideo: boolean;
   refreshCallback?(): void;
-  period: number | undefined;
+  schedule?: Schedule;
 
   constructor(image: TexImageSource, fps?: number) {
     super();
@@ -17,7 +18,7 @@ export class MediaInfo extends Disposable implements Update {
     this.isVideo = !!(img.videoWidth || img.videoHeight);
     this.width = img.naturalWidth ?? img.videoWidth ?? img.displayWidth ?? img.width?.baseValue?.value ?? img.width;
     this.height = img.naturalHeight ?? img.videoHeight ?? img.displayHeight ?? img.height?.baseValue?.value ?? img.height;
-    this.period = fps ? 1000 / fps : undefined;
+    this.schedule = fps ? { period: 1000 / fps } : undefined;
     if (!this.width || !this.height) {
       throw new Error('Invalid image');
     }

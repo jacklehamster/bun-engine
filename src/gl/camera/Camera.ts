@@ -7,23 +7,24 @@ export enum CameraMatrixType {
 }
 
 export class Camera {
-  private camPositionMatrix: Matrix = Matrix.create().translate(0, 0, -1);
-  private projectionMatrix = new ProjectionMatrix();
   private needsRefresh = false;
 
-  configProjectionMatrix(ratio: number) {
-    this.projectionMatrix.configure(ratio);
-    this.updatePerspective(1);
-  }
-
-  readonly camTiltMatrix = Matrix.create();
-  readonly camTurnMatrix = Matrix.create();
+  private readonly camPositionMatrix: Matrix = Matrix.create().translate(0, 0, -1);
+  private readonly projectionMatrix = new ProjectionMatrix();
+  private readonly camTiltMatrix = Matrix.create();
+  private readonly camTurnMatrix = Matrix.create();
   private readonly camMatrix = Matrix.create();
+  private pespectiveLevel = 1;
 
   private readonly cameraMatrices: Record<CameraMatrixType, Matrix> = {
     [CameraMatrixType.PROJECTION]: this.projectionMatrix,
     [CameraMatrixType.VIEW]: this.camMatrix,
   };
+
+  configProjectionMatrix(width: number, height: number) {
+    this.projectionMatrix.configure(width, height);
+    this.updatePerspective();
+  }
 
   refresh() {
     if (!this.needsRefresh) {
@@ -37,8 +38,8 @@ export class Camera {
     return true;
   }
 
-  updatePerspective(level: number) {
-    this.projectionMatrix.setPerspective(level);
+  updatePerspective(level?: number) {
+    this.projectionMatrix.setPerspective(level ?? this.pespectiveLevel);
     this.needsRefresh = true;
   }
 
