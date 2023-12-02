@@ -1,10 +1,11 @@
 import { Sprite, SpriteId } from "world/Sprite";
-import { Update, UpdatePayload } from "./Update";
+import { Update } from "./Update";
 import { GraphicsEngine } from "core/GraphicsEngine";
+import { Motor } from "core/Motor";
 
 export class SpriteAnimUpdate implements Update {
   private readonly updatedSpriteIds: Set<SpriteId> = new Set();
-  constructor(private getSprite: (spriteId: SpriteId) => Sprite | undefined, private engine: GraphicsEngine) {
+  constructor(private motor: Motor, private getSprite: (spriteId: SpriteId) => Sprite | undefined, private engine: GraphicsEngine) {
   }
 
   withSpriteId(spriteId: SpriteId): SpriteAnimUpdate {
@@ -12,10 +13,10 @@ export class SpriteAnimUpdate implements Update {
     return this;
   }
 
-  update({ motor }: UpdatePayload): void {
+  update(): void {
     this.engine.updateSpriteAnims(this.updatedSpriteIds, this.getSprite);
     if (this.updatedSpriteIds.size) {
-      motor.registerUpdate(this);
+      this.motor.registerUpdate(this);
     }
   }
 }

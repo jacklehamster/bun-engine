@@ -37,7 +37,6 @@ export class Motor {
     let lastTime = 0;
     const updatePayload: UpdatePayload = {
       deltaTime: 0,
-      motor: this,
     };
     const normalUpdates: Update[] = [];
     const lastUpdates: Update[] = [];

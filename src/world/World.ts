@@ -12,7 +12,6 @@ const LOGO_SIZE = 512;
 
 export class World implements IWorld {
   private readonly hudSpriteId = 0;
-  private readonly camera: Camera = new Camera();
   private readonly medias: Record<ImageId, Media> = {
     [VIDEO]: {
       type: "video",
@@ -113,16 +112,45 @@ export class World implements IWorld {
     },
   };
 
-  constructor(public core: Core) {
-    // this.sprites.forEach((_, index) => {
-    //   this.updatedSpriteTextureSlots.add(index);
-    // });
-    this.onResize = this.onResize.bind(this);
+  constructor(public core: Core, private readonly camera: Camera = core.camera) {
     this.getSprite = this.getSprite.bind(this);
     this.getMedia = this.getMedia.bind(this);
+    this.sprites = [
+      {
+        imageId: HUD,
+        transforms: [
+          this.camera.getHudMatrix().getMatrix(),
+        ],
+      },
+      {
+        imageId: DOBUKI,
+        transforms: [
+          Matrix.create().translate(0, 0, 0).getMatrix(),
+        ],
+      },
+      ...[
+        Matrix.create().translate(-1, 0, 1).rotateY(Math.PI / 2).scale(1, 1, 1).getMatrix(),
+        Matrix.create().translate(1, 0, 1).rotateY(-Math.PI / 2).scale(1, 1, 1).getMatrix(),
+      ].map(transform => ({ imageId: LOGO, transforms: [transform] })),
+      ...[
+        Matrix.create().translate(0, -1, 1).rotateX(-Math.PI / 2).scale(1, 1, 1).getMatrix(),
+        Matrix.create().translate(0, -1, 3).rotateX(-Math.PI / 2).scale(1, 1, 1).getMatrix(),
+        Matrix.create().translate(-2, -1, 3).rotateX(-Math.PI / 2).scale(1, 1, 1).getMatrix(),
+        Matrix.create().translate(2, -1, 3).rotateX(-Math.PI / 2).scale(1, 1, 1).getMatrix(),
+      ].map(transform => ({ imageId: GROUND, transforms: [transform] })),
+      {
+        imageId: VIDEO,
+        transforms: [
+          Matrix.create().translate(0, 5, -10).scale(480 / 50, 270 / 50, 1).getMatrix(),
+        ],
+      },
+      ...new Array(400).fill(0).map((_, index) =>
+        Matrix.create().translate(index % 20 - 10, -1.5, Math.floor(index / 20) - 10).rotateX(-Math.PI / 2).scale(1, 1, 1).getMatrix(),
+      ).map(transform => ({ imageId: GRID, transforms: [transform] })),
+    ];
   }
 
-  private onUpdate(type: UpdateType, id: IdType): void {
+  protected onUpdate(type: UpdateType, id: IdType): void {
     console.warn("setOnUpdate to inform about changes in the world.", type, id);
   }
 
@@ -130,52 +158,11 @@ export class World implements IWorld {
     this.onUpdate = onUpdate;
   }
 
-  onResize(width: number, height: number) {
-    this.camera.configProjectionMatrix(width, height);
-    this.onUpdate("Camera", CameraMatrixType.PROJECTION);
-  }
-
-  getCamera(): Camera {
-    return this.camera;
-  }
-
   getMedia(imageId: ImageId): Media | undefined {
     return this.medias[imageId];
   }
 
-  private readonly sprites: Sprite[] = [
-    {
-      imageId: HUD,
-      transforms: [
-        this.camera.getHudMatrix().getMatrix(),
-      ],
-    },
-    {
-      imageId: DOBUKI,
-      transforms: [
-        Matrix.create().translate(0, 0, 0).getMatrix(),
-      ],
-    },
-    ...[
-      Matrix.create().translate(-1, 0, 1).rotateY(Math.PI / 2).scale(1, 1, 1).getMatrix(),
-      Matrix.create().translate(1, 0, 1).rotateY(-Math.PI / 2).scale(1, 1, 1).getMatrix(),
-    ].map(transform => ({ imageId: LOGO, transforms: [transform] })),
-    ...[
-      Matrix.create().translate(0, -1, 1).rotateX(-Math.PI / 2).scale(1, 1, 1).getMatrix(),
-      Matrix.create().translate(0, -1, 3).rotateX(-Math.PI / 2).scale(1, 1, 1).getMatrix(),
-      Matrix.create().translate(-2, -1, 3).rotateX(-Math.PI / 2).scale(1, 1, 1).getMatrix(),
-      Matrix.create().translate(2, -1, 3).rotateX(-Math.PI / 2).scale(1, 1, 1).getMatrix(),
-    ].map(transform => ({ imageId: GROUND, transforms: [transform] })),
-    {
-      imageId: VIDEO,
-      transforms: [
-        Matrix.create().translate(0, 5, -10).scale(480 / 50, 270 / 50, 1).getMatrix(),
-      ],
-    },
-    ...new Array(400).fill(0).map((_, index) =>
-      Matrix.create().translate(index % 20 - 10, -1.5, Math.floor(index / 20) - 10).rotateX(-Math.PI / 2).scale(1, 1, 1).getMatrix(),
-    ).map(transform => ({ imageId: GRID, transforms: [transform] })),
-  ];
+  private readonly sprites: Sprite[];
 
   getMaxSpriteCount(): number {
     return this.sprites.length;
@@ -225,7 +212,6 @@ export class World implements IWorld {
     const keyUp = (e: KeyboardEvent) => this.keys[e.code] = false;
     document.addEventListener('keydown', keyDown);
     document.addEventListener('keyup', keyUp);
-    this.core.engine.addResizeListener(this.onResize);
 
     this.onUpdate("Camera", CameraMatrixType.PROJECTION);
     this.onUpdate("Camera", CameraMatrixType.VIEW);
@@ -241,7 +227,6 @@ export class World implements IWorld {
     return () => {
       document.removeEventListener('keydown', keyDown);
       document.removeEventListener('keyup', keyUp);
-      this.core.engine.removeResizeListener(this.onResize);
       this.onUpdate = () => { };
     };
   }
