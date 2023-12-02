@@ -12,7 +12,7 @@ function createDrawProcedure<T extends Media>(procedure: DrawProcedure<T>): Draw
 }
 
 export class ImageManager extends Disposable {
-  private images: MediaData[] = [];
+  private images: Record<ImageId, MediaData> = {};
   private readonly renderProcedures: Record<MediaType, DrawProcedure<Media>> = {
     image: createDrawProcedure<ImageMedia>((imageId, media) => this.loadImage(imageId, media.src)) as DrawProcedure<Media>,
     video: createDrawProcedure<VideoMedia>((imageId, media) => this.loadVideo(imageId, media.src, media.volume, media.fps)) as DrawProcedure<Media>,

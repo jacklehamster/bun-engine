@@ -1,7 +1,10 @@
 import { Motor } from "../core/Motor";
 
-export type Update = {
-  update(motor: Motor, deltaTime: number): void;
+export interface UpdatePayload {
+  deltaTime: number;
+  readonly motor: Motor;
 }
 
-export type Updates = Update | Update[];
+export type Update = {
+  update(updatePayload: UpdatePayload): void;
+}

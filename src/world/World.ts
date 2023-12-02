@@ -1,26 +1,18 @@
 import Matrix from "gl/transform/Matrix";
-import { Sprite, SpriteId } from "./Sprite";
-import IWorld from "./IWorld";
-import { ImageId, ImageManager } from "gl/texture/ImageManager";
+import { Sprite } from "./Sprite";
+import IWorld, { IdType, UpdateType } from "./IWorld";
+import { ImageId } from "gl/texture/ImageManager";
 import { CameraMatrixType, Camera } from "gl/camera/Camera";
-import { MediaData } from "gl/texture/MediaData";
-import { Motor } from "core/Motor";
 import { Core } from "core/Core";
-import { CameraMatrixUpdate } from "updates/CameraMatrixUpdate";
-import { Updates } from "updates/Update";
-import { Media, MediaType } from "gl/texture/Media";
+import { Media } from "gl/texture/Media";
+import { UpdatePayload } from "updates/Update";
 
 const DOBUKI = 0, LOGO = 1, GROUND = 2, HUD = 3, VIDEO = 4, GRID = 5;
 const LOGO_SIZE = 512;
 
 export class World implements IWorld {
-  private readonly updatedSpriteTransforms: Set<SpriteId> = new Set();
-  private readonly updatedSpriteTextureSlots: Set<SpriteId> = new Set();
-  private readonly updateSpriteIds: Set<ImageId> = new Set();
-  private readonly hudMatrix: Matrix = Matrix.create();
   private readonly hudSpriteId = 0;
   private readonly camera: Camera = new Camera();
-  private cameraUpdate: Record<CameraMatrixType, Updates>;
   private readonly medias: Record<ImageId, Media> = {
     [VIDEO]: {
       type: "video",
@@ -122,49 +114,29 @@ export class World implements IWorld {
   };
 
   constructor(public core: Core) {
-    this.sprites.forEach((_, index) => {
-      this.updatedSpriteTransforms.add(index);
-      this.updatedSpriteTextureSlots.add(index);
-    });
-    this.cameraUpdate = {
-      PROJECTION: new CameraMatrixUpdate(CameraMatrixType.PROJECTION, this, this.core.engine),
-      VIEW: [
-        new CameraMatrixUpdate(CameraMatrixType.VIEW, this, this.core.engine),
-        {
-          update: () => this.camera.syncHud(this.hudMatrix),
-        },
-        {
-          update: () =>
-            this.updatedSpriteTransforms.add(this.hudSpriteId)
-        },
-      ],
-    };
-    [LOGO, GROUND, HUD, DOBUKI, VIDEO, GRID].forEach(id => this.updateSpriteIds.add(id));
-    this.core.motor.registerUpdate(this.cameraUpdate[CameraMatrixType.VIEW]);
-    this.core.motor.registerUpdate(this.cameraUpdate[CameraMatrixType.PROJECTION]);
+    // this.sprites.forEach((_, index) => {
+    //   this.updatedSpriteTextureSlots.add(index);
+    // });
     this.onResize = this.onResize.bind(this);
+    this.getSprite = this.getSprite.bind(this);
+    this.getMedia = this.getMedia.bind(this);
+  }
+
+  private onUpdate(type: UpdateType, id: IdType): void {
+    console.warn("setOnUpdate to inform about changes in the world.", type, id);
+  }
+
+  setOnUpdate(onUpdate: (type: UpdateType, id: IdType) => void): void {
+    this.onUpdate = onUpdate;
   }
 
   onResize(width: number, height: number) {
     this.camera.configProjectionMatrix(width, height);
-    this.core.motor.registerUpdate(this.cameraUpdate[CameraMatrixType.PROJECTION]);
+    this.onUpdate("Camera", CameraMatrixType.PROJECTION);
   }
 
-  period?: number | undefined;
   getCamera(): Camera {
     return this.camera;
-  }
-
-  getCameraMatrix(cameraMatrixType: CameraMatrixType): Float32Array {
-    return this.camera.getCameraMatrix(cameraMatrixType);
-  }
-
-  getUpdateImageIds(): Set<ImageId> {
-    return this.updateSpriteIds;
-  }
-
-  getUpdatedSpriteTextureSlot(): Set<SpriteId> {
-    return this.updatedSpriteTextureSlots
   }
 
   getMedia(imageId: ImageId): Media | undefined {
@@ -175,7 +147,7 @@ export class World implements IWorld {
     {
       imageId: HUD,
       transforms: [
-        this.hudMatrix.getMatrix(),
+        this.camera.getHudMatrix().getMatrix(),
       ],
     },
     {
@@ -213,7 +185,7 @@ export class World implements IWorld {
     return this.sprites[index];
   }
 
-  update(_: Motor, deltaTime: number): void {
+  update({ deltaTime }: UpdatePayload): void {
     const speed = deltaTime / 80;
     const turnspeed = deltaTime / 400;
     if (this.keys.KeyW || this.keys.ArrowUp && !this.keys.ShiftRight) {
@@ -242,12 +214,9 @@ export class World implements IWorld {
     }
 
     if (this.camera.refresh()) {
-      this.core.motor.registerUpdate(this.cameraUpdate[CameraMatrixType.VIEW]);
+      this.onUpdate("Camera", CameraMatrixType.VIEW);
+      this.onUpdate("SpriteTransform", this.hudSpriteId);
     }
-  }
-
-  getUpdatedSpriteTransforms(): Set<SpriteId> {
-    return this.updatedSpriteTransforms;
   }
 
   private keys: Record<string, boolean> = {};
@@ -258,10 +227,22 @@ export class World implements IWorld {
     document.addEventListener('keyup', keyUp);
     this.core.engine.addResizeListener(this.onResize);
 
+    this.onUpdate("Camera", CameraMatrixType.PROJECTION);
+    this.onUpdate("Camera", CameraMatrixType.VIEW);
+    this.onUpdate("SpriteTransform", this.hudSpriteId);
+
+    [LOGO, GROUND, HUD, DOBUKI, VIDEO, GRID].forEach(id => this.onUpdate("Media", id));
+
+    this.sprites.forEach((_, id) => {
+      this.onUpdate("SpriteTransform", id);
+      this.onUpdate("SpriteAnim", id);
+    });
+
     return () => {
       document.removeEventListener('keydown', keyDown);
       document.removeEventListener('keyup', keyUp);
       this.core.engine.removeResizeListener(this.onResize);
+      this.onUpdate = () => { };
     };
   }
 }

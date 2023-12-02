@@ -23,11 +23,11 @@ import fragmentShader from 'generated/src/gl/resources/fragmentShader.txt';
 import { replaceTilda } from 'gl/utils/replaceTilda';
 import Matrix from 'gl/transform/Matrix';
 import { CameraMatrixType } from 'gl/camera/Camera';
-import IWorld from 'world/IWorld';
 import { mat4 } from 'gl-matrix';
-import { Motor } from './Motor';
 import { MediaData } from 'gl/texture/MediaData';
 import { Update } from '../updates/Update';
+import { Media } from 'gl/texture/Media';
+import { Sprite, SpriteId } from 'world/Sprite';
 
 const DEFAULT_ATTRIBUTES: WebGLContextAttributes = {
   alpha: true,
@@ -83,15 +83,12 @@ export class GraphicsEngine extends Disposable implements Update {
   private textureManager: TextureManager;
   private imageManager: ImageManager;
 
-  private textureSlots: {
+  private textureSlots: Record<ImageId, {
     buffer: Float32Array,
-  }[] = [];
+  }> = {};
 
-  private world?: IWorld;
-  private onDeactivateWorlds: Set<() => void> = new Set();
-  private onCleanupBuffers: Set<() => void> = new Set();
   private onResize: Set<(w: number, h: number) => void> = new Set();
-  private topVisibleSprite = -1;
+  private spriteCount = 0;
   private cameraMatrixUniforms: Record<CameraMatrixType | any, WebGLUniformLocation> = {};
 
   constructor(canvas: HTMLCanvasElement | OffscreenCanvas, {
@@ -112,7 +109,6 @@ export class GraphicsEngine extends Disposable implements Update {
     const onResize = this.checkCanvasSize.bind(this);
     window.addEventListener('resize', onResize);
     this.addOnDestroy(() => window.removeEventListener('resize', onResize));
-    this.addOnDestroy(() => this.resetWorld());
     this.initialize();
   }
 
@@ -125,22 +121,9 @@ export class GraphicsEngine extends Disposable implements Update {
     this.onResize.delete(listener);
   }
 
-  resetWorld(): void {
-    this.textureSlots.length = 0;
-    this.onDeactivateWorlds.forEach(callback => callback());
-    this.onDeactivateWorlds.clear();
-    this.onCleanupBuffers.forEach(cleanup => cleanup());
-    this.onCleanupBuffers.clear();
-  }
-
-  setWorld(world?: IWorld): void {
-    this.resetWorld();
-    this.world = world;
-    this.initializeBuffers(world?.getMaxSpriteCount() ?? 0);
-
-    const onDeactivateWorld = world?.activate();
-    if (onDeactivateWorld) {
-      this.onDeactivateWorlds.add(onDeactivateWorld);
+  clearTextureSlots(): void {
+    for (let i in this.textureSlots) {
+      delete this.textureSlots[i];
     }
   }
 
@@ -190,6 +173,7 @@ export class GraphicsEngine extends Disposable implements Update {
     this.checkCanvasSize();
   }
 
+  private onCleanupBuffers: Set<() => void> = new Set();
   initializeBuffers(maxSpriteCount: number) {
     this.onCleanupBuffers.forEach(cleanup => cleanup());
     this.onCleanupBuffers.clear();
@@ -288,22 +272,16 @@ export class GraphicsEngine extends Disposable implements Update {
     };
   }
 
-  private static readonly spriteMatrix = Matrix.create();
-  private updateSprite(spriteIndex: number, world: IWorld): boolean {
-    GraphicsEngine.spriteMatrix.identity();
-    const matrix = GraphicsEngine.spriteMatrix.getMatrix();
-    const sprite = world.getSprite(spriteIndex);
-    sprite?.transforms.forEach(transform => mat4.multiply(matrix, matrix, transform));
-    this.gl.bufferSubData(GL.ARRAY_BUFFER, 4 * 4 * Float32Array.BYTES_PER_ELEMENT * spriteIndex, matrix);
-    return !!sprite;
-  }
-
-  private async updateTextures(imageIds: ImageId[], world: IWorld): Promise<MediaData[]> {
-    const mediaInfos = await Promise.all(imageIds.map(async imageId => {
-      const media = world.getMedia(imageId)!;
+  async updateTextures(imageIds: ImageId[], getMedia: (imageId: ImageId) => Media | undefined): Promise<MediaData[]> {
+    const mediaInfos = (await Promise.all(imageIds.map(async imageId => {
+      const media = getMedia(imageId);
+      if (!media) {
+        console.warn(`No media for imageId ${imageId}`);
+        return;
+      }
       const mediaData = await this.imageManager.renderMedia(imageId, media);
       return { mediaData, imageId };
-    }));
+    }))).filter((data): data is { mediaData: MediaData, imageId: ImageId } => !!data);
     const textureIndices = await Promise.all(mediaInfos.map(async ({ mediaData, imageId }) => {
       const { slot, refreshCallback } = this.textureManager.allocateSlotForImage(mediaData);
       const slotW = Math.log2(slot.size[0]), slotH = Math.log2(slot.size[1]);
@@ -335,69 +313,51 @@ export class GraphicsEngine extends Disposable implements Update {
     );
   }
 
-  private updateSprites(world: IWorld) {
-    const spriteIdsToUpdate = world.getUpdatedSpriteTransforms();
-    if (spriteIdsToUpdate.size) {
-      const bufferInfo = this.attributeBuffers.getAttributeBuffer(TRANSFORM_LOC);
-      this.gl.bindBuffer(GL.ARRAY_BUFFER, bufferInfo.buffer);
-      spriteIdsToUpdate?.forEach(spriteId => {
-        if (this.updateSprite(spriteId, world)) {
-          this.topVisibleSprite = Math.max(this.topVisibleSprite, spriteId);
-        }
-      });
-      spriteIdsToUpdate.clear();
-    }
+  private static readonly spriteMatrix = Matrix.create();
+  updateSpriteTransforms(spriteIds: Set<SpriteId>, getSprite: (spriteId: SpriteId) => Sprite | undefined) {
+    const bufferInfo = this.attributeBuffers.getAttributeBuffer(TRANSFORM_LOC);
+    this.gl.bindBuffer(GL.ARRAY_BUFFER, bufferInfo.buffer);
+    let topVisibleSprite = this.spriteCount - 1;
+    spriteIds.forEach(spriteId => {
+      const matrix = GraphicsEngine.spriteMatrix.identity().getMatrix();
+      const sprite = getSprite(spriteId);
+      sprite?.transforms.forEach(transform => mat4.multiply(matrix, matrix, transform));
+      this.gl.bufferSubData(GL.ARRAY_BUFFER, 4 * 4 * Float32Array.BYTES_PER_ELEMENT * spriteId, matrix);
+      if (sprite) {
+        topVisibleSprite = Math.max(topVisibleSprite, spriteId);
+      }
+    });
+    spriteIds.clear();
 
-    const spriteIdTextureSlotsToUpdate = world.getUpdatedSpriteTextureSlot();
-    if (spriteIdTextureSlotsToUpdate.size) {
-      const bufferInfo = this.attributeBuffers.getAttributeBuffer(SLOT_SIZE_LOC);
-      this.gl.bindBuffer(GL.ARRAY_BUFFER, bufferInfo.buffer);
-      spriteIdTextureSlotsToUpdate?.forEach(spriteId => {
-        const sprite = world.getSprite(spriteId);
-        const slotObj = this.textureSlots[sprite?.imageId ?? -1];
-        if (slotObj) {
-          const { buffer } = slotObj;
-          this.gl.bufferSubData(GL.ARRAY_BUFFER, 2 * Float32Array.BYTES_PER_ELEMENT * spriteId, buffer);
-          spriteIdTextureSlotsToUpdate.delete(spriteId);
-        }
-      });
+    while (topVisibleSprite >= 0 && !getSprite(topVisibleSprite)) {
+      topVisibleSprite--;
     }
+    this.spriteCount = Math.max(this.spriteCount, topVisibleSprite + 1);
+  }
 
-    while (!world.getSprite(this.topVisibleSprite)) {
-      this.topVisibleSprite--;
-    }
-
-    return this.topVisibleSprite + 1;
+  updateSpriteAnims(spriteIds: Set<SpriteId>, getSprite: (spriteId: SpriteId) => Sprite | undefined) {
+    const bufferInfo = this.attributeBuffers.getAttributeBuffer(SLOT_SIZE_LOC);
+    this.gl.bindBuffer(GL.ARRAY_BUFFER, bufferInfo.buffer);
+    spriteIds.forEach(spriteId => {
+      const sprite = getSprite(spriteId);
+      const slotObj = this.textureSlots[sprite?.imageId ?? -1];
+      if (slotObj) {
+        const { buffer } = slotObj;
+        this.gl.bufferSubData(GL.ARRAY_BUFFER, 2 * Float32Array.BYTES_PER_ELEMENT * spriteId, buffer);
+        spriteIds.delete(spriteId);
+      }
+    });
   }
 
   updateCameraMatrix(type: CameraMatrixType, matrix: Float32Array) {
     this.gl.uniformMatrix4fv(this.cameraMatrixUniforms[type], false, matrix);
   }
 
-  refresh(world: IWorld, motor: Motor) {
-    const imageIds = world.getUpdateImageIds();
-    if (imageIds.size) {
-      const images = Array.from(imageIds.keys());
-      imageIds.clear();
-      this.updateTextures(images, world).then(mediaInfos => {
-        mediaInfos.forEach(mediaInfo => {
-          if (mediaInfo.isVideo) {
-            motor.registerUpdate(mediaInfo, mediaInfo.schedule);
-          }
-        });
-      });
-    }
-    const instanceCount = this.updateSprites(world);
-    this.drawElementsInstanced(VERTEX_COUNT, instanceCount);
-  }
-
   bindVertexArray() {
     return this.own(new VertexArray(this.gl));
   }
 
-  update(motor: Motor): void {
-    if (this.world) {
-      this.refresh(this.world, motor);
-    }
+  update(): void {
+    this.drawElementsInstanced(VERTEX_COUNT, this.spriteCount);
   }
 }

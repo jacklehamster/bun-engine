@@ -1,20 +1,19 @@
 import { Sprite, SpriteId } from "./Sprite";
-import { ImageId, ImageManager } from "gl/texture/ImageManager";
-import { CameraMatrixType, Camera } from "gl/camera/Camera";
-import { MediaData } from "gl/texture/MediaData";
+import { ImageId } from "gl/texture/ImageManager";
+import { Camera } from "gl/camera/Camera";
 import { Update } from "updates/Update";
 import { Media } from "gl/texture/Media";
 
+export type UpdateType = "SpriteTransform" | "SpriteAnim" | "Media" | "Camera";
+export type IdType = SpriteId | ImageId;
+
 interface IWorld extends Update {
-  activate(): (() => void) | void;
+  activate(): (() => void);
   getMaxSpriteCount(): number;
-  getSprite(index: SpriteId): Sprite | null;
   getCamera(): Camera;
-  getCameraMatrix(cameraMatrixType: CameraMatrixType): Float32Array;
-  getUpdatedSpriteTransforms(): Set<SpriteId>;
-  getUpdatedSpriteTextureSlot(): Set<SpriteId>;
-  getUpdateImageIds(): Set<ImageId>;
+  getSprite(spriteId: SpriteId): Sprite | undefined;
   getMedia(imageId: ImageId): Media | undefined;
+  setOnUpdate(onUpdate: (type: UpdateType, id: IdType) => void): void;
 }
 
 export default IWorld;

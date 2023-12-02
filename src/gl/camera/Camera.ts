@@ -2,8 +2,8 @@ import Matrix from "gl/transform/Matrix";
 import { ProjectionMatrix } from "gl/transform/ProjectionMatrix";
 
 export enum CameraMatrixType {
-  PROJECTION = 'PROJECTION',
-  VIEW = 'VIEW',
+  PROJECTION = 0,
+  VIEW = 1,
 }
 
 export class Camera {
@@ -14,6 +14,7 @@ export class Camera {
   private readonly camTiltMatrix = Matrix.create();
   private readonly camTurnMatrix = Matrix.create();
   private readonly camMatrix = Matrix.create();
+  private readonly hudMatrix: Matrix = Matrix.create();
   private pespectiveLevel = 1;
 
   private readonly cameraMatrices: Record<CameraMatrixType, Matrix> = {
@@ -31,9 +32,8 @@ export class Camera {
       return false;
     }
     //  camMatrix =  camTiltMatrix * camTurnMatrix * camPositionMatrix;
-    this.invertedCamTiltMatrix.invert(this.camTiltMatrix);
-    this.invertedCamTurnMatrix.invert(this.camTurnMatrix);
     this.camMatrix.multiply3(this.camTiltMatrix, this.camTurnMatrix, this.camPositionMatrix);
+    this.syncHud(this.hudMatrix);
     this.needsRefresh = false;
     return true;
   }
@@ -62,9 +62,15 @@ export class Camera {
     this.needsRefresh = true;
   }
 
+  getHudMatrix() {
+    return this.hudMatrix;
+  }
+
   private invertedCamTurnMatrix: Matrix = Matrix.create();
   private invertedCamTiltMatrix: Matrix = Matrix.create();
-  syncHud(matrix?: Matrix) {
+  private syncHud(matrix?: Matrix) {
+    this.invertedCamTiltMatrix.invert(this.camTiltMatrix);
+    this.invertedCamTurnMatrix.invert(this.camTurnMatrix);
     matrix?.identity()
       .translateToMatrix(this.camPositionMatrix)
       .multiply(this.invertedCamTurnMatrix)

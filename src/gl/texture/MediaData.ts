@@ -9,7 +9,7 @@ export class MediaData extends Disposable implements Update {
   readonly height: number;
   readonly isVideo: boolean;
   refreshCallback?(): void;
-  schedule?: Schedule;
+  schedule?: Partial<Schedule>;
 
   constructor(image: TexImageSource, fps?: number) {
     super();
