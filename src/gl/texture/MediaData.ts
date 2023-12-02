@@ -2,7 +2,7 @@ import { Update } from 'updates/Update';
 import { Disposable } from '../../lifecycle/Disposable';
 import { Schedule } from 'core/Motor';
 
-export class MediaInfo extends Disposable implements Update {
+export class MediaData extends Disposable implements Update {
   readonly texImgSrc: TexImageSource;
   active: boolean = false;
   readonly width: number;
@@ -28,11 +28,11 @@ export class MediaInfo extends Disposable implements Update {
     this.refreshCallback?.();
   }
 
-  static createFromCanvas(canvas: OffscreenCanvas | HTMLCanvasElement): MediaInfo {
-    return new MediaInfo(canvas);
+  static createFromCanvas(canvas: OffscreenCanvas | HTMLCanvasElement): MediaData {
+    return new MediaData(canvas);
   }
 
-  static async loadImage(src: string): Promise<MediaInfo> {
+  static async loadImage(src: string): Promise<MediaData> {
     const image = await new Promise<HTMLImageElement>((resolve, reject) => {
       const image = new Image();
       const imageError = (e: ErrorEvent) => reject(e.error);
@@ -40,10 +40,10 @@ export class MediaInfo extends Disposable implements Update {
       image.addEventListener('load', () => resolve(image), { once: true });
       image.src = src;
     });
-    return new MediaInfo(image);
+    return new MediaData(image);
   }
 
-  static async loadVideo(src: string, volume?: number, fps: number = 30): Promise<MediaInfo> {
+  static async loadVideo(src: string, volume?: number, fps: number = 30): Promise<MediaData> {
     const video = await new Promise<HTMLVideoElement>((resolve, reject) => {
       const video = document.createElement('video');
       video.loop = true;
@@ -59,12 +59,12 @@ export class MediaInfo extends Disposable implements Update {
       video.src = src;
 
     });
-    const videoInfo = new MediaInfo(video, fps);
+    const videoInfo = new MediaData(video, fps);
     videoInfo.addOnDestroy(() => video.pause());
     return videoInfo;
   }
 
-  static async loadWebcam(deviceId?: string): Promise<MediaInfo> {
+  static async loadWebcam(deviceId?: string): Promise<MediaData> {
     const video = await new Promise<HTMLVideoElement>((resolve, reject) => {
       const video = document.createElement('video');
       video.loop = true;
@@ -73,7 +73,7 @@ export class MediaInfo extends Disposable implements Update {
       video.addEventListener('playing', () => resolve(video), { once: true });
       video.addEventListener('error', (e: ErrorEvent) => reject(e.error));
     });
-    const videoInfo = new MediaInfo(video);
+    const videoInfo = new MediaData(video);
     let cancelled = false;
     navigator.mediaDevices
       .getUserMedia({ video: { deviceId } })

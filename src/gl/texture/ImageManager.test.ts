@@ -2,15 +2,15 @@ import "../../test/MockMedia";
 import "../../test/MockCanvas";
 import { beforeEach, describe, expect, it, jest } from 'bun:test';
 import { ImageManager } from './ImageManager';
-import { MediaInfo } from './MediaInfo';
+import { MediaData } from './MediaData';
 
 describe('ImageManager', () => {
   let imageManager: ImageManager;
-  let mockMediaInfo: MediaInfo;
+  let mockMediaInfo: MediaData;
 
   beforeEach(() => {
     imageManager = new ImageManager();
-    mockMediaInfo = new MediaInfo(new Image(100, 100));
+    mockMediaInfo = new MediaData(new Image(100, 100));
   });
 
   it('should check if imageId exists', () => {
@@ -30,7 +30,7 @@ describe('ImageManager', () => {
     const imageInfo = await imageManager.drawImage(1, drawProcedure);
 
     expect(drawProcedure).toHaveBeenCalled();
-    expect(imageInfo).toBeInstanceOf(MediaInfo);
+    expect(imageInfo).toBeInstanceOf(MediaData);
     expect(imageManager.getMedia(1)).toBe(imageInfo);
   });
 
@@ -38,7 +38,7 @@ describe('ImageManager', () => {
     const canvas = new OffscreenCanvas(1, 1);
     const imageInfo = await imageManager.loadCanvas(1, canvas);
 
-    expect(imageInfo).toBeInstanceOf(MediaInfo);
+    expect(imageInfo).toBeInstanceOf(MediaData);
     expect(imageManager.getMedia(1)).toBe(imageInfo);
   });
 });

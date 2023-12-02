@@ -1,7 +1,7 @@
 import { GLUniforms } from 'gl/uniforms/GLUniforms';
 import { Disposable } from '../../lifecycle/Disposable';
 import { GL, MAX_TEXTURE_SIZE_LOC, TEXTURE_UNIFORM_LOC } from '../attributes/Constants';
-import { MediaInfo } from './MediaInfo';
+import { MediaData } from './MediaData';
 import { Slot, TextureIndex } from "texture-slot-allocator/dist/src/texture/TextureSlot";
 import { TextureSlotAllocator } from 'texture-slot-allocator/dist/src/texture/TextureSlotAllocator';
 
@@ -60,7 +60,7 @@ export class TextureManager extends Disposable {
   }
 
   private loadTexture(
-    mediaInfo: MediaInfo,
+    mediaInfo: MediaData,
     textureId: TextureId,
     texture: WebGLTexture,
     sourceRect: [number, number, number, number],
@@ -73,7 +73,7 @@ export class TextureManager extends Disposable {
   }
 
   applyTexImage2d(
-    mediaInfo: MediaInfo,
+    mediaInfo: MediaData,
     [srcX, srcY, srcWidth, srcHeight]: number[],
     [dstX, dstY, dstWidth, dstHeight]: number[],
   ): void {
@@ -129,7 +129,7 @@ export class TextureManager extends Disposable {
     }
   }
 
-  allocateSlotForImage(mediaInfo: MediaInfo): { slot: Slot, refreshCallback: () => void } {
+  allocateSlotForImage(mediaInfo: MediaData): { slot: Slot, refreshCallback: () => void } {
     const allocator = mediaInfo.isVideo ? this.textureSlotAllocatorForVideo : this.textureSlotAllocator;
     const slot = allocator.allocate(mediaInfo.width, mediaInfo.height);
     const textureId: TextureId = `TEXTURE${slot.textureIndex}`;
@@ -149,7 +149,7 @@ export class TextureManager extends Disposable {
   }
 
   private assignImageToTexture(
-    imageInfo: MediaInfo,
+    imageInfo: MediaData,
     textureId: TextureId,
     texture: WebGLTexture,
     sourceRect?: [number, number, number, number],

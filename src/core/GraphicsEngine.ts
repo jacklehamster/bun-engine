@@ -26,7 +26,7 @@ import { CameraMatrixType } from 'gl/camera/Camera';
 import IWorld from 'world/IWorld';
 import { mat4 } from 'gl-matrix';
 import { Motor } from './Motor';
-import { MediaInfo } from 'gl/texture/MediaInfo';
+import { MediaData } from 'gl/texture/MediaData';
 import { Update } from '../updates/Update';
 
 const DEFAULT_ATTRIBUTES: WebGLContextAttributes = {
@@ -298,7 +298,7 @@ export class GraphicsEngine extends Disposable implements Update {
     return !!sprite;
   }
 
-  private async updateTextures(imageIds: ImageId[], world: IWorld): Promise<MediaInfo[]> {
+  private async updateTextures(imageIds: ImageId[], world: IWorld): Promise<MediaData[]> {
     const mediaInfos = await Promise.all(imageIds.map(async imageId => {
       const mediaInfo = (await world.drawImage(imageId, this.imageManager))!;
       return { mediaInfo, imageId };

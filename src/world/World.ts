@@ -3,7 +3,7 @@ import { Sprite, SpriteId } from "./Sprite";
 import IWorld from "./IWorld";
 import { ImageId, ImageManager } from "gl/texture/ImageManager";
 import { CameraMatrixType, Camera } from "gl/camera/Camera";
-import { MediaInfo } from "gl/texture/MediaInfo";
+import { MediaData } from "gl/texture/MediaData";
 import { Motor } from "core/Motor";
 import { Core } from "core/Core";
 import { CameraMatrixUpdate } from "updates/CameraMatrixUpdate";
@@ -66,7 +66,7 @@ export class World implements IWorld {
     return this.updatedSpriteTextureSlots
   }
 
-  async drawImage(id: ImageId, imageManager: ImageManager): Promise<MediaInfo | undefined> {
+  async drawImage(id: ImageId, imageManager: ImageManager): Promise<MediaData | undefined> {
     const LOGO_SIZE = 512;
     switch (id) {
       case VIDEO:
