@@ -300,17 +300,18 @@ export class GraphicsEngine extends Disposable implements Update {
 
   private async updateTextures(imageIds: ImageId[], world: IWorld): Promise<MediaData[]> {
     const mediaInfos = await Promise.all(imageIds.map(async imageId => {
-      const mediaInfo = (await world.drawImage(imageId, this.imageManager))!;
-      return { mediaInfo, imageId };
+      const media = world.getMedia(imageId)!;
+      const mediaData = await this.imageManager.renderMedia(imageId, media);
+      return { mediaData, imageId };
     }));
-    const textureIndices = await Promise.all(mediaInfos.map(async ({ mediaInfo, imageId }) => {
-      const { slot, refreshCallback } = this.textureManager.allocateSlotForImage(mediaInfo);
+    const textureIndices = await Promise.all(mediaInfos.map(async ({ mediaData, imageId }) => {
+      const { slot, refreshCallback } = this.textureManager.allocateSlotForImage(mediaData);
       const slotW = Math.log2(slot.size[0]), slotH = Math.log2(slot.size[1]);
       const wh = slotW * 16 + slotH;
       this.textureSlots[imageId] = {
         buffer: Float32Array.from([wh, slot.slotNumber]),
       };
-      mediaInfo.refreshCallback = refreshCallback;
+      mediaData.refreshCallback = refreshCallback;
       return slot.textureIndex;
     }));
     const textureIndicesSet = new Set(textureIndices);
@@ -321,7 +322,7 @@ export class GraphicsEngine extends Disposable implements Update {
         this.textureManager.generateMipMap(`TEXTURE${textureIndex}` as TextureId);
       }
     });
-    return mediaInfos.map(({ mediaInfo }) => mediaInfo);;
+    return mediaInfos.map(({ mediaData }) => mediaData);;
   }
 
   private drawElementsInstanced(vertexCount: GLsizei, instances: GLsizei) {

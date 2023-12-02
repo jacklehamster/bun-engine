@@ -1,15 +1,30 @@
 import { Disposable } from "lifecycle/Disposable";
 import { Url } from "./TextureManager";
 import { MediaData } from "./MediaData";
+import { CanvasMedia, DrawMedia, ImageMedia, Media, MediaType, VideoMedia, WebcamMedia } from "./Media";
 
 export type ImageId = number;
 
+type DrawProcedure<T extends Media> = (imageId: ImageId, media: T) => Promise<MediaData>;
+
+function createDrawProcedure<T extends Media>(procedure: DrawProcedure<T>): DrawProcedure<T> {
+  return procedure;
+}
+
 export class ImageManager extends Disposable {
   private images: MediaData[] = [];
+  private readonly renderProcedures: Record<MediaType, DrawProcedure<Media>> = {
+    image: createDrawProcedure<ImageMedia>((imageId, media) => this.loadImage(imageId, media.src)) as DrawProcedure<Media>,
+    video: createDrawProcedure<VideoMedia>((imageId, media) => this.loadVideo(imageId, media.src, media.volume, media.fps)) as DrawProcedure<Media>,
+    draw: createDrawProcedure<DrawMedia>((imageId, media) => this.drawImage(imageId, media.draw)) as DrawProcedure<Media>,
+    canvas: createDrawProcedure<CanvasMedia>((imageId, media) => this.loadCanvas(imageId, media.canvas)) as DrawProcedure<Media>,
+    webcam: createDrawProcedure<WebcamMedia>((imageId, media) => this.loadWebCam(imageId, media.deviceId)) as DrawProcedure<Media>,
+  };
 
   hasImageId(imageId: ImageId): boolean {
     return !!this.getMedia(imageId);
   }
+
 
   getMedia(imageId: ImageId): MediaData {
     return this.images[imageId];
@@ -17,6 +32,10 @@ export class ImageManager extends Disposable {
 
   setImage(imageId: ImageId, mediaInfo: MediaData): void {
     this.images[imageId] = mediaInfo;
+  }
+
+  async renderMedia(imageId: ImageId, media: Media): Promise<MediaData> {
+    return this.renderProcedures[media.type](imageId, media);
   }
 
   async drawImage(

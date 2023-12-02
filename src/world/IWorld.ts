@@ -3,6 +3,7 @@ import { ImageId, ImageManager } from "gl/texture/ImageManager";
 import { CameraMatrixType, Camera } from "gl/camera/Camera";
 import { MediaData } from "gl/texture/MediaData";
 import { Update } from "updates/Update";
+import { Media } from "gl/texture/Media";
 
 interface IWorld extends Update {
   activate(): (() => void) | void;
@@ -13,7 +14,7 @@ interface IWorld extends Update {
   getUpdatedSpriteTransforms(): Set<SpriteId>;
   getUpdatedSpriteTextureSlot(): Set<SpriteId>;
   getUpdateImageIds(): Set<ImageId>;
-  drawImage(imageId: ImageId, imageManager: ImageManager): Promise<MediaData | undefined>;
+  getMedia(imageId: ImageId): Media | undefined;
 }
 
 export default IWorld;

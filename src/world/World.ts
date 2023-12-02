@@ -8,8 +8,10 @@ import { Motor } from "core/Motor";
 import { Core } from "core/Core";
 import { CameraMatrixUpdate } from "updates/CameraMatrixUpdate";
 import { Updates } from "updates/Update";
+import { Media, MediaType } from "gl/texture/Media";
 
 const DOBUKI = 0, LOGO = 1, GROUND = 2, HUD = 3, VIDEO = 4, GRID = 5;
+const LOGO_SIZE = 512;
 
 export class World implements IWorld {
   private readonly updatedSpriteTransforms: Set<SpriteId> = new Set();
@@ -19,6 +21,105 @@ export class World implements IWorld {
   private readonly hudSpriteId = 0;
   private readonly camera: Camera = new Camera();
   private cameraUpdate: Record<CameraMatrixType, Updates>;
+  private readonly medias: Record<ImageId, Media> = {
+    [VIDEO]: {
+      type: "video",
+      src: 'sample.mp4',
+      volume: 0,
+      fps: 30,
+    },
+    [DOBUKI]: {
+      type: "image",
+      src: 'dobuki.png',
+    },
+    [LOGO]: {
+      type: "draw",
+      draw: ctx => {
+        const { canvas } = ctx;
+        canvas.width = LOGO_SIZE;
+        canvas.height = LOGO_SIZE;
+        const centerX = canvas.width / 2, centerY = canvas.height / 2;
+        const halfSize = canvas.width / 2;
+        ctx.imageSmoothingEnabled = true;
+        ctx.fillStyle = '#ddd';
+        ctx.lineWidth = canvas.width / 50;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.strokeStyle = 'black';
+        ctx.fillStyle = 'gold';
+
+        //  face
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, halfSize * 0.8, 0, 2 * Math.PI);
+        ctx.fill();
+        ctx.stroke();
+
+        //  smile
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, halfSize * 0.5, 0, Math.PI);
+        ctx.stroke();
+
+        //  left eye
+        ctx.beginPath();
+        ctx.arc(canvas.width / 3, canvas.height / 3, halfSize * 0.1, 0, Math.PI, true);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc((canvas.width / 3) * 2, canvas.height / 3, halfSize * 0.1, 0, Math.PI * 2, true);
+        ctx.stroke();
+      },
+    },
+    [GROUND]: {
+      type: "draw",
+      draw: ctx => {
+        const { canvas } = ctx;
+        canvas.width = LOGO_SIZE;
+        canvas.height = LOGO_SIZE;
+        ctx.imageSmoothingEnabled = true;
+        ctx.fillStyle = '#ddd';
+        ctx.lineWidth = canvas.width / 50;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.strokeStyle = 'black';
+        ctx.fillStyle = 'silver';
+
+        ctx.beginPath();
+        ctx.rect(canvas.width * .2, canvas.height * .2, canvas.width * .6, canvas.height * .6);
+        ctx.fill();
+        ctx.stroke();
+      },
+    },
+    [HUD]: {
+      type: "draw",
+      draw: ctx => {
+        const { canvas } = ctx;
+        canvas.width = LOGO_SIZE;
+        canvas.height = LOGO_SIZE;
+        ctx.lineWidth = canvas.width / 50;
+
+        ctx.strokeStyle = 'black';
+
+        ctx.beginPath();
+        ctx.rect(30, 30, canvas.width - 60, canvas.height - 60);
+        ctx.stroke();
+      },
+    },
+    [GRID]: {
+      type: "draw",
+      draw: ctx => {
+        const { canvas } = ctx;
+        canvas.width = LOGO_SIZE;
+        canvas.height = LOGO_SIZE;
+        ctx.imageSmoothingEnabled = true;
+        ctx.lineWidth = 5;
+
+        ctx.strokeStyle = 'green';
+
+        ctx.beginPath();
+        ctx.rect(10, 10, canvas.width - 20, canvas.height - 20);
+        ctx.stroke();
+      },
+    },
+  };
 
   constructor(public core: Core) {
     this.sprites.forEach((_, index) => {
@@ -66,95 +167,10 @@ export class World implements IWorld {
     return this.updatedSpriteTextureSlots
   }
 
-  async drawImage(id: ImageId, imageManager: ImageManager): Promise<MediaData | undefined> {
-    const LOGO_SIZE = 512;
-    switch (id) {
-      case VIDEO:
-        return await imageManager.loadVideo(id, 'sample.mp4', 0);
-      case DOBUKI:
-        return await imageManager.loadImage(id, 'dobuki.png');
-      case LOGO:
-        return await imageManager.drawImage(id, ctx => {
-          const { canvas } = ctx;
-          canvas.width = LOGO_SIZE;
-          canvas.height = LOGO_SIZE;
-          const centerX = canvas.width / 2, centerY = canvas.height / 2;
-          const halfSize = canvas.width / 2;
-          ctx.imageSmoothingEnabled = true;
-          ctx.fillStyle = '#ddd';
-          ctx.lineWidth = canvas.width / 50;
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-          ctx.strokeStyle = 'black';
-          ctx.fillStyle = 'gold';
-
-          //  face
-          ctx.beginPath();
-          ctx.arc(centerX, centerY, halfSize * 0.8, 0, 2 * Math.PI);
-          ctx.fill();
-          ctx.stroke();
-
-          //  smile
-          ctx.beginPath();
-          ctx.arc(centerX, centerY, halfSize * 0.5, 0, Math.PI);
-          ctx.stroke();
-
-          //  left eye
-          ctx.beginPath();
-          ctx.arc(canvas.width / 3, canvas.height / 3, halfSize * 0.1, 0, Math.PI, true);
-          ctx.stroke();
-          ctx.beginPath();
-          ctx.arc((canvas.width / 3) * 2, canvas.height / 3, halfSize * 0.1, 0, Math.PI * 2, true);
-          ctx.stroke();
-        });
-      case GROUND:
-        return await imageManager.drawImage(id, ctx => {
-          const { canvas } = ctx;
-          canvas.width = LOGO_SIZE;
-          canvas.height = LOGO_SIZE;
-          ctx.imageSmoothingEnabled = true;
-          ctx.fillStyle = '#ddd';
-          ctx.lineWidth = canvas.width / 50;
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-          ctx.strokeStyle = 'black';
-          ctx.fillStyle = 'silver';
-
-          ctx.beginPath();
-          ctx.rect(canvas.width * .2, canvas.height * .2, canvas.width * .6, canvas.height * .6);
-          ctx.fill();
-          ctx.stroke();
-        });
-      case HUD:
-        return await imageManager.drawImage(id, ctx => {
-          const { canvas } = ctx;
-          canvas.width = LOGO_SIZE;
-          canvas.height = LOGO_SIZE;
-          ctx.lineWidth = canvas.width / 50;
-
-          ctx.strokeStyle = 'black';
-
-          ctx.beginPath();
-          ctx.rect(30, 30, canvas.width - 60, canvas.height - 60);
-          ctx.stroke();
-        });
-      case GRID:
-        return await imageManager.drawImage(id, ctx => {
-          const { canvas } = ctx;
-          canvas.width = LOGO_SIZE;
-          canvas.height = LOGO_SIZE;
-          ctx.imageSmoothingEnabled = true;
-          ctx.lineWidth = 5;
-
-          ctx.strokeStyle = 'green';
-
-          ctx.beginPath();
-          ctx.rect(10, 10, canvas.width - 20, canvas.height - 20);
-          ctx.stroke();
-        });
-    }
-    return;
+  getMedia(imageId: ImageId): Media | undefined {
+    return this.medias[imageId];
   }
+
   private readonly sprites: Sprite[] = [
     {
       imageId: HUD,
