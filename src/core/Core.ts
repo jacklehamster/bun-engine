@@ -65,14 +65,13 @@ export class Core extends Disposable {
       ["Camera"]: (id: CameraMatrixType) => motor.registerUpdate(this.cameraMatrixUpdates[id]),
     };
 
-    world.setOnUpdate((type, id) => onUpdates[type](id));
-
-    motor.loop(world);
-
     engine.initializeBuffers(world.getMaxSpriteCount());
     engine.clearTextureSlots();
 
-    this.onDeactivateWorld = world?.activate();
+    this.onDeactivateWorld = world?.activate({
+      onUpdate(type, id) { onUpdates[type](id); }
+    });
+    motor.loop(world);
     motor.start();
   }
 

@@ -1,5 +1,6 @@
 import { World } from 'world/World';
 import { Core } from 'core/Core';
+import { DemoWorld } from 'DemoWorld';
 
 export async function hello() {
   console.log('Hello World!');
@@ -19,7 +20,7 @@ export async function testCanvas(canvas: HTMLCanvasElement) {
   const core = new Core({
     canvas,
   });
-  const world = new World(core);
+  const world = new DemoWorld(core);
   core.start(world);
   return core;
 }
