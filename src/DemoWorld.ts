@@ -10,6 +10,7 @@ import { Sprite } from "world/Sprite";
 
 const DOBUKI = 0, LOGO = 1, GROUND = 2, HUD = 3, VIDEO = 4, GRID = 5;
 const LOGO_SIZE = 512;
+const QUICK_TAP_TIME = 200;
 
 export class DemoWorld extends World {
   private readonly sprites: Sprite[];
@@ -163,8 +164,23 @@ export class DemoWorld extends World {
     return this.sprites[index];
   }
 
+  spaceForRiseAndDrop({ deltaTime }: UpdatePayload): void {
+    const speed = deltaTime / 80;
+    if (this.keys.Space) {
+      this.camera.moveCam(0, -speed, 0);
+    } else if (this.keysUp.Space) {
+      this.camera.moveCam(0, speed, 0);
+      const [x, y, z] = this.camera.getPosition();
+      if (y > 0) {
+        this.camera.setPosition(x, 0, z);
+        this.keysUp.Space = 0;
+      }
+    }
+  }
 
-  update({ deltaTime }: UpdatePayload): void {
+
+  update(update: UpdatePayload): void {
+    const { deltaTime } = update;
     const speed = deltaTime / 80;
     const turnspeed = deltaTime / 400;
     if (this.keys.KeyW || this.keys.ArrowUp && !this.keys.ShiftRight) {
@@ -192,17 +208,31 @@ export class DemoWorld extends World {
       this.camera.tilt(turnspeed);
     }
 
+    this.spaceForRiseAndDrop(update);
+
     if (this.camera.refresh()) {
       this.onUpdate("Camera", CameraMatrixType.VIEW);
       this.onUpdate("SpriteTransform", this.hudSpriteId);
     }
   }
 
-  private keys: Record<string, boolean> = {};
+  private keys: Record<string, number> = {};
+  private keysUp: Record<string, number> = {};
   activate({ onUpdate }: ActivateProps): () => void {
     this.onUpdate = onUpdate;
-    const keyDown = (e: KeyboardEvent) => this.keys[e.code] = true;
-    const keyUp = (e: KeyboardEvent) => this.keys[e.code] = false;
+    const keyDown = (e: KeyboardEvent) => {
+      if (!this.keys[e.code]) {
+        this.keys[e.code] = this.core.motor.time;
+      }
+    };
+    const keyUp = (e: KeyboardEvent) => {
+      if (this.core.motor.time - this.keys[e.code] < QUICK_TAP_TIME) {
+        this.keysUp[e.code] = this.keysUp[e.code] ? 0 : this.core.motor.time;
+      } else {
+        this.keysUp[e.code] = 0;
+      }
+      this.keys[e.code] = 0;
+    };
     document.addEventListener('keydown', keyDown);
     document.addEventListener('keyup', keyUp);
 
