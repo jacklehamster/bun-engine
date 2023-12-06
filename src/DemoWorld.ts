@@ -1,5 +1,5 @@
 import { Core } from "core/Core";
-import { Camera, CameraMatrixType } from "gl/camera/Camera";
+import { CameraMatrixType } from "gl/camera/Camera";
 import { ImageId } from "gl/texture/ImageManager";
 import { Media } from "gl/texture/Media";
 import Matrix from "gl/transform/Matrix";
@@ -115,8 +115,8 @@ export class DemoWorld extends World {
     },
   };
 
-  constructor(core: Core, camera: Camera) {
-    super(core, camera);
+  constructor(core: Core) {
+    super(core);
     this.sprites = [
       {
         imageId: HUD,
