@@ -1,4 +1,4 @@
-import { Sprite, SpriteId } from "world/Sprite";
+import { Sprite, SpriteId } from "world/sprite/Sprite";
 import { Update } from "./Update";
 import { GraphicsEngine } from "core/GraphicsEngine";
 

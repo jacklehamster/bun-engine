@@ -5,7 +5,7 @@ import { CameraUpdate } from "updates/CameraUpdate";
 import { Camera, CameraMatrixType } from "gl/camera/Camera";
 import { ImageId } from "gl/texture/ImageManager";
 import { TextureUpdate } from "updates/TextureUpdate";
-import { SpriteId } from "world/Sprite";
+import { SpriteId } from "world/sprite/Sprite";
 import { SpriteTransformUpdate } from "updates/SpriteTransformUpdate";
 import { SpriteAnimUpdate } from "updates/SpriteAnimUpdate";
 import { Disposable } from "lifecycle/Disposable";
@@ -55,8 +55,8 @@ export class Core extends Disposable {
     const { engine, motor } = this;
 
     const textureImageUpdate = new TextureUpdate(motor, world.getMedia, engine);
-    const spriteTransformUpdate = new SpriteTransformUpdate(world.getSprite, engine);
-    const spriteAnimUpdate = new SpriteAnimUpdate(motor, world.getSprite, engine);
+    const spriteTransformUpdate = new SpriteTransformUpdate(world.sprites.at, engine);
+    const spriteAnimUpdate = new SpriteAnimUpdate(motor, world.sprites.at, engine);
 
     const onUpdates: Record<UpdateType, (id: IdType) => void> = {
       ["SpriteAnim"]: (id: SpriteId) => motor.registerUpdate(spriteAnimUpdate.withSpriteId(id)),
@@ -65,11 +65,11 @@ export class Core extends Disposable {
       ["Camera"]: (id: CameraMatrixType) => motor.registerUpdate(this.cameraMatrixUpdates[id]),
     };
 
-    engine.initializeBuffers(world.getMaxSpriteCount());
+    engine.initializeBuffers(world.sprites.length);
     engine.clearTextureSlots();
 
     this.onDeactivateWorld = world?.activate({
-      onUpdate(type, id) { onUpdates[type](id); }
+      updateCallback(type, id) { onUpdates[type](id); }
     });
     motor.loop(world);
     motor.start();

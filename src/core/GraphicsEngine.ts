@@ -27,7 +27,7 @@ import { mat4 } from 'gl-matrix';
 import { MediaData } from 'gl/texture/MediaData';
 import { Update } from '../updates/Update';
 import { Media } from 'gl/texture/Media';
-import { Sprite, SpriteId } from 'world/Sprite';
+import { Sprite, SpriteId } from 'world/sprite/Sprite';
 
 const DEFAULT_ATTRIBUTES: WebGLContextAttributes = {
   alpha: true,

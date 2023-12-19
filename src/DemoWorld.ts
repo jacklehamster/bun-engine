@@ -6,14 +6,14 @@ import Matrix from "gl/transform/Matrix";
 import { World } from "index";
 import { UpdatePayload } from "updates/Update";
 import { ActivateProps } from "world/IWorld";
-import { Sprite } from "world/Sprite";
+import { Sprite } from "world/sprite/Sprite";
 
-const DOBUKI = 0, LOGO = 1, GROUND = 2, HUD = 3, VIDEO = 4, GRID = 5;
+const DOBUKI = 0, LOGO = 1, GROUND = 2, HUD = 3, VIDEO = 4, GRID = 5, WIREFRAME = 6;
 const LOGO_SIZE = 512;
 const QUICK_TAP_TIME = 200;
 
 export class DemoWorld extends World {
-  private readonly sprites: Sprite[];
+  readonly sprites: Sprite[];
   private readonly hudSpriteId = 0;
   private readonly medias: Record<ImageId, Media> = {
     [VIDEO]: {
@@ -113,6 +113,23 @@ export class DemoWorld extends World {
         ctx.stroke();
       },
     },
+    [WIREFRAME]: {
+      type: "draw",
+      draw: ctx => {
+        const { canvas } = ctx;
+        canvas.width = LOGO_SIZE;
+        canvas.height = LOGO_SIZE;
+        ctx.imageSmoothingEnabled = true;
+        ctx.lineWidth = 5;
+        ctx.setLineDash([5, 2]);
+
+        ctx.strokeStyle = 'blue';
+
+        ctx.beginPath();
+        ctx.rect(10, 10, canvas.width - 20, canvas.height - 20);
+        ctx.stroke();
+      },
+    },
   };
 
   constructor(core: Core) {
@@ -130,15 +147,17 @@ export class DemoWorld extends World {
           Matrix.create().translate(0, 0, 0).getMatrix(),
         ],
       },
+      //  side walls
       ...[
-        Matrix.create().translate(-1, 0, 1).rotateY(Math.PI / 2).scale(1, 1, 1).getMatrix(),
-        Matrix.create().translate(1, 0, 1).rotateY(-Math.PI / 2).scale(1, 1, 1).getMatrix(),
+        Matrix.create().translate(-1, 0, 1).rotateY(Math.PI / 2).scale(1).getMatrix(),
+        Matrix.create().translate(1, 0, 1).rotateY(-Math.PI / 2).scale(1).getMatrix(),
       ].map(transform => ({ imageId: LOGO, transforms: [transform] })),
+      //  floor
       ...[
-        Matrix.create().translate(0, -1, 1).rotateX(-Math.PI / 2).scale(1, 1, 1).getMatrix(),
-        Matrix.create().translate(0, -1, 3).rotateX(-Math.PI / 2).scale(1, 1, 1).getMatrix(),
-        Matrix.create().translate(-2, -1, 3).rotateX(-Math.PI / 2).scale(1, 1, 1).getMatrix(),
-        Matrix.create().translate(2, -1, 3).rotateX(-Math.PI / 2).scale(1, 1, 1).getMatrix(),
+        Matrix.create().translate(0, -1, 1).rotateX(-Math.PI / 2).scale(1).getMatrix(),
+        Matrix.create().translate(0, -1, 3).rotateX(-Math.PI / 2).scale(1).getMatrix(),
+        Matrix.create().translate(-2, -1, 3).rotateX(-Math.PI / 2).scale(1).getMatrix(),
+        Matrix.create().translate(2, -1, 3).rotateX(-Math.PI / 2).scale(1).getMatrix(),
       ].map(transform => ({ imageId: GROUND, transforms: [transform] })),
       {
         imageId: VIDEO,
@@ -147,21 +166,26 @@ export class DemoWorld extends World {
         ],
       },
       ...new Array(400).fill(0).map((_, index) =>
-        Matrix.create().translate(index % 20 - 10, -1.5, Math.floor(index / 20) - 10).rotateX(-Math.PI / 2).scale(1, 1, 1).getMatrix(),
+        Matrix.create().translate((index % 20 - 10) * 2, -1.5, (Math.floor(index / 20) - 10) * 2 + 1).rotateX(-Math.PI / 2).scale(1).getMatrix(),
       ).map(transform => ({ imageId: GRID, transforms: [transform] })),
+
+      //  Wireframe
+      ...new Array(400).fill(0).map((_, index) =>
+        Matrix.create().translate((index % 20 - 10) * 2, -1, (Math.floor(index / 20) - 10) * 2 + 1).rotateX(-Math.PI / 2).scale(1).getMatrix(),
+      ).map(transform => ({ imageId: WIREFRAME, transforms: [transform] })),
+      ...new Array(400).fill(0).map((_, index) =>
+        Matrix.create().translate((index % 20 - 10) * 2, 1, (Math.floor(index / 20) - 10) * 2 + 1).rotateX(-Math.PI / 2).scale(1).getMatrix(),
+      ).map(transform => ({ imageId: WIREFRAME, transforms: [transform] })),
+
+      ...new Array(400).fill(0).map((_, index) =>
+        Matrix.create().translate((index % 20 - 10) * 2, 0, (Math.floor(index / 20) - 10) * 2 + 1).getMatrix(),
+      ).map(transform => ({ imageId: WIREFRAME, transforms: [transform] })),
     ];
+    this.sprites.at = this.sprites.at.bind(this.sprites);
   }
 
   getMedia(imageId: ImageId): Media | undefined {
     return this.medias[imageId];
-  }
-
-  getMaxSpriteCount(): number {
-    return this.sprites.length;
-  }
-
-  getSprite(index: number): Sprite {
-    return this.sprites[index];
   }
 
   spaceForRiseAndDrop({ deltaTime }: UpdatePayload): void {
@@ -211,15 +235,15 @@ export class DemoWorld extends World {
     this.spaceForRiseAndDrop(update);
 
     if (this.camera.refresh()) {
-      this.onUpdate("Camera", CameraMatrixType.VIEW);
-      this.onUpdate("SpriteTransform", this.hudSpriteId);
+      this.informUpdate("Camera", CameraMatrixType.VIEW);
+      this.informUpdate("SpriteTransform", this.hudSpriteId);
     }
   }
 
   private keys: Record<string, number> = {};
   private keysUp: Record<string, number> = {};
-  activate({ onUpdate }: ActivateProps): () => void {
-    this.onUpdate = onUpdate;
+  activate({ updateCallback }: ActivateProps): () => void {
+    this.informUpdate = updateCallback;
     const keyDown = (e: KeyboardEvent) => {
       if (!this.keys[e.code]) {
         this.keys[e.code] = this.core.motor.time;
@@ -236,21 +260,21 @@ export class DemoWorld extends World {
     document.addEventListener('keydown', keyDown);
     document.addEventListener('keyup', keyUp);
 
-    this.onUpdate("Camera", CameraMatrixType.PROJECTION);
-    this.onUpdate("Camera", CameraMatrixType.VIEW);
-    this.onUpdate("SpriteTransform", this.hudSpriteId);
+    this.informUpdate("Camera", CameraMatrixType.PROJECTION);
+    this.informUpdate("Camera", CameraMatrixType.VIEW);
+    this.informUpdate("SpriteTransform", this.hudSpriteId);
 
-    [LOGO, GROUND, HUD, DOBUKI, VIDEO, GRID].forEach(id => this.onUpdate("Media", id));
+    [LOGO, GROUND, HUD, DOBUKI, VIDEO, GRID, WIREFRAME].forEach(id => this.informUpdate("Media", id));
 
     this.sprites.forEach((_, id) => {
-      this.onUpdate("SpriteTransform", id);
-      this.onUpdate("SpriteAnim", id);
+      this.informUpdate("SpriteTransform", id);
+      this.informUpdate("SpriteAnim", id);
     });
 
     return () => {
       document.removeEventListener('keydown', keyDown);
       document.removeEventListener('keyup', keyUp);
-      this.onUpdate = () => { };
+      this.informUpdate = () => { };
     };
   }
 }

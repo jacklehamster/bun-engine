@@ -64,8 +64,8 @@ class Matrix {
     return this;
   }
 
-  public scale(x: number, y: number, z: number): Matrix {
-    mat4.scale(this.m4, this.m4, [x, y, z]);
+  public scale(x: number, y?: number, z?: number): Matrix {
+    mat4.scale(this.m4, this.m4, [x, y ?? x, z ?? x]);
     return this;
   }
 
