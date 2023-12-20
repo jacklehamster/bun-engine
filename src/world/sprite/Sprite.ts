@@ -1,5 +1,5 @@
 import { ImageId } from "gl/texture/ImageManager";
-import { List } from "./List";
+import { Sprites } from "./Sprites";
 
 export type SpriteId = number;
 
@@ -8,5 +8,3 @@ export interface Sprite {
   imageId: ImageId;
   children?: Sprites;
 }
-
-export type Sprites = List<Sprite>; 

@@ -1,8 +1,8 @@
-import { Sprites } from "world/sprite/Sprite";
+import { Sprites } from "world/sprite/Sprites";
 
 export type CellPos = [number, number, number];
 
 export interface Cell {
   pos: CellPos;
-  sprites: Sprites;
+  getSpriteUpdates(time: number): Sprites;
 }

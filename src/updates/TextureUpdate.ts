@@ -1,10 +1,10 @@
-import { Update } from "./Update";
+import { Refresh } from "./Refresh";
 import { GraphicsEngine } from "core/GraphicsEngine";
 import { Motor } from "core/Motor";
 import { ImageId } from "gl/texture/ImageManager";
 import { Media } from "gl/texture/Media";
 
-export class TextureUpdate implements Update {
+export class TextureUpdate implements Refresh {
   private readonly updatedImageIds: Set<ImageId> = new Set();
   constructor(private motor: Motor, private getMedia: (imageId: ImageId) => Media | undefined, private engine: GraphicsEngine) {
   }
@@ -14,7 +14,7 @@ export class TextureUpdate implements Update {
     return this;
   }
 
-  update(): void {
+  refresh(): void {
     const imageIds = Array.from(this.updatedImageIds);
     this.updatedImageIds.clear();
     this.engine.updateTextures(imageIds, this.getMedia).then((mediaInfos) => {

@@ -1,22 +1,24 @@
 import IWorld, { ActivateProps, IdType, UpdateType } from "./IWorld";
-import { ImageId } from "gl/texture/ImageManager";
-import { Camera } from "gl/camera/Camera";
+import { Camera, CameraMatrixType } from "gl/camera/Camera";
 import { Core } from "core/Core";
-import { Media } from "gl/texture/Media";
-import { UpdatePayload } from "updates/Update";
-import { Sprites } from "./sprite/Sprite";
+import { UpdatePayload } from "updates/Refresh";
+import { Medias } from "./sprite/Medias";
+import { Sprites } from "./sprite/Sprites";
 
 export abstract class World implements IWorld {
-  constructor(public core: Core, protected readonly camera: Camera = core.camera) {
-    this.getMedia = this.getMedia.bind(this);
-  }
+  readonly camera: Camera = new Camera();
 
+  constructor(protected core: Core) {
+  }
+  getCameraMatrix(type: CameraMatrixType): Float32Array {
+    return this.camera.getCameraMatrix(type);
+  }
   protected informUpdate(type: UpdateType, id: IdType): void {
     console.warn("pass onUpdate to inform about changes in the world.", type, id);
   }
 
   abstract activate(activateProps: ActivateProps): (() => void);
-  abstract getMedia(imageId: ImageId): Media | undefined;
-  abstract update({ deltaTime }: UpdatePayload): void;
+  abstract refresh({ deltaTime }: UpdatePayload): void;
   abstract sprites: Sprites;
+  abstract medias: Medias;
 }

@@ -1,8 +1,8 @@
-import { Update } from 'updates/Update';
+import { Refresh } from 'updates/Refresh';
 import { Disposable } from '../../lifecycle/Disposable';
 import { Schedule } from 'core/Motor';
 
-export class MediaData extends Disposable implements Update {
+export class MediaData extends Disposable implements Refresh {
   readonly texImgSrc: TexImageSource;
   active: boolean = false;
   readonly width: number;
@@ -24,7 +24,7 @@ export class MediaData extends Disposable implements Update {
     }
   }
 
-  update(): void {
+  refresh(): void {
     this.refreshCallback?.();
   }
 

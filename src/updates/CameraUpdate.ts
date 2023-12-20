@@ -1,13 +1,18 @@
-import { Update } from "./Update";
-import { Camera, CameraMatrixType } from "gl/camera/Camera";
+import { Refresh } from "./Refresh";
+import { CameraMatrixType } from "gl/camera/Camera";
 import { GraphicsEngine } from "../core/GraphicsEngine";
 
-export class CameraUpdate implements Update {
-  constructor(private type: CameraMatrixType, private camera: Camera, private engine: GraphicsEngine) {
+export class CameraUpdate implements Refresh {
+  private readonly updatedTypes: Set<CameraMatrixType> = new Set();
+  constructor(private getCameraMatrix: (type: CameraMatrixType) => Float32Array, private engine: GraphicsEngine) {
   }
 
-  update(): void {
-    const { camera, engine } = this;
-    engine.updateCameraMatrix(this.type, camera.getCameraMatrix(this.type));
+  withCameraType(type: CameraMatrixType): CameraUpdate {
+    this.updatedTypes.add(type);
+    return this;
+  }
+
+  refresh(): void {
+    this.updatedTypes.forEach(type => this.engine.updateCameraMatrix(type, this.getCameraMatrix(type)));
   }
 }

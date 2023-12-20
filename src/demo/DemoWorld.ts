@@ -1,10 +1,9 @@
 import { Core } from "core/Core";
 import { CameraMatrixType } from "gl/camera/Camera";
-import { ImageId } from "gl/texture/ImageManager";
 import { Media } from "gl/texture/Media";
 import Matrix from "gl/transform/Matrix";
 import { World } from "index";
-import { UpdatePayload } from "updates/Update";
+import { UpdatePayload } from "updates/Refresh";
 import { ActivateProps } from "world/IWorld";
 import { Sprite } from "world/sprite/Sprite";
 
@@ -15,18 +14,12 @@ const QUICK_TAP_TIME = 200;
 export class DemoWorld extends World {
   readonly sprites: Sprite[];
   private readonly hudSpriteId = 0;
-  private readonly medias: Record<ImageId, Media> = {
-    [VIDEO]: {
-      type: "video",
-      src: 'sample.mp4',
-      volume: 0,
-      fps: 30,
-    },
-    [DOBUKI]: {
+  readonly medias: Media[] = [
+    {
       type: "image",
       src: 'dobuki.png',
     },
-    [LOGO]: {
+    {
       type: "draw",
       draw: ctx => {
         const { canvas } = ctx;
@@ -62,7 +55,7 @@ export class DemoWorld extends World {
         ctx.stroke();
       },
     },
-    [GROUND]: {
+    {
       type: "draw",
       draw: ctx => {
         const { canvas } = ctx;
@@ -82,7 +75,7 @@ export class DemoWorld extends World {
         ctx.stroke();
       },
     },
-    [HUD]: {
+    {
       type: "draw",
       draw: ctx => {
         const { canvas } = ctx;
@@ -97,7 +90,13 @@ export class DemoWorld extends World {
         ctx.stroke();
       },
     },
-    [GRID]: {
+    {
+      type: "video",
+      src: 'sample.mp4',
+      volume: 0,
+      fps: 30,
+    },
+    {
       type: "draw",
       draw: ctx => {
         const { canvas } = ctx;
@@ -113,7 +112,7 @@ export class DemoWorld extends World {
         ctx.stroke();
       },
     },
-    [WIREFRAME]: {
+    {
       type: "draw",
       draw: ctx => {
         const { canvas } = ctx;
@@ -130,7 +129,7 @@ export class DemoWorld extends World {
         ctx.stroke();
       },
     },
-  };
+  ];
 
   constructor(core: Core) {
     super(core);
@@ -181,11 +180,6 @@ export class DemoWorld extends World {
         Matrix.create().translate((index % 20 - 10) * 2, 0, (Math.floor(index / 20) - 10) * 2 + 1).getMatrix(),
       ).map(transform => ({ imageId: WIREFRAME, transforms: [transform] })),
     ];
-    this.sprites.at = this.sprites.at.bind(this.sprites);
-  }
-
-  getMedia(imageId: ImageId): Media | undefined {
-    return this.medias[imageId];
   }
 
   spaceForRiseAndDrop({ deltaTime }: UpdatePayload): void {
@@ -202,8 +196,7 @@ export class DemoWorld extends World {
     }
   }
 
-
-  update(update: UpdatePayload): void {
+  refresh(update: UpdatePayload): void {
     const { deltaTime } = update;
     const speed = deltaTime / 80;
     const turnspeed = deltaTime / 400;
@@ -260,12 +253,10 @@ export class DemoWorld extends World {
     document.addEventListener('keydown', keyDown);
     document.addEventListener('keyup', keyUp);
 
+    //  Update everything
     this.informUpdate("Camera", CameraMatrixType.PROJECTION);
     this.informUpdate("Camera", CameraMatrixType.VIEW);
-    this.informUpdate("SpriteTransform", this.hudSpriteId);
-
     [LOGO, GROUND, HUD, DOBUKI, VIDEO, GRID, WIREFRAME].forEach(id => this.informUpdate("Media", id));
-
     this.sprites.forEach((_, id) => {
       this.informUpdate("SpriteTransform", id);
       this.informUpdate("SpriteAnim", id);

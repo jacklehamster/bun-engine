@@ -1,8 +1,8 @@
 import { Sprite, SpriteId } from "world/sprite/Sprite";
-import { Update } from "./Update";
+import { Refresh } from "./Refresh";
 import { GraphicsEngine } from "core/GraphicsEngine";
 
-export class SpriteTransformUpdate implements Update {
+export class SpriteTransformUpdate implements Refresh {
   private readonly updatedSpriteIds: Set<SpriteId> = new Set();
   constructor(private getSprite: (spriteId: SpriteId) => Sprite | undefined, private engine: GraphicsEngine) {
   }
@@ -12,7 +12,7 @@ export class SpriteTransformUpdate implements Update {
     return this;
   }
 
-  update(): void {
+  refresh(): void {
     this.engine.updateSpriteTransforms(this.updatedSpriteIds, this.getSprite);
   }
 }

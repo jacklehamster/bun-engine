@@ -25,9 +25,9 @@ import Matrix from 'gl/transform/Matrix';
 import { CameraMatrixType } from 'gl/camera/Camera';
 import { mat4 } from 'gl-matrix';
 import { MediaData } from 'gl/texture/MediaData';
-import { Update } from '../updates/Update';
 import { Media } from 'gl/texture/Media';
 import { Sprite, SpriteId } from 'world/sprite/Sprite';
+import { Refresh } from 'updates/Refresh';
 
 const DEFAULT_ATTRIBUTES: WebGLContextAttributes = {
   alpha: true,
@@ -73,7 +73,7 @@ export interface Props {
   attributes?: WebGLContextAttributes;
 }
 
-export class GraphicsEngine extends Disposable implements Update {
+export class GraphicsEngine extends Disposable implements Refresh {
   private gl: GL;
   private programs: GLPrograms;
   private attributeBuffers: GLAttributeBuffers;
@@ -357,7 +357,7 @@ export class GraphicsEngine extends Disposable implements Update {
     return this.own(new VertexArray(this.gl));
   }
 
-  update(): void {
+  refresh(): void {
     this.drawElementsInstanced(VERTEX_COUNT, this.spriteCount);
   }
 }

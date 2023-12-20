@@ -1,6 +1,6 @@
 import { World } from 'world/World';
 import { Core } from 'core/Core';
-import { DemoWorld } from 'DemoWorld';
+import { DemoWorld } from 'demo/DemoWorld';
 
 export async function hello() {
   console.log('Hello World!');

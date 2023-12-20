@@ -1,9 +1,9 @@
 import { Sprite, SpriteId } from "world/sprite/Sprite";
-import { Update } from "./Update";
+import { Refresh } from "./Refresh";
 import { GraphicsEngine } from "core/GraphicsEngine";
 import { Motor } from "core/Motor";
 
-export class SpriteAnimUpdate implements Update {
+export class SpriteAnimUpdate implements Refresh {
   private readonly updatedSpriteIds: Set<SpriteId> = new Set();
   constructor(private motor: Motor, private getSprite: (spriteId: SpriteId) => Sprite | undefined, private engine: GraphicsEngine) {
   }
@@ -13,9 +13,9 @@ export class SpriteAnimUpdate implements Update {
     return this;
   }
 
-  update(): void {
+  refresh(): void {
     this.engine.updateSpriteAnims(this.updatedSpriteIds, this.getSprite);
-    if (this.updatedSpriteIds.size) {
+    if (this.updatedSpriteIds.size) { //  re-register if some updates are remaining
       this.motor.registerUpdate(this);
     }
   }
