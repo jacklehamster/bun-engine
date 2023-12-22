@@ -190,18 +190,16 @@ export class DemoWorld extends World {
     ];
   }
 
-  refresh(): void {
-  }
-
   activate(activateProps: ActivateProps): () => void {
     const onDeactivate = super.activate(activateProps);
-    //  Update everything
-    [LOGO, GROUND, HUD, DOBUKI, VIDEO, GRID, WIREFRAME].forEach(id => this.informUpdate("Media", id));
+
+    //  Update all sprites
     this.sprites.forEach((_, id) => {
       this.informUpdate("SpriteTransform", id);
       this.informUpdate("SpriteAnim", id);
     });
 
+    //  hud follows camera
     const deregisterCameraListener = activateProps.core.camera.addUpdateListener({
       onCameraUpdate: () => this.informUpdate("SpriteTransform", this.hudSpriteId),
     });

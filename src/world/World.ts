@@ -14,7 +14,9 @@ export abstract class World implements IWorld {
     console.warn("pass onUpdate to inform about changes in the world.", type, id);
   }
 
-  abstract refresh({ deltaTime }: UpdatePayload): void;
+  refresh(_update: UpdatePayload): void {
+  }
+
   abstract sprites: Sprites;
   medias: Media[] = [];
 
@@ -23,6 +25,7 @@ export abstract class World implements IWorld {
     this.informUpdate = updateCallback;
 
     this.auxiliaries.forEach(aux => aux.activate(activateProps));
+    this.medias.forEach(media => this.informUpdate("Media", media.id));
 
     const deregisterLoop = core.motor.loop(this);
 
@@ -33,7 +36,9 @@ export abstract class World implements IWorld {
   }
 
   addMedia(...medias: Media[]) {
-    medias.forEach(media => this.medias[media.id] = media);
+    for (let media of medias) {
+      this.medias[media.id] = media;
+    }
   }
 
   addAuxiliary(...aux: Auxliary[]) {
