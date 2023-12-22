@@ -1,28 +1,34 @@
+import { MediaId } from "./ImageManager";
+
 export type MediaType = "image" | "video" | "canvas" | "draw" | "webcam" | string;
 
-export interface ImageMedia {
+interface BaseMedia {
+  id: MediaId;
+}
+
+export interface ImageMedia extends BaseMedia {
   type: "image";
   src: string;
 }
 
-export interface VideoMedia {
+export interface VideoMedia extends BaseMedia {
   type: "video";
   src: string;
   volume?: number;
   fps?: number;
 }
 
-export interface CanvasMedia {
+export interface CanvasMedia extends BaseMedia {
   type: "canvas";
   canvas: HTMLCanvasElement | OffscreenCanvas;
 }
 
-export interface DrawMedia {
+export interface DrawMedia extends BaseMedia {
   type: "draw";
   draw: (context: OffscreenCanvasRenderingContext2D) => void;
 }
 
-export interface WebcamMedia {
+export interface WebcamMedia extends BaseMedia {
   type: "webcam";
   deviceId?: string;
 }

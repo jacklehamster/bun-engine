@@ -6,6 +6,8 @@ export async function hello() {
   console.log('Hello World!');
 }
 
+let onStop: () => void;
+
 export async function testCanvas(canvas: HTMLCanvasElement) {
   canvas.style.border = '2px solid silver';
   canvas.style.cursor = 'grab';
@@ -21,8 +23,12 @@ export async function testCanvas(canvas: HTMLCanvasElement) {
     canvas,
   });
   const world = new DemoWorld(core);
-  core.start(world);
+  onStop = core.start(world);
   return core;
+}
+
+export function stop(): void {
+  onStop();
 }
 
 export { World };

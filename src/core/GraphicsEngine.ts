@@ -17,7 +17,7 @@ import {
   PROJECTION_LOC,
 } from '../gl/attributes/Constants';
 import { TEXTURE_INDEX_FOR_VIDEO, TextureId, TextureManager } from '../gl/texture/TextureManager';
-import { ImageId, ImageManager } from 'gl/texture/ImageManager';
+import { MediaId, ImageManager } from 'gl/texture/ImageManager';
 import vertexShader from 'generated/src/gl/resources/vertexShader.txt';
 import fragmentShader from 'generated/src/gl/resources/fragmentShader.txt';
 import { replaceTilda } from 'gl/utils/replaceTilda';
@@ -83,7 +83,7 @@ export class GraphicsEngine extends Disposable implements Refresh {
   private textureManager: TextureManager;
   private imageManager: ImageManager;
 
-  private textureSlots: Record<ImageId, {
+  private textureSlots: Record<MediaId, {
     buffer: Float32Array,
   }> = {};
 
@@ -272,7 +272,7 @@ export class GraphicsEngine extends Disposable implements Refresh {
     };
   }
 
-  async updateTextures(imageIds: ImageId[], getMedia: (imageId: ImageId) => Media | undefined): Promise<MediaData[]> {
+  async updateTextures(imageIds: MediaId[], getMedia: (imageId: MediaId) => Media | undefined): Promise<MediaData[]> {
     const mediaInfos = (await Promise.all(imageIds.map(async imageId => {
       const media = getMedia(imageId);
       if (!media) {
@@ -281,7 +281,7 @@ export class GraphicsEngine extends Disposable implements Refresh {
       }
       const mediaData = await this.imageManager.renderMedia(imageId, media);
       return { mediaData, imageId };
-    }))).filter((data): data is { mediaData: MediaData, imageId: ImageId } => !!data);
+    }))).filter((data): data is { mediaData: MediaData, imageId: MediaId } => !!data);
     const textureIndices = await Promise.all(mediaInfos.map(async ({ mediaData, imageId }) => {
       const { slot, refreshCallback } = this.textureManager.allocateSlotForImage(mediaData);
       const slotW = Math.log2(slot.size[0]), slotH = Math.log2(slot.size[1]);

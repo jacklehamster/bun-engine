@@ -25,15 +25,20 @@ export class Motor {
   time: Time = 0;
 
   loop(update: Refresh, frameRate?: number, priority?: number, expirationTime?: Time) {
-    this.registerUpdate(update, { period: frameRate ? 1000 / frameRate : 1, expirationTime, priority });
+    return this.registerUpdate(update, { period: frameRate ? 1000 / frameRate : 1, expirationTime, priority });
   }
 
-  registerUpdate(update: Refresh, schedule: Partial<Schedule> = {}): void {
+  registerUpdate(update: Refresh, schedule: Partial<Schedule> = {}): () => void {
     schedule.triggerTime = schedule.triggerTime ?? this.time;
     schedule.expirationTime = schedule.expirationTime ?? Infinity;
     schedule.period = schedule.period;
     schedule.priority = schedule.priority ?? Priority.DEFAULT;
     this.updateSchedule.set(update, schedule as Schedule);
+    return () => this.deregisterUpdate(update);
+  }
+
+  deregisterUpdate(update: Refresh) {
+    this.updateSchedule.delete(update);
   }
 
   start() {
@@ -68,11 +73,6 @@ export class Motor {
       updateList.forEach((updates) => updates.forEach((update) => update.refresh(updatePayload)));
     };
     requestAnimationFrame(loop);
-    this.stop = () => {
-      cancelAnimationFrame(handle);
-      this.stop = () => { };
-    }
+    return () => cancelAnimationFrame(handle);
   }
-
-  stop: () => void = () => { };
 }

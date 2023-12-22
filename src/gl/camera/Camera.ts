@@ -1,14 +1,18 @@
+import { Core } from "core/Core";
 import Matrix from "gl/transform/Matrix";
 import { ProjectionMatrix } from "gl/transform/ProjectionMatrix";
+import { Refresh } from "updates/Refresh";
 
 export enum CameraMatrixType {
   PROJECTION = 0,
   VIEW = 1,
 }
 
-export class Camera {
-  private needsRefresh = false;
+export interface CameraListener {
+  onCameraUpdate(camera: Camera): void;
+}
 
+export class Camera implements Refresh {
   private readonly camPositionMatrix: Matrix = Matrix.create().translate(0, 0, -1);
   private readonly projectionMatrix = new ProjectionMatrix();
   private readonly camTiltMatrix = Matrix.create();
@@ -16,11 +20,26 @@ export class Camera {
   private readonly camMatrix = Matrix.create();
   private readonly hudMatrix: Matrix = Matrix.create();
   private pespectiveLevel = 1;
+  private readonly updateListeners: Set<CameraListener> = new Set();
+
+  constructor(private core: Core) {
+  }
 
   private readonly cameraMatrices: Record<CameraMatrixType, Matrix> = {
     [CameraMatrixType.PROJECTION]: this.projectionMatrix,
     [CameraMatrixType.VIEW]: this.camMatrix,
   };
+
+  addUpdateListener(listener: CameraListener) {
+    this.updateListeners.add(listener);
+    return () => {
+      this.removeUpdateListener(listener);
+    };
+  }
+
+  removeUpdateListener(listener: CameraListener) {
+    this.updateListeners.delete(listener);
+  }
 
   configProjectionMatrix(width: number, height: number) {
     this.projectionMatrix.configure(width, height);
@@ -28,19 +47,19 @@ export class Camera {
   }
 
   refresh() {
-    if (!this.needsRefresh) {
-      return false;
-    }
     //  camMatrix =  camTiltMatrix * camTurnMatrix * camPositionMatrix;
     this.camMatrix.multiply3(this.camTiltMatrix, this.camTurnMatrix, this.camPositionMatrix);
     this.syncHud(this.hudMatrix);
-    this.needsRefresh = false;
-    return true;
+    this.updateListeners.forEach(listener => listener.onCameraUpdate(this));
+  }
+
+  private onCameraUpdate() {
+    this.core.motor.registerUpdate(this);
   }
 
   updatePerspective(level?: number) {
     this.projectionMatrix.setPerspective(level ?? this.pespectiveLevel);
-    this.needsRefresh = true;
+    this.onCameraUpdate();
   }
 
   getCameraMatrix(cameraMatrixType: CameraMatrixType): Float32Array {
@@ -49,17 +68,17 @@ export class Camera {
 
   moveCam(x: number, y: number, z: number) {
     this.camPositionMatrix.moveMatrix(x, y, z, this.camTurnMatrix);
-    this.needsRefresh = true;
+    this.onCameraUpdate();
   }
 
   turnCam(angle: number) {
     this.camTurnMatrix.rotateY(angle);
-    this.needsRefresh = true;
+    this.onCameraUpdate();
   }
 
   tilt(angle: number) {
     this.camTiltMatrix.rotateX(angle);
-    this.needsRefresh = true;
+    this.onCameraUpdate();
   }
 
   getHudMatrix() {

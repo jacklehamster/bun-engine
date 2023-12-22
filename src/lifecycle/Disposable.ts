@@ -13,10 +13,12 @@ export class Disposable {
     return disposable;
   }
 
-  addOnDestroy(callback: () => void) {
-    this.disposables?.add({
-      destroy: callback,
-    });
+  addOnDestroy(callback?: () => void) {
+    if (callback) {
+      this.disposables?.add({
+        destroy: callback,
+      });
+    }
   }
 
   destroy() {
