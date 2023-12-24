@@ -1,16 +1,11 @@
 import IWorld from "world/IWorld";
 import { GraphicsEngine } from "./GraphicsEngine";
 import { Motor, Priority } from "./Motor";
-import { CameraUpdate } from "updates/CameraUpdate";
 import { Camera, CameraListener, CameraMatrixType } from "gl/camera/Camera";
-import { MediaId } from "gl/texture/ImageManager";
-import { TextureUpdate } from "updates/TextureUpdate";
-import { SpriteId } from "world/sprite/Sprite";
-import { SpriteTransformUpdate } from "updates/SpriteTransformUpdate";
-import { SpriteAnimUpdate } from "updates/SpriteAnimUpdate";
 import { Disposable } from "lifecycle/Disposable";
 import { Keyboard } from "controls/Keyboard";
-import { ActivateProps, Active, IdType, UpdateType } from "./Active";
+import { ActivateProps, Active } from "./Active";
+import { UpdateManager } from "../updates/UpdateManager";
 
 export interface Props {
   motor?: Motor;
@@ -68,24 +63,14 @@ export class Core extends Disposable {
   activate(world: IWorld, actives: Active[]) {
     const { engine, motor } = this;
 
-    //  Register updates
-    const textureImageUpdate = new TextureUpdate(motor, world.medias.at.bind(world.medias), engine);
-    const spriteTransformUpdate = new SpriteTransformUpdate(world.sprites.at.bind(world.sprites), engine);
-    const spriteAnimUpdate = new SpriteAnimUpdate(motor, world.sprites.at.bind(world.sprites), engine);
-    const cameraMatrixUpdate = new CameraUpdate(this.camera.getCameraMatrix.bind(this.camera), engine);
-    const onUpdates: Record<UpdateType, (id: IdType) => void> = {
-      ["SpriteAnim"]: (id: SpriteId) => motor.registerUpdate(spriteAnimUpdate.withSpriteId(id)),
-      ["SpriteTransform"]: (id: SpriteId) => motor.registerUpdate(spriteTransformUpdate.withSpriteId(id)),
-      ["Media"]: (id: MediaId) => motor.registerUpdate(textureImageUpdate.withImageId(id)),
-      ["CameraMatrix"]: (type: CameraMatrixType) => motor.registerUpdate(cameraMatrixUpdate.withCameraType(type)),
-    };
+    const updateManager = new UpdateManager(motor, this.camera, engine, world);
 
     const onDeactivates = new Set<() => void>();
-    onDeactivates.add(this.handleResize(onUpdates));
-    onDeactivates.add(this.handleCamera(onUpdates));
+    onDeactivates.add(this.handleResize(updateManager));
+    onDeactivates.add(this.handleCamera(updateManager));
 
     const activateProps: ActivateProps = {
-      updateCallback(type, id) { onUpdates[type](id); },
+      updateCallback(type, id) { updateManager.informUpdate(type, id); },
       core: this,
     };
     actives.forEach(active => {
@@ -97,29 +82,29 @@ export class Core extends Disposable {
     };
   }
 
-  private handleCamera(onUpdates: Record<UpdateType, (id: IdType) => void>) {
+  private handleCamera(updateManager: UpdateManager) {
     const listener: CameraListener = {
       onCameraUpdate() {
-        onUpdates.CameraMatrix(CameraMatrixType.POS);
+        updateManager.informUpdate("CameraMatrix", CameraMatrixType.POS);
       }
     };
 
     this.camera.addUpdateListener(listener);
 
-    onUpdates.CameraMatrix(CameraMatrixType.PROJECTION);
-    onUpdates.CameraMatrix(CameraMatrixType.POS);
+    updateManager.informUpdate("CameraMatrix", CameraMatrixType.PROJECTION);
+    updateManager.informUpdate("CameraMatrix", CameraMatrixType.POS);
 
     return () => {
       this.camera.removeUpdateListener(listener);
     };
   }
 
-  private handleResize(onUpdates: Record<UpdateType, (id: IdType) => void>) {
+  private handleResize(updateManager: UpdateManager) {
     const { engine } = this;
     //  Register resize event
     const onResize = (width: number, height: number) => {
       this.camera.configProjectionMatrix(width, height);
-      onUpdates.CameraMatrix(CameraMatrixType.PROJECTION);
+      updateManager.informUpdate("CameraMatrix", CameraMatrixType.PROJECTION);
     };
     engine.addResizeListener(onResize);
     return () => {
