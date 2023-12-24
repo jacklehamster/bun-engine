@@ -1,7 +1,8 @@
-import { CellPos } from "./Cell";
 /*
   Have position iterate from inwards to outwards.
 */
+
+import { CellPos } from "./CellPos";
 
 export class CellPosIterator implements Iterator<CellPos> {
   private cellPos: CellPos = [0, 0, 0];

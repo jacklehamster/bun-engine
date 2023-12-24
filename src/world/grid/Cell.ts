@@ -1,8 +1,9 @@
-import { Sprites } from "world/sprite/Sprites";
-
-export type CellPos = [number, number, number];
+import { Time } from "core/Motor";
+import { SpriteId } from "world/sprite/Sprite";
+import { CellPos } from "./CellPos";
+import { List } from "world/sprite/List";
 
 export interface Cell {
   pos: CellPos;
-  getSpriteUpdates(time: number): Sprites;
+  getSpriteUpdates(lastUpdate: Time): List<SpriteId>;
 }

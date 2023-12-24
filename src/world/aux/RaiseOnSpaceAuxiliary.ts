@@ -30,11 +30,11 @@ export class RaiseOnSpaceAuxiliary implements Auxliary {
     const speed = deltaTime / 80;
     const { keys, keysUp } = keyboard;
     if (keys.Space) {
-      this.camera.moveCam(0, -speed, 0);
-    } else if (keysUp.Space) {
       this.camera.moveCam(0, speed, 0);
+    } else if (keysUp.Space) {
+      this.camera.moveCam(0, -speed, 0);
       const [x, y, z] = this.camera.getPosition();
-      if (y > 0) {
+      if (y < 0) {
         this.camera.setPosition(x, 0, z);
         keysUp.Space = 0;
       }

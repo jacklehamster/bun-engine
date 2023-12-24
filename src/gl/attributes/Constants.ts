@@ -15,7 +15,7 @@ export const TRANSFORM_LOC: LocationName = 'transform';
 export const SLOT_SIZE_LOC: LocationName = 'slotSize_and_number';
 
 //  Uniform
-export const CAM_LOC: LocationName = 'cam';
+export const CAM_POS_LOC: LocationName = 'camPos';
 export const PROJECTION_LOC: LocationName = 'projection';
 export const MAX_TEXTURE_SIZE_LOC: LocationName = 'maxTextureSize';
 export const TEXTURE_UNIFORM_LOC: LocationName = 'uTextures';

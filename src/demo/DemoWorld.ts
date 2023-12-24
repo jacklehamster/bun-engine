@@ -1,12 +1,12 @@
-import { ActivateProps } from "core/Active";
 import { Core } from "core/Core";
 import Matrix from "gl/transform/Matrix";
 import { World } from "index";
 import { CamMoveAuxiliary } from "world/aux/CamMoveAuxiliary";
+import { CamStepAuxiliary } from "world/aux/CamStepAuxiliary";
 import { RaiseOnSpaceAuxiliary } from "world/aux/RaiseOnSpaceAuxiliary";
 import { Sprite } from "world/sprite/Sprite";
 
-const DOBUKI = 0, LOGO = 1, GROUND = 2, HUD = 3, VIDEO = 4, GRID = 5, WIREFRAME = 6;
+const DOBUKI = 0, LOGO = 1, GROUND = 2, VIDEO = 3, GRID = 4, WIREFRAME = 5;
 const LOGO_SIZE = 512;
 
 export class DemoWorld extends World {
@@ -15,6 +15,7 @@ export class DemoWorld extends World {
 
   constructor(core: Core) {
     super(core, [
+      // new CamStepAuxiliary(core.camera, { step: 2 }),
       new CamMoveAuxiliary(core.camera),
       new RaiseOnSpaceAuxiliary(core.camera),
     ]);
@@ -83,22 +84,6 @@ export class DemoWorld extends World {
         },
       },
       {
-        id: HUD,
-        type: "draw",
-        draw: ctx => {
-          const { canvas } = ctx;
-          canvas.width = LOGO_SIZE;
-          canvas.height = LOGO_SIZE;
-          ctx.lineWidth = canvas.width / 50;
-
-          ctx.strokeStyle = 'black';
-
-          ctx.beginPath();
-          ctx.rect(30, 30, canvas.width - 60, canvas.height - 60);
-          ctx.stroke();
-        },
-      },
-      {
         id: VIDEO,
         type: "video",
         src: 'sample.mp4',
@@ -143,12 +128,6 @@ export class DemoWorld extends World {
 
     this.sprites = [
       {
-        imageId: HUD,
-        transforms: [
-          this.core.camera.getHudMatrix().getMatrix(),
-        ],
-      },
-      {
         imageId: DOBUKI,
         transforms: [
           Matrix.create().translate(0, 0, 0).getMatrix(),
@@ -185,28 +164,8 @@ export class DemoWorld extends World {
       ).map(transform => ({ imageId: WIREFRAME, transforms: [transform] })),
 
       ...new Array(400).fill(0).map((_, index) =>
-        Matrix.create().translate((index % 20 - 10) * 2, 0, (Math.floor(index / 20) - 10) * 2 + 1).getMatrix(),
+        Matrix.create().translate((index % 20 - 10) * 2, 0, (Math.floor(index / 20) - 10) * 2).getMatrix(),
       ).map(transform => ({ imageId: WIREFRAME, transforms: [transform] })),
     ];
-  }
-
-  activate(activateProps: ActivateProps): () => void {
-    const onDeactivate = super.activate(activateProps);
-
-    //  Update all sprites
-    this.sprites.forEach((_, id) => {
-      this.informUpdate("SpriteTransform", id);
-      this.informUpdate("SpriteAnim", id);
-    });
-
-    //  hud follows camera
-    const deregisterCameraListener = activateProps.core.camera.addUpdateListener({
-      onCameraUpdate: () => this.informUpdate("SpriteTransform", this.hudSpriteId),
-    });
-
-    return () => {
-      deregisterCameraListener();
-      onDeactivate();
-    };
   }
 }

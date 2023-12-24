@@ -13,7 +13,7 @@ import {
   INDEX_LOC,
   TRANSFORM_LOC,
   SLOT_SIZE_LOC,
-  CAM_LOC,
+  CAM_POS_LOC,
   PROJECTION_LOC,
 } from '../gl/attributes/Constants';
 import { TEXTURE_INDEX_FOR_VIDEO, TextureId, TextureManager } from '../gl/texture/TextureManager';
@@ -154,7 +154,7 @@ export class GraphicsEngine extends Disposable implements Refresh {
     this.programs.useProgram(PROGRAM_NAME);
 
     this.cameraMatrixUniforms[CameraMatrixType.PROJECTION] = this.uniforms.getUniformLocation(PROJECTION_LOC, PROGRAM_NAME);
-    this.cameraMatrixUniforms[CameraMatrixType.VIEW] = this.uniforms.getUniformLocation(CAM_LOC, PROGRAM_NAME);
+    this.cameraMatrixUniforms[CameraMatrixType.POS] = this.uniforms.getUniformLocation(CAM_POS_LOC, PROGRAM_NAME);
 
     //  enable depth
     this.gl.enable(GL.DEPTH_TEST);

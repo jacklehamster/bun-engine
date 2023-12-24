@@ -24,7 +24,7 @@ export async function testCanvas(canvas: HTMLCanvasElement) {
   });
   const world = new DemoWorld(core);
   onStop = core.start(world);
-  return core;
+  return { core, world };
 }
 
 export function stop(): void {

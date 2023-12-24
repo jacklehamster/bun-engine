@@ -34,10 +34,11 @@
     window.global = globalThis;
   </script>
   <script type="module">
-    import { testCanvas, hello, World } from './build/index.js';
+    import { testCanvas, hello } from './build/index.js';
 
-    window.World = World;
-    window.core = await testCanvas(document.querySelector('#root'));
+    const { core, world } = await testCanvas(document.querySelector('#root'));
+    window.core = core;
+    window.world = world;
     hello();
   </script>
 </html>

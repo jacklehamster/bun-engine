@@ -100,14 +100,14 @@ export class Core extends Disposable {
   private handleCamera(onUpdates: Record<UpdateType, (id: IdType) => void>) {
     const listener: CameraListener = {
       onCameraUpdate() {
-        onUpdates.CameraMatrix(CameraMatrixType.VIEW);
+        onUpdates.CameraMatrix(CameraMatrixType.POS);
       }
     };
 
     this.camera.addUpdateListener(listener);
 
     onUpdates.CameraMatrix(CameraMatrixType.PROJECTION);
-    onUpdates.CameraMatrix(CameraMatrixType.VIEW);
+    onUpdates.CameraMatrix(CameraMatrixType.POS);
 
     return () => {
       this.camera.removeUpdateListener(listener);

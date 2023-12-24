@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { CellPosIterator } from "./CellPosIterator";
-import { CellPos } from "./Cell";
+import { CellPos } from "./CellPos";
 
 class CellIterable implements Iterable<CellPos> {
   constructor(private dist: number) {

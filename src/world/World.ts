@@ -5,6 +5,7 @@ import { Sprites } from "./sprite/Sprites";
 import { ActivateProps, IdType, UpdateType } from "core/Active";
 import { Media } from "gl/texture/Media";
 import { Auxliary } from "./aux/Auxiliary";
+import { forEach } from "./sprite/List";
 
 export abstract class World implements IWorld {
   constructor(protected core: Core, protected auxiliaries: Auxliary[]) {
@@ -28,6 +29,12 @@ export abstract class World implements IWorld {
     this.medias.forEach(media => this.informUpdate("Media", media.id));
 
     const deregisterLoop = core.motor.loop(this);
+
+    //  Update all sprites
+    forEach(this.sprites, (_, id) => {
+      this.informUpdate("SpriteTransform", id);
+      this.informUpdate("SpriteAnim", id);
+    });
 
     return () => {
       this.informUpdate = () => { };

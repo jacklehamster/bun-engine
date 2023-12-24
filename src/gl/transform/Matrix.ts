@@ -1,8 +1,9 @@
 import { mat4, quat, vec3 } from 'gl-matrix';
+import { IMatrix } from './IMatrix';
 
 const DEG_TO_RADIANT = Math.PI / 90;
 
-class Matrix {
+class Matrix implements IMatrix {
   private m4 = Float32Array.from(mat4.create());
 
   constructor() {
@@ -13,27 +14,32 @@ class Matrix {
     return new Matrix();
   }
 
+  public set(matrix: Matrix): Matrix {
+    mat4.copy(this.m4, matrix.getMatrix());
+    return this;
+  }
+
   public identity(): Matrix {
     mat4.identity(this.m4);
     return this;
   }
 
-  public invert(matrix: Matrix): Matrix {
-    mat4.invert(this.m4, matrix.getMatrix());
+  public invert(matrix?: IMatrix): Matrix {
+    mat4.invert(this.m4, matrix?.getMatrix() ?? this.getMatrix());
     return this;
   }
 
-  public multiply(matrix: Matrix): Matrix {
+  public multiply(matrix: IMatrix): Matrix {
     mat4.multiply(this.m4, this.m4, matrix.getMatrix());
     return this;
   }
 
-  public multiply2(matrix1: Matrix, matrix2: Matrix): Matrix {
+  public multiply2(matrix1: IMatrix, matrix2: IMatrix): Matrix {
     mat4.multiply(this.m4, matrix1.getMatrix(), matrix2.getMatrix());
     return this;
   }
 
-  public multiply3(matrix1: Matrix, matrix2: Matrix, matrix3: Matrix): Matrix {
+  public multiply3(matrix1: IMatrix, matrix2: IMatrix, matrix3: IMatrix): Matrix {
     this.multiply2(matrix1, matrix2);
     this.multiply(matrix3);
     return this;
@@ -64,6 +70,16 @@ class Matrix {
     return this;
   }
 
+  public setXRotation(angle: number): Matrix {
+    mat4.fromXRotation(this.getMatrix(), angle);
+    return this;
+  }
+
+  public setYRotation(angle: number): Matrix {
+    mat4.fromYRotation(this.getMatrix(), angle);
+    return this;
+  }
+
   public scale(x: number, y?: number, z?: number): Matrix {
     mat4.scale(this.m4, this.m4, [x, y ?? x, z ?? x]);
     return this;
@@ -85,8 +101,8 @@ class Matrix {
     return this;
   }
 
-  static aTemp = mat4.create();
-  static bTemp = mat4.create();
+  private static aTemp = mat4.create();
+  private static bTemp = mat4.create();
   combine(matrix1: Matrix, matrix2: Matrix, level: number = .5): Matrix {
     mat4.multiplyScalar(Matrix.aTemp, matrix1.getMatrix(), 1 - level);
     mat4.multiplyScalar(Matrix.bTemp, matrix2.getMatrix(), level);
@@ -95,8 +111,12 @@ class Matrix {
   }
 
   static tempQuat = quat.create();
-  moveMatrix(x: number, y: number, z: number, turnMatrix?: Matrix) {
-    const v = vec3.fromValues(-x, y, z);
+  static tempVec = vec3.create();
+  moveMatrix(x: number, y: number, z: number, turnMatrix?: IMatrix) {
+    const v = Matrix.tempVec;
+    v[0] = x;
+    v[1] = y;
+    v[2] = z;
     if (turnMatrix) {
       mat4.getRotation(Matrix.tempQuat, turnMatrix.getMatrix());
       quat.invert(Matrix.tempQuat, Matrix.tempQuat);
@@ -104,6 +124,32 @@ class Matrix {
     }
     mat4.translate(this.m4, this.m4, v);
     return this;
+  }
+
+  //  private static eulerAngles: { x: number, y: number, z: number } = { x: 0, y: 0, z: 0 };
+  getRotationAngle() {
+    mat4.getRotation(Matrix.tempQuat, this.getMatrix());
+    return quat.getAngle(quat.create(), Matrix.tempQuat);
+
+    // const matrix = this.getMatrix();
+    // const sy = Math.sqrt(matrix[0] * matrix[0] + matrix[4] * matrix[4]);
+
+    // let x, y, z;
+
+    // if (sy > 1e-6) {
+    //   x = Math.atan2(matrix[6], matrix[10]);
+    //   y = Math.atan2(-matrix[2], sy);
+    //   z = Math.atan2(matrix[1], matrix[0]);
+    // } else {
+    //   x = Math.atan2(-matrix[9], matrix[5]);
+    //   y = Math.atan2(-matrix[2], sy);
+    //   z = 0;
+    // }
+    // Matrix.eulerAngles.x = x;
+    // Matrix.eulerAngles.y = y;
+    // Matrix.eulerAngles.z = z;
+    // return Matrix.eulerAngles;
+
   }
 
   public getMatrix(): Float32Array {

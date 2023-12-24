@@ -13,7 +13,7 @@ layout(location = 5) in vec2 slotSize_and_number;
 
 //  UNIFORM
 uniform float maxTextureSize;
-uniform mat4 cam;
+uniform mat4 camPos;
 uniform mat4 projection;
 
 //  OUT
@@ -31,7 +31,7 @@ void main() {
   float slotX = mod(slotNumber, maxCols);
   float slotY = mod(floor(slotNumber / maxCols), maxRows);
 
-  gl_Position = projection * cam * transform * vec4(position, 0.0, 1.0);
+  gl_Position = projection * camPos * transform * vec4(position, 0.0, 1.0);
   vTex = (vec2(slotX, slotY) + tex) * slotSize / maxTextureSize;
   textureIndex = floor(slotNumber / (maxCols * maxRows));
 }

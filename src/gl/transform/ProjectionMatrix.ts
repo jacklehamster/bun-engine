@@ -1,6 +1,8 @@
+import { IMatrix } from "./IMatrix";
 import Matrix from "./Matrix";
 
-export class ProjectionMatrix extends Matrix {
+export class ProjectionMatrix implements IMatrix {
+  private readonly baseMatrix = Matrix.create();
   private readonly perspectiveMatrix = Matrix.create();
   private readonly orthoMatrix = Matrix.create();
   private perspectiveLevel = 1;
@@ -21,6 +23,10 @@ export class ProjectionMatrix extends Matrix {
 
   setPerspective(level: number) {
     this.perspectiveLevel = level;
-    this.combine(this.orthoMatrix, this.perspectiveMatrix, this.perspectiveLevel);
+    this.baseMatrix.combine(this.orthoMatrix, this.perspectiveMatrix, this.perspectiveLevel);
+  }
+
+  getMatrix(): Float32Array {
+    return this.baseMatrix.getMatrix();
   }
 }

@@ -26,10 +26,10 @@ export class CamMoveAuxiliary implements Auxliary {
     const speed = deltaTime / 80;
     const turnspeed = deltaTime / 400;
     if (keys.KeyW || keys.ArrowUp && !keys.ShiftRight) {
-      this.camera.moveCam(0, 0, speed);
+      this.camera.moveCam(0, 0, -speed);
     }
     if (keys.KeyS || keys.ArrowDown && !keys.ShiftRight) {
-      this.camera.moveCam(0, 0, -speed);
+      this.camera.moveCam(0, 0, speed);
     }
     if (keys.KeyA || (keys.ArrowLeft && !keys.ShiftRight)) {
       this.camera.moveCam(-speed, 0, 0);
