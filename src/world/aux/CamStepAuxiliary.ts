@@ -4,6 +4,7 @@ import { Camera } from "gl/camera/Camera";
 import { UpdatePayload } from "updates/Refresh";
 import { Auxliary } from "./Auxiliary";
 import { CellPos } from "world/grid/CellPos";
+import { angle, angleStep } from "gl/utils/angleUtils";
 
 interface Config {
   step: number;
@@ -28,7 +29,7 @@ export class CamStepAuxiliary implements Auxliary {
     };
     this.config = {
       step: config.step ?? 1,
-      turnStep: config.step ?? Math.PI / 2,
+      turnStep: config.turnStep ?? Math.PI / 2,
     };
   }
 
@@ -68,8 +69,11 @@ export class CamStepAuxiliary implements Auxliary {
       dx++;
     }
     if (dx || dz || this.stepCount > 0) {
-      const gx = Math.round(pos[0] / step + dx) * step;
-      const gz = Math.round(pos[2] / step + dz) * step;
+      const relativeDx = dx * Math.cos(this.goal.turn) - dz * Math.sin(this.goal.turn);
+      const relativeDz = dx * Math.sin(this.goal.turn) + dz * Math.cos(this.goal.turn);
+
+      const gx = Math.round(pos[0] / step + relativeDx) * step;
+      const gz = Math.round(pos[2] / step + relativeDz) * step;
       this.goal.pos[0] = gx;
       this.goal.pos[2] = gz;
     }
@@ -77,7 +81,7 @@ export class CamStepAuxiliary implements Auxliary {
     if (!dx && !dz) {
       this.stepCount = 0;
     }
-    const speed = (dx || dz) ? deltaTime / 100 : deltaTime / 50;
+    const speed = (dx || dz) ? deltaTime / 150 : deltaTime / 100;
 
     this.camera.gotoPos(this.goal.pos[0], pos[1], this.goal.pos[2], speed);
     const newPos = this.camera.getPosition();
@@ -87,36 +91,32 @@ export class CamStepAuxiliary implements Auxliary {
       this.stepCount++;
     }
 
-    // let dTurn = 0;
-    // if (keys.KeyQ || (keys.ArrowLeft && keys.ShiftRight)) {
-    //   dTurn--;
-    // }
-    // if (keys.KeyE || (keys.ArrowRight && keys.ShiftRight)) {
-    //   dTurn++;
-    // }
-    // if (!dTurn) {
-    //   this.turnCount = 0;
-    // }
-    // const turn = this.camera.getTurnAngle();
-    // const preTurn = Math.round(turn / turnStep) * turnStep;
-    // if (dTurn || this.turnCount > 0) {
-    //   const gturn = Math.round(turn / turnStep + dTurn) * turnStep;
-    //   this.goal.turn = gturn;
-    // }
-    // const turnSpeed = deltaTime / 400;
-    // const distTurn = (this.goal.turn - turn + (Math.PI * 2)) % (Math.PI * 2);
-    // if (distTurn) {
-    //   if (Math.abs(distTurn) < .1) {
-    //     this.camera.setTurnAngle(this.goal.turn);
-    //   } else {
-    //     this.camera.setTurnAngle(turn + (turnSpeed < Math.abs(distTurn) ? Math.sign(distTurn) * turnSpeed : distTurn));
-    //   }
-    //   //    this.camera.turnCam(turnSpeed > distTurn ? Math.sign(distTurn) * turnSpeed : distTurn);
-    //   const newTurn = this.camera.getTurnAngle();
-    //   if (Math.round(newTurn / turnStep) * turnStep !== preTurn) {
-    //     this.turnCount++;
-    //   }
-    // }
+    let dTurn = 0;
+    if (keys.KeyQ || (keys.ArrowLeft && keys.ShiftRight)) {
+      dTurn--;
+    }
+    if (keys.KeyE || (keys.ArrowRight && keys.ShiftRight)) {
+      dTurn++;
+    }
+    const turn = this.camera.getTurnAngle();
+    const preTurn = angleStep(turn, turnStep);
+    if (dTurn || this.turnCount > 0) {
+      const gturn = angleStep(turn + turnStep * dTurn, turnStep);
+      this.goal.turn = gturn;
+    }
+    if (!dTurn) {
+      this.turnCount = 0;
+    }
+    const turnSpeed = dTurn ? deltaTime / 200 : deltaTime / 100;
+    let deltaTurn = angle(this.goal.turn - turn);
+    if (deltaTurn) {
+      const distTurn = Math.abs(deltaTurn);
+      this.camera.setTurnAngle(distTurn < .01 ? this.goal.turn : turn + Math.sign(deltaTurn) * Math.min(turnSpeed, distTurn));
+      const newTurn = angleStep(this.camera.getTurnAngle(), turnStep);
+      if (newTurn !== preTurn) {
+        this.turnCount++;
+      }
+    }
     // if (keys.ArrowUp && keys.ShiftRight) {
     //   this.camera.tilt(-turnspeed);
     // }

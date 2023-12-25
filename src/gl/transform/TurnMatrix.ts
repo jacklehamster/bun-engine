@@ -1,18 +1,17 @@
+import { Angle, angle } from "gl/utils/angleUtils";
 import { IMatrix } from "./IMatrix";
 import Matrix from "./Matrix";
 
-const CYCLE = 2 * Math.PI;
-
 export class TurnMatrix implements IMatrix {
   private matrix: Matrix = Matrix.create();;
-  private _turn: number = 0;
+  private _turn: Angle = 0;
 
-  get turn(): number {
+  get turn(): Angle {
     return this._turn;
   }
 
   set turn(value: number) {
-    this._turn = (value % CYCLE + CYCLE) % CYCLE;
+    this._turn = angle(value);
     this.matrix.setYRotation(this._turn);
   }
 

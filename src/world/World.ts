@@ -7,9 +7,12 @@ import { UpdateType } from "updates/UpdateManager";
 import { Media } from "gl/texture/Media";
 import { Auxliary } from "./aux/Auxiliary";
 import { forEach } from "./sprite/List";
+import { TextureUpdate } from "updates/TextureUpdate";
 
 export abstract class World implements IWorld {
+  private textureUpdate: TextureUpdate;
   constructor(protected core: Core, protected auxiliaries: Auxliary[]) {
+    this.textureUpdate = new TextureUpdate(core.motor, this.medias.at.bind(this.medias), core.engine);
   }
 
   protected informUpdate(type: UpdateType, id: IdType): void {
@@ -27,7 +30,8 @@ export abstract class World implements IWorld {
     this.informUpdate = updateCallback;
 
     this.auxiliaries.forEach(aux => aux.activate(activateProps));
-    this.medias.forEach(media => this.informUpdate("Media", media.id));
+    // this.medias.forEach(media => this.informUpdate("Media", media.id));
+    this.medias.forEach(media => this.textureUpdate.informUpdate(media.id));
 
     const deregisterLoop = core.motor.loop(this);
 

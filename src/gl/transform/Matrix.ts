@@ -1,5 +1,6 @@
 import { mat4, quat, vec3 } from 'gl-matrix';
 import { IMatrix } from './IMatrix';
+import { Angle } from 'gl/utils/angleUtils';
 
 const DEG_TO_RADIANT = Math.PI / 90;
 
@@ -55,27 +56,27 @@ class Matrix implements IMatrix {
     return this.translate(-m4[12], -m4[13], -m4[14]);
   }
 
-  public rotateX(angle: number): Matrix {
+  public rotateX(angle: Angle): Matrix {
     mat4.rotateX(this.m4, this.m4, angle);
     return this;
   }
 
-  public rotateY(angle: number): Matrix {
+  public rotateY(angle: Angle): Matrix {
     mat4.rotateY(this.m4, this.m4, angle);
     return this;
   }
 
-  public rotateZ(angle: number): Matrix {
+  public rotateZ(angle: Angle): Matrix {
     mat4.rotateZ(this.m4, this.m4, angle);
     return this;
   }
 
-  public setXRotation(angle: number): Matrix {
+  public setXRotation(angle: Angle): Matrix {
     mat4.fromXRotation(this.getMatrix(), angle);
     return this;
   }
 
-  public setYRotation(angle: number): Matrix {
+  public setYRotation(angle: Angle): Matrix {
     mat4.fromYRotation(this.getMatrix(), angle);
     return this;
   }

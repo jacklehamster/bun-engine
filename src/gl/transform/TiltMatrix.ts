@@ -1,18 +1,17 @@
+import { Angle, angle } from "gl/utils/angleUtils";
 import { IMatrix } from "./IMatrix";
 import Matrix from "./Matrix";
 
-const CYCLE = 2 * Math.PI;
-
 export class TiltMatrix implements IMatrix {
   private matrix: Matrix = Matrix.create();;
-  private _tilt: number = 0;
+  private _tilt: Angle = 0;
 
-  get tilt(): number {
+  get tilt(): Angle {
     return this._tilt;
   }
 
   set tilt(value: number) {
-    this._tilt = (value % CYCLE + CYCLE) % CYCLE;
+    this._tilt = angle(value);
     this.matrix.setXRotation(this._tilt);
   }
 

@@ -14,6 +14,10 @@ export class TextureUpdate implements Refresh {
     return this;
   }
 
+  informUpdate(imageId: MediaId) {
+    this.motor.registerUpdate(this.withImageId(imageId));
+  }
+
   refresh(): void {
     const imageIds = Array.from(this.updatedImageIds);
     this.updatedImageIds.clear();

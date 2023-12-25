@@ -15,8 +15,8 @@ export class DemoWorld extends World {
 
   constructor(core: Core) {
     super(core, [
-      // new CamStepAuxiliary(core.camera, { step: 2 }),
-      new CamMoveAuxiliary(core.camera),
+      new CamStepAuxiliary(core.camera, { step: 2 }),
+      // new CamMoveAuxiliary(core.camera),
       new RaiseOnSpaceAuxiliary(core.camera),
     ]);
 
@@ -130,20 +130,20 @@ export class DemoWorld extends World {
       {
         imageId: DOBUKI,
         transforms: [
-          Matrix.create().translate(0, 0, 0).getMatrix(),
+          Matrix.create().translate(0, 0, -1).getMatrix(),
         ],
       },
       //  side walls
       ...[
-        Matrix.create().translate(-1, 0, 1).rotateY(Math.PI / 2).scale(1).getMatrix(),
-        Matrix.create().translate(1, 0, 1).rotateY(-Math.PI / 2).scale(1).getMatrix(),
+        Matrix.create().translate(-1, 0, 0).rotateY(Math.PI / 2).scale(1).getMatrix(),
+        Matrix.create().translate(1, 0, 0).rotateY(-Math.PI / 2).scale(1).getMatrix(),
       ].map(transform => ({ imageId: LOGO, transforms: [transform] })),
       //  floor
       ...[
-        Matrix.create().translate(0, -1, 1).rotateX(-Math.PI / 2).scale(1).getMatrix(),
-        Matrix.create().translate(0, -1, 3).rotateX(-Math.PI / 2).scale(1).getMatrix(),
-        Matrix.create().translate(-2, -1, 3).rotateX(-Math.PI / 2).scale(1).getMatrix(),
-        Matrix.create().translate(2, -1, 3).rotateX(-Math.PI / 2).scale(1).getMatrix(),
+        Matrix.create().translate(0, -1, 0).rotateX(-Math.PI / 2).scale(1).getMatrix(),
+        Matrix.create().translate(0, -1, 2).rotateX(-Math.PI / 2).scale(1).getMatrix(),
+        Matrix.create().translate(-2, -1, 2).rotateX(-Math.PI / 2).scale(1).getMatrix(),
+        Matrix.create().translate(2, -1, 2).rotateX(-Math.PI / 2).scale(1).getMatrix(),
       ].map(transform => ({ imageId: GROUND, transforms: [transform] })),
       {
         imageId: VIDEO,
@@ -152,19 +152,19 @@ export class DemoWorld extends World {
         ],
       },
       ...new Array(400).fill(0).map((_, index) =>
-        Matrix.create().translate((index % 20 - 10) * 2, -1.5, (Math.floor(index / 20) - 10) * 2 + 1).rotateX(-Math.PI / 2).scale(1).getMatrix(),
+        Matrix.create().translate((index % 20 - 10) * 2, -1.5, (Math.floor(index / 20) - 10) * 2).rotateX(-Math.PI / 2).scale(1).getMatrix(),
       ).map(transform => ({ imageId: GRID, transforms: [transform] })),
 
       //  Wireframe
       ...new Array(400).fill(0).map((_, index) =>
-        Matrix.create().translate((index % 20 - 10) * 2, -1, (Math.floor(index / 20) - 10) * 2 + 1).rotateX(-Math.PI / 2).scale(1).getMatrix(),
+        Matrix.create().translate((index % 20 - 10) * 2, -1, (Math.floor(index / 20) - 10) * 2).rotateX(-Math.PI / 2).scale(1).getMatrix(),
       ).map(transform => ({ imageId: WIREFRAME, transforms: [transform] })),
       ...new Array(400).fill(0).map((_, index) =>
-        Matrix.create().translate((index % 20 - 10) * 2, 1, (Math.floor(index / 20) - 10) * 2 + 1).rotateX(-Math.PI / 2).scale(1).getMatrix(),
+        Matrix.create().translate((index % 20 - 10) * 2, 1, (Math.floor(index / 20) - 10) * 2).rotateX(-Math.PI / 2).scale(1).getMatrix(),
       ).map(transform => ({ imageId: WIREFRAME, transforms: [transform] })),
 
       ...new Array(400).fill(0).map((_, index) =>
-        Matrix.create().translate((index % 20 - 10) * 2, 0, (Math.floor(index / 20) - 10) * 2).getMatrix(),
+        Matrix.create().translate((index % 20 - 10) * 2, 0, (Math.floor(index / 20) - 10) * 2 - 1).getMatrix(),
       ).map(transform => ({ imageId: WIREFRAME, transforms: [transform] })),
     ];
   }

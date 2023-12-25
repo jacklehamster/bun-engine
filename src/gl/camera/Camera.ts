@@ -19,7 +19,7 @@ export interface CameraListener {
 }
 
 export class Camera implements Refresh {
-  private readonly camPositionMatrix: Matrix = Matrix.create().translate(0, 0, -1);
+  private readonly camPositionMatrix: Matrix = Matrix.create().translate(0, 0, 0);
   private readonly projectionMatrix = new ProjectionMatrix();
   private readonly camTiltMatrix = new TiltMatrix();
   private readonly camTurnMatrix = new TurnMatrix();
@@ -103,6 +103,11 @@ export class Camera implements Refresh {
 
   getTurnAngle() {
     return this.camTurnMatrix.turn;
+  }
+
+  setTurnAngle(value: number) {
+    this.camTurnMatrix.turn = value;
+    this.onCameraUpdate();
   }
 
   tilt(angle: number) {
