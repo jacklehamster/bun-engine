@@ -35,6 +35,7 @@ export class MediaData extends Disposable implements Refresh {
   static async loadImage(src: string): Promise<MediaData> {
     const image = await new Promise<HTMLImageElement>((resolve, reject) => {
       const image = new Image();
+      image.crossOrigin = "anonymous";
       const imageError = (e: ErrorEvent) => reject(e.error);
       image.addEventListener('error', imageError);
       image.addEventListener('load', () => resolve(image), { once: true });

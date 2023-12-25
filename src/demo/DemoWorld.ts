@@ -20,11 +20,12 @@ export class DemoWorld extends World {
       new RaiseOnSpaceAuxiliary(core.camera),
     ]);
 
-    this.addMedia({
-      id: DOBUKI,
-      type: "image",
-      src: 'dobuki.png',
-    },
+    this.addMedia(
+      {
+        id: DOBUKI,
+        type: "image",
+        src: 'dobuki.png',
+      },
       {
         id: LOGO,
         type: "draw",
@@ -124,7 +125,8 @@ export class DemoWorld extends World {
           ctx.rect(10, 10, canvas.width - 20, canvas.height - 20);
           ctx.stroke();
         },
-      });
+      },
+    );
 
     this.sprites = [
       {

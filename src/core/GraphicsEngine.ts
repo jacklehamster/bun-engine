@@ -15,6 +15,7 @@ import {
   SLOT_SIZE_LOC,
   CAM_POS_LOC,
   PROJECTION_LOC,
+  INSTANCE_LOC,
 } from '../gl/attributes/Constants';
 import { TEXTURE_INDEX_FOR_VIDEO, TextureId, TextureManager } from '../gl/texture/TextureManager';
 import { MediaId, ImageManager } from 'gl/texture/ImageManager';
@@ -183,6 +184,7 @@ export class GraphicsEngine extends Disposable implements Refresh {
         this.initializePositionBuffer(POSITION_LOC),
         this.initializeTransformBuffer(TRANSFORM_LOC, maxSpriteCount),
         this.initializeSlotSizeBuffer(SLOT_SIZE_LOC, maxSpriteCount),
+        this.initializeInstanceBuffer(INSTANCE_LOC, maxSpriteCount),
       ];
       cleanups.forEach(cleanup => this.onCleanupBuffers.add(cleanup));
     }
@@ -227,21 +229,22 @@ export class GraphicsEngine extends Disposable implements Refresh {
   private initializeTransformBuffer(location: LocationName, spriteCount: number) {
     const bufferInfo = this.attributeBuffers.createBuffer(location);
     this.gl.bindBuffer(GL.ARRAY_BUFFER, bufferInfo.buffer);
+    const elemCount = 4;
     for (let i = 0; i < 4; i++) {
       const loc = bufferInfo.location + i;
       this.gl.vertexAttribPointer(
         loc,
-        4,
+        elemCount,
         GL.FLOAT,
         false,
-        4 * 4 * Float32Array.BYTES_PER_ELEMENT,
+        elemCount * 4 * Float32Array.BYTES_PER_ELEMENT,
         i * 4 * Float32Array.BYTES_PER_ELEMENT,
       );
       this.gl.enableVertexAttribArray(loc);
       this.gl.vertexAttribDivisor(loc, 1);
     }
     this.gl.bufferData(GL.ARRAY_BUFFER,
-      spriteCount * 4 * 4 * Float32Array.BYTES_PER_ELEMENT,
+      spriteCount * elemCount * 4 * Float32Array.BYTES_PER_ELEMENT,
       GL.DYNAMIC_DRAW);
     return () => {
       this.gl.disableVertexAttribArray(bufferInfo.location);
@@ -253,19 +256,50 @@ export class GraphicsEngine extends Disposable implements Refresh {
     const bufferInfo = this.attributeBuffers.createBuffer(location);
     this.gl.bindBuffer(GL.ARRAY_BUFFER, bufferInfo.buffer);
     const loc = bufferInfo.location;
+    const elemCount = 2;
     this.gl.vertexAttribPointer(
       loc,
-      2,
+      elemCount,
       GL.FLOAT,
       false,
-      2 * Float32Array.BYTES_PER_ELEMENT,
+      elemCount * Float32Array.BYTES_PER_ELEMENT,
       0,
     );
     this.gl.enableVertexAttribArray(loc);
     this.gl.vertexAttribDivisor(loc, 1);
     this.gl.bufferData(GL.ARRAY_BUFFER,
-      spriteCount * 2 * Float32Array.BYTES_PER_ELEMENT,
+      spriteCount * elemCount * Float32Array.BYTES_PER_ELEMENT,
       GL.DYNAMIC_DRAW);
+    return () => {
+      this.gl.disableVertexAttribArray(bufferInfo.location);
+      this.attributeBuffers.deleteBuffer(location);
+    };
+  }
+
+  private initializeInstanceBuffer(location: LocationName, spriteCount: number) {
+    const bufferInfo = this.attributeBuffers.createBuffer(location);
+    this.gl.bindBuffer(GL.ARRAY_BUFFER, bufferInfo.buffer);
+    const loc = bufferInfo.location;
+    const elemCount = 1;
+    this.gl.vertexAttribPointer(
+      loc,
+      elemCount,
+      GL.FLOAT,
+      false,
+      elemCount * Float32Array.BYTES_PER_ELEMENT,
+      0,
+    );
+    this.gl.enableVertexAttribArray(loc);
+    this.gl.vertexAttribDivisor(loc, 1);
+    this.gl.bufferData(GL.ARRAY_BUFFER,
+      Float32Array.from(new Array(spriteCount).fill(null).map((_, index) => index)),
+      //      spriteCount * elemCount * Float32Array.BYTES_PER_ELEMENT,
+      GL.STATIC_DRAW);
+    // this.gl.bufferData(GL.ELEMENT_ARRAY_BUFFER,
+    //   Uint16Array.from([0, 1, 2, 2, 3, 0]),
+    //   GL.STATIC_DRAW);
+
+
     return () => {
       this.gl.disableVertexAttribArray(bufferInfo.location);
       this.attributeBuffers.deleteBuffer(location);
@@ -357,7 +391,19 @@ export class GraphicsEngine extends Disposable implements Refresh {
     return this.own(new VertexArray(this.gl));
   }
 
+  private _pixel: Uint8Array = new Uint8Array(4);
+  private getPixel(x: number, y: number) {
+    this.gl.readPixels(x, y, 1, 1, this.gl.RGBA, this.gl.UNSIGNED_BYTE, this._pixel);
+    const [r, g, b, a] = this._pixel;
+    return { r, g, b, a: a / 255 };
+  }
+
+  mouseX: number = 0;
+  mouseY: number = 0;
+  mouseColor: any = {};
   refresh(): void {
     this.drawElementsInstanced(VERTEX_COUNT, this.spriteCount);
+    // this.mouseColor = this.getPixel(this.mouseX, this.mouseY);
+    // console.log(this.mouseColor);
   }
 }
