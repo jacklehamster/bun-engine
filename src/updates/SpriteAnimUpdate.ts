@@ -2,10 +2,15 @@ import { Sprite, SpriteId } from "world/sprite/Sprite";
 import { Refresh } from "./Refresh";
 import { GraphicsEngine } from "core/GraphicsEngine";
 import { Motor } from "core/Motor";
+import { UpdateNotifier } from "./UpdateNotifier";
 
-export class SpriteAnimUpdate implements Refresh {
+export class SpriteAnimUpdate implements Refresh, UpdateNotifier {
   private readonly updatedSpriteIds: Set<SpriteId> = new Set();
-  constructor(private motor: Motor, private getSprite: (spriteId: SpriteId) => Sprite | undefined, private engine: GraphicsEngine) {
+  constructor(private getSprite: (spriteId: SpriteId) => Sprite | undefined, private engine: GraphicsEngine, private motor: Motor) {
+  }
+
+  informUpdate(id: SpriteId): void {
+    this.motor.registerUpdate(this.withSpriteId(id))
   }
 
   withSpriteId(spriteId: SpriteId): SpriteAnimUpdate {

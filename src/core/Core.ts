@@ -5,7 +5,6 @@ import { Camera } from "gl/camera/Camera";
 import { Disposable } from "lifecycle/Disposable";
 import { Keyboard } from "controls/Keyboard";
 import { ActivateProps, Active } from "./Active";
-import { UpdateManager } from "../updates/UpdateManager";
 
 export interface Props {
   motor?: Motor;
@@ -48,7 +47,7 @@ export class Core extends Disposable {
     engine.clearTextureSlots();
 
     //  Activate world
-    const onDeactivate = this.activate(world, [
+    const onDeactivate = this.activate([
       world, this.keyboard,
     ]);
 
@@ -60,17 +59,12 @@ export class Core extends Disposable {
     };
   }
 
-  activate(world: IWorld, actives: Active[]) {
-    const { engine, motor } = this;
-
-    const updateManager = new UpdateManager(motor, engine, world);
-
+  activate(actives: Active[]) {
     const onDeactivates = new Set<() => void>();
     onDeactivates.add(this.handleResize());
     this.camera.initialize();
 
     const activateProps: ActivateProps = {
-      updateCallback(type, id) { updateManager.informUpdate(type, id); },
       core: this,
     };
     actives.forEach(active => {
