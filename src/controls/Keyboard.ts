@@ -1,4 +1,5 @@
-import { ActivateProps, Active } from "core/Active";
+import { Active } from "core/Active";
+import { Core } from "core/Core";
 
 const QUICK_TAP_TIME = 200;
 
@@ -13,8 +14,7 @@ export class Keyboard implements Active {
 
   private readonly keyListener = new Set<KeyListener>();
 
-  public activate(activateProps: ActivateProps): () => void {
-    const { core } = activateProps;
+  public activate(core: Core): () => void {
     const keyDown = (e: KeyboardEvent) => {
       if (!this.keys[e.code]) {
         this.keys[e.code] = core.motor.time;

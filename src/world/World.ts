@@ -1,7 +1,7 @@
 import IWorld from "./IWorld";
 import { Core } from "core/Core";
 import { Sprites } from "./sprite/Sprites";
-import { ActivateProps, IdType } from "core/Active";
+import { IdType } from "core/Active";
 import { Media } from "gl/texture/Media";
 import { Auxiliary } from "./aux/Auxiliary";
 import { forEach } from "./sprite/List";
@@ -29,9 +29,7 @@ export abstract class World extends AuxiliaryHolder implements IWorld {
     return this.sprites.at(id);
   }
 
-  activate(activateProps: ActivateProps): () => void {
-    const { core } = activateProps;
-
+  activate(core: Core): () => void {
     const deregisterLoop = core.motor.loop(this);
 
     //  Update all sprites

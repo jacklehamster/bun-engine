@@ -4,7 +4,7 @@ import { Motor, Priority } from "./Motor";
 import { Camera } from "gl/camera/Camera";
 import { Disposable } from "lifecycle/Disposable";
 import { Keyboard } from "controls/Keyboard";
-import { ActivateProps, Active } from "./Active";
+import { Active } from "./Active";
 
 export interface Props {
   motor?: Motor;
@@ -64,11 +64,8 @@ export class Core extends Disposable {
     onDeactivates.add(this.handleResize());
     this.camera.initialize();
 
-    const activateProps: ActivateProps = {
-      core: this,
-    };
     actives.forEach(active => {
-      const onDeactivate = active.activate(activateProps);
+      const onDeactivate = active.activate(this);
       onDeactivates.add(onDeactivate);
     });
     return () => {

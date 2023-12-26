@@ -5,10 +5,6 @@ import { CameraMatrixType } from "gl/camera/Camera";
 
 export type IdType = SpriteId | MediaId | CameraMatrixType;
 
-export interface ActivateProps {
-  core: Core;
-}
-
 export interface Active {
-  activate(activateProps: ActivateProps): (() => void);
+  activate(core: Core): (() => void);
 }
