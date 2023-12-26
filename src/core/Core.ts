@@ -1,12 +1,11 @@
 import IWorld from "world/IWorld";
 import { GraphicsEngine } from "./GraphicsEngine";
 import { Motor, Priority } from "./Motor";
-import { Camera, CameraListener, CameraMatrixType } from "gl/camera/Camera";
+import { Camera } from "gl/camera/Camera";
 import { Disposable } from "lifecycle/Disposable";
 import { Keyboard } from "controls/Keyboard";
 import { ActivateProps, Active } from "./Active";
 import { UpdateManager } from "../updates/UpdateManager";
-import { CameraUpdate } from "updates/CameraUpdate";
 
 export interface Props {
   motor?: Motor;
@@ -35,9 +34,9 @@ export class Core extends Disposable {
 
   private initialize() {
     const { engine, motor } = this;
-    const deregisterGraphics = motor.loop(engine, undefined, Priority.LAST);
+    const deregisterEngine = motor.loop(engine, undefined, Priority.LAST);
     this.addOnDestroy(() => {
-      deregisterGraphics();
+      deregisterEngine();
     });
   }
 
@@ -65,11 +64,10 @@ export class Core extends Disposable {
     const { engine, motor } = this;
 
     const updateManager = new UpdateManager(motor, engine, world);
-    const cameraMatrixUpdate = new CameraUpdate(this.camera.getCameraMatrix.bind(this.camera), engine);
 
     const onDeactivates = new Set<() => void>();
-    onDeactivates.add(this.handleResize(cameraMatrixUpdate));
-    onDeactivates.add(this.handleCamera(cameraMatrixUpdate));
+    onDeactivates.add(this.handleResize());
+    this.camera.initialize();
 
     const activateProps: ActivateProps = {
       updateCallback(type, id) { updateManager.informUpdate(type, id); },
@@ -84,34 +82,11 @@ export class Core extends Disposable {
     };
   }
 
-  private handleCamera(updater: CameraUpdate) {
-    const { motor } = this;
-    const listener: CameraListener = {
-      onCameraUpdate() {
-        motor.registerUpdate(updater.withCameraType(CameraMatrixType.POS));
-        // updateManager.informUpdate("CameraMatrix", CameraMatrixType.POS);
-      }
-    };
-
-    this.camera.addUpdateListener(listener);
-
-    motor.registerUpdate(updater.withCameraType(CameraMatrixType.PROJECTION));
-    motor.registerUpdate(updater.withCameraType(CameraMatrixType.POS));
-    // updateManager.informUpdate("CameraMatrix", CameraMatrixType.PROJECTION);
-    // updateManager.informUpdate("CameraMatrix", CameraMatrixType.POS);
-
-    return () => {
-      this.camera.removeUpdateListener(listener);
-    };
-  }
-
-  private handleResize(updater: CameraUpdate) {
-    const { engine, motor } = this;
+  private handleResize() {
+    const { engine } = this;
     //  Register resize event
     const onResize = (width: number, height: number) => {
       this.camera.configProjectionMatrix(width, height);
-      motor.registerUpdate(updater.withCameraType(CameraMatrixType.PROJECTION));
-      // updateManager.informUpdate("CameraMatrix", CameraMatrixType.PROJECTION);
     };
     engine.addResizeListener(onResize);
     return () => {

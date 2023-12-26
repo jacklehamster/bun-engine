@@ -1,7 +1,6 @@
 import { Core } from "core/Core";
 import Matrix from "gl/transform/Matrix";
 import { World } from "index";
-import { CamMoveAuxiliary } from "world/aux/CamMoveAuxiliary";
 import { CamStepAuxiliary } from "world/aux/CamStepAuxiliary";
 import { RaiseOnSpaceAuxiliary } from "world/aux/RaiseOnSpaceAuxiliary";
 import { Sprite } from "world/sprite/Sprite";
@@ -15,9 +14,9 @@ export class DemoWorld extends World {
 
   constructor(core: Core) {
     super(core, [
-      new CamStepAuxiliary(core.camera, { step: 2 }),
-      // new CamMoveAuxiliary(core.camera),
-      new RaiseOnSpaceAuxiliary(core.camera),
+      new CamStepAuxiliary(core, { step: 1, turnStep: Math.PI / 4, tiltStep: Math.PI / 8 }),
+      // new CamMoveAuxiliary(core),
+      new RaiseOnSpaceAuxiliary(core),
     ]);
 
     this.addMedia(

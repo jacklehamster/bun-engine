@@ -1,56 +1,53 @@
 import { Keyboard } from "controls/Keyboard";
-import { ActivateProps } from "core/Active";
 import { Camera } from "gl/camera/Camera";
 import { UpdatePayload } from "updates/Refresh";
-import { Auxliary } from "./Auxiliary";
+import { Auxiliary } from "./Auxiliary";
 import { CellPos } from "world/grid/CellPos";
 import { angle, angleStep } from "gl/utils/angleUtils";
+import { Core } from "core/Core";
 
 interface Config {
   step: number;
   turnStep: number;
+  tiltStep: number;
 }
 
-export class CamStepAuxiliary implements Auxliary {
-  private keyboard?: Keyboard;
+export class CamStepAuxiliary implements Auxiliary {
+  private readonly keyboard: Keyboard;
+  private readonly camera: Camera;
   private readonly goal: {
     turn: number;
+    tilt: number;
     pos: CellPos;
   };
   private stepCount: number = 0;
   private turnCount: number = 0;
+  private tiltCount: number = 0;
   private config: Config;
 
-  constructor(private camera: Camera, config: Partial<Config> = {}) {
-    const camPos = camera.getPosition();
+  constructor(core: Core, config: Partial<Config> = {}) {
+    this.keyboard = core.keyboard;
+    this.camera = core.camera;
+    const camPos = this.camera.getPosition();
     this.goal = {
-      turn: camera.getTurnAngle(),
+      turn: this.camera.turnMatrix.turn,
+      tilt: this.camera.tiltMatrix.tilt,
       pos: [...camPos],
     };
     this.config = {
-      step: config.step ?? 1,
+      step: config.step ?? 2,
       turnStep: config.turnStep ?? Math.PI / 2,
+      tiltStep: config.tiltStep ?? Math.PI / 2,
     };
   }
 
-  activate({ core }: ActivateProps): () => void {
-    this.keyboard = core.keyboard;
-    const deregister = core.motor.loop(this);
-    return () => {
-      deregister();
-    };
-  }
-
-  private prePos: CellPos = [0, 0, 0];
+  private readonly prePos: CellPos = [0, 0, 0];
   refresh(update: UpdatePayload): void {
-    if (!this.keyboard) {
-      return;
-    }
     const { keys } = this.keyboard;
     const { deltaTime } = update;
 
     const pos = this.camera.getPosition();
-    const { step, turnStep } = this.config;
+    const { step, turnStep, tiltStep } = this.config;
     this.prePos[0] = Math.round(pos[0] / step) * step;
     this.prePos[1] = Math.round(pos[1] / step) * step;
     this.prePos[2] = Math.round(pos[2] / step) * step;
@@ -98,11 +95,11 @@ export class CamStepAuxiliary implements Auxliary {
     if (keys.KeyE || (keys.ArrowRight && keys.ShiftRight)) {
       dTurn++;
     }
-    const turn = this.camera.getTurnAngle();
+
+    const turn = this.camera.turnMatrix.turn;
     const preTurn = angleStep(turn, turnStep);
     if (dTurn || this.turnCount > 0) {
-      const gturn = angleStep(turn + turnStep * dTurn, turnStep);
-      this.goal.turn = gturn;
+      this.goal.turn = angleStep(turn + turnStep * dTurn, turnStep);
     }
     if (!dTurn) {
       this.turnCount = 0;
@@ -111,17 +108,38 @@ export class CamStepAuxiliary implements Auxliary {
     let deltaTurn = angle(this.goal.turn - turn);
     if (deltaTurn) {
       const distTurn = Math.abs(deltaTurn);
-      this.camera.setTurnAngle(distTurn < .01 ? this.goal.turn : turn + Math.sign(deltaTurn) * Math.min(turnSpeed, distTurn));
-      const newTurn = angleStep(this.camera.getTurnAngle(), turnStep);
+      this.camera.turnMatrix.turn = distTurn < .01 ? this.goal.turn : turn + Math.sign(deltaTurn) * Math.min(turnSpeed, distTurn);
+      const newTurn = angleStep(this.camera.turnMatrix.turn, turnStep);
       if (newTurn !== preTurn) {
         this.turnCount++;
       }
     }
-    // if (keys.ArrowUp && keys.ShiftRight) {
-    //   this.camera.tilt(-turnspeed);
-    // }
-    // if (keys.ArrowDown && keys.ShiftRight) {
-    //   this.camera.tilt(turnspeed);
-    // }
+
+    let dTilt = 0;
+    if (keys.ArrowUp && keys.ShiftRight) {
+      dTilt--;
+    }
+    if (keys.ArrowDown && keys.ShiftRight) {
+      dTilt++;
+    }
+
+    const tilt = this.camera.tiltMatrix.tilt;
+    const preTilt = angleStep(tilt, tiltStep);
+    if (dTilt || this.tiltCount > 0) {
+      this.goal.tilt = angleStep(tilt + tiltStep * dTilt, tiltStep);
+    }
+    if (!dTilt) {
+      this.tiltCount = 0;
+    }
+    const tiltSpeed = dTilt ? deltaTime / 400 : deltaTime / 200;
+    let deltaTilt = angle(this.goal.tilt - tilt);
+    if (deltaTilt) {
+      const distTilt = Math.abs(deltaTilt);
+      this.camera.tiltMatrix.tilt = distTilt < .01 ? this.goal.tilt : tilt + Math.sign(deltaTilt) * Math.min(tiltSpeed, distTilt);
+      const newTilt = angleStep(this.camera.tiltMatrix.tilt, tiltSpeed);
+      if (newTilt !== preTilt) {
+        this.tiltCount++;
+      }
+    }
   }
 }

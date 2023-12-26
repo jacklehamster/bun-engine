@@ -1,37 +1,31 @@
 import IWorld from "./IWorld";
 import { Core } from "core/Core";
-import { UpdatePayload } from "updates/Refresh";
 import { Sprites } from "./sprite/Sprites";
 import { ActivateProps, IdType } from "core/Active";
 import { UpdateType } from "updates/UpdateManager";
 import { Media } from "gl/texture/Media";
-import { Auxliary } from "./aux/Auxiliary";
+import { Auxiliary } from "./aux/Auxiliary";
 import { forEach } from "./sprite/List";
-import { TextureUpdate } from "updates/TextureUpdate";
+import { UpdatableMedias } from "./sprite/Medias";
+import { AuxiliaryHolder } from "./aux/AuxiliaryHolder";
 
-export abstract class World implements IWorld {
-  private textureUpdate: TextureUpdate;
-  constructor(protected core: Core, protected auxiliaries: Auxliary[]) {
-    this.textureUpdate = new TextureUpdate(core.motor, this.medias.at.bind(this.medias), core.engine);
+export abstract class World extends AuxiliaryHolder implements IWorld {
+  public medias: UpdatableMedias;
+  constructor(protected core: Core,
+    auxiliaries: Auxiliary[]) {
+    super(auxiliaries);
+    this.medias = new UpdatableMedias(core)
   }
 
   protected informUpdate(type: UpdateType, id: IdType): void {
     console.warn("pass onUpdate to inform about changes in the world.", type, id);
   }
 
-  refresh(_update: UpdatePayload): void {
-  }
-
   abstract sprites: Sprites;
-  medias: Media[] = [];
 
   activate(activateProps: ActivateProps): () => void {
     const { updateCallback, core } = activateProps;
     this.informUpdate = updateCallback;
-
-    this.auxiliaries.forEach(aux => aux.activate(activateProps));
-    // this.medias.forEach(media => this.informUpdate("Media", media.id));
-    this.medias.forEach(media => this.textureUpdate.informUpdate(media.id));
 
     const deregisterLoop = core.motor.loop(this);
 
@@ -49,11 +43,7 @@ export abstract class World implements IWorld {
 
   addMedia(...medias: Media[]) {
     for (let media of medias) {
-      this.medias[media.id] = media;
+      this.medias.set(media.id, media);
     }
-  }
-
-  addAuxiliary(...aux: Auxliary[]) {
-    this.auxiliaries.push(...aux);
   }
 }

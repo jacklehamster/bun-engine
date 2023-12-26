@@ -17,17 +17,19 @@ export async function testCanvas(canvas: HTMLCanvasElement) {
   canvas.addEventListener('mouseleave', () => {
     canvas.style.borderColor = 'silver';
   });
+  const pixelListener = { x: 0, y: 0, pixel: 0 };
   canvas.addEventListener('mousemove', (e) => {
     const x = (e.pageX - canvas.offsetLeft) * 2;
     const y = (canvas.offsetHeight - (e.pageY - canvas.offsetTop)) * 2;
-    core.engine.mouseX = x;
-    core.engine.mouseY = y;
+    pixelListener.x = x;
+    pixelListener.y = y;
   });
   //  canvas.style.pointerEvents = 'none';
 
   const core = new Core({
     canvas,
   });
+  core.engine.addPixelListener(pixelListener);
   const world = new DemoWorld(core);
   onStop = core.start(world);
   return { core, world };

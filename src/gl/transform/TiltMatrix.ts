@@ -6,6 +6,9 @@ export class TiltMatrix implements IMatrix {
   private matrix: Matrix = Matrix.create();;
   private _tilt: Angle = 0;
 
+  constructor(private onChange?: () => void) {
+  }
+
   get tilt(): Angle {
     return this._tilt;
   }
@@ -13,6 +16,7 @@ export class TiltMatrix implements IMatrix {
   set tilt(value: number) {
     this._tilt = angle(value);
     this.matrix.setXRotation(this._tilt);
+    this.onChange?.();
   }
 
   getMatrix(): Float32Array {

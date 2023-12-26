@@ -3,8 +3,9 @@ import { GraphicsEngine } from "core/GraphicsEngine";
 import { Motor } from "core/Motor";
 import { MediaId } from "gl/texture/ImageManager";
 import { Media } from "gl/texture/Media";
+import { UpdateNotifier } from "./UpdateNotifier";
 
-export class TextureUpdate implements Refresh {
+export class TextureUpdate implements Refresh, UpdateNotifier {
   private readonly updatedImageIds: Set<MediaId> = new Set();
   constructor(private motor: Motor, private getMedia: (imageId: MediaId) => Media | undefined, private engine: GraphicsEngine) {
   }

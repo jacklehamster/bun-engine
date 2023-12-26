@@ -89,6 +89,7 @@ export class GraphicsEngine extends Disposable implements Refresh {
   }> = {};
 
   private onResize: Set<(w: number, h: number) => void> = new Set();
+  private pixelListeners: Set<{ x: number; y: number; pixel: number }> = new Set();
   private spriteCount = 0;
   private cameraMatrixUniforms: Record<CameraMatrixType | any, WebGLUniformLocation> = {};
 
@@ -391,19 +392,28 @@ export class GraphicsEngine extends Disposable implements Refresh {
     return this.own(new VertexArray(this.gl));
   }
 
-  private _pixel: Uint8Array = new Uint8Array(4);
-  private getPixel(x: number, y: number) {
-    this.gl.readPixels(x, y, 1, 1, this.gl.RGBA, this.gl.UNSIGNED_BYTE, this._pixel);
-    const [r, g, b, a] = this._pixel;
-    return { r, g, b, a: a / 255 };
+  addPixelListener(listener: { x: number, y: number, pixel: number }) {
+    this.pixelListeners.add(listener);
+    return () => {
+      this.removePixelListener(listener);
+    };
   }
 
-  mouseX: number = 0;
-  mouseY: number = 0;
-  mouseColor: any = {};
+  removePixelListener(listener: { x: number, y: number, pixel: number }) {
+    this.pixelListeners.delete(listener);
+  }
+
+  private _pixel: Uint8Array = new Uint8Array(4);
+  private getPixel(x: number, y: number): number {
+    this.gl.readPixels(x, y, 1, 1, this.gl.RGBA, this.gl.UNSIGNED_BYTE, this._pixel);
+    const [r, g, b, _a] = this._pixel;
+    return r * (256 * 256) + g * (256) + b;
+  }
+
   refresh(): void {
     this.drawElementsInstanced(VERTEX_COUNT, this.spriteCount);
-    // this.mouseColor = this.getPixel(this.mouseX, this.mouseY);
-    // console.log(this.mouseColor);
+    for (const listener of this.pixelListeners) {
+      listener.pixel = this.getPixel(listener.x, listener.y);
+    }
   }
 }

@@ -1,26 +1,19 @@
 import { Keyboard } from "controls/Keyboard";
-import { ActivateProps } from "core/Active";
 import { Camera } from "gl/camera/Camera";
 import { UpdatePayload } from "updates/Refresh";
-import { Auxliary } from "./Auxiliary";
+import { Auxiliary } from "./Auxiliary";
+import { Core } from "core/Core";
 
-export class RaiseOnSpaceAuxiliary implements Auxliary {
-  private keyboard?: Keyboard;
+export class RaiseOnSpaceAuxiliary implements Auxiliary {
+  private readonly keyboard: Keyboard;
+  private readonly camera: Camera;
 
-  constructor(private camera: Camera) {
-  }
-  activate({ core }: ActivateProps): () => void {
+  constructor(core: Core) {
     this.keyboard = core.keyboard;
-    const deregister = core.motor.loop(this);
-    return () => {
-      deregister();
-    };
+    this.camera = core.camera;
   }
 
   refresh(update: UpdatePayload): void {
-    if (!this.keyboard) {
-      return;
-    }
     const { deltaTime } = update;
 
     this.spaceForRiseAndDrop(deltaTime, this.keyboard);
