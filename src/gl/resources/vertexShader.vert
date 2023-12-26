@@ -15,6 +15,8 @@ layout(location = 6) in float instance;
 //  UNIFORM
 uniform float maxTextureSize;
 uniform mat4 camPos;
+uniform mat4 camTurn;
+uniform mat4 camTilt;
 uniform mat4 projection;
 
 //  OUT
@@ -33,7 +35,7 @@ void main() {
   float slotX = mod(slotNumber, maxCols);
   float slotY = mod(floor(slotNumber / maxCols), maxRows);
 
-  gl_Position = projection * camPos * transform * vec4(position, 0.0, 1.0);
+  gl_Position = projection * camTilt * camTurn * camPos * transform * vec4(position, 0.0, 1.0);
   vTex = (vec2(slotX, slotY) + tex) * slotSize / maxTextureSize;
   vTextureIndex = floor(slotNumber / (maxCols * maxRows));
 

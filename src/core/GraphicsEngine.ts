@@ -16,6 +16,8 @@ import {
   CAM_POS_LOC,
   PROJECTION_LOC,
   INSTANCE_LOC,
+  CAM_TILT_LOC,
+  CAM_TURN_LOC,
 } from '../gl/attributes/Constants';
 import { TEXTURE_INDEX_FOR_VIDEO, TextureId, TextureManager } from '../gl/texture/TextureManager';
 import { MediaId, ImageManager } from 'gl/texture/ImageManager';
@@ -157,6 +159,8 @@ export class GraphicsEngine extends Disposable implements Refresh {
 
     this.cameraMatrixUniforms[CameraMatrixType.PROJECTION] = this.uniforms.getUniformLocation(PROJECTION_LOC, PROGRAM_NAME);
     this.cameraMatrixUniforms[CameraMatrixType.POS] = this.uniforms.getUniformLocation(CAM_POS_LOC, PROGRAM_NAME);
+    this.cameraMatrixUniforms[CameraMatrixType.TURN] = this.uniforms.getUniformLocation(CAM_TURN_LOC, PROGRAM_NAME);
+    this.cameraMatrixUniforms[CameraMatrixType.TILT] = this.uniforms.getUniformLocation(CAM_TILT_LOC, PROGRAM_NAME);
 
     //  enable depth
     this.gl.enable(GL.DEPTH_TEST);

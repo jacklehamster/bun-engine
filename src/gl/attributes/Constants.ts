@@ -17,6 +17,8 @@ export const INSTANCE_LOC: LocationName = 'instance';
 
 //  Uniform
 export const CAM_POS_LOC: LocationName = 'camPos';
+export const CAM_TILT_LOC: LocationName = 'camTilt';
+export const CAM_TURN_LOC: LocationName = 'camTurn';
 export const PROJECTION_LOC: LocationName = 'projection';
 export const MAX_TEXTURE_SIZE_LOC: LocationName = 'maxTextureSize';
 export const TEXTURE_UNIFORM_LOC: LocationName = 'uTextures';

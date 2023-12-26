@@ -10,58 +10,51 @@ import { CellPos } from "world/grid/CellPos";
 export enum CameraMatrixType {
   PROJECTION = 0,
   POS = 1,
-  // TURN = 2,
-  // TILT = 3,
+  TURN = 2,
+  TILT = 3,
 }
 
 export class Camera {
   private readonly positionMatrix: Matrix = Matrix.create().translate(0, 0, 0);
-  private readonly projectionMatrix = new ProjectionMatrix();
-  readonly tiltMatrix = new TiltMatrix(this.onCameraUpdate.bind(this));
-  readonly turnMatrix = new TurnMatrix(this.onCameraUpdate.bind(this));
   private readonly camMatrix = Matrix.create();
+  private readonly projectionMatrix = new ProjectionMatrix();
+  readonly tiltMatrix = new TiltMatrix(() => this.updateInformer.informUpdate(CameraMatrixType.TILT));
+  readonly turnMatrix = new TurnMatrix(() => this.updateInformer.informUpdate(CameraMatrixType.TURN));
   private pespectiveLevel = 1;
-  private readonly cameraUpdate;
+  private readonly updateInformer;
 
   constructor(core: Core) {
-    this.cameraUpdate = new CameraUpdate(this.getCameraMatrix.bind(this), core.engine, core.motor);
+    this.updateInformer = new CameraUpdate(this.getCameraMatrix.bind(this), core.engine, core.motor);
   }
 
   initialize() {
     this.updatePerspective();
-    this.cameraUpdate.informUpdate(CameraMatrixType.POS);
+    this.updateInformer.informUpdate(CameraMatrixType.POS);
+    this.updateInformer.informUpdate(CameraMatrixType.TURN);
+    this.updateInformer.informUpdate(CameraMatrixType.TILT);
   }
 
   private readonly cameraMatrices: Record<CameraMatrixType, IMatrix> = {
     [CameraMatrixType.PROJECTION]: this.projectionMatrix,
     [CameraMatrixType.POS]: this.camMatrix,
-    // [CameraMatrixType.TURN]: this.camTurnMatrix,
-    // [CameraMatrixType.TILT]: this.camTiltMatrix,
+    [CameraMatrixType.TURN]: this.turnMatrix,
+    [CameraMatrixType.TILT]: this.tiltMatrix,
   };
 
   configProjectionMatrix(width: number, height: number) {
     this.projectionMatrix.configure(width, height);
-    this.cameraUpdate.informUpdate(CameraMatrixType.PROJECTION);
-  }
-
-  private static camPos: Matrix = Matrix.create();
-  refresh() {
-    //  camMatrix =  camTiltMatrix * camTurnMatrix * camPositionMatrix;
-    Camera.camPos.invert(this.positionMatrix);
-    this.camMatrix.multiply3(this.tiltMatrix, this.turnMatrix, Camera.camPos);
-  }
-
-  private onCameraUpdate() {
-    this.refresh();
-    this.cameraUpdate.informUpdate(CameraMatrixType.POS);
+    this.updateInformer.informUpdate(CameraMatrixType.PROJECTION);
   }
 
   updatePerspective(level?: number) {
     this.projectionMatrix.setPerspective(level ?? this.pespectiveLevel);
-    this.cameraUpdate.informUpdate(CameraMatrixType.PROJECTION);
+    this.updateInformer.informUpdate(CameraMatrixType.PROJECTION);
   }
 
   getCameraMatrix(cameraMatrixType: CameraMatrixType): Float32Array {
+    if (cameraMatrixType === CameraMatrixType.POS) {
+      this.camMatrix.invert(this.positionMatrix);
+    }
     return this.cameraMatrices[cameraMatrixType].getMatrix();
   }
 
@@ -78,25 +71,23 @@ export class Camera {
         dy / dist * sp,
         dz / dist * sp,
       );
-      this.onCameraUpdate();
+      this.updateInformer.informUpdate(CameraMatrixType.POS);
     }
   }
 
   moveCam(x: number, y: number, z: number) {
     this.positionMatrix.moveMatrix(x, y, z, this.turnMatrix);
-    this.onCameraUpdate();
+    this.updateInformer.informUpdate(CameraMatrixType.POS);
   }
 
   //  Turn
   turnCam(angle: number) {
     this.turnMatrix.turn += angle;
-    this.onCameraUpdate();
   }
 
   //  Tilt
   tilt(angle: number) {
     this.tiltMatrix.tilt += angle;
-    this.onCameraUpdate();
   }
 
   private static _position: CellPos = [0, 0, 0];
@@ -113,6 +104,6 @@ export class Camera {
     matrix[12] = x;
     matrix[13] = y;
     matrix[14] = z;
-    this.onCameraUpdate();
+    this.updateInformer.informUpdate(CameraMatrixType.POS);
   }
 }
