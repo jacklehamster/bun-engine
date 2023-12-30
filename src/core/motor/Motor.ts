@@ -1,4 +1,5 @@
-import { Refresh, UpdatePayload } from "../updates/Refresh";
+import { Refresh, UpdatePayload } from "../../updates/Refresh";
+import { IMotor } from "./IMotor";
 
 /**
  * Continously runs a loop which feeds a world into the GL Engine.
@@ -20,7 +21,7 @@ export interface Schedule {
   priority: Priority;
 }
 
-export class Motor {
+export class Motor implements IMotor {
   private readonly updateSchedule: Map<Refresh, Schedule> = new Map();
   time: Time = 0;
 
@@ -41,7 +42,7 @@ export class Motor {
     this.updateSchedule.delete(update);
   }
 
-  start() {
+  activate() {
     let handle = 0;
     const updatePayload: UpdatePayload = {
       time: 0,

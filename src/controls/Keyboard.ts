@@ -1,41 +1,56 @@
-import { Active } from "core/Active";
 import { Core } from "core/Core";
+import { Time } from "core/motor/Motor";
+import { IKeyboard, KeyListener } from "./IKeyboard";
+import { IMotor } from "core/motor/IMotor";
 
 const QUICK_TAP_TIME = 200;
 
-export interface KeyListener {
-  onKeyDown?(keyCode: string): void;
-  onKeyUp?(keyCode: string): void;
-}
-
-export class Keyboard implements Active {
-  readonly keys: Record<string, number> = {};
-  readonly keysUp: Record<string, number> = {};
+export class Keyboard implements IKeyboard {
+  readonly keys: Record<string, Time> = {};
+  readonly keysUp: Record<string, Time> = {};
 
   private readonly keyListener = new Set<KeyListener>();
+  private isActive: boolean = false;
+  private readonly motor: IMotor;
 
-  public activate(core: Core): () => void {
-    const keyDown = (e: KeyboardEvent) => {
-      if (!this.keys[e.code]) {
-        this.keys[e.code] = core.motor.time;
-        this.keyListener.forEach(listener => listener.onKeyDown?.(e.code))
+  constructor({ motor }: Core) {
+    this.motor = motor;
+    this.keyDown = this.keyDown.bind(this);
+    this.keyUp = this.keyUp.bind(this);
+  }
+
+  private keyDown(e: KeyboardEvent): void {
+    if (!this.keys[e.code]) {
+      this.keys[e.code] = this.motor.time;
+      this.keyListener.forEach(listener => listener.onKeyDown?.(e.code))
+    }
+  }
+
+  private keyUp(e: KeyboardEvent) {
+    if (this.motor.time - this.keys[e.code] < QUICK_TAP_TIME) {
+      this.keysUp[e.code] = this.keysUp[e.code] ? 0 : this.motor.time;
+    } else {
+      this.keysUp[e.code] = 0;
+    }
+    this.keys[e.code] = 0;
+    this.keyListener.forEach(listener => listener.onKeyUp?.(e.code))
+  }
+
+  activate(): () => void {
+    this.setActive(true);
+    return () => this.setActive(false);
+  }
+
+  private setActive(value: boolean) {
+    if (this.isActive !== value) {
+      this.isActive = value;
+      document.removeEventListener('keydown', this.keyDown);
+      document.removeEventListener('keyup', this.keyUp);
+      if (this.isActive) {
+        document.addEventListener('keydown', this.keyDown);
+        document.addEventListener('keyup', this.keyUp);
       }
-    };
-    const keyUp = (e: KeyboardEvent) => {
-      if (core.motor.time - this.keys[e.code] < QUICK_TAP_TIME) {
-        this.keysUp[e.code] = this.keysUp[e.code] ? 0 : core.motor.time;
-      } else {
-        this.keysUp[e.code] = 0;
-      }
-      this.keys[e.code] = 0;
-      this.keyListener.forEach(listener => listener.onKeyUp?.(e.code))
-    };
-    document.addEventListener('keydown', keyDown);
-    document.addEventListener('keyup', keyUp);
-    return () => {
-      document.removeEventListener('keydown', keyDown);
-      document.removeEventListener('keyup', keyUp);
-    };
+    }
   }
 
   addListener(listener: KeyListener): () => void {

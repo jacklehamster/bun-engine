@@ -8,11 +8,11 @@ export class ProjectionMatrix implements IMatrix {
   private perspectiveLevel = 1;
 
   private configPerspectiveMatrix(ratio: number) {
-    this.perspectiveMatrix.perspective(45, ratio, 0.01, 1000);
+    this.perspectiveMatrix.perspective(45, ratio, 0.01, 100000);
   }
 
   private configOrthoMatrix(ratio: number) {
-    this.orthoMatrix.ortho(-ratio, ratio, -1, 1, -1000, 1000);
+    this.orthoMatrix.ortho(-ratio, ratio, -1, 1, -100000, 100000);
   }
 
   configure(width: number, height: number) {
@@ -23,10 +23,10 @@ export class ProjectionMatrix implements IMatrix {
 
   setPerspective(level: number) {
     this.perspectiveLevel = level;
-    this.baseMatrix.combine(this.orthoMatrix, this.perspectiveMatrix, this.perspectiveLevel);
   }
 
   getMatrix(): Float32Array {
+    this.baseMatrix.combine(this.orthoMatrix, this.perspectiveMatrix, this.perspectiveLevel);
     return this.baseMatrix.getMatrix();
   }
 }

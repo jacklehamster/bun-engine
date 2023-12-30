@@ -1,4 +1,4 @@
-import { Duration, Time } from "core/Motor";
+import { Duration, Time } from "core/motor/Motor";
 
 export interface UpdatePayload {
   time: Time;

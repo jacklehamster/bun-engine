@@ -6,6 +6,8 @@ import { TiltMatrix } from "gl/transform/TiltMatrix";
 import { TurnMatrix } from "gl/transform/TurnMatrix";
 import { CameraUpdate } from "updates/CameraUpdate";
 import { CellPos } from "world/grid/CellPos";
+import { ICamera } from "./ICamera";
+import { CameraFloatUpdate } from "updates/CameraFloatUpdate";
 
 export enum CameraMatrixType {
   PROJECTION = 0,
@@ -14,20 +16,27 @@ export enum CameraMatrixType {
   TILT = 3,
 }
 
-export class Camera {
+export enum CameraFloatType {
+  CURVATURE = 0,
+}
+
+export class Camera implements ICamera {
   private readonly positionMatrix: Matrix = Matrix.create().translate(0, 0, 0);
   private readonly camMatrix = Matrix.create();
   private readonly projectionMatrix = new ProjectionMatrix();
   readonly tiltMatrix = new TiltMatrix(() => this.updateInformer.informUpdate(CameraMatrixType.TILT));
   readonly turnMatrix = new TurnMatrix(() => this.updateInformer.informUpdate(CameraMatrixType.TURN));
   private pespectiveLevel = 1;
+  private curvature = 0;
   private readonly updateInformer;
+  private readonly updateInformerFloat;
 
   constructor(core: Core) {
     this.updateInformer = new CameraUpdate(this.getCameraMatrix.bind(this), core.engine, core.motor);
+    this.updateInformerFloat = new CameraFloatUpdate(this.getCameraFloat.bind(this), core.engine, core.motor);
   }
 
-  initialize() {
+  activate() {
     this.updatePerspective();
     this.updateInformer.informUpdate(CameraMatrixType.POS);
     this.updateInformer.informUpdate(CameraMatrixType.TURN);
@@ -51,11 +60,23 @@ export class Camera {
     this.updateInformer.informUpdate(CameraMatrixType.PROJECTION);
   }
 
+  updateCurvature(value: number) {
+    this.curvature = value;
+    this.updateInformerFloat.informUpdate(CameraFloatType.CURVATURE);
+  }
+
   getCameraMatrix(cameraMatrixType: CameraMatrixType): Float32Array {
     if (cameraMatrixType === CameraMatrixType.POS) {
       this.camMatrix.invert(this.positionMatrix);
     }
     return this.cameraMatrices[cameraMatrixType].getMatrix();
+  }
+
+  getCameraFloat(cameraFloatType: CameraFloatType): number {
+    switch (cameraFloatType) {
+      case CameraFloatType.CURVATURE:
+        return this.curvature;
+    }
   }
 
   gotoPos(x: number, y: number, z: number, speed: number = .1) {
@@ -81,7 +102,7 @@ export class Camera {
   }
 
   //  Turn
-  turnCam(angle: number) {
+  turn(angle: number) {
     this.turnMatrix.turn += angle;
   }
 

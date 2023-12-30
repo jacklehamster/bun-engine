@@ -1,87 +1,68 @@
 import IWorld from "world/IWorld";
-import { GraphicsEngine } from "./GraphicsEngine";
-import { Motor, Priority } from "./Motor";
+import { GraphicsEngine } from "./graphics/GraphicsEngine";
+import { Motor } from "./motor/Motor";
 import { Camera } from "gl/camera/Camera";
-import { Disposable } from "lifecycle/Disposable";
 import { Keyboard } from "controls/Keyboard";
-import { Active } from "./Active";
+import { AuxiliaryHolder } from "world/aux/AuxiliaryHolder";
+import { IKeyboard } from "controls/IKeyboard";
+import { ResizeAux } from "./aux/ResizeAux";
+import { ICamera } from "gl/camera/ICamera";
+import { IGraphicsEngine } from "./graphics/IGraphicsEngine";
+import { IMotor } from "./motor/IMotor";
 
 export interface Props {
-  motor?: Motor;
+  motor?: IMotor;
   canvas?: HTMLCanvasElement | OffscreenCanvas;
-  engine?: GraphicsEngine;
-  keyboard?: Keyboard;
+  engine?: IGraphicsEngine;
+  keyboard?: IKeyboard;
   size?: [number, number];
-  camera?: Camera;
+  camera?: ICamera;
 }
 
-export class Core extends Disposable {
-  motor: Motor;
-  engine: GraphicsEngine;
-  keyboard: Keyboard;
-  camera: Camera;
+export class Core extends AuxiliaryHolder {
+  motor: IMotor;
+  engine: IGraphicsEngine;
+  keyboard: IKeyboard;
+  camera: ICamera;
 
   constructor({ motor, canvas, engine, keyboard, size, camera }: Props) {
     super();
     this.motor = motor ?? new Motor();
     this.engine = engine ?? new GraphicsEngine(canvas ?? new OffscreenCanvas(size![0], size![1]));
-    this.keyboard = keyboard ?? new Keyboard();
+    this.keyboard = keyboard ?? new Keyboard(this);
     this.camera = camera ?? new Camera(this);
-
-    this.initialize();
   }
 
-  private initialize() {
-    const { engine, motor } = this;
-    const deregisterEngine = motor.loop(engine, undefined, Priority.LAST);
-    this.addOnDestroy(() => {
-      deregisterEngine();
-    });
+  private initialize(world: IWorld) {
+    const { motor, engine } = this;
+    const deregisterLoop = motor.loop(this);
+
+    //  Initialize engine buffer
+    engine.setMaxSpriteCount(world.sprites.length);
+
+    this.addAuxiliary(motor,
+      world,
+      engine,
+      new ResizeAux(this),
+      this.keyboard,
+      this.camera);
+
+    const clearActivate = this.activate();
+
+    return () => {
+      deregisterLoop();
+      clearActivate();
+      this.deactivate();
+      this.removeAllAuxiliaries();
+    };
   }
 
   start(world: IWorld) {
-    const { engine, motor } = this;
-
-    //  Initialize engine buffer
-    engine.initializeBuffers(world.sprites.length);
-    engine.clearTextureSlots();
-
-    //  Activate world
-    const onDeactivate = this.activate([
-      world, this.keyboard,
-    ]);
+    const deregister = this.initialize(world);
 
     //  Start motor loop
-    const onStop = motor.start();
     return () => {
-      onStop();
-      onDeactivate();
-    };
-  }
-
-  activate(actives: Active[]) {
-    const onDeactivates = new Set<() => void>();
-    onDeactivates.add(this.handleResize());
-    this.camera.initialize();
-
-    actives.forEach(active => {
-      const onDeactivate = active.activate(this);
-      onDeactivates.add(onDeactivate);
-    });
-    return () => {
-      onDeactivates.forEach(deactivate => deactivate());
-    };
-  }
-
-  private handleResize() {
-    const { engine } = this;
-    //  Register resize event
-    const onResize = (width: number, height: number) => {
-      this.camera.configProjectionMatrix(width, height);
-    };
-    engine.addResizeListener(onResize);
-    return () => {
-      engine.removeResizeListener(onResize);
+      deregister();
     };
   }
 }

@@ -1,4 +1,4 @@
-import { IdType } from "core/Active";
+import { IdType } from "core/IdType";
 
 export interface UpdateNotifier {
   informUpdate(id: IdType): void;

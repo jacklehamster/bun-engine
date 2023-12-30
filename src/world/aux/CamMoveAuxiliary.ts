@@ -1,12 +1,12 @@
-import { Keyboard } from "controls/Keyboard";
-import { Camera } from "gl/camera/Camera";
 import { UpdatePayload } from "updates/Refresh";
 import { Auxiliary } from "./Auxiliary";
 import { Core } from "core/Core";
+import { IKeyboard } from "controls/IKeyboard";
+import { ICamera } from "gl/camera/ICamera";
 
 export class CamMoveAuxiliary implements Auxiliary {
-  private readonly keyboard: Keyboard;
-  private readonly camera: Camera;
+  private readonly keyboard: IKeyboard;
+  private readonly camera: ICamera;
 
   constructor(core: Core) {
     this.keyboard = core.keyboard;
@@ -31,10 +31,10 @@ export class CamMoveAuxiliary implements Auxiliary {
       this.camera.moveCam(speed, 0, 0);
     }
     if (keys.KeyQ || (keys.ArrowLeft && keys.ShiftRight)) {
-      this.camera.turnCam(-turnspeed);
+      this.camera.turn(-turnspeed);
     }
     if (keys.KeyE || (keys.ArrowRight && keys.ShiftRight)) {
-      this.camera.turnCam(turnspeed);
+      this.camera.turn(turnspeed);
     }
     if (keys.ArrowUp && keys.ShiftRight) {
       this.camera.tilt(-turnspeed);

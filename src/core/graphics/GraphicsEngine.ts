@@ -2,11 +2,11 @@
 /// <reference lib="dom" />
 /// <reference lib="dom.iterable" />
 
-import { GLPrograms } from '../gl/programs/GLPrograms';
-import { Disposable } from '../lifecycle/Disposable';
-import { VertexArray } from '../gl/VertexArray';
-import { GLAttributeBuffers, LocationName } from '../gl/attributes/GLAttributeBuffers';
-import { GLUniforms } from '../gl/uniforms/GLUniforms';
+import { GLPrograms } from '../../gl/programs/GLPrograms';
+import { Disposable } from '../../lifecycle/Disposable';
+import { VertexArray } from '../../gl/VertexArray';
+import { GLAttributeBuffers, LocationName } from '../../gl/attributes/GLAttributeBuffers';
+import { GLUniforms } from '../../gl/uniforms/GLUniforms';
 import {
   GL,
   POSITION_LOC,
@@ -14,23 +14,24 @@ import {
   TRANSFORM_LOC,
   SLOT_SIZE_LOC,
   CAM_POS_LOC,
-  PROJECTION_LOC,
+  CAM_PROJECTION_LOC,
   INSTANCE_LOC,
   CAM_TILT_LOC,
   CAM_TURN_LOC,
-} from '../gl/attributes/Constants';
-import { TEXTURE_INDEX_FOR_VIDEO, TextureId, TextureManager } from '../gl/texture/TextureManager';
+  CAM_CURVATURE_LOC,
+} from '../../gl/attributes/Constants';
+import { TEXTURE_INDEX_FOR_VIDEO, TextureId, TextureManager } from '../../gl/texture/TextureManager';
 import { MediaId, ImageManager } from 'gl/texture/ImageManager';
 import vertexShader from 'generated/src/gl/resources/vertexShader.txt';
 import fragmentShader from 'generated/src/gl/resources/fragmentShader.txt';
 import { replaceTilda } from 'gl/utils/replaceTilda';
 import Matrix from 'gl/transform/Matrix';
-import { CameraMatrixType } from 'gl/camera/Camera';
+import { CameraFloatType, CameraMatrixType } from 'gl/camera/Camera';
 import { mat4 } from 'gl-matrix';
 import { MediaData } from 'gl/texture/MediaData';
 import { Media } from 'gl/texture/Media';
 import { Sprite, SpriteId } from 'world/sprite/Sprite';
-import { Refresh } from 'updates/Refresh';
+import { IGraphicsEngine } from './IGraphicsEngine';
 
 const DEFAULT_ATTRIBUTES: WebGLContextAttributes = {
   alpha: true,
@@ -76,7 +77,7 @@ export interface Props {
   attributes?: WebGLContextAttributes;
 }
 
-export class GraphicsEngine extends Disposable implements Refresh {
+export class GraphicsEngine extends Disposable implements IGraphicsEngine {
   private gl: GL;
   private programs: GLPrograms;
   private attributeBuffers: GLAttributeBuffers;
@@ -94,6 +95,7 @@ export class GraphicsEngine extends Disposable implements Refresh {
   private pixelListeners: Set<{ x: number; y: number; pixel: number }> = new Set();
   private spriteCount = 0;
   private cameraMatrixUniforms: Record<CameraMatrixType | any, WebGLUniformLocation> = {};
+  private cameraFloatUniforms: Record<CameraFloatType | any, WebGLUniformLocation> = {};
 
   constructor(canvas: HTMLCanvasElement | OffscreenCanvas, {
     attributes,
@@ -116,9 +118,10 @@ export class GraphicsEngine extends Disposable implements Refresh {
     this.initialize();
   }
 
-  addResizeListener(listener: (w: number, h: number) => void) {
+  addResizeListener(listener: (w: number, h: number) => void): () => void {
     listener(this.gl.drawingBufferWidth, this.gl.drawingBufferHeight);
     this.onResize.add(listener);
+    return () => this.removeResizeListener(listener);
   }
 
   removeResizeListener(listener: (w: number, h: number) => void) {
@@ -136,11 +139,7 @@ export class GraphicsEngine extends Disposable implements Refresh {
       this.canvas.width = this.canvas.offsetWidth * 2;
       this.canvas.height = this.canvas.offsetHeight * 2;
     }
-    this.gl.viewport(
-      0, 0,
-      this.gl.drawingBufferWidth,
-      this.gl.drawingBufferHeight,
-    );
+    this.gl.viewport(0, 0, this.gl.drawingBufferWidth, this.gl.drawingBufferHeight);
     this.onResize.forEach(callback => callback(this.gl.drawingBufferWidth, this.gl.drawingBufferHeight));
   }
 
@@ -149,18 +148,19 @@ export class GraphicsEngine extends Disposable implements Refresh {
     const replacementMap = {
       AUTHOR: 'Jack le hamster',
     };
-    this.programs.addProgram(
-      PROGRAM_NAME,
+    this.programs.addProgram(PROGRAM_NAME,
       replaceTilda(vertexShader, replacementMap),
       replaceTilda(fragmentShader, replacementMap),
     );
 
     this.programs.useProgram(PROGRAM_NAME);
 
-    this.cameraMatrixUniforms[CameraMatrixType.PROJECTION] = this.uniforms.getUniformLocation(PROJECTION_LOC, PROGRAM_NAME);
+    this.cameraMatrixUniforms[CameraMatrixType.PROJECTION] = this.uniforms.getUniformLocation(CAM_PROJECTION_LOC, PROGRAM_NAME);
     this.cameraMatrixUniforms[CameraMatrixType.POS] = this.uniforms.getUniformLocation(CAM_POS_LOC, PROGRAM_NAME);
     this.cameraMatrixUniforms[CameraMatrixType.TURN] = this.uniforms.getUniformLocation(CAM_TURN_LOC, PROGRAM_NAME);
     this.cameraMatrixUniforms[CameraMatrixType.TILT] = this.uniforms.getUniformLocation(CAM_TILT_LOC, PROGRAM_NAME);
+
+    this.cameraFloatUniforms[CameraFloatType.CURVATURE] = this.uniforms.getUniformLocation(CAM_CURVATURE_LOC, PROGRAM_NAME);
 
     //  enable depth
     this.gl.enable(GL.DEPTH_TEST);
@@ -175,8 +175,19 @@ export class GraphicsEngine extends Disposable implements Refresh {
     // disable face culling
     this.gl.disable(this.gl.CULL_FACE);
 
+    // clear background color
+    this.gl.clearColor(0.0, 0.0, 0.0, 1.0);
+
     this.textureManager.initialize();
     this.checkCanvasSize();
+  }
+
+  activate(): void {
+    this.clearTextureSlots();
+  }
+
+  setMaxSpriteCount(spriteCount: number): void {
+    this.initializeBuffers(spriteCount);
   }
 
   private onCleanupBuffers: Set<() => void> = new Set();
@@ -298,12 +309,7 @@ export class GraphicsEngine extends Disposable implements Refresh {
     this.gl.vertexAttribDivisor(loc, 1);
     this.gl.bufferData(GL.ARRAY_BUFFER,
       Float32Array.from(new Array(spriteCount).fill(null).map((_, index) => index)),
-      //      spriteCount * elemCount * Float32Array.BYTES_PER_ELEMENT,
       GL.STATIC_DRAW);
-    // this.gl.bufferData(GL.ELEMENT_ARRAY_BUFFER,
-    //   Uint16Array.from([0, 1, 2, 2, 3, 0]),
-    //   GL.STATIC_DRAW);
-
 
     return () => {
       this.gl.disableVertexAttribArray(bufferInfo.location);
@@ -392,6 +398,10 @@ export class GraphicsEngine extends Disposable implements Refresh {
     this.gl.uniformMatrix4fv(this.cameraMatrixUniforms[type], false, matrix);
   }
 
+  updateCameraFloat(type: CameraFloatType, value: number) {
+    this.gl.uniform1f(this.cameraFloatUniforms[type], value);
+  }
+
   bindVertexArray() {
     return this.own(new VertexArray(this.gl));
   }
@@ -415,6 +425,9 @@ export class GraphicsEngine extends Disposable implements Refresh {
   }
 
   refresh(): void {
+    // clear background
+    this.gl.clear(GL.COLOR_BUFFER_BIT);
+
     this.drawElementsInstanced(VERTEX_COUNT, this.spriteCount);
     for (const listener of this.pixelListeners) {
       listener.pixel = this.getPixel(listener.x, listener.y);

@@ -1,23 +1,26 @@
 import { Core } from "core/Core";
 import Matrix from "gl/transform/Matrix";
 import { World } from "index";
+import { CamMoveAuxiliary } from "world/aux/CamMoveAuxiliary";
 import { CamStepAuxiliary } from "world/aux/CamStepAuxiliary";
-import { RaiseOnSpaceAuxiliary } from "world/aux/RaiseOnSpaceAuxiliary";
-import { Sprite } from "world/sprite/Sprite";
+import { JumpAuxiliary } from "world/aux/JumpAuxiliary";
+import { RiseAuxiliary } from "world/aux/RaiseOnSpaceAuxiliary";
 
-const DOBUKI = 0, LOGO = 1, GROUND = 2, VIDEO = 3, GRID = 4, WIREFRAME = 5;
+const DOBUKI = 0, LOGO = 1, GROUND = 2, VIDEO = 3, GRID = 4, WIREFRAME = 5, GRASS = 6;
 const LOGO_SIZE = 512;
 
 export class DemoWorld extends World {
-  readonly sprites: Sprite[];
   readonly hudSpriteId = 0;
 
   constructor(core: Core) {
-    super(core, [
-      new CamStepAuxiliary(core, { step: 1, turnStep: Math.PI / 4, tiltStep: Math.PI / 8 }),
-      // new CamMoveAuxiliary(core),
-      new RaiseOnSpaceAuxiliary(core),
-    ]);
+    super(core);
+
+    this.addAuxiliary(
+      // new CamStepAuxiliary(core, { step: 1, turnStep: Math.PI / 4, tiltStep: Math.PI / 8 }),
+      new CamMoveAuxiliary(core),
+      new JumpAuxiliary(core),
+      // new RiseAuxiliary(core),
+    );
 
     this.addMedia(
       {
@@ -89,6 +92,7 @@ export class DemoWorld extends World {
         src: 'sample.mp4',
         volume: 0,
         fps: 30,
+        playSpeed: .1,
       },
       {
         id: GRID,
@@ -125,9 +129,30 @@ export class DemoWorld extends World {
           ctx.stroke();
         },
       },
+      {
+        id: GRASS,
+        type: "draw",
+        draw: ctx => {
+          const { canvas } = ctx;
+          canvas.width = LOGO_SIZE;
+          canvas.height = LOGO_SIZE;
+          ctx.imageSmoothingEnabled = true;
+          ctx.fillStyle = 'green';
+          ctx.lineWidth = canvas.width / 50;
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+          ctx.strokeStyle = 'black';
+          ctx.fillStyle = '#4f8';
+
+          ctx.beginPath();
+          ctx.rect(canvas.width * .2, canvas.height * .2, canvas.width * .6, canvas.height * .6);
+          ctx.fill();
+          ctx.stroke();
+        },
+      },
     );
 
-    this.sprites = [
+    this.addSprites(
       {
         imageId: DOBUKI,
         transforms: [
@@ -149,7 +174,7 @@ export class DemoWorld extends World {
       {
         imageId: VIDEO,
         transforms: [
-          Matrix.create().translate(0, 5, -10).scale(480 / 50, 270 / 50, 1).getMatrix(),
+          Matrix.create().translate(0, 10000, -50000).scale(480 * 20, 270 * 20, 1).getMatrix(),
         ],
       },
       ...new Array(400).fill(0).map((_, index) =>
@@ -157,16 +182,18 @@ export class DemoWorld extends World {
       ).map(transform => ({ imageId: GRID, transforms: [transform] })),
 
       //  Wireframe
+      //  ground
       ...new Array(400).fill(0).map((_, index) =>
         Matrix.create().translate((index % 20 - 10) * 2, -1, (Math.floor(index / 20) - 10) * 2).rotateX(-Math.PI / 2).scale(1).getMatrix(),
-      ).map(transform => ({ imageId: WIREFRAME, transforms: [transform] })),
+      ).map(transform => ({ imageId: GRASS, transforms: [transform] })),
+      //  ceiling
       ...new Array(400).fill(0).map((_, index) =>
         Matrix.create().translate((index % 20 - 10) * 2, 1, (Math.floor(index / 20) - 10) * 2).rotateX(-Math.PI / 2).scale(1).getMatrix(),
       ).map(transform => ({ imageId: WIREFRAME, transforms: [transform] })),
-
+      //  face
       ...new Array(400).fill(0).map((_, index) =>
         Matrix.create().translate((index % 20 - 10) * 2, 0, (Math.floor(index / 20) - 10) * 2 - 1).getMatrix(),
       ).map(transform => ({ imageId: WIREFRAME, transforms: [transform] })),
-    ];
+    );
   }
 }

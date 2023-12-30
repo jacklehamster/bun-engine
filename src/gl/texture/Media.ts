@@ -16,6 +16,7 @@ export interface VideoMedia extends BaseMedia {
   src: string;
   volume?: number;
   fps?: number;
+  playSpeed?: number;
 }
 
 export interface CanvasMedia extends BaseMedia {

@@ -1,10 +1,10 @@
-import { Keyboard } from "controls/Keyboard";
-import { Camera } from "gl/camera/Camera";
 import { UpdatePayload } from "updates/Refresh";
 import { Auxiliary } from "./Auxiliary";
 import { CellPos } from "world/grid/CellPos";
 import { angle, angleStep } from "gl/utils/angleUtils";
 import { Core } from "core/Core";
+import { IKeyboard } from "controls/IKeyboard";
+import { ICamera } from "gl/camera/ICamera";
 
 interface Config {
   step: number;
@@ -13,8 +13,8 @@ interface Config {
 }
 
 export class CamStepAuxiliary implements Auxiliary {
-  private readonly keyboard: Keyboard;
-  private readonly camera: Camera;
+  private readonly keyboard: IKeyboard;
+  private readonly camera: ICamera;
   private readonly goal: {
     turn: number;
     tilt: number;

@@ -15,7 +15,7 @@ export class ImageManager extends Disposable {
   private images: Record<MediaId, MediaData> = {};
   private readonly renderProcedures: Record<MediaType, DrawProcedure<Media>> = {
     image: createDrawProcedure<ImageMedia>((imageId, media) => this.loadImage(imageId, media.src)) as DrawProcedure<Media>,
-    video: createDrawProcedure<VideoMedia>((imageId, media) => this.loadVideo(imageId, media.src, media.volume, media.fps)) as DrawProcedure<Media>,
+    video: createDrawProcedure<VideoMedia>((imageId, media) => this.loadVideo(imageId, media.src, media.volume, media.fps, media.playSpeed)) as DrawProcedure<Media>,
     draw: createDrawProcedure<DrawMedia>((imageId, media) => this.drawImage(imageId, media.draw)) as DrawProcedure<Media>,
     canvas: createDrawProcedure<CanvasMedia>((imageId, media) => this.loadCanvas(imageId, media.canvas)) as DrawProcedure<Media>,
     webcam: createDrawProcedure<WebcamMedia>((imageId, media) => this.loadWebCam(imageId, media.deviceId)) as DrawProcedure<Media>,
@@ -69,9 +69,10 @@ export class ImageManager extends Disposable {
     imageId: MediaId,
     src: Url,
     volume?: number,
-    fps?: number
+    fps?: number,
+    playSpeed?: number,
   ): Promise<MediaData> {
-    const videoInfo = await MediaData.loadVideo(src, volume, fps);
+    const videoInfo = await MediaData.loadVideo(src, volume, fps, playSpeed);
     this.images[imageId] = this.own(videoInfo);
     return videoInfo;
   }

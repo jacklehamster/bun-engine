@@ -7,9 +7,10 @@ precision highp float;
 //  shape
 layout(location = 0) in vec2 position;
 layout(location = 1) in mat4 transform;
-//  2, 3, 4 reserved for transform
+//  1, 2, 3, 4 reserved for transform
 //  animation
 layout(location = 5) in vec2 slotSize_and_number;
+//  instance
 layout(location = 6) in float instance;
 
 //  UNIFORM
@@ -18,6 +19,7 @@ uniform mat4 camPos;
 uniform mat4 camTurn;
 uniform mat4 camTilt;
 uniform mat4 projection;
+uniform float curvature;
 
 //  OUT
 out vec2 vTex;
@@ -35,7 +37,14 @@ void main() {
   float slotX = mod(slotNumber, maxCols);
   float slotY = mod(floor(slotNumber / maxCols), maxRows);
 
-  gl_Position = projection * camTilt * camTurn * camPos * transform * vec4(position, 0.0, 1.0);
+  vec4 elemPosition = transform * vec4(position, 0.0, 1.0);
+  // elementPosition => relativePosition
+  vec4 relativePosition = camTilt * camTurn * camPos * elemPosition;
+  relativePosition.y -= curvature * ((relativePosition.z * relativePosition.z) + (relativePosition.x * relativePosition.x) / 4.) / 10.;
+  // relativePosition => gl_Position
+  gl_Position = projection * relativePosition;
+
+
   vTex = (vec2(slotX, slotY) + tex) * slotSize / maxTextureSize;
   vTextureIndex = floor(slotNumber / (maxCols * maxRows));
 

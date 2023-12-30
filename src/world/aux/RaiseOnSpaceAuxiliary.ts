@@ -1,30 +1,36 @@
-import { Keyboard } from "controls/Keyboard";
-import { Camera } from "gl/camera/Camera";
 import { UpdatePayload } from "updates/Refresh";
 import { Auxiliary } from "./Auxiliary";
 import { Core } from "core/Core";
+import { IKeyboard } from "controls/IKeyboard";
+import { ICamera } from "gl/camera/ICamera";
 
-export class RaiseOnSpaceAuxiliary implements Auxiliary {
-  private readonly keyboard: Keyboard;
-  private readonly camera: Camera;
+interface Config {
+  key: string;
+}
 
-  constructor(core: Core) {
+export class RiseAuxiliary implements Auxiliary {
+  private readonly keyboard: IKeyboard;
+  private readonly camera: ICamera;
+  private key: string;
+
+  constructor(core: Core, config: Config = { key: "Space" }) {
     this.keyboard = core.keyboard;
     this.camera = core.camera;
+    this.key = config.key;
   }
 
   refresh(update: UpdatePayload): void {
     const { deltaTime } = update;
 
-    this.spaceForRiseAndDrop(deltaTime, this.keyboard);
+    this.riseAndDrop(deltaTime, this.keyboard);
   }
 
-  spaceForRiseAndDrop(deltaTime: number, keyboard: Keyboard): void {
+  riseAndDrop(deltaTime: number, keyboard: IKeyboard): void {
     const speed = deltaTime / 80;
     const { keys, keysUp } = keyboard;
-    if (keys.Space) {
+    if (keys[this.key]) {
       this.camera.moveCam(0, speed, 0);
-    } else if (keysUp.Space) {
+    } else if (keysUp[this.key]) {
       this.camera.moveCam(0, -speed, 0);
       const [x, y, z] = this.camera.getPosition();
       if (y < 0) {

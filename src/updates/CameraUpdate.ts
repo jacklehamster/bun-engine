@@ -1,12 +1,12 @@
 import { Refresh } from "./Refresh";
 import { CameraMatrixType } from "gl/camera/Camera";
-import { GraphicsEngine } from "../core/GraphicsEngine";
 import { UpdateNotifier } from "./UpdateNotifier";
-import { Motor } from "core/Motor";
+import { IGraphicsEngine } from "core/graphics/IGraphicsEngine";
+import { IMotor } from "core/motor/IMotor";
 
 export class CameraUpdate implements Refresh, UpdateNotifier {
   private readonly updatedTypes: Set<CameraMatrixType> = new Set();
-  constructor(private getCameraMatrix: (type: CameraMatrixType) => Float32Array, private engine: GraphicsEngine, private motor: Motor) {
+  constructor(private getCameraMatrix: (type: CameraMatrixType) => Float32Array, private engine: IGraphicsEngine, private motor: IMotor) {
   }
 
   informUpdate(type: CameraMatrixType): void {

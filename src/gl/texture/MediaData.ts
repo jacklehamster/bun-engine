@@ -1,6 +1,6 @@
 import { Refresh } from 'updates/Refresh';
 import { Disposable } from '../../lifecycle/Disposable';
-import { Schedule } from 'core/Motor';
+import { Schedule } from 'core/motor/Motor';
 
 export class MediaData extends Disposable implements Refresh {
   readonly texImgSrc: TexImageSource;
@@ -44,7 +44,7 @@ export class MediaData extends Disposable implements Refresh {
     return new MediaData(image);
   }
 
-  static async loadVideo(src: string, volume?: number, fps: number = 30): Promise<MediaData> {
+  static async loadVideo(src: string, volume?: number, fps: number = 30, playSpeed: number = 1): Promise<MediaData> {
     const video = await new Promise<HTMLVideoElement>((resolve, reject) => {
       const video = document.createElement('video');
       video.loop = true;
@@ -54,6 +54,7 @@ export class MediaData extends Disposable implements Refresh {
 
       video.addEventListener('loadedmetadata', () => {
         video.play();
+        video.playbackRate = playSpeed;
         resolve(video);
       }, { once: true });
       video.addEventListener('error', (e: ErrorEvent) => reject(e.error));
