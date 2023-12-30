@@ -12,15 +12,8 @@ const LOGO_SIZE = 512;
 export class DemoWorld extends World {
   readonly hudSpriteId = 0;
 
-  constructor(core: Core) {
+  constructor(private core: Core) {
     super(core);
-
-    this.addAuxiliary(
-      // new CamStepAuxiliary(core, { step: 1, turnStep: Math.PI / 4, tiltStep: Math.PI / 8 }),
-      new CamMoveAuxiliary(core),
-      new JumpAuxiliary(core),
-      // new RiseAuxiliary(core),
-    );
 
     this.addMedia(
       {
@@ -195,5 +188,21 @@ export class DemoWorld extends World {
         Matrix.create().translate((index % 20 - 10) * 2, 0, (Math.floor(index / 20) - 10) * 2 - 1).getMatrix(),
       ).map(transform => ({ imageId: WIREFRAME, transforms: [transform] })),
     );
+  }
+
+  activate(): () => void {
+    const onDeactivate = super.activate();
+
+    const cleanAuxiliary = this.core.addAuxiliary(
+      new CamStepAuxiliary(this.core, { step: 1, turnStep: Math.PI / 4, tiltStep: Math.PI / 8 }),
+      // new CamMoveAuxiliary(this.core),
+      new JumpAuxiliary(this.core),
+      // new RiseAuxiliary(this.core),
+    );
+
+    return () => {
+      onDeactivate();
+      cleanAuxiliary();
+    };
   }
 }

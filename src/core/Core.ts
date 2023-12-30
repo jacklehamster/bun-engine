@@ -20,17 +20,23 @@ export interface Props {
 }
 
 export class Core extends AuxiliaryHolder {
-  motor: IMotor;
-  engine: IGraphicsEngine;
-  keyboard: IKeyboard;
-  camera: ICamera;
+  readonly motor: IMotor;
+  readonly engine: IGraphicsEngine;
+  readonly keyboard: IKeyboard;
+  readonly camera: ICamera;
 
-  constructor({ motor, canvas, engine, keyboard, size, camera }: Props) {
+  constructor(props: Props) {
     super();
+    const { motor, canvas, engine, keyboard, size, camera } = props;
     this.motor = motor ?? new Motor();
     this.engine = engine ?? new GraphicsEngine(canvas ?? new OffscreenCanvas(size![0], size![1]));
-    this.keyboard = keyboard ?? new Keyboard(this);
-    this.camera = camera ?? new Camera(this);
+    this.keyboard = keyboard ?? new Keyboard({
+      timeProvider: this.motor,
+    });
+    this.camera = camera ?? new Camera({
+      motor: this.motor,
+      engine: this.engine,
+    });
   }
 
   private initialize(world: IWorld) {
@@ -43,7 +49,7 @@ export class Core extends AuxiliaryHolder {
     this.addAuxiliary(motor,
       world,
       engine,
-      new ResizeAux(this),
+      new ResizeAux({ engine: this.engine, camera: this.camera }),
       this.keyboard,
       this.camera);
 

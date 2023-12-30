@@ -2,9 +2,13 @@ import { UpdatePayload } from "updates/Refresh";
 import { Auxiliary } from "./Auxiliary";
 import { CellPos } from "world/grid/CellPos";
 import { angle, angleStep } from "gl/utils/angleUtils";
-import { Core } from "core/Core";
 import { IKeyboard } from "controls/IKeyboard";
 import { ICamera } from "gl/camera/ICamera";
+
+interface Props {
+  keyboard: IKeyboard;
+  camera: ICamera;
+}
 
 interface Config {
   step: number;
@@ -25,9 +29,9 @@ export class CamStepAuxiliary implements Auxiliary {
   private tiltCount: number = 0;
   private config: Config;
 
-  constructor(core: Core, config: Partial<Config> = {}) {
-    this.keyboard = core.keyboard;
-    this.camera = core.camera;
+  constructor({ keyboard, camera }: Props, config: Partial<Config> = {}) {
+    this.keyboard = keyboard;
+    this.camera = camera;
     const camPos = this.camera.getPosition();
     this.goal = {
       turn: this.camera.turnMatrix.turn,

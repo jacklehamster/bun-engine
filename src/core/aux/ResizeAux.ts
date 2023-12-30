@@ -1,12 +1,16 @@
-import { Core } from "core/Core";
 import { IGraphicsEngine } from "core/graphics/IGraphicsEngine";
 import { ICamera } from "gl/camera/ICamera";
 import { Auxiliary } from "world/aux/Auxiliary";
 
+interface Props {
+  engine: IGraphicsEngine;
+  camera: ICamera;
+}
+
 export class ResizeAux implements Auxiliary {
   private engine: IGraphicsEngine;
   private camera: ICamera;
-  constructor({ engine, camera }: Core) {
+  constructor({ engine, camera }: Props) {
     this.engine = engine;
     this.camera = camera;
   }

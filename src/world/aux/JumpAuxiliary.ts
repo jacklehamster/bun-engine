@@ -1,6 +1,5 @@
 import { UpdatePayload } from "updates/Refresh";
 import { Auxiliary } from "./Auxiliary";
-import { Core } from "core/Core";
 import { IKeyboard } from "controls/IKeyboard";
 import { ICamera } from "gl/camera/ICamera";
 
@@ -9,6 +8,11 @@ interface Config {
   gravity: number;
   jump: number;
   plane: number;
+}
+
+interface Props {
+  keyboard: IKeyboard;
+  camera: ICamera;
 }
 
 export class JumpAuxiliary implements Auxiliary {
@@ -20,13 +24,13 @@ export class JumpAuxiliary implements Auxiliary {
   private jumpStrength = 0;
   private plane = 1;
 
-  constructor(core: Core, config: Partial<Config> = {}) {
-    this.keyboard = core.keyboard;
-    this.camera = core.camera;
+  constructor({ keyboard, camera }: Props, config: Partial<Config> = {}) {
+    this.keyboard = keyboard;
+    this.camera = camera;
     this.key = config.key ?? "Space";
     this.gravity = config.gravity ?? -1;
     this.jumpStrength = config.jump ?? 2;
-    this.plane = config.plane ?? 5;
+    this.plane = config.plane ?? 10;
     this.dy = 0;
   }
 

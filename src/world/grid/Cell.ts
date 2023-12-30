@@ -1,4 +1,4 @@
-import { Time } from "core/motor/Motor";
+import { Time } from "core/Time";
 import { SpriteId } from "world/sprite/Sprite";
 import { CellPos } from "./CellPos";
 import { List } from "world/sprite/List";

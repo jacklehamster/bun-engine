@@ -1,8 +1,12 @@
 import { UpdatePayload } from "updates/Refresh";
 import { Auxiliary } from "./Auxiliary";
-import { Core } from "core/Core";
 import { IKeyboard } from "controls/IKeyboard";
 import { ICamera } from "gl/camera/ICamera";
+
+interface Props {
+  keyboard: IKeyboard;
+  camera: ICamera;
+}
 
 interface Config {
   key: string;
@@ -13,9 +17,9 @@ export class RiseAuxiliary implements Auxiliary {
   private readonly camera: ICamera;
   private key: string;
 
-  constructor(core: Core, config: Config = { key: "Space" }) {
-    this.keyboard = core.keyboard;
-    this.camera = core.camera;
+  constructor({ keyboard, camera }: Props, config: Config = { key: "Space" }) {
+    this.keyboard = keyboard;
+    this.camera = camera;
     this.key = config.key;
   }
 

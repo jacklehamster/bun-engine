@@ -1,4 +1,3 @@
-import { Core } from "core/Core";
 import { IMatrix } from "gl/transform/IMatrix";
 import Matrix from "gl/transform/Matrix";
 import { ProjectionMatrix } from "gl/transform/ProjectionMatrix";
@@ -8,6 +7,8 @@ import { CameraUpdate } from "updates/CameraUpdate";
 import { CellPos } from "world/grid/CellPos";
 import { ICamera } from "./ICamera";
 import { CameraFloatUpdate } from "updates/CameraFloatUpdate";
+import { IGraphicsEngine } from "core/graphics/IGraphicsEngine";
+import { IMotor } from "core/motor/IMotor";
 
 export enum CameraMatrixType {
   PROJECTION = 0,
@@ -18,6 +19,11 @@ export enum CameraMatrixType {
 
 export enum CameraFloatType {
   CURVATURE = 0,
+}
+
+interface Props {
+  engine: IGraphicsEngine;
+  motor: IMotor;
 }
 
 export class Camera implements ICamera {
@@ -31,9 +37,9 @@ export class Camera implements ICamera {
   private readonly updateInformer;
   private readonly updateInformerFloat;
 
-  constructor(core: Core) {
-    this.updateInformer = new CameraUpdate(this.getCameraMatrix.bind(this), core.engine, core.motor);
-    this.updateInformerFloat = new CameraFloatUpdate(this.getCameraFloat.bind(this), core.engine, core.motor);
+  constructor({ engine, motor }: Props) {
+    this.updateInformer = new CameraUpdate(this.getCameraMatrix.bind(this), engine, motor);
+    this.updateInformerFloat = new CameraFloatUpdate(this.getCameraFloat.bind(this), engine, motor);
   }
 
   activate() {

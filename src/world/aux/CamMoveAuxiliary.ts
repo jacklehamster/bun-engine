@@ -1,16 +1,20 @@
 import { UpdatePayload } from "updates/Refresh";
 import { Auxiliary } from "./Auxiliary";
-import { Core } from "core/Core";
 import { IKeyboard } from "controls/IKeyboard";
 import { ICamera } from "gl/camera/ICamera";
+
+interface Props {
+  keyboard: IKeyboard;
+  camera: ICamera;
+}
 
 export class CamMoveAuxiliary implements Auxiliary {
   private readonly keyboard: IKeyboard;
   private readonly camera: ICamera;
 
-  constructor(core: Core) {
-    this.keyboard = core.keyboard;
-    this.camera = core.camera;
+  constructor(props: Props) {
+    this.keyboard = props.keyboard;
+    this.camera = props.camera;
   }
 
   refresh(update: UpdatePayload): void {

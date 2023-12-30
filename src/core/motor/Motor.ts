@@ -1,13 +1,12 @@
+import { Time } from "core/Time";
 import { Refresh, UpdatePayload } from "../../updates/Refresh";
 import { IMotor } from "./IMotor";
+import { Duration } from "core/Time";
 
 /**
  * Continously runs a loop which feeds a world into the GL Engine.
  */
 const MAX_DELTA_TIME = 1000 / 20;
-
-export type Time = number;
-export type Duration = number;
 
 export enum Priority {
   DEFAULT = 0,

@@ -1,5 +1,4 @@
 import IWorld from "./IWorld";
-import { Core } from "core/Core";
 import { Sprites } from "./sprite/Sprites";
 import { IdType } from "core/IdType";
 import { Media } from "gl/texture/Media";
@@ -11,6 +10,13 @@ import { SpriteTransformUpdate } from "updates/SpriteTransformUpdate";
 import { SpriteAnimUpdate } from "updates/SpriteAnimUpdate";
 import { SpritesAccumulator } from "./sprite/SpriteAccumulator";
 import { Sprite } from "./sprite/Sprite";
+import { IGraphicsEngine } from "core/graphics/IGraphicsEngine";
+import { IMotor } from "core/motor/IMotor";
+
+interface Props {
+  engine: IGraphicsEngine;
+  motor: IMotor;
+}
 
 export abstract class World extends AuxiliaryHolder implements IWorld, Auxiliary {
   public medias: UpdatableMedias;
@@ -18,11 +24,12 @@ export abstract class World extends AuxiliaryHolder implements IWorld, Auxiliary
   private spriteAnimUpdate;
   private spritesAccumulator = new SpritesAccumulator();
 
-  constructor(protected core: Core) {
+  constructor(props: Props) {
     super();
-    this.medias = new UpdatableMedias(core)
-    this.spriteTransformUpdate = new SpriteTransformUpdate(this.getSprite.bind(this), core.engine, core.motor);
-    this.spriteAnimUpdate = new SpriteAnimUpdate(this.getSprite.bind(this), core.engine, core.motor);
+    const { engine, motor } = props;
+    this.medias = new UpdatableMedias(props)
+    this.spriteTransformUpdate = new SpriteTransformUpdate(this.getSprite.bind(this), engine, motor);
+    this.spriteAnimUpdate = new SpriteAnimUpdate(this.getSprite.bind(this), engine, motor);
   }
 
   get sprites(): Sprites {

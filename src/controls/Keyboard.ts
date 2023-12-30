@@ -1,9 +1,11 @@
-import { Core } from "core/Core";
-import { Time } from "core/motor/Motor";
+import { ITimeProvider, Time } from "core/Time";
 import { IKeyboard, KeyListener } from "./IKeyboard";
-import { IMotor } from "core/motor/IMotor";
 
 const QUICK_TAP_TIME = 200;
+
+interface Props {
+  timeProvider: ITimeProvider;
+}
 
 export class Keyboard implements IKeyboard {
   readonly keys: Record<string, Time> = {};
@@ -11,24 +13,24 @@ export class Keyboard implements IKeyboard {
 
   private readonly keyListener = new Set<KeyListener>();
   private isActive: boolean = false;
-  private readonly motor: IMotor;
+  private readonly timeProvider: ITimeProvider;
 
-  constructor({ motor }: Core) {
-    this.motor = motor;
+  constructor({ timeProvider }: Props) {
+    this.timeProvider = timeProvider;
     this.keyDown = this.keyDown.bind(this);
     this.keyUp = this.keyUp.bind(this);
   }
 
   private keyDown(e: KeyboardEvent): void {
     if (!this.keys[e.code]) {
-      this.keys[e.code] = this.motor.time;
+      this.keys[e.code] = this.timeProvider.time;
       this.keyListener.forEach(listener => listener.onKeyDown?.(e.code))
     }
   }
 
   private keyUp(e: KeyboardEvent) {
-    if (this.motor.time - this.keys[e.code] < QUICK_TAP_TIME) {
-      this.keysUp[e.code] = this.keysUp[e.code] ? 0 : this.motor.time;
+    if (this.timeProvider.time - this.keys[e.code] < QUICK_TAP_TIME) {
+      this.keysUp[e.code] = this.keysUp[e.code] ? 0 : this.timeProvider.time;
     } else {
       this.keysUp[e.code] = 0;
     }

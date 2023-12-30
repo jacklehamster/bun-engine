@@ -1,13 +1,19 @@
 import { Media } from "gl/texture/Media";
 import { List } from "./List";
 import { UpdatableList } from "updates/UpdatableList";
-import { Core } from "core/Core";
 import { TextureUpdate } from "updates/TextureUpdate";
+import { IGraphicsEngine } from "core/graphics/IGraphicsEngine";
+import { IMotor } from "core/motor/IMotor";
 
 export type Medias = List<Media>;
 
+interface Props {
+  motor: IMotor;
+  engine: IGraphicsEngine;
+}
+
 export class UpdatableMedias extends UpdatableList<Media> {
-  constructor(core: Core, medias: (Media | undefined)[] = []) {
+  constructor({ motor, engine }: Props, medias: (Media | undefined)[] = []) {
     super(medias,
       (index, value) => {
         medias[index] = value;
@@ -15,6 +21,6 @@ export class UpdatableMedias extends UpdatableList<Media> {
           medias.length--;
         }
       },
-      new TextureUpdate(core.motor, medias.at.bind(medias), core.engine));
+      new TextureUpdate(motor, medias.at.bind(medias), engine));
   }
 }
