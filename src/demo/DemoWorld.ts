@@ -202,7 +202,7 @@ export class DemoWorld extends World {
           {
             key: "Tab", aux: Auxiliaries.from(
               new CamStepAuxiliary(this.core, { step: 2, turnStep: Math.PI / 2, tiltStep: Math.PI / 4 }),
-              new JumpAuxiliary(this.core),
+              //              new JumpAuxiliary(this.core),
               new CamTiltResetAuxiliary(this.core, { key: "ShiftRight" }),
             )
           },

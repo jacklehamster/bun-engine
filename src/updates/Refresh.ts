@@ -7,5 +7,5 @@ export interface UpdatePayload {
 }
 
 export type Refresh = {
-  refresh(updatePayload: UpdatePayload): void;
+  readonly refresh: (updatePayload: UpdatePayload) => void;
 }

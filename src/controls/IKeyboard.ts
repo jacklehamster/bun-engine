@@ -8,7 +8,7 @@ export interface IKeyboard extends Auxiliary {
 }
 
 export interface KeyListener {
-  onKeyDown?(keyCode: string, time: number): void;
-  onKeyUp?(keyCode: string, time: number): void;
-  onQuickTap?(keyCode: string, time: number): void;
+  readonly onKeyDown?: (keyCode: string, time: number) => void;
+  readonly onKeyUp?: (keyCode: string, time: number) => void;
+  readonly onQuickTap?: (keyCode: string, time: number) => void;
 }
