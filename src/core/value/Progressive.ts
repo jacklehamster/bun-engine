@@ -1,22 +1,26 @@
 export class Progressive<T> {
-  private goal: number;
+  private _goal: number;
   private active: boolean = false;
   private speed: number = 0;
   private locker?: any;
   constructor(private element: T, private getValue: (element: T) => number, private apply: (element: T, value: number) => void) {
-    this.goal = this.getValue(element);
+    this._goal = this.getValue(element);
   }
 
   setGoal(value: number, speed: number, locker?: any) {
     if (this.locker && this.locker !== locker) {
       return;
     }
-    if (this.goal !== value || this.speed !== speed) {
+    if (this._goal !== value || this.speed !== speed) {
       this.speed = speed;
-      this.goal = value;
+      this._goal = value;
       this.locker = locker;
       this.active = true;
     }
+  }
+
+  get goal() {
+    return this._goal;
   }
 
   update(deltaTime: number): boolean {

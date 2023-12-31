@@ -5,7 +5,6 @@ import { Auxiliaries } from "world/aux/Auxiliaries";
 import { CamMoveAuxiliary } from "world/aux/CamMoveAuxiliary";
 import { CamStepAuxiliary } from "world/aux/CamStepAuxiliary";
 import { CamTiltResetAuxiliary } from "world/aux/CamTiltResetAuxiliary";
-import { JumpAuxiliary } from "world/aux/JumpAuxiliary";
 import { RiseAuxiliary } from "world/aux/RiseAuxiliary";
 import { ToggleAuxiliary } from "world/aux/ToggleAuxiliary";
 
@@ -202,7 +201,6 @@ export class DemoWorld extends World {
           {
             key: "Tab", aux: Auxiliaries.from(
               new CamStepAuxiliary(this.core, { step: 2, turnStep: Math.PI / 2, tiltStep: Math.PI / 4 }),
-              //              new JumpAuxiliary(this.core),
               new CamTiltResetAuxiliary(this.core, { key: "ShiftRight" }),
             )
           },

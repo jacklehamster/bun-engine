@@ -1,7 +1,7 @@
 import { UpdatePayload } from "updates/Refresh";
 import { Auxiliary } from "./Auxiliary";
 import { CellPos } from "world/grid/CellPos";
-import { angle, angleStep } from "gl/utils/angleUtils";
+import { angleStep } from "gl/utils/angleUtils";
 import { IKeyboard } from "controls/IKeyboard";
 import { ICamera } from "gl/camera/ICamera";
 
@@ -19,11 +19,7 @@ interface Config {
 export class CamStepAuxiliary implements Auxiliary {
   private readonly keyboard: IKeyboard;
   private readonly camera: ICamera;
-  private readonly goal: {
-    turn: number;
-    //    tilt: number;
-    pos: CellPos;
-  };
+  private readonly goalPos: CellPos;
   private stepCount: number = 0;
   private turnCount: number = 0;
   private tiltCount: number = 0;
@@ -33,11 +29,7 @@ export class CamStepAuxiliary implements Auxiliary {
     this.keyboard = keyboard;
     this.camera = camera;
     const camPos = this.camera.getPosition();
-    this.goal = {
-      turn: this.camera.turnMatrix.turn,
-      //      tilt: this.camera.tiltMatrix.tilt,
-      pos: [...camPos],
-    };
+    this.goalPos = [...camPos];
     this.config = {
       step: config.step ?? 2,
       turnStep: config.turnStep ?? Math.PI / 2,
@@ -69,14 +61,15 @@ export class CamStepAuxiliary implements Auxiliary {
     if (keys.KeyD || (keys.ArrowRight && !keys.ShiftRight)) {
       dx++;
     }
+    const turnGoal = this.camera.turnMatrix.progressive.goal;
     if (dx || dz || this.stepCount > 0) {
-      const relativeDx = dx * Math.cos(this.goal.turn) - dz * Math.sin(this.goal.turn);
-      const relativeDz = dx * Math.sin(this.goal.turn) + dz * Math.cos(this.goal.turn);
+      const relativeDx = dx * Math.cos(turnGoal) - dz * Math.sin(turnGoal);
+      const relativeDz = dx * Math.sin(turnGoal) + dz * Math.cos(turnGoal);
 
       const gx = Math.round(pos[0] / step + relativeDx) * step;
       const gz = Math.round(pos[2] / step + relativeDz) * step;
-      this.goal.pos[0] = gx;
-      this.goal.pos[2] = gz;
+      this.goalPos[0] = gx;
+      this.goalPos[2] = gz;
     }
 
     if (!dx && !dz) {
@@ -84,7 +77,7 @@ export class CamStepAuxiliary implements Auxiliary {
     }
     const speed = (dx || dz) ? deltaTime / 150 : deltaTime / 100;
 
-    this.camera.gotoPos(this.goal.pos[0], pos[1], this.goal.pos[2], speed);
+    this.camera.gotoPos(this.goalPos[0], pos[1], this.goalPos[2], speed);
     const newPos = this.camera.getPosition();
     if (Math.round(newPos[0] / step) * step !== this.prePos[0]
       || Math.round(newPos[1] / step) * step !== this.prePos[1]
@@ -100,21 +93,18 @@ export class CamStepAuxiliary implements Auxiliary {
       dTurn++;
     }
 
-    const turn = this.camera.turnMatrix.turn;
-    const preTurn = angleStep(turn, turnStep);
+    const turn = angleStep(this.camera.turnMatrix.turn, turnStep);
     if (dTurn || this.turnCount > 0) {
-      this.goal.turn = angleStep(turn + turnStep * dTurn, turnStep);
+      this.camera.turnMatrix.progressive.setGoal(
+        angleStep(turn + turnStep * dTurn, turnStep),
+        dTurn ? 1 / 200 : 1 / 100, this);
     }
     if (!dTurn) {
       this.turnCount = 0;
     }
-    const turnSpeed = dTurn ? deltaTime / 200 : deltaTime / 100;
-    let deltaTurn = angle(this.goal.turn - turn);
-    if (deltaTurn) {
-      const distTurn = Math.abs(deltaTurn);
-      this.camera.turnMatrix.turn = distTurn < .01 ? this.goal.turn : turn + Math.sign(deltaTurn) * Math.min(turnSpeed, distTurn);
+    if (this.camera.turnMatrix.progressive.update(deltaTime)) {
       const newTurn = angleStep(this.camera.turnMatrix.turn, turnStep);
-      if (newTurn !== preTurn) {
+      if (newTurn !== turn) {
         this.turnCount++;
       }
     }
@@ -127,10 +117,9 @@ export class CamStepAuxiliary implements Auxiliary {
       dTilt++;
     }
 
-    const tilt = this.camera.tiltMatrix.tilt;
-    const preTilt = angleStep(tilt, tiltStep);
+    const tilt = angleStep(this.camera.tiltMatrix.tilt, tiltStep);
     if (dTilt || this.tiltCount > 0) {
-      this.camera.tiltMatrix.progressiveTilt.setGoal(
+      this.camera.tiltMatrix.progressive.setGoal(
         angleStep(tilt + tiltStep * dTilt, tiltStep),
         dTilt ? 1 / 400 : 1 / 200,
         this,
@@ -139,9 +128,9 @@ export class CamStepAuxiliary implements Auxiliary {
     if (!dTilt) {
       this.tiltCount = 0;
     }
-    if (this.camera.tiltMatrix.progressiveTilt.update(deltaTime)) {
+    if (this.camera.tiltMatrix.progressive.update(deltaTime)) {
       const newTilt = angleStep(this.camera.tiltMatrix.tilt, tiltStep);
-      if (newTilt !== preTilt) {
+      if (newTilt !== tilt) {
         this.tiltCount++;
       }
     }

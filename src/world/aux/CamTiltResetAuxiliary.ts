@@ -29,7 +29,7 @@ export class CamTiltResetAuxiliary implements Auxiliary {
       onQuickTap: (keyCode) => {
         if (keyCode === this.key) {
           this.resetting = true;
-          this.camera.tiltMatrix.progressiveTilt.setGoal(
+          this.camera.tiltMatrix.progressive.setGoal(
             0, 1 / 300, this
           );
         }
@@ -41,7 +41,7 @@ export class CamTiltResetAuxiliary implements Auxiliary {
   refresh(update: UpdatePayload): void {
     if (this.resetting) {
       const { deltaTime } = update;
-      if (!this.camera.tiltMatrix.progressiveTilt.update(deltaTime)) {
+      if (!this.camera.tiltMatrix.progressive.update(deltaTime)) {
         this.resetting = false;
       }
     }
