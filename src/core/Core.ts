@@ -25,33 +25,29 @@ export class Core extends AuxiliaryHolder {
   readonly keyboard: IKeyboard;
   readonly camera: ICamera;
 
-  constructor(props: Props) {
+  constructor({ motor, canvas, engine, keyboard, size, camera }: Props) {
     super();
-    const { motor, canvas, engine, keyboard, size, camera } = props;
     this.motor = motor ?? new Motor();
     this.engine = engine ?? new GraphicsEngine(canvas ?? new OffscreenCanvas(size![0], size![1]));
-    this.keyboard = keyboard ?? new Keyboard({
-      timeProvider: this.motor,
-    });
-    this.camera = camera ?? new Camera({
-      motor: this.motor,
-      engine: this.engine,
-    });
+    this.keyboard = keyboard ?? new Keyboard(this.motor);
+    this.camera = camera ?? new Camera(this);
   }
 
-  private initialize(world: IWorld) {
-    const { motor, engine } = this;
+  start(world: IWorld) {
+    const { motor, engine, keyboard, camera } = this;
     const deregisterLoop = motor.loop(this);
 
     //  Initialize engine buffer
     engine.setMaxSpriteCount(world.sprites.length);
 
-    this.addAuxiliary(motor,
+    this.addAuxiliary(
       world,
+      motor,
       engine,
-      new ResizeAux({ engine: this.engine, camera: this.camera }),
-      this.keyboard,
-      this.camera);
+      keyboard,
+      camera,
+      new ResizeAux(this),
+    );
 
     const clearActivate = this.activate();
 
@@ -60,15 +56,6 @@ export class Core extends AuxiliaryHolder {
       clearActivate();
       this.deactivate();
       this.removeAllAuxiliaries();
-    };
-  }
-
-  start(world: IWorld) {
-    const deregister = this.initialize(world);
-
-    //  Start motor loop
-    return () => {
-      deregister();
     };
   }
 }

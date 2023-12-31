@@ -14,6 +14,7 @@ export const INDEX_LOC: LocationName = 'index';
 export const TRANSFORM_LOC: LocationName = 'transform';
 export const SLOT_SIZE_LOC: LocationName = 'slotSize_and_number';
 export const INSTANCE_LOC: LocationName = 'instance';
+export const SPRITE_FLAGS_LOC: LocationName = 'spriteFlag';
 
 //  Uniform
 export const CAM_POS_LOC: LocationName = 'camPos';

@@ -3,20 +3,14 @@ import { IKeyboard, KeyListener } from "./IKeyboard";
 
 const QUICK_TAP_TIME = 200;
 
-interface Props {
-  timeProvider: ITimeProvider;
-}
-
 export class Keyboard implements IKeyboard {
   readonly keys: Record<string, Time> = {};
   readonly keysUp: Record<string, Time> = {};
 
   private readonly keyListener = new Set<KeyListener>();
   private isActive: boolean = false;
-  private readonly timeProvider: ITimeProvider;
 
-  constructor({ timeProvider }: Props) {
-    this.timeProvider = timeProvider;
+  constructor(private timeProvider: ITimeProvider) {
     this.keyDown = this.keyDown.bind(this);
     this.keyUp = this.keyUp.bind(this);
   }
@@ -24,18 +18,19 @@ export class Keyboard implements IKeyboard {
   private keyDown(e: KeyboardEvent): void {
     if (!this.keys[e.code]) {
       this.keys[e.code] = this.timeProvider.time;
-      this.keyListener.forEach(listener => listener.onKeyDown?.(e.code))
+      this.keyListener.forEach(listener => listener.onKeyDown?.(e.code, this.timeProvider.time));
     }
+    e.preventDefault();
   }
 
   private keyUp(e: KeyboardEvent) {
-    if (this.timeProvider.time - this.keys[e.code] < QUICK_TAP_TIME) {
-      this.keysUp[e.code] = this.keysUp[e.code] ? 0 : this.timeProvider.time;
-    } else {
-      this.keysUp[e.code] = 0;
-    }
+    const quickTap = this.timeProvider.time - this.keys[e.code] < QUICK_TAP_TIME;
+    this.keysUp[e.code] = this.timeProvider.time;
     this.keys[e.code] = 0;
-    this.keyListener.forEach(listener => listener.onKeyUp?.(e.code))
+    this.keyListener.forEach(listener => listener.onKeyUp?.(e.code, this.timeProvider.time))
+    if (quickTap) {
+      this.keyListener.forEach(listener => listener.onQuickTap?.(e.code, this.timeProvider.time))
+    }
   }
 
   activate(): () => void {

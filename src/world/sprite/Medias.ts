@@ -14,13 +14,11 @@ interface Props {
 
 export class UpdatableMedias extends UpdatableList<Media> {
   constructor({ motor, engine }: Props, medias: (Media | undefined)[] = []) {
-    super(medias,
-      (index, value) => {
-        medias[index] = value;
-        while (!medias[medias.length - 1]) {
-          medias.length--;
-        }
-      },
-      new TextureUpdate(motor, medias.at.bind(medias), engine));
+    super(medias, (index, value) => {
+      medias[index] = value;
+      while (!medias[medias.length - 1]) {
+        medias.length--;
+      }
+    }, new TextureUpdate(motor, medias.at.bind(medias), engine));
   }
 }

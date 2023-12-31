@@ -11,3 +11,12 @@ export function forEach<T>(list: List<T>, callback: (value: T, index: number) =>
     }
   }
 }
+
+export function map<T, R>(list: List<T>, callback: (value: T, index: number) => R): (R | undefined)[] {
+  const r: (R | undefined)[] = []
+  for (let i = 0; i < list.length; i++) {
+    const elem = list.at(i);
+    r.push(elem ? callback(elem, i) : undefined);
+  }
+  return r;
+}

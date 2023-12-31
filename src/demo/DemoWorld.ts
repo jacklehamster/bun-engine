@@ -1,10 +1,13 @@
 import { Core } from "core/Core";
 import Matrix from "gl/transform/Matrix";
 import { World } from "index";
+import { Auxiliaries } from "world/aux/Auxiliaries";
 import { CamMoveAuxiliary } from "world/aux/CamMoveAuxiliary";
 import { CamStepAuxiliary } from "world/aux/CamStepAuxiliary";
+import { CamTiltResetAuxiliary } from "world/aux/CamTiltResetAuxiliary";
 import { JumpAuxiliary } from "world/aux/JumpAuxiliary";
-import { RiseAuxiliary } from "world/aux/RaiseOnSpaceAuxiliary";
+import { RiseAuxiliary } from "world/aux/RiseAuxiliary";
+import { ToggleAuxiliary } from "world/aux/ToggleAuxiliary";
 
 const DOBUKI = 0, LOGO = 1, GROUND = 2, VIDEO = 3, GRID = 4, WIREFRAME = 5, GRASS = 6;
 const LOGO_SIZE = 512;
@@ -194,10 +197,24 @@ export class DemoWorld extends World {
     const onDeactivate = super.activate();
 
     const cleanAuxiliary = this.core.addAuxiliary(
-      new CamStepAuxiliary(this.core, { step: 1, turnStep: Math.PI / 4, tiltStep: Math.PI / 8 }),
-      // new CamMoveAuxiliary(this.core),
-      new JumpAuxiliary(this.core),
-      // new RiseAuxiliary(this.core),
+      new ToggleAuxiliary(this.core, {
+        auxiliariesMapping: [
+          {
+            key: "Tab", aux: Auxiliaries.from(
+              new CamStepAuxiliary(this.core, { step: 2, turnStep: Math.PI / 2, tiltStep: Math.PI / 4 }),
+              new JumpAuxiliary(this.core),
+              new CamTiltResetAuxiliary(this.core, { key: "ShiftRight" }),
+            )
+          },
+          {
+            key: "Tab", aux: Auxiliaries.from(
+              new CamMoveAuxiliary(this.core),
+              new RiseAuxiliary(this.core),
+              new CamTiltResetAuxiliary(this.core, { key: "ShiftRight" }),
+            )
+          },
+        ],
+      }),
     );
 
     return () => {
