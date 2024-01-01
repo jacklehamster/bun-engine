@@ -1,12 +1,13 @@
-import { Sprite, SpriteId } from "world/sprite/Sprite";
+import { SpriteId } from "world/sprite/Sprite";
 import { Refresh } from "./Refresh";
 import { UpdateNotifier } from "./UpdateNotifier";
 import { IGraphicsEngine } from "core/graphics/IGraphicsEngine";
 import { IMotor } from "core/motor/IMotor";
+import { Sprites } from "world/sprite/Sprites";
 
 export class SpriteTransformUpdate implements Refresh, UpdateNotifier {
   private readonly updatedSpriteIds: Set<SpriteId> = new Set();
-  constructor(private getSprite: (spriteId: SpriteId) => Sprite | undefined, private engine: IGraphicsEngine, private motor: IMotor) {
+  constructor(private sprites: Sprites, private engine: IGraphicsEngine, private motor: IMotor) {
   }
 
   informUpdate(id: SpriteId): void {
@@ -19,6 +20,6 @@ export class SpriteTransformUpdate implements Refresh, UpdateNotifier {
   }
 
   refresh(): void {
-    this.engine.updateSpriteTransforms(this.updatedSpriteIds, this.getSprite);
+    this.engine.updateSpriteTransforms(this.updatedSpriteIds, this.sprites);
   }
 }

@@ -4,11 +4,11 @@ import { ProjectionMatrix } from "gl/transform/ProjectionMatrix";
 import { TiltMatrix } from "gl/transform/TiltMatrix";
 import { TurnMatrix } from "gl/transform/TurnMatrix";
 import { CameraUpdate } from "updates/CameraUpdate";
-import { CellPos } from "world/grid/CellPos";
 import { ICamera } from "./ICamera";
 import { CameraFloatUpdate } from "updates/CameraFloatUpdate";
 import { IGraphicsEngine } from "core/graphics/IGraphicsEngine";
 import { IMotor } from "core/motor/IMotor";
+import { transformToPosition } from "world/grid/Position";
 
 export enum CameraMatrixType {
   PROJECTION = 0,
@@ -117,20 +117,12 @@ export class Camera implements ICamera {
     this.tiltMatrix.tilt += angle;
   }
 
-  private static _position: CellPos = [0, 0, 0];
   getPosition() {
-    const matrix = this.positionMatrix.getMatrix();
-    Camera._position[0] = matrix[12]; // Value in the 4th column, 1st row (indices start from 0)
-    Camera._position[1] = matrix[13]; // Value in the 4th column, 2nd row
-    Camera._position[2] = matrix[14]; // Value in the 4th column, 3rd row
-    return Camera._position;
+    return transformToPosition(this.positionMatrix);
   }
 
   setPosition(x: number, y: number, z: number) {
-    const matrix = this.positionMatrix.getMatrix();
-    matrix[12] = x;
-    matrix[13] = y;
-    matrix[14] = z;
+    this.positionMatrix.setPosition(x, y, z);
     this.updateInformer.informUpdate(CameraMatrixType.POS);
   }
 }

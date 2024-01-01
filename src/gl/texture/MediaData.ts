@@ -11,14 +11,14 @@ export class MediaData extends Disposable implements Refresh {
   refreshCallback?(): void;
   schedule?: Partial<Schedule>;
 
-  constructor(image: TexImageSource, fps?: number) {
+  constructor(image: TexImageSource, refreshRate?: number) {
     super();
     this.texImgSrc = image;
     const img: any = image;
     this.isVideo = !!(img.videoWidth || img.videoHeight);
     this.width = img.naturalWidth ?? img.videoWidth ?? img.displayWidth ?? img.width?.baseValue?.value ?? img.width;
     this.height = img.naturalHeight ?? img.videoHeight ?? img.displayHeight ?? img.height?.baseValue?.value ?? img.height;
-    this.schedule = fps ? { period: 1000 / fps } : undefined;
+    this.schedule = refreshRate ? { period: 1000 / refreshRate } : undefined;
     if (!this.width || !this.height) {
       throw new Error('Invalid image');
     }
@@ -44,7 +44,7 @@ export class MediaData extends Disposable implements Refresh {
     return new MediaData(image);
   }
 
-  static async loadVideo(src: string, volume?: number, fps: number = 30, playSpeed: number = 1): Promise<MediaData> {
+  static async loadVideo(src: string, volume?: number, fps: number = 30, playSpeed: number = 1, maxRefreshRate: number = Number.MAX_SAFE_INTEGER): Promise<MediaData> {
     const video = await new Promise<HTMLVideoElement>((resolve, reject) => {
       const video = document.createElement('video');
       video.loop = true;
@@ -57,11 +57,12 @@ export class MediaData extends Disposable implements Refresh {
         video.playbackRate = playSpeed;
         resolve(video);
       }, { once: true });
+      document.addEventListener('focus', () => video.play());
       video.addEventListener('error', (e: ErrorEvent) => reject(e.error));
       video.src = src;
 
     });
-    const videoInfo = new MediaData(video, fps);
+    const videoInfo = new MediaData(video, Math.min(fps * playSpeed, maxRefreshRate));
     videoInfo.addOnDestroy(() => video.pause());
     return videoInfo;
   }

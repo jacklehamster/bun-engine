@@ -1,6 +1,6 @@
 import { UpdatePayload } from "updates/Refresh";
 import { Auxiliary } from "./Auxiliary";
-import { CellPos } from "world/grid/CellPos";
+import { Position } from "world/grid/Position";
 import { angleStep } from "gl/utils/angleUtils";
 import { IKeyboard } from "controls/IKeyboard";
 import { ICamera } from "gl/camera/ICamera";
@@ -19,7 +19,7 @@ interface Config {
 export class CamStepAuxiliary implements Auxiliary {
   private readonly keyboard: IKeyboard;
   private readonly camera: ICamera;
-  private readonly goalPos: CellPos;
+  private readonly goalPos: Position;
   private stepCount: number = 0;
   private turnCount: number = 0;
   private tiltCount: number = 0;
@@ -37,7 +37,7 @@ export class CamStepAuxiliary implements Auxiliary {
     };
   }
 
-  private readonly prePos: CellPos = [0, 0, 0];
+  private readonly prePos: Position = [0, 0, 0];
   refresh(update: UpdatePayload): void {
     const { keys } = this.keyboard;
     const { deltaTime } = update;

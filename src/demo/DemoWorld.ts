@@ -88,6 +88,7 @@ export class DemoWorld extends World {
         volume: 0,
         fps: 30,
         playSpeed: .1,
+        maxRefreshRate: 30,
       },
       {
         id: GRID,
@@ -150,45 +151,41 @@ export class DemoWorld extends World {
     this.addSprites(
       {
         imageId: DOBUKI,
-        transforms: [
-          Matrix.create().translate(0, 0, -1).getMatrix(),
-        ],
+        transform: Matrix.create().translate(0, 0, -1),
       },
       //  side walls
       ...[
-        Matrix.create().translate(-1, 0, 0).rotateY(Math.PI / 2).scale(1).getMatrix(),
-        Matrix.create().translate(1, 0, 0).rotateY(-Math.PI / 2).scale(1).getMatrix(),
-      ].map(transform => ({ imageId: LOGO, transforms: [transform] })),
+        Matrix.create().translate(-1, 0, 0).rotateY(Math.PI / 2).scale(1),
+        Matrix.create().translate(1, 0, 0).rotateY(-Math.PI / 2).scale(1),
+      ].map(transform => ({ imageId: LOGO, transform })),
       //  floor
       ...[
-        Matrix.create().translate(0, -1, 0).rotateX(-Math.PI / 2).scale(1).getMatrix(),
-        Matrix.create().translate(0, -1, 2).rotateX(-Math.PI / 2).scale(1).getMatrix(),
-        Matrix.create().translate(-2, -1, 2).rotateX(-Math.PI / 2).scale(1).getMatrix(),
-        Matrix.create().translate(2, -1, 2).rotateX(-Math.PI / 2).scale(1).getMatrix(),
-      ].map(transform => ({ imageId: GROUND, transforms: [transform] })),
+        Matrix.create().translate(0, -1, 0).rotateX(-Math.PI / 2).scale(1),
+        Matrix.create().translate(0, -1, 2).rotateX(-Math.PI / 2).scale(1),
+        Matrix.create().translate(-2, -1, 2).rotateX(-Math.PI / 2).scale(1),
+        Matrix.create().translate(2, -1, 2).rotateX(-Math.PI / 2).scale(1),
+      ].map(transform => ({ imageId: GROUND, transform })),
       {
         imageId: VIDEO,
-        transforms: [
-          Matrix.create().translate(0, 10000, -50000).scale(480 * 20, 270 * 20, 1).getMatrix(),
-        ],
+        transform: Matrix.create().translate(0, 10000, -50000).scale(480 * 20, 270 * 20, 1),
       },
       ...new Array(400).fill(0).map((_, index) =>
-        Matrix.create().translate((index % 20 - 10) * 2, -1.5, (Math.floor(index / 20) - 10) * 2).rotateX(-Math.PI / 2).scale(1).getMatrix(),
-      ).map(transform => ({ imageId: GRID, transforms: [transform] })),
+        Matrix.create().translate((index % 20 - 10) * 2, -1.5, (Math.floor(index / 20) - 10) * 2).rotateX(-Math.PI / 2).scale(1),
+      ).map(transform => ({ imageId: GRID, transform })),
 
       //  Wireframe
       //  ground
       ...new Array(400).fill(0).map((_, index) =>
-        Matrix.create().translate((index % 20 - 10) * 2, -1, (Math.floor(index / 20) - 10) * 2).rotateX(-Math.PI / 2).scale(1).getMatrix(),
-      ).map(transform => ({ imageId: GRASS, transforms: [transform] })),
+        Matrix.create().translate((index % 20 - 10) * 2, -1, (Math.floor(index / 20) - 10) * 2).rotateX(-Math.PI / 2).scale(1),
+      ).map(transform => ({ imageId: GRASS, transform })),
       //  ceiling
       ...new Array(400).fill(0).map((_, index) =>
-        Matrix.create().translate((index % 20 - 10) * 2, 1, (Math.floor(index / 20) - 10) * 2).rotateX(-Math.PI / 2).scale(1).getMatrix(),
-      ).map(transform => ({ imageId: WIREFRAME, transforms: [transform] })),
+        Matrix.create().translate((index % 20 - 10) * 2, 1, (Math.floor(index / 20) - 10) * 2).rotateX(-Math.PI / 2).scale(1),
+      ).map(transform => ({ imageId: WIREFRAME, transform })),
       //  face
       ...new Array(400).fill(0).map((_, index) =>
-        Matrix.create().translate((index % 20 - 10) * 2, 0, (Math.floor(index / 20) - 10) * 2 - 1).getMatrix(),
-      ).map(transform => ({ imageId: WIREFRAME, transforms: [transform] })),
+        Matrix.create().translate((index % 20 - 10) * 2, 0, (Math.floor(index / 20) - 10) * 2 - 1),
+      ).map(transform => ({ imageId: WIREFRAME, transform })),
     );
   }
 

@@ -1,10 +1,9 @@
 import { MediaId } from "gl/texture/ImageManager";
-import { Sprites } from "./Sprites";
+import Matrix from "gl/transform/Matrix";
 
 export type SpriteId = number;
 
 export interface Sprite {
-  transforms: Float32Array[];
+  transform: Matrix;
   imageId: MediaId;
-  children?: Sprites;
 }

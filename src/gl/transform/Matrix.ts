@@ -6,6 +6,8 @@ const DEG_TO_RADIANT = Math.PI / 90;
 
 class Matrix implements IMatrix {
   private m4 = Float32Array.from(mat4.create());
+  static readonly EMPTY = Matrix.create();
+  static readonly IDENTITY = Matrix.create();
 
   constructor() {
     this.identity();
@@ -127,33 +129,13 @@ class Matrix implements IMatrix {
     return this;
   }
 
-  //  private static eulerAngles: { x: number, y: number, z: number } = { x: 0, y: 0, z: 0 };
-  getRotationAngle() {
-    mat4.getRotation(Matrix.tempQuat, this.getMatrix());
-    return quat.getAngle(quat.create(), Matrix.tempQuat);
-
-    // const matrix = this.getMatrix();
-    // const sy = Math.sqrt(matrix[0] * matrix[0] + matrix[4] * matrix[4]);
-
-    // let x, y, z;
-
-    // if (sy > 1e-6) {
-    //   x = Math.atan2(matrix[6], matrix[10]);
-    //   y = Math.atan2(-matrix[2], sy);
-    //   z = Math.atan2(matrix[1], matrix[0]);
-    // } else {
-    //   x = Math.atan2(-matrix[9], matrix[5]);
-    //   y = Math.atan2(-matrix[2], sy);
-    //   z = 0;
-    // }
-    // Matrix.eulerAngles.x = x;
-    // Matrix.eulerAngles.y = y;
-    // Matrix.eulerAngles.z = z;
-    // return Matrix.eulerAngles;
-
+  setPosition(x: number, y: number, z: number) {
+    this.m4[12] = x;
+    this.m4[13] = y;
+    this.m4[14] = z;
   }
 
-  public getMatrix(): Float32Array {
+  getMatrix(): Float32Array {
     return this.m4;
   }
 }

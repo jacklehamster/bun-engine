@@ -71,8 +71,9 @@ export class ImageManager extends Disposable {
     volume?: number,
     fps?: number,
     playSpeed?: number,
+    maxRefreshRate?: number,
   ): Promise<MediaData> {
-    const videoInfo = await MediaData.loadVideo(src, volume, fps, playSpeed);
+    const videoInfo = await MediaData.loadVideo(src, volume, fps, playSpeed, maxRefreshRate);
     this.images[imageId] = this.own(videoInfo);
     return videoInfo;
   }

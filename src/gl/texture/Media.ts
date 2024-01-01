@@ -17,6 +17,7 @@ export interface VideoMedia extends BaseMedia {
   volume?: number;
   fps?: number;
   playSpeed?: number;
+  maxRefreshRate?: number;
 }
 
 export interface CanvasMedia extends BaseMedia {

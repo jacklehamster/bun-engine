@@ -25,8 +25,8 @@ export class SpritesAccumulator implements Sprites, UpdateNotifier {
   private spriteAnimUpdate: SpriteAnimUpdate;
 
   constructor({ engine, motor }: Props) {
-    this.spriteTransformUpdate = new SpriteTransformUpdate(this.at.bind(this), engine, motor);
-    this.spriteAnimUpdate = new SpriteAnimUpdate(this.at.bind(this), engine, motor);
+    this.spriteTransformUpdate = new SpriteTransformUpdate(this, engine, motor);
+    this.spriteAnimUpdate = new SpriteAnimUpdate(this, engine, motor);
   }
 
   informUpdate(id: SpriteId, type: SpriteUpdateType = SpriteUpdateType.ALL): void {

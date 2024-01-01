@@ -27,11 +27,11 @@ import fragmentShader from 'generated/src/gl/resources/fragmentShader.txt';
 import { replaceTilda } from 'gl/utils/replaceTilda';
 import Matrix from 'gl/transform/Matrix';
 import { CameraFloatType, CameraMatrixType } from 'gl/camera/Camera';
-import { mat4 } from 'gl-matrix';
 import { MediaData } from 'gl/texture/MediaData';
 import { Media } from 'gl/texture/Media';
-import { Sprite, SpriteId } from 'world/sprite/Sprite';
+import { SpriteId } from 'world/sprite/Sprite';
 import { IGraphicsEngine } from './IGraphicsEngine';
+import { Sprites } from 'world/sprite/Sprites';
 
 const DEFAULT_ATTRIBUTES: WebGLContextAttributes = {
   alpha: true,
@@ -382,33 +382,30 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
     );
   }
 
-  private static readonly spriteMatrix = Matrix.create();
-  updateSpriteTransforms(spriteIds: Set<SpriteId>, getSprite: (spriteId: SpriteId) => Sprite | undefined) {
+  updateSpriteTransforms(spriteIds: Set<SpriteId>, sprites: Sprites) {
     const bufferInfo = this.attributeBuffers.getAttributeBuffer(TRANSFORM_LOC);
     this.gl.bindBuffer(GL.ARRAY_BUFFER, bufferInfo.buffer);
     let topVisibleSprite = this.spriteCount - 1;
     spriteIds.forEach(spriteId => {
-      const matrix = GraphicsEngine.spriteMatrix.identity().getMatrix();
-      const sprite = getSprite(spriteId);
-      sprite?.transforms.forEach(transform => mat4.multiply(matrix, matrix, transform));
-      this.gl.bufferSubData(GL.ARRAY_BUFFER, 4 * 4 * Float32Array.BYTES_PER_ELEMENT * spriteId, matrix);
+      const sprite = sprites.at(spriteId);
+      this.gl.bufferSubData(GL.ARRAY_BUFFER, 4 * 4 * Float32Array.BYTES_PER_ELEMENT * spriteId, (sprite?.transform ?? Matrix.EMPTY).getMatrix());
       if (sprite) {
         topVisibleSprite = Math.max(topVisibleSprite, spriteId);
       }
     });
     spriteIds.clear();
 
-    while (topVisibleSprite >= 0 && !getSprite(topVisibleSprite)) {
+    while (topVisibleSprite >= 0 && !sprites.at(topVisibleSprite)) {
       topVisibleSprite--;
     }
     this.spriteCount = Math.max(this.spriteCount, topVisibleSprite + 1);
   }
 
-  updateSpriteAnims(spriteIds: Set<SpriteId>, getSprite: (spriteId: SpriteId) => Sprite | undefined) {
+  updateSpriteAnims(spriteIds: Set<SpriteId>, sprites: Sprites) {
     const bufferInfo = this.attributeBuffers.getAttributeBuffer(SLOT_SIZE_LOC);
     this.gl.bindBuffer(GL.ARRAY_BUFFER, bufferInfo.buffer);
     spriteIds.forEach(spriteId => {
-      const sprite = getSprite(spriteId);
+      const sprite = sprites.at(spriteId);
       const slotObj = this.textureSlots[sprite?.imageId ?? -1];
       if (slotObj) {
         const { buffer } = slotObj;
