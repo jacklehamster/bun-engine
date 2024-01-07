@@ -1,46 +1,31 @@
 import { IGraphicsEngine } from "core/graphics/IGraphicsEngine";
 import { Sprite, SpriteId } from "./Sprite";
-import { Sprites } from "./Sprites";
 import { IMotor } from "core/motor/IMotor";
-import { SpriteAnimUpdate } from "updates/SpriteAnimUpdate";
-import { SpriteTransformUpdate } from "updates/SpriteTransformUpdate";
-import { UpdateNotifier } from "updates/UpdateNotifier";
+import { forEach } from "./List";
+import { Sprites } from "./Sprites";
+import { SpriteUpdater } from "./update/SpriteUpdater";
+import { UpdatePayload } from "updates/Refresh";
 
 interface Props {
   engine: IGraphicsEngine;
   motor: IMotor;
 }
 
-enum SpriteUpdateType {
-  NONE = 0,
-  TRANSFORM = 1,
-  ANIM = 2,
-  ALL = 3,
-};
+interface Slot {
+  sprites: Sprites;
+  baseIndex: number;
+}
 
-export class SpritesAccumulator implements Sprites, UpdateNotifier {
-  private spritesList: Sprites[] = [];
-  private spritesIndices: { sprites: Sprites, baseIndex: number }[] = [];
-  private spriteTransformUpdate: SpriteTransformUpdate;
-  private spriteAnimUpdate: SpriteAnimUpdate;
+export class SpritesAccumulator extends SpriteUpdater {
+  private readonly spritesIndices: Slot[] = [];
 
   constructor({ engine, motor }: Props) {
-    this.spriteTransformUpdate = new SpriteTransformUpdate(this, engine, motor);
-    this.spriteAnimUpdate = new SpriteAnimUpdate(this, engine, motor);
+    super({ engine, motor });
   }
 
-  informUpdate(id: SpriteId, type: SpriteUpdateType = SpriteUpdateType.ALL): void {
-    if (type & SpriteUpdateType.TRANSFORM) {
-      this.spriteTransformUpdate.informUpdate(id);
-    }
-    if (type & SpriteUpdateType.ANIM) {
-      this.spriteAnimUpdate.informUpdate(id);
-    }
-  }
-
-  at(index: SpriteId): Sprite | undefined {
-    const spritesIndex = this.spritesIndices[index];
-    return spritesIndex?.sprites.at(index - (spritesIndex?.baseIndex ?? 0));
+  at(spriteId: SpriteId): Sprite | undefined {
+    const slot = this.spritesIndices[spriteId];
+    return slot?.sprites.at(spriteId - slot.baseIndex);
   }
 
   get length(): number {
@@ -48,17 +33,22 @@ export class SpritesAccumulator implements Sprites, UpdateNotifier {
   }
 
   add(sprites: Sprites): void {
-    if (this.spritesList.indexOf(sprites) >= 0) {
-      return;
+    const slot = {
+      sprites,
+      baseIndex: this.spritesIndices.length,
+    };
+    if (sprites.informUpdate) {
+      //  overwrite
+      sprites.informUpdate = (index, type) => {
+        this.informUpdate(slot.baseIndex + index, type);
+      };
     }
-    this.spritesList.push(sprites);
-    const baseIndex = this.spritesIndices.length;
-    for (let i = 0; i < sprites.length; i++) {
-      this.informUpdate(baseIndex + i);
-      this.spritesIndices.push({
-        sprites,
-        baseIndex,
-      });
-    }
+    forEach(sprites, (_, index) => {
+      this.spritesIndices.push(slot);
+      this.informUpdate(slot.baseIndex + index);
+    });
+  }
+
+  onUpdate(updatePayload: UpdatePayload): void {
   }
 }

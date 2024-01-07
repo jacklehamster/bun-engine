@@ -8,19 +8,27 @@ interface Props {
   camera: ICamera;
 }
 
+interface Config {
+  speed: number;
+}
+
 export class CamMoveAuxiliary implements Auxiliary {
   private readonly keyboard: IKeyboard;
   private readonly camera: ICamera;
+  private config: Config;
 
-  constructor(props: Props) {
+  constructor(props: Props, config?: Partial<Config>) {
     this.keyboard = props.keyboard;
     this.camera = props.camera;
+    this.config = {
+      speed: config?.speed ?? 1,
+    };
   }
 
   refresh(update: UpdatePayload): void {
     const { keys } = this.keyboard;
     const { deltaTime } = update;
-    const speed = deltaTime / 80;
+    const speed = deltaTime / 80 * this.config.speed;
     const turnspeed = deltaTime / 400;
     if (keys.KeyW || keys.ArrowUp && !keys.ShiftRight) {
       this.camera.moveCam(0, 0, -speed);

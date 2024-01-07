@@ -6,8 +6,8 @@ const DEG_TO_RADIANT = Math.PI / 90;
 
 class Matrix implements IMatrix {
   private m4 = Float32Array.from(mat4.create());
-  static readonly EMPTY = Matrix.create();
-  static readonly IDENTITY = Matrix.create();
+  static readonly HIDDEN = Matrix.create().identity().scale(0, 0, 0);
+  static readonly IDENTITY = Matrix.create().identity();
 
   constructor() {
     this.identity();
@@ -133,6 +133,7 @@ class Matrix implements IMatrix {
     this.m4[12] = x;
     this.m4[13] = y;
     this.m4[14] = z;
+    return this;
   }
 
   getMatrix(): Float32Array {

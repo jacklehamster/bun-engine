@@ -14,6 +14,7 @@ interface Config {
   step: number;
   turnStep: number;
   tiltStep: number;
+  speed: number;
 }
 
 export class CamStepAuxiliary implements Auxiliary {
@@ -34,6 +35,7 @@ export class CamStepAuxiliary implements Auxiliary {
       step: config.step ?? 2,
       turnStep: config.turnStep ?? Math.PI / 2,
       tiltStep: config.tiltStep ?? Math.PI / 2,
+      speed: config.speed ?? 1,
     };
   }
 
@@ -75,7 +77,7 @@ export class CamStepAuxiliary implements Auxiliary {
     if (!dx && !dz) {
       this.stepCount = 0;
     }
-    const speed = (dx || dz) ? deltaTime / 150 : deltaTime / 100;
+    const speed = ((dx || dz) ? deltaTime / 150 : deltaTime / 100) * this.config.speed;
 
     this.camera.gotoPos(this.goalPos[0], pos[1], this.goalPos[2], speed);
     const newPos = this.camera.getPosition();

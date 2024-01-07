@@ -8,7 +8,7 @@ import { ICamera } from "./ICamera";
 import { CameraFloatUpdate } from "updates/CameraFloatUpdate";
 import { IGraphicsEngine } from "core/graphics/IGraphicsEngine";
 import { IMotor } from "core/motor/IMotor";
-import { transformToPosition } from "world/grid/Position";
+import { PositionMatrix } from "gl/transform/PositionMatrix";
 
 export enum CameraMatrixType {
   PROJECTION = 0,
@@ -27,9 +27,9 @@ interface Props {
 }
 
 export class Camera implements ICamera {
-  private readonly positionMatrix: Matrix = Matrix.create().translate(0, 0, 0);
   private readonly camMatrix = Matrix.create();
   private readonly projectionMatrix = new ProjectionMatrix();
+  readonly posMatrix = new PositionMatrix(() => this.updateInformer.informUpdate(CameraMatrixType.POS));
   readonly tiltMatrix = new TiltMatrix(() => this.updateInformer.informUpdate(CameraMatrixType.TILT));
   readonly turnMatrix = new TurnMatrix(() => this.updateInformer.informUpdate(CameraMatrixType.TURN));
   private pespectiveLevel = 1;
@@ -73,7 +73,7 @@ export class Camera implements ICamera {
 
   getCameraMatrix(cameraMatrixType: CameraMatrixType): Float32Array {
     if (cameraMatrixType === CameraMatrixType.POS) {
-      this.camMatrix.invert(this.positionMatrix);
+      this.camMatrix.invert(this.posMatrix);
     }
     return this.cameraMatrices[cameraMatrixType].getMatrix();
   }
@@ -91,20 +91,20 @@ export class Camera implements ICamera {
     const dy = y - curPos[1];
     const dz = z - curPos[2];
     const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
-    if (dist) {
+    if (dist > .01) {
       const sp = Math.min(dist, speed);
-      this.positionMatrix.translate(
+      this.posMatrix.translate(
         dx / dist * sp,
         dy / dist * sp,
         dz / dist * sp,
       );
-      this.updateInformer.informUpdate(CameraMatrixType.POS);
+    } else {
+      this.posMatrix.setPosition(x, y, z);
     }
   }
 
   moveCam(x: number, y: number, z: number) {
-    this.positionMatrix.moveMatrix(x, y, z, this.turnMatrix);
-    this.updateInformer.informUpdate(CameraMatrixType.POS);
+    this.posMatrix.moveMatrix(x, y, z, this.turnMatrix);
   }
 
   //  Turn
@@ -118,11 +118,10 @@ export class Camera implements ICamera {
   }
 
   getPosition() {
-    return transformToPosition(this.positionMatrix);
+    return this.posMatrix.getPosition();
   }
 
   setPosition(x: number, y: number, z: number) {
-    this.positionMatrix.setPosition(x, y, z);
-    this.updateInformer.informUpdate(CameraMatrixType.POS);
+    this.posMatrix.setPosition(x, y, z);
   }
 }

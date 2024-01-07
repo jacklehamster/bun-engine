@@ -1,3 +1,4 @@
+import { PositionMatrix } from "gl/transform/PositionMatrix";
 import { TiltMatrix } from "gl/transform/TiltMatrix";
 import { TurnMatrix } from "gl/transform/TurnMatrix";
 import { Angle } from "gl/utils/angleUtils";
@@ -10,6 +11,7 @@ export interface ICamera extends Auxiliary {
   turn(angle: Angle): void;
   tilt(angle: Angle): void;
   getPosition(): Position;
+  readonly posMatrix: PositionMatrix;
   readonly tiltMatrix: TiltMatrix;
   readonly turnMatrix: TurnMatrix;
   gotoPos(x: number, y: number, z: number, speed?: number): void;

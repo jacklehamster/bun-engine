@@ -1,4 +1,4 @@
 export interface Active {
-  activate?(): (() => void) | void;
-  deactivate?(): void;
+  activate(): (() => void) | void;
+  deactivate(): void;
 }

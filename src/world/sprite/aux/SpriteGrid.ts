@@ -1,0 +1,75 @@
+import { Sprite } from "../Sprite";
+import { Cell } from "world/grid/CellPos";
+import { SpriteUpdateType } from "../update/SpriteUpdateType";
+import { Auxiliary } from "world/aux/Auxiliary";
+import { Sprites } from "../Sprites";
+import { forEach } from "../List";
+import { UpdateNotifier } from "updates/UpdateNotifier";
+
+interface Config {
+  spriteLimit?: number;
+  xRange?: [number, number],
+  yRange?: [number, number],
+  zRange?: [number, number],
+}
+
+interface Slot {
+  sprite: Sprite;
+  tag: string;
+}
+
+export class SpriteGrid implements Auxiliary, UpdateNotifier {
+  private slots: Slot[] = [];
+  private spriteLimit: number;
+  private ranges: [[number, number], [number, number], [number, number]];
+
+  informUpdate(_id: number, _type?: number | undefined): void {
+  }
+
+  constructor(config?: Config, private getSpritesAtCell: (cell: Cell) => Sprites = () => []) {
+    this.spriteLimit = config?.spriteLimit ?? 100;
+    this.ranges = [
+      config?.xRange ?? [Number.MIN_SAFE_INTEGER, Number.MAX_SAFE_INTEGER],
+      config?.yRange ?? [Number.MIN_SAFE_INTEGER, Number.MAX_SAFE_INTEGER],
+      config?.zRange ?? [Number.MIN_SAFE_INTEGER, Number.MAX_SAFE_INTEGER],
+    ];
+  }
+
+  get length(): number {
+    return this.spriteLimit;
+  }
+
+  at(index: number): Sprite | undefined {
+    return index < this.length ? this.slots[index]?.sprite : undefined;
+  }
+
+  trackCell(cell: Cell): void {
+    const [[minX, maxX], [minY, maxY], [minZ, maxZ]] = this.ranges;
+    const [x, y, z] = cell.pos;
+    if (x < minX || maxX < x || y < minY || maxY < y || z < minZ || maxZ < z) {
+      return;
+    }
+
+    forEach(this.getSpritesAtCell(cell), sprite => {
+      if (sprite) {
+        this.informUpdate(this.slots.length);
+        this.slots.push({
+          sprite,
+          tag: cell.tag,
+        });
+      }
+    });
+  }
+
+  untrackCell(cellTag: string): void {
+    for (let i = this.slots.length - 1; i >= 0; i--) {
+      const slot = this.slots[i];
+      if (slot.tag === cellTag) {
+        this.informUpdate(i, SpriteUpdateType.ALL);
+        this.informUpdate(this.slots.length - 1, SpriteUpdateType.TRANSFORM);
+        this.slots[i] = this.slots[this.slots.length - 1];
+        this.slots.pop();
+      }
+    }
+  }
+}

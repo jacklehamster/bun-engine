@@ -1,5 +1,6 @@
 import { Core } from "core/Core";
 import Matrix from "gl/transform/Matrix";
+import { CellChangeAuxiliary } from "gl/transform/aux/CellChangeAuxiliary";
 import { World } from "index";
 import { Auxiliaries } from "world/aux/Auxiliaries";
 import { CamMoveAuxiliary } from "world/aux/CamMoveAuxiliary";
@@ -7,13 +8,16 @@ import { CamStepAuxiliary } from "world/aux/CamStepAuxiliary";
 import { CamTiltResetAuxiliary } from "world/aux/CamTiltResetAuxiliary";
 import { RiseAuxiliary } from "world/aux/RiseAuxiliary";
 import { ToggleAuxiliary } from "world/aux/ToggleAuxiliary";
+import { CellTracker } from "world/grid/CellTracker";
+import { FixedSpriteGrid } from "world/sprite/aux/FixedSpriteGrid";
+import { SpriteGrid } from "world/sprite/aux/SpriteGrid";
 
-const DOBUKI = 0, LOGO = 1, GROUND = 2, VIDEO = 3, GRID = 4, WIREFRAME = 5, GRASS = 6;
+const DOBUKI = 0, LOGO = 1, GROUND = 2, VIDEO = 3, WIREFRAME = 4, GRASS = 5;
 const LOGO_SIZE = 512;
+const CELLSIZE = 2;
+const SPRITE_LIMIT = 10000;
 
 export class DemoWorld extends World {
-  readonly hudSpriteId = 0;
-
   constructor(private core: Core) {
     super(core);
 
@@ -91,23 +95,6 @@ export class DemoWorld extends World {
         maxRefreshRate: 30,
       },
       {
-        id: GRID,
-        type: "draw",
-        draw: ctx => {
-          const { canvas } = ctx;
-          canvas.width = LOGO_SIZE;
-          canvas.height = LOGO_SIZE;
-          ctx.imageSmoothingEnabled = true;
-          ctx.lineWidth = 5;
-
-          ctx.strokeStyle = 'green';
-
-          ctx.beginPath();
-          ctx.rect(10, 10, canvas.width - 20, canvas.height - 20);
-          ctx.stroke();
-        },
-      },
-      {
         id: WIREFRAME,
         type: "draw",
         draw: ctx => {
@@ -148,51 +135,57 @@ export class DemoWorld extends World {
       },
     );
 
-    this.addSprites(
-      {
-        imageId: DOBUKI,
-        transform: Matrix.create().translate(0, 0, -1),
-      },
-      //  side walls
-      ...[
-        Matrix.create().translate(-1, 0, 0).rotateY(Math.PI / 2).scale(1),
-        Matrix.create().translate(1, 0, 0).rotateY(-Math.PI / 2).scale(1),
-      ].map(transform => ({ imageId: LOGO, transform })),
-      //  floor
-      ...[
-        Matrix.create().translate(0, -1, 0).rotateX(-Math.PI / 2).scale(1),
-        Matrix.create().translate(0, -1, 2).rotateX(-Math.PI / 2).scale(1),
-        Matrix.create().translate(-2, -1, 2).rotateX(-Math.PI / 2).scale(1),
-        Matrix.create().translate(2, -1, 2).rotateX(-Math.PI / 2).scale(1),
-      ].map(transform => ({ imageId: GROUND, transform })),
-      {
-        imageId: VIDEO,
-        transform: Matrix.create().translate(0, 10000, -50000).scale(480 * 20, 270 * 20, 1),
-      },
-      ...new Array(400).fill(0).map((_, index) =>
-        Matrix.create().translate((index % 20 - 10) * 2, -1.5, (Math.floor(index / 20) - 10) * 2).rotateX(-Math.PI / 2).scale(1),
-      ).map(transform => ({ imageId: GRID, transform })),
+    const spriteGrid = new FixedSpriteGrid(
+      { cellSize: CELLSIZE },
+      [
+        {
+          imageId: DOBUKI,
+          transform: Matrix.create().translate(0, 0, -1),
+        },
+        //  side walls
+        ...[
+          Matrix.create().translate(-1, 0, 0).rotateY(Math.PI / 2).scale(1),
+          Matrix.create().translate(1, 0, 0).rotateY(-Math.PI / 2).scale(1),
+        ].map(transform => ({ imageId: LOGO, transform })),
+        //  floor
+        ...[
+          Matrix.create().translate(0, -1, 0).rotateX(-Math.PI / 2).scale(1),
+          Matrix.create().translate(0, -1, 2).rotateX(-Math.PI / 2).scale(1),
+          Matrix.create().translate(-2, -1, 2).rotateX(-Math.PI / 2).scale(1),
+          Matrix.create().translate(2, -1, 2).rotateX(-Math.PI / 2).scale(1),
+        ].map(transform => ({ imageId: GROUND, transform })),
+      ]);
+    this.addAuxiliary(spriteGrid);
 
-      //  Wireframe
-      //  ground
-      ...new Array(400).fill(0).map((_, index) =>
-        Matrix.create().translate((index % 20 - 10) * 2, -1, (Math.floor(index / 20) - 10) * 2).rotateX(-Math.PI / 2).scale(1),
-      ).map(transform => ({ imageId: GRASS, transform })),
-      //  ceiling
-      ...new Array(400).fill(0).map((_, index) =>
-        Matrix.create().translate((index % 20 - 10) * 2, 1, (Math.floor(index / 20) - 10) * 2).rotateX(-Math.PI / 2).scale(1),
-      ).map(transform => ({ imageId: WIREFRAME, transform })),
-      //  face
-      ...new Array(400).fill(0).map((_, index) =>
-        Matrix.create().translate((index % 20 - 10) * 2, 0, (Math.floor(index / 20) - 10) * 2 - 1),
-      ).map(transform => ({ imageId: WIREFRAME, transform })),
-    );
+    const wireframeGrid = new SpriteGrid(
+      { spriteLimit: SPRITE_LIMIT, yRange: [0, 0] },
+      cell => [
+        { //  ground
+          name: `${cell.pos[0]}_${cell.pos[2]}`,
+          imageId: GRASS,
+          transform: Matrix.create().translate(cell.pos[0] * cell.pos[3], -1, cell.pos[2] * cell.pos[3]).rotateX(-Math.PI / 2).scale(1)
+        },
+        { //  ceiling
+          imageId: WIREFRAME,
+          transform: Matrix.create().translate(cell.pos[0] * cell.pos[3], 1, cell.pos[2] * cell.pos[3]).rotateX(-Math.PI / 2).scale(1)
+        },
+        { //  front
+          imageId: WIREFRAME,
+          transform: Matrix.create().translate(cell.pos[0] * cell.pos[3], 0, cell.pos[2] * cell.pos[3] - 1).scale(1)
+        }
+      ]);
+    this.addAuxiliary(wireframeGrid);
+
+    this.addSprites(spriteGrid, {
+      imageId: VIDEO,
+      transform: Matrix.create()
+        .translate(0, 10000, -50000)
+        .scale(480 * 20, 270 * 20, 1),
+    }, wireframeGrid);
   }
 
   activate(): () => void {
-    const onDeactivate = super.activate();
-
-    const cleanAuxiliary = this.core.addAuxiliary(
+    const cleanAuxiliary = this.addAuxiliary(
       new ToggleAuxiliary(this.core, {
         auxiliariesMapping: [
           {
@@ -210,10 +203,23 @@ export class DemoWorld extends World {
           },
         ],
       }),
+
+      new CellChangeAuxiliary({
+        matrix: this.core.camera.posMatrix,
+        visitCell: new CellTracker(this, {
+          cellLimit: 1000,
+          range: [5, 3, 5],
+          cellSize: CELLSIZE,
+        })
+      }, {
+        cellSize: CELLSIZE,
+      }),
     );
 
+    const onDeactivate = super.activate();
+
     return () => {
-      onDeactivate();
+      onDeactivate?.();
       cleanAuxiliary();
     };
   }

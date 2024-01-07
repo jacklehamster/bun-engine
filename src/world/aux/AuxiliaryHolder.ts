@@ -1,19 +1,18 @@
 import { Refresh, UpdatePayload } from "updates/Refresh";
 import { Auxiliary } from "./Auxiliary";
 import { Disposable } from "lifecycle/Disposable";
+import { Cell } from "world/grid/CellPos";
+import { CellTrack } from "world/grid/CellTracker";
 
 export class AuxiliaryHolder extends Disposable implements Auxiliary {
   private auxiliaries: Auxiliary[] = [];
   private refreshes: Refresh[] = [];
-  private active: boolean = false;
+  private cellTracks: CellTrack[] = [];
   constructor() {
     super();
   }
 
-  activate(): () => void {
-    if (this.active) {
-      return () => { };
-    }
+  activate(): (() => void) | void {
     const deactivates = new Set<() => void>();
     for (const a of this.auxiliaries) {
       const onDeactivate = a.activate?.();
@@ -27,9 +26,6 @@ export class AuxiliaryHolder extends Disposable implements Auxiliary {
   }
 
   deactivate() {
-    if (!this.active) {
-      return;
-    }
     for (const a of this.auxiliaries) {
       a.deactivate?.();
     }
@@ -41,24 +37,31 @@ export class AuxiliaryHolder extends Disposable implements Auxiliary {
     }
   }
 
+  trackCell(cell: Cell): void {
+    for (const v of this.cellTracks) {
+      v.trackCell!(cell);
+    }
+  }
+
+  untrackCell(cellTag: string): void {
+    for (const v of this.cellTracks) {
+      v.untrackCell!(cellTag);
+    }
+  }
+
   onAddAuxiliary?(...aux: Auxiliary[]): () => void;
   addAuxiliary(...aux: Auxiliary[]) {
     this.auxiliaries.push(...aux);
-    this.refreshes.push(...aux.filter((a): a is Refresh => !!a.refresh));
+    this.onAuxiliariesChange();
     const onDeactivates = new Set<() => void>();
-    if (this.active) {
-      for (const a of this.auxiliaries) {
-        const onDeactivate = a.activate?.();
-        if (onDeactivate) {
-          onDeactivates.add(onDeactivate);
-        }
-      }
-    }
     const onAddDeactivate = this.onAddAuxiliary?.(...aux);
     if (onAddDeactivate) {
       onDeactivates.add(onAddDeactivate);
     }
-    return () => onDeactivates.forEach(d => d());
+    return () => {
+      onDeactivates.forEach(d => d());
+      this.removeAllAuxiliaries();
+    };
   }
 
   removeAllAuxiliaries() {
@@ -75,6 +78,11 @@ export class AuxiliaryHolder extends Disposable implements Auxiliary {
       }
     }
     this.auxiliaries.length = j;
-    this.refreshes = this.auxiliaries.filter((a): a is Refresh => !!a.refresh);
+    this.onAuxiliariesChange();
+  }
+
+  private onAuxiliariesChange() {
+    this.refreshes = this.auxiliaries.filter((a): a is Refresh => !!a.refresh).sort((a, b) => (a.refreshOrder ?? 0) - (b.refreshOrder ?? 0));
+    this.cellTracks = this.auxiliaries.filter((a): a is CellTrack => !!a.trackCell || !!a.untrackCell);
   }
 }

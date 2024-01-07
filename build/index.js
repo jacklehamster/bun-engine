@@ -1,4 +1,1580 @@
-var DQ=Object.defineProperty;var C0=($,Q)=>{for(var J in Q)DQ($,J,{get:Q[J],enumerable:!0,configurable:!0,set:(B)=>Q[J]=()=>B})};class k0{$;Q;J;constructor($,Q,J){this.array=$;this.updateValue=Q;this.notifier=J}at($){return this.array.at($)}get length(){return this.array.length}set($,Q){this.updateValue($,Q),this.notifier?.informUpdate($)}remove($){this.updateValue($,void 0),this.notifier?.informUpdate($)}}class M0{$;Q;J;updatedImageIds=new Set;constructor($,Q,J){this.motor=$;this.getMedia=Q;this.engine=J}withImageId($){return this.updatedImageIds.add($),this}informUpdate($){this.motor.registerUpdate(this.withImageId($))}refresh(){const $=Array.from(this.updatedImageIds);this.updatedImageIds.clear(),this.engine.updateTextures($,this.getMedia).then((Q)=>{Q.forEach((J)=>{if(J.isVideo)this.motor.registerUpdate(J,J.schedule)})})}}class L0 extends k0{constructor({motor:$,engine:Q},J=[]){super(J,(B,K)=>{J[B]=K;while(!J[J.length-1])J.length--},new M0($,J.at.bind(J),Q))}}class v{disposables;own($){if(!this.disposables)this.disposables=new Set;return this.disposables.add($),$}addOnDestroy($){if($)this.disposables?.add({destroy:$})}destroy(){this.disposables?.forEach(($)=>$.destroy())}}class u extends v{auxiliaries=[];refreshes=[];active=!1;constructor(){super()}activate(){if(this.active)return()=>{};const $=new Set;for(let Q of this.auxiliaries){const J=Q.activate?.();if(J)$.add(J)}return()=>{$.forEach((Q)=>Q())}}deactivate(){if(!this.active)return;for(let $ of this.auxiliaries)$.deactivate?.()}refresh($){for(let Q of this.refreshes)Q.refresh($)}addAuxiliary(...$){this.auxiliaries.push(...$),this.refreshes.push(...$.filter((B)=>!!B.refresh));const Q=new Set;if(this.active)for(let B of this.auxiliaries){const K=B.activate?.();if(K)Q.add(K)}const J=this.onAddAuxiliary?.(...$);if(J)Q.add(J);return()=>Q.forEach((B)=>B())}removeAllAuxiliaries(){this.removeAuxiliary(...this.auxiliaries)}removeAuxiliary(...$){const Q=new Set($);let J=0;for(let B=0;B<this.auxiliaries.length;B++)if(!Q.has(this.auxiliaries[B]))this.auxiliaries[J]=this.auxiliaries[B],J++;this.auxiliaries.length=J,this.refreshes=this.auxiliaries.filter((B)=>!!B.refresh)}}class T0{$;Q;J;updatedSpriteIds=new Set;constructor($,Q,J){this.getSprite=$;this.engine=Q;this.motor=J}informUpdate($){this.motor.registerUpdate(this.withSpriteId($))}withSpriteId($){return this.updatedSpriteIds.add($),this}refresh(){if(this.engine.updateSpriteAnims(this.updatedSpriteIds,this.getSprite),this.updatedSpriteIds.size)this.motor.registerUpdate(this)}}class S0{$;Q;J;updatedSpriteIds=new Set;constructor($,Q,J){this.getSprite=$;this.engine=Q;this.motor=J}informUpdate($){this.motor.registerUpdate(this.withSpriteId($))}withSpriteId($){return this.updatedSpriteIds.add($),this}refresh(){this.engine.updateSpriteTransforms(this.updatedSpriteIds,this.getSprite)}}var o;(function(K){K[K["NONE"]=0]="NONE";K[K["TRANSFORM"]=1]="TRANSFORM";K[K["ANIM"]=2]="ANIM";K[K["ALL"]=3]="ALL"})(o||(o={}));class h0{spritesList=[];spritesIndices=[];spriteTransformUpdate;spriteAnimUpdate;constructor({engine:$,motor:Q}){this.spriteTransformUpdate=new S0(this.at.bind(this),$,Q),this.spriteAnimUpdate=new T0(this.at.bind(this),$,Q)}informUpdate($,Q=o.ALL){if(Q&o.TRANSFORM)this.spriteTransformUpdate.informUpdate($);if(Q&o.ANIM)this.spriteAnimUpdate.informUpdate($)}at($){const Q=this.spritesIndices[$];return Q?.sprites.at($-(Q?.baseIndex??0))}get length(){return this.spritesIndices.length}add($){if(this.spritesList.indexOf($)>=0)return;this.spritesList.push($);const Q=this.spritesIndices.length;for(let J=0;J<$.length;J++)this.informUpdate(Q+J),this.spritesIndices.push({sprites:$,baseIndex:Q})}}class Y0 extends u{medias;spritesAccumulator;constructor($){super();this.medias=new L0($),this.spritesAccumulator=new h0($)}get sprites(){return this.spritesAccumulator}addMedia(...$){$.forEach((Q)=>{this.medias.set(Q.id,Q)})}addSprites(...$){$.forEach((Q)=>{this.spritesAccumulator.add(Q.length?Q:[Q])})}}var A=globalThis.WebGL2RenderingContext??{},U$="position",N$="index",w0="transform",I0="slotSize_and_number",v0="instance";var A$="camPos",E$="camTilt",D$="camTurn",_$="projection",q$="curvature",R$="maxTextureSize",G$="uTextures";var _Q=function($,Q,J){function B(F,W){function P(U){return U===$?.VERTEX_SHADER?"vertex":U===$?.FRAGMENT_SHADER?"fragment":void 0}if(W!==$.VERTEX_SHADER&&W!==$.FRAGMENT_SHADER)throw new Error(`Shader error in ${P(W)}`);const O=$.createShader(W);if(!O)throw new Error(`Unable to generate ${P(W)} shader.`);if($.shaderSource(O,F),$.compileShader(O),!$.getShaderParameter(O,$.COMPILE_STATUS))console.error(`Shader compile error in ${P(W)}:`+$.getShaderInfoLog(O));return O}const K=$.createProgram();if(!K)throw new Error("Unable to create program.");const Y=B(Q,$.VERTEX_SHADER),Z=B(J,$.FRAGMENT_SHADER),V=$.getShaderInfoLog(Y),H=$.getShaderInfoLog(Z);if(V)console.log("VERTEX",V);if(H)console.log("FRAGMENT",H);$.attachShader(K,Y),$.attachShader(K,Z),$.linkProgram(K);const X=$.getProgramInfoLog(K);if(X)console.log("PROGRAM",X);if($.detachShader(K,Y),$.detachShader(K,Z),$.deleteShader(Y),$.deleteShader(Z),$.validateProgram(K),Object.entries(A).forEach(([F,W])=>{if(W&&$.getError()===W)console.log(`gl.${F}`)}),!$.getProgramParameter(K,$.LINK_STATUS))throw new Error("Unable to initialize the shader program:\n"+$.getProgramInfoLog(K));return K},qQ=function($,Q){$.deleteProgram(Q)};class z0 extends v{gl;program;constructor($,Q,J){super();this.gl=$,this.program=_Q($,Q.trim(),J.trim())}use(){this.gl.useProgram(this.program)}destroy(){super.destroy(),qQ(this.gl,this.program)}}class f0 extends v{activeProgramId="";gl;programs={};constructor($){super();this.gl=$}addProgram($,Q,J){if(this.programs[$])this.removeProgram($);this.programs[$]=this.own(new z0(this.gl,Q,J))}useProgram($){if(this.activeProgramId!==$)this.activeProgramId=$,this.programs[$].use()}removeProgram($){this.programs[$].destroy(),delete this.programs[$]}getProgram($){return this.programs[$??this.activeProgramId]?.program}}class g0 extends v{gl;triangleArray;constructor($){super();this.gl=$,this.triangleArray=$.createVertexArray(),$.bindVertexArray(this.triangleArray)}destroy(){this.gl.deleteVertexArray(this.triangleArray)}}class y0 extends v{bufferRecord={};gl;programs;constructor($,Q){super();this.gl=$,this.programs=Q}getAttributeLocation($,Q){const J=this.programs.getProgram(Q);return J?this.gl.getAttribLocation(J,$)??-1:-1}createBuffer($){this.deleteBuffer($);const Q=this.gl?.createBuffer();if(!Q)throw new Error(`Unable to create buffer "${$}"`);const J={buffer:Q,location:this.getAttributeLocation($)};return this.bufferRecord[$]=J,J}deleteBuffer($){if(this.bufferRecord[$])this.gl.deleteBuffer(this.bufferRecord[$].buffer),delete this.bufferRecord[$]}getAttributeBuffer($){const Q=this.bufferRecord[$];if(!Q)throw new Error(`Attribute "${$}" not created. Make sure "createBuffer" is called.`);return Q}destroy(){Object.keys(this.bufferRecord).forEach(($)=>this.deleteBuffer($))}}class p0 extends v{gl;programs;constructor($,Q){super();this.gl=$,this.programs=Q}getUniformLocation($,Q){const J=this.programs.getProgram(Q);return this.gl.getUniformLocation(J,$)}}function C$($,Q=(J)=>J.key){var J=[];return x0($,"",!0,(B)=>J.push(B),Q),J.join("")}var x0=function($,Q,J,B,K){if($){B(`${Q}${J?"\u2514\u2500\u2500 ":"\u251C\u2500\u2500 "}${K($)}\n`);const Y=Q+(J?"    ":"\u2502   ");if($.left)x0($.left,Y,!1,B,K);if($.right)x0($.right,Y,!0,B,K)}};function Z0($){if($===null)return!0;var Q=V0($.left),J=V0($.right);if(Math.abs(Q-J)<=1&&Z0($.left)&&Z0($.right))return!0;return!1}var V0=function($){return $?1+Math.max(V0($.left),V0($.right)):0};function H0($,Q,J,B,K){const Y=K-B;if(Y>0){const Z=B+Math.floor(Y/2),V=Q[Z],H=J[Z],X={key:V,data:H,parent:$};return X.left=H0(X,Q,J,B,Z),X.right=H0(X,Q,J,Z+1,K),X}return null}function X0($){if($===null)return 0;const Q=X0($.left),J=X0($.right);return $.balanceFactor=Q-J,Math.max(Q,J)+1}function F0($,Q,J,B,K){if(J>=B)return;const Y=$[J+B>>1];let Z=J-1,V=B+1;while(!0){do Z++;while(K($[Z],Y)<0);do V--;while(K($[V],Y)>0);if(Z>=V)break;let H=$[Z];$[Z]=$[V],$[V]=H,H=Q[Z],Q[Z]=Q[V],Q[V]=H}F0($,Q,J,V,K),F0($,Q,V+1,B,K)}var RQ=function($,Q){return $>Q?1:$<Q?-1:0},W0=function($){var Q=$.right;if($.right=Q.left,Q.left)Q.left.parent=$;if(Q.parent=$.parent,Q.parent)if(Q.parent.left===$)Q.parent.left=Q;else Q.parent.right=Q;if($.parent=Q,Q.left=$,$.balanceFactor+=1,Q.balanceFactor<0)$.balanceFactor-=Q.balanceFactor;if(Q.balanceFactor+=1,$.balanceFactor>0)Q.balanceFactor+=$.balanceFactor;return Q},j0=function($){var Q=$.left;if($.left=Q.right,$.left)$.left.parent=$;if(Q.parent=$.parent,Q.parent)if(Q.parent.left===$)Q.parent.left=Q;else Q.parent.right=Q;if($.parent=Q,Q.right=$,$.balanceFactor-=1,Q.balanceFactor>0)$.balanceFactor-=Q.balanceFactor;if(Q.balanceFactor-=1,$.balanceFactor<0)Q.balanceFactor+=$.balanceFactor;return Q};class b{constructor($,Q=!1){this._comparator=$||RQ,this._root=null,this._size=0,this._noDuplicates=!!Q}destroy(){return this.clear()}clear(){return this._root=null,this._size=0,this}get size(){return this._size}contains($){if(this._root){var Q=this._root,J=this._comparator;while(Q){var B=J($,Q.key);if(B===0)return!0;else if(B<0)Q=Q.left;else Q=Q.right}}return!1}next($){var Q=$;if(Q)if(Q.right){Q=Q.right;while(Q.left)Q=Q.left}else{Q=$.parent;while(Q&&Q.right===$)$=Q,Q=Q.parent}return Q}prev($){var Q=$;if(Q)if(Q.left){Q=Q.left;while(Q.right)Q=Q.right}else{Q=$.parent;while(Q&&Q.left===$)$=Q,Q=Q.parent}return Q}forEach($){var Q=this._root,J=[],B=!1,K=0;while(!B)if(Q)J.push(Q),Q=Q.left;else if(J.length>0)Q=J.pop(),$(Q,K++),Q=Q.right;else B=!0;return this}range($,Q,J,B){const K=[],Y=this._comparator;let Z=this._root,V;while(K.length!==0||Z)if(Z)K.push(Z),Z=Z.left;else{if(Z=K.pop(),V=Y(Z.key,Q),V>0)break;else if(Y(Z.key,$)>=0){if(J.call(B,Z))return this}Z=Z.right}return this}keys(){var $=this._root,Q=[],J=[],B=!1;while(!B)if($)Q.push($),$=$.left;else if(Q.length>0)$=Q.pop(),J.push($.key),$=$.right;else B=!0;return J}values(){var $=this._root,Q=[],J=[],B=!1;while(!B)if($)Q.push($),$=$.left;else if(Q.length>0)$=Q.pop(),J.push($.data),$=$.right;else B=!0;return J}at($){var Q=this._root,J=[],B=!1,K=0;while(!B)if(Q)J.push(Q),Q=Q.left;else if(J.length>0){if(Q=J.pop(),K===$)return Q;K++,Q=Q.right}else B=!0;return null}minNode(){var $=this._root;if(!$)return null;while($.left)$=$.left;return $}maxNode(){var $=this._root;if(!$)return null;while($.right)$=$.right;return $}min(){var $=this._root;if(!$)return null;while($.left)$=$.left;return $.key}max(){var $=this._root;if(!$)return null;while($.right)$=$.right;return $.key}isEmpty(){return!this._root}pop(){var $=this._root,Q=null;if($){while($.left)$=$.left;Q={key:$.key,data:$.data},this.remove($.key)}return Q}popMax(){var $=this._root,Q=null;if($){while($.right)$=$.right;Q={key:$.key,data:$.data},this.remove($.key)}return Q}find($){var Q=this._root,J=Q,B,K=this._comparator;while(J)if(B=K($,J.key),B===0)return J;else if(B<0)J=J.left;else J=J.right;return null}insert($,Q){if(!this._root)return this._root={parent:null,left:null,right:null,balanceFactor:0,key:$,data:Q},this._size++,this._root;var J=this._comparator,B=this._root,K=null,Y=0;if(this._noDuplicates)while(B)if(Y=J($,B.key),K=B,Y===0)return null;else if(Y<0)B=B.left;else B=B.right;else while(B)if(Y=J($,B.key),K=B,Y<=0)B=B.left;else B=B.right;var Z={left:null,right:null,balanceFactor:0,parent:K,key:$,data:Q},V;if(Y<=0)K.left=Z;else K.right=Z;while(K){if(Y=J(K.key,$),Y<0)K.balanceFactor-=1;else K.balanceFactor+=1;if(K.balanceFactor===0)break;else if(K.balanceFactor<-1){if(K.right.balanceFactor===1)j0(K.right);if(V=W0(K),K===this._root)this._root=V;break}else if(K.balanceFactor>1){if(K.left.balanceFactor===-1)W0(K.left);if(V=j0(K),K===this._root)this._root=V;break}K=K.parent}return this._size++,Z}remove($){if(!this._root)return null;var Q=this._root,J=this._comparator,B=0;while(Q)if(B=J($,Q.key),B===0)break;else if(B<0)Q=Q.left;else Q=Q.right;if(!Q)return null;var K=Q.key,Y,Z;if(Q.left){Y=Q.left;while(Y.left||Y.right){while(Y.right)Y=Y.right;if(Q.key=Y.key,Q.data=Y.data,Y.left)Q=Y,Y=Y.left}Q.key=Y.key,Q.data=Y.data,Q=Y}if(Q.right){Z=Q.right;while(Z.left||Z.right){while(Z.left)Z=Z.left;if(Q.key=Z.key,Q.data=Z.data,Z.right)Q=Z,Z=Z.right}Q.key=Z.key,Q.data=Z.data,Q=Z}var V=Q.parent,H=Q,X;while(V){if(V.left===H)V.balanceFactor-=1;else V.balanceFactor+=1;if(V.balanceFactor<-1){if(V.right.balanceFactor===1)j0(V.right);if(X=W0(V),V===this._root)this._root=X;V=X}else if(V.balanceFactor>1){if(V.left.balanceFactor===-1)W0(V.left);if(X=j0(V),V===this._root)this._root=X;V=X}if(V.balanceFactor===-1||V.balanceFactor===1)break;H=V,V=V.parent}if(Q.parent)if(Q.parent.left===Q)Q.parent.left=null;else Q.parent.right=null;if(Q===this._root)this._root=null;return this._size--,K}load($=[],Q=[],J){if(this._size!==0)throw new Error("bulk-load: tree is not empty");const B=$.length;if(J)F0($,Q,0,B-1,this._comparator);return this._root=H0(null,$,Q,0,B),X0(this._root),this._size=B,this}isBalanced(){return Z0(this._root)}toString($){return C$(this._root,$)}}b.default=b;class c{size;slotNumber;x;y;textureIndex;parent;sibbling;textureSizeLimits;constructor($,Q,J,B){this.textureSizeLimits=J?.textureSizeLimits??B??{min:c0,max:m0},this.size=$,this.slotNumber=Q,this.parent=J,this.sibbling=void 0;const{x:K,y:Y,textureIndex:Z}=this.calculatePosition($,Q);this.x=K,this.y=Y,this.textureIndex=Z}calculateTextureIndex($,Q){const[J,B]=$,K=this.textureSizeLimits.max/J*(this.textureSizeLimits.max/B);return Math.floor(Q/K)}calculatePosition($,Q){const[J,B]=$,K=this.textureSizeLimits.max/J,Y=this.textureSizeLimits.max/B,Z=Q%K*J,V=Math.floor(Q/K)%Y*B;return{x:Z,y:V,textureIndex:this.calculateTextureIndex($,Q)}}getTag(){return c.getTag(this)}static getTag($){return`${$.size[0]}x${$.size[1]}-#${$.slotNumber}`}static positionToTextureSlot($,Q,J,B,K){const[Y,Z]=J,V=K.textureSizeLimits.max/Y,X=K.textureSizeLimits.max/Y*(K.textureSizeLimits.max/Z)*B+Q/Z*V+$/Y;return new c(J,X,K)}getPosition(){return{x:this.x,y:this.y,size:this.size,textureIndex:this.textureIndex}}canSplitHorizontally(){const[,$]=this.size;return $>this.textureSizeLimits.min}canSplitVertically(){const[$]=this.size;return $>this.textureSizeLimits.min}splitHorizontally(){const{x:$,y:Q,size:J,textureIndex:B}=this,[K,Y]=J;if(!this.canSplitHorizontally())throw new Error(`Cannot split texture slot of size ${K} horizontally`);const Z=K/2,V=c.positionToTextureSlot($,Q,[Z,Y],B,this),H=c.positionToTextureSlot($+Z,Q,[Z,Y],B,this);return V.sibbling=H,H.sibbling=V,[V,H]}splitVertically(){const{x:$,y:Q,size:J,textureIndex:B}=this,[K,Y]=J;if(!this.canSplitVertically())throw new Error(`Cannot split texture slot of size ${Y} vertically`);const Z=Y/2,V=c.positionToTextureSlot($,Q,[K,Z],B,this),H=c.positionToTextureSlot($,Q+Z,[K,Z],B,this);return V.sibbling=H,H.sibbling=V,[V,H]}}function P0($,Q){return Math.max(Q,Math.pow(2,Math.ceil(Math.log($)/Math.log(2))))}function k$($,Q,J,B){if(J<1)throw new Error("Invalid count");const K=P0($,B.min),Y=P0(Q,B.min),Z=new Map;let V=B.min;for(let H=1;H<=J;H++){V=P0(K*H,B.min);const X=P0(Y*Math.ceil(J/H),B.min);Z.set(V,X)}for(let H=V;H<=B.max;H*=2)if(!Z.has(H))Z.set(H,Y);return Z}var GQ=!1,c0=16,m0=4096,CQ=16;class O0{textureSlots=new b(($,Q)=>{const J=$.size[0]*$.size[1]-Q.size[0]*Q.size[1];if(J!==0)return J;return $.slotNumber-Q.slotNumber},!1);allocatedTextures={};minTextureSize;maxTextureSize;numTextureSheets;initialSlots=[];constructor({numTextureSheets:$,minTextureSize:Q,maxTextureSize:J,excludeTexture:B}={},K){if(this.numTextureSheets=$??CQ,this.minTextureSize=Q??c0,this.maxTextureSize=J??m0,K)this.numTextureSheets=Math.min(this.numTextureSheets,K.getParameter(WebGL2RenderingContext.MAX_TEXTURE_IMAGE_UNITS)),this.maxTextureSize=Math.min(this.maxTextureSize,K.getParameter(WebGL2RenderingContext.MAX_TEXTURE_SIZE)),this.minTextureSize=Math.min(this.minTextureSize,this.maxTextureSize);for(let Y=0;Y<this.numTextureSheets;Y++){if(B?.(Y))continue;this.initialSlots.push(new c([this.maxTextureSize,this.maxTextureSize],Y,void 0,{min:this.minTextureSize,max:this.maxTextureSize}))}this.initialSlots.forEach((Y)=>this.textureSlots.insert(Y))}allocate($,Q,J=1){const{size:B,slotNumber:K,x:Y,y:Z,textureIndex:V}=this.allocateHelper($,Q,J);return{size:B,slotNumber:K,x:Y,y:Z,textureIndex:V}}deallocate($){if(!this.isSlotUsed($))throw new Error("Slot is not allocated");const Q=this.allocatedTextures[c.getTag($)];this.deallocateHelper(Q)}get countUsedTextureSheets(){return this.initialSlots.filter(($)=>this.isSlotUsed($)).length}allocateHelper($,Q,J=1){const B=k$($,Q,J,{min:this.minTextureSize,max:this.maxTextureSize}),K=this.findSlot(B);if(!K)throw new Error(`Could not find a slot for texture to fit ${J} sprites of size ${$}x${Q}`);this.textureSlots.remove(K);const[Y,Z]=this.bestFit(B,K);return this.fitSlot(K,Y,Z)}findSlot($){for(let Q=0;Q<this.textureSlots.size;Q++){const B=this.textureSlots.at(Q).key,[K,Y]=B.size;if($.get(K)<=Y)return B}return null}calculateRatio($,Q){return Math.max($/Q,Q/$)}bestFit($,Q){const[J,B]=Q.size;let K=Q.textureSizeLimits.max;return $.forEach((Y,Z)=>{if(Z<=J&&Y<=B){const V=Z*Y,H=$.get(K)*K;if(V<H)K=Z;else if(V===H){if(this.calculateRatio(Z,Y)<this.calculateRatio(K,$.get(K)))K=Z}}}),[K,$.get(K)]}isSlotUsed($){return!!this.allocatedTextures[c.getTag($)]}deallocateHelper($){if($.parent&&$.sibbling&&!this.isSlotUsed($.sibbling)){const Q=$.sibbling;if(this.textureSlots.remove(Q),GQ&&this.textureSlots.find($))throw new Error("Slot is not expected to be in the tree");const J=$.parent;this.deallocateHelper(J);return}this.textureSlots.insert($),delete this.allocatedTextures[$.getTag()]}trySplitHorizontally($,Q,J){if($.canSplitHorizontally()){const[B,K]=$.splitHorizontally();if(B.size[0]>=Q)return this.textureSlots.insert(K),this.fitSlot(B,Q,J)}return null}trySplitVertically($,Q,J){if($.canSplitVertically()){const[B,K]=$.splitVertically();if(B.size[1]>=J)return this.textureSlots.insert(K),this.fitSlot(B,Q,J)}return null}fitSlot($,Q,J){if(this.allocatedTextures[$.getTag()]=$,$.size[0]>$.size[1]){const B=this.trySplitHorizontally($,Q,J)??this.trySplitVertically($,Q,J);if(B)return B}else{const B=this.trySplitVertically($,Q,J)??this.trySplitHorizontally($,Q,J);if(B)return B}return $}listSlots(){this.textureSlots.forEach(($)=>{console.log($.key?.getTag())})}}var U0=15;class n0 extends v{gl;uniforms;textureBuffers={};tempContext=new OffscreenCanvas(1,1).getContext("2d");textureSlotAllocator=new O0({excludeTexture:($)=>$===U0});textureSlotAllocatorForVideo=new O0({excludeTexture:($)=>$!==U0});constructor($,Q){super();this.gl=$,this.uniforms=Q,this.tempContext.imageSmoothingEnabled=!0}initialize(){this.initTextureUniforms(),this.initMaxTexture()}getTexture($){if(!this.textureBuffers[$]){const Q=this.gl.createTexture();if(!Q)return;this.gl.bindTexture(A.TEXTURE_2D,Q),this.gl.texImage2D(A.TEXTURE_2D,0,A.RGBA,this.textureSlotAllocator.maxTextureSize,this.textureSlotAllocator.maxTextureSize,0,A.RGBA,A.UNSIGNED_BYTE,null),this.textureBuffers[$]=Q,this.addOnDestroy(()=>this.gl.deleteTexture(Q))}return this.textureBuffers[$]}loadTexture($,Q,J,B,K){this.gl.activeTexture(A[Q]),this.gl.bindTexture(A.TEXTURE_2D,J),this.applyTexImage2d($,B,K),this.gl.texParameteri(A.TEXTURE_2D,A.TEXTURE_MIN_FILTER,A.LINEAR)}applyTexImage2d($,[Q,J,B,K],[Y,Z,V,H]){if(B===V&&K===H&&!Q&&!J)this.gl.texSubImage2D(A.TEXTURE_2D,0,Y,Z,V,H,A.RGBA,A.UNSIGNED_BYTE,$.texImgSrc);else{const X=this.tempContext.canvas;if($.texImgSrc instanceof ImageData){if(X.width=V||$.width,X.height=H||$.height,this.tempContext.putImageData($.texImgSrc,0,0),Q||J)console.warn("Offset not available when sending imageData")}else{const F=B||$.width,W=K||$.height;X.width=V||F,X.height=H||W,this.tempContext.drawImage($.texImgSrc,Q,J,F,W,0,0,X.width,X.height)}this.gl.texSubImage2D(A.TEXTURE_2D,0,Y,Z,X.width,X.height,A.RGBA,A.UNSIGNED_BYTE,X)}}allocateSlotForImage($){const J=($.isVideo?this.textureSlotAllocatorForVideo:this.textureSlotAllocator).allocate($.width,$.height),B=`TEXTURE${J.textureIndex}`,K=this.getTexture(B);if(!K)throw new Error(`Invalid texture Id ${B}`);const Y=this.assignImageToTexture($,B,K,[0,0,$.width,$.height],[J.x,J.y,...J.size]);return{slot:J,refreshCallback:Y}}assignImageToTexture($,Q,J,B,K){const Y=B??[0,0,$.width,$.height],Z=K??[0,0,Y[2],Y[3]],V=()=>{this.gl.bindTexture(A.TEXTURE_2D,J),this.applyTexImage2d($,Y,Z)};if($.active)V();else this.loadTexture($,Q,J,Y,Z),$.active=!0;return V}setupTextureForVideo($){const Q=this.getTexture($);if(Q)this.gl.activeTexture(A[$]),this.gl.bindTexture(A.TEXTURE_2D,Q),this.gl.texParameteri(A.TEXTURE_2D,A.TEXTURE_MIN_FILTER,A.LINEAR),this.gl.texParameteri(A.TEXTURE_2D,A.TEXTURE_MAG_FILTER,A.LINEAR)}generateMipMap($){const Q=this.getTexture($);if(Q)this.gl.activeTexture(A[$]),this.gl.bindTexture(A.TEXTURE_2D,Q),this.gl.texParameteri(A.TEXTURE_2D,A.TEXTURE_MIN_FILTER,A.LINEAR_MIPMAP_LINEAR),this.gl.texParameteri(A.TEXTURE_2D,A.TEXTURE_MAG_FILTER,A.LINEAR),this.gl.generateMipmap(A.TEXTURE_2D)}initTextureUniforms(){const $=this.gl.getParameter(A.MAX_TEXTURE_IMAGE_UNITS),Q=new Array($).fill(null).map((B,K)=>K),J=this.uniforms.getUniformLocation(G$);this.gl.uniform1iv(J,Q)}initMaxTexture(){const $=this.uniforms.getUniformLocation(R$);this.gl.uniform1f($,this.textureSlotAllocator.maxTextureSize)}}class m extends v{texImgSrc;active=!1;width;height;isVideo;schedule;constructor($,Q){super();this.texImgSrc=$;const J=$;if(this.isVideo=!!(J.videoWidth||J.videoHeight),this.width=J.naturalWidth??J.videoWidth??J.displayWidth??J.width?.baseValue?.value??J.width,this.height=J.naturalHeight??J.videoHeight??J.displayHeight??J.height?.baseValue?.value??J.height,this.schedule=Q?{period:1000/Q}:void 0,!this.width||!this.height)throw new Error("Invalid image")}refresh(){this.refreshCallback?.()}static createFromCanvas($){return new m($)}static async loadImage($){const Q=await new Promise((J,B)=>{const K=new Image;K.crossOrigin="anonymous";const Y=(Z)=>B(Z.error);K.addEventListener("error",Y),K.addEventListener("load",()=>J(K),{once:!0}),K.src=$});return new m(Q)}static async loadVideo($,Q,J=30,B=1,K=Number.MAX_SAFE_INTEGER){const Y=await new Promise((V,H)=>{const X=document.createElement("video");if(X.loop=!0,Q!==void 0)X.volume=Q;X.addEventListener("loadedmetadata",()=>{X.play(),X.playbackRate=B,V(X)},{once:!0}),document.addEventListener("focus",()=>X.play()),X.addEventListener("error",(F)=>H(F.error)),X.src=$}),Z=new m(Y,Math.min(J*B,K));return Z.addOnDestroy(()=>Y.pause()),Z}static async loadWebcam($){const Q=await new Promise((K,Y)=>{const Z=document.createElement("video");Z.loop=!0,Z.addEventListener("loadedmetadata",()=>Z.play()),Z.addEventListener("playing",()=>K(Z),{once:!0}),Z.addEventListener("error",(V)=>Y(V.error))}),J=new m(Q);let B=!1;return navigator.mediaDevices.getUserMedia({video:{deviceId:$}}).then((K)=>{if(!B)Q.srcObject=K,J.addOnDestroy(()=>K.getTracks().forEach((Y)=>Y.stop()))}),J.addOnDestroy(()=>{B=!0,Q.pause()}),J}}var a=function($){return $};class l0 extends v{constructor(){super(...arguments)}images={};renderProcedures={image:a(($,Q)=>this.loadImage($,Q.src)),video:a(($,Q)=>this.loadVideo($,Q.src,Q.volume,Q.fps,Q.playSpeed)),draw:a(($,Q)=>this.drawImage($,Q.draw)),canvas:a(($,Q)=>this.loadCanvas($,Q.canvas)),webcam:a(($,Q)=>this.loadWebCam($,Q.deviceId))};hasImageId($){return!!this.getMedia($)}getMedia($){return this.images[$]}setImage($,Q){this.images[$]=Q}async renderMedia($,Q){return this.renderProcedures[Q.type]($,Q)}async drawImage($,Q){const J=new OffscreenCanvas(1,1);Q(J.getContext("2d"));const B=m.createFromCanvas(J);return this.images[$]=this.own(B),B}async loadCanvas($,Q){const J=m.createFromCanvas(Q);return Q.getContext("2d"),this.images[$]=this.own(J),J}async loadImage($,Q){const J=await m.loadImage(Q);return this.images[$]=this.own(J),J}async loadVideo($,Q,J,B,K,Y){const Z=await m.loadVideo(Q,J,B,K,Y);return this.images[$]=this.own(Z),Z}async loadWebCam($,Q){const J=await m.loadWebcam(Q);return this.images[$]=this.own(J),J}}var M$=`#version 300 es
+var __defProp = Object.defineProperty;
+var __export = (target, all) => {
+  for (var name in all)
+    __defProp(target, name, {
+      get: all[name],
+      enumerable: true,
+      configurable: true,
+      set: (newValue) => all[name] = () => newValue
+    });
+};
+
+// src/updates/UpdatableList.ts
+class UpdatableList {
+  array;
+  updateValue;
+  notifier;
+  constructor(array, updateValue, notifier) {
+    this.array = array;
+    this.updateValue = updateValue;
+    this.notifier = notifier;
+  }
+  at(index) {
+    return this.array.at(index);
+  }
+  get length() {
+    return this.array.length;
+  }
+  set(index, value) {
+    this.updateValue(index, value);
+    this.notifier?.informUpdate(index);
+  }
+  remove(index) {
+    this.updateValue(index, undefined);
+    this.notifier?.informUpdate(index);
+  }
+}
+
+// src/updates/UpdateRegistry.ts
+class UpdateRegistry {
+  applyUpdate;
+  motor;
+  updateListener;
+  updatedIds = new Set;
+  constructor(applyUpdate, motor, updateListener) {
+    this.applyUpdate = applyUpdate;
+    this.motor = motor;
+    this.updateListener = updateListener;
+  }
+  informUpdate(id) {
+    this.addId(id);
+    this.motor.registerUpdate(this);
+  }
+  addId(spriteId) {
+    this.updatedIds.add(spriteId);
+  }
+  refresh(updatePayload) {
+    if (this.updatedIds.size) {
+      this.applyUpdate(this.updatedIds);
+      if (this.updatedIds.size) {
+        this.motor.registerUpdate(this);
+      }
+      this.updateListener?.onUpdate(updatePayload);
+    }
+  }
+}
+
+// src/world/sprite/Medias.ts
+class UpdatableMedias extends UpdatableList {
+  constructor({ motor, engine }, medias = []) {
+    super(medias, (index, value) => {
+      medias[index] = value;
+      while (!medias[medias.length - 1]) {
+        medias.length--;
+      }
+    }, new UpdateRegistry((ids) => {
+      const imageIds = Array.from(ids);
+      ids.clear();
+      engine.updateTextures(imageIds, medias.at.bind(medias)).then((mediaInfos) => {
+        mediaInfos.forEach((mediaInfo) => {
+          if (mediaInfo.isVideo) {
+            motor.registerUpdate(mediaInfo, mediaInfo.schedule);
+          }
+        });
+      });
+    }, motor));
+  }
+}
+
+// src/lifecycle/Disposable.ts
+class Disposable {
+  disposables;
+  own(disposable) {
+    if (!this.disposables) {
+      this.disposables = new Set;
+    }
+    this.disposables.add(disposable);
+    return disposable;
+  }
+  addOnDestroy(callback) {
+    if (callback) {
+      this.disposables?.add({
+        destroy: callback
+      });
+    }
+  }
+  destroy() {
+    this.disposables?.forEach((disposable) => disposable.destroy());
+  }
+}
+
+// src/world/aux/AuxiliaryHolder.ts
+class AuxiliaryHolder extends Disposable {
+  auxiliaries = [];
+  refreshes = [];
+  cellTracks = [];
+  constructor() {
+    super();
+  }
+  activate() {
+    const deactivates = new Set;
+    for (const a of this.auxiliaries) {
+      const onDeactivate = a.activate?.();
+      if (onDeactivate) {
+        deactivates.add(onDeactivate);
+      }
+    }
+    return () => {
+      deactivates.forEach((d) => d());
+    };
+  }
+  deactivate() {
+    for (const a of this.auxiliaries) {
+      a.deactivate?.();
+    }
+  }
+  refresh(updatePayload) {
+    for (const r of this.refreshes) {
+      r.refresh(updatePayload);
+    }
+  }
+  trackCell(cell) {
+    for (const v of this.cellTracks) {
+      v.trackCell(cell);
+    }
+  }
+  untrackCell(cellTag) {
+    for (const v of this.cellTracks) {
+      v.untrackCell(cellTag);
+    }
+  }
+  addAuxiliary(...aux) {
+    this.auxiliaries.push(...aux);
+    this.onAuxiliariesChange();
+    const onDeactivates = new Set;
+    const onAddDeactivate = this.onAddAuxiliary?.(...aux);
+    if (onAddDeactivate) {
+      onDeactivates.add(onAddDeactivate);
+    }
+    return () => {
+      onDeactivates.forEach((d) => d());
+      this.removeAllAuxiliaries();
+    };
+  }
+  removeAllAuxiliaries() {
+    this.removeAuxiliary(...this.auxiliaries);
+  }
+  removeAuxiliary(...aux) {
+    const removeSet = new Set(aux);
+    let j = 0;
+    for (let i = 0;i < this.auxiliaries.length; i++) {
+      if (!removeSet.has(this.auxiliaries[i])) {
+        this.auxiliaries[j] = this.auxiliaries[i];
+        j++;
+      }
+    }
+    this.auxiliaries.length = j;
+    this.onAuxiliariesChange();
+  }
+  onAuxiliariesChange() {
+    this.refreshes = this.auxiliaries.filter((a) => !!a.refresh).sort((a, b) => (a.refreshOrder ?? 0) - (b.refreshOrder ?? 0));
+    this.cellTracks = this.auxiliaries.filter((a) => !!a.trackCell || !!a.untrackCell);
+  }
+}
+
+// src/world/sprite/List.ts
+function forEach(list, callback) {
+  if (list) {
+    for (let i = 0;i < list.length; i++) {
+      const elem = list.at(i);
+      callback(elem, i);
+    }
+  }
+}
+function map(list, callback) {
+  const r = [];
+  for (let i = 0;i < list.length; i++) {
+    const elem = list.at(i);
+    r.push(elem ? callback(elem, i) : undefined);
+  }
+  return r;
+}
+
+// src/world/sprite/update/SpriteUpdateType.ts
+var SpriteUpdateType;
+(function(SpriteUpdateType2) {
+  SpriteUpdateType2[SpriteUpdateType2["NONE"] = 0] = "NONE";
+  SpriteUpdateType2[SpriteUpdateType2["TRANSFORM"] = 1] = "TRANSFORM";
+  SpriteUpdateType2[SpriteUpdateType2["ANIM"] = 2] = "ANIM";
+  SpriteUpdateType2[SpriteUpdateType2["ALL"] = 3] = "ALL";
+})(SpriteUpdateType || (SpriteUpdateType = {}));
+
+// src/world/sprite/update/SpriteUpdater.ts
+class SpriteUpdater {
+  spriteTransformUpdate;
+  spriteAnimUpdate;
+  constructor({ engine, motor }) {
+    this.spriteTransformUpdate = new UpdateRegistry((ids) => engine.updateSpriteTransforms(ids, this), motor, this);
+    this.spriteAnimUpdate = new UpdateRegistry((ids) => engine.updateSpriteAnims(ids, this), motor, this);
+  }
+  informUpdate(id, type = SpriteUpdateType.ALL) {
+    if (id < this.length) {
+      if (type & SpriteUpdateType.TRANSFORM) {
+        this.spriteTransformUpdate.informUpdate(id);
+      }
+      if (type & SpriteUpdateType.ANIM) {
+        this.spriteAnimUpdate.informUpdate(id);
+      }
+    }
+  }
+}
+
+// src/world/sprite/SpriteAccumulator.ts
+class SpritesAccumulator extends SpriteUpdater {
+  spritesIndices = [];
+  constructor({ engine, motor }) {
+    super({ engine, motor });
+  }
+  at(spriteId) {
+    const slot = this.spritesIndices[spriteId];
+    return slot?.sprites.at(spriteId - slot.baseIndex);
+  }
+  get length() {
+    return this.spritesIndices.length;
+  }
+  add(sprites) {
+    const slot = {
+      sprites,
+      baseIndex: this.spritesIndices.length
+    };
+    if (sprites.informUpdate) {
+      sprites.informUpdate = (index, type) => {
+        this.informUpdate(slot.baseIndex + index, type);
+      };
+    }
+    forEach(sprites, (_, index) => {
+      this.spritesIndices.push(slot);
+      this.informUpdate(slot.baseIndex + index);
+    });
+  }
+  onUpdate(updatePayload) {
+  }
+}
+
+// src/world/World.ts
+class World extends AuxiliaryHolder {
+  medias;
+  spritesAccumulator;
+  engine;
+  motor;
+  constructor(props) {
+    super();
+    const { engine, motor } = props;
+    this.engine = engine;
+    this.motor = motor;
+    this.medias = new UpdatableMedias(props);
+    this.spritesAccumulator = new SpritesAccumulator(props);
+  }
+  activate() {
+    const deActivate = super.activate();
+    this.engine.setMaxSpriteCount(this.sprites.length);
+    console.log("Sprite limit:", this.sprites.length);
+    return () => deActivate?.();
+  }
+  get sprites() {
+    return this.spritesAccumulator;
+  }
+  addMedia(...medias) {
+    medias.forEach((media) => {
+      this.medias.set(media.id, media);
+    });
+  }
+  addSprites(...sprites) {
+    sprites.forEach((s) => {
+      const spriteList = s.length ? s : [s];
+      this.spritesAccumulator.add(spriteList);
+    });
+  }
+}
+
+// src/gl/attributes/Constants.ts
+var GL = globalThis.WebGL2RenderingContext ?? {};
+var POSITION_LOC = "position";
+var INDEX_LOC = "index";
+var TRANSFORM_LOC = "transform";
+var SLOT_SIZE_LOC = "slotSize_and_number";
+var INSTANCE_LOC = "instance";
+var CAM_POS_LOC = "camPos";
+var CAM_TILT_LOC = "camTilt";
+var CAM_TURN_LOC = "camTurn";
+var CAM_PROJECTION_LOC = "projection";
+var CAM_CURVATURE_LOC = "curvature";
+var MAX_TEXTURE_SIZE_LOC = "maxTextureSize";
+var TEXTURE_UNIFORM_LOC = "uTextures";
+
+// src/gl/programs/GLProgram.ts
+var createProgram = function(gl, vertex, fragment) {
+  function createShader(shaderSource, type) {
+    function typeName(type2) {
+      return type2 === gl?.VERTEX_SHADER ? "vertex" : type2 === gl?.FRAGMENT_SHADER ? "fragment" : undefined;
+    }
+    if (type !== gl.VERTEX_SHADER && type !== gl.FRAGMENT_SHADER) {
+      throw new Error(`Shader error in ${typeName(type)}`);
+    }
+    const shader = gl.createShader(type);
+    if (!shader) {
+      throw new Error(`Unable to generate ${typeName(type)} shader.`);
+    }
+    gl.shaderSource(shader, shaderSource);
+    gl.compileShader(shader);
+    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+      console.error(`Shader compile error in ${typeName(type)}:` + gl.getShaderInfoLog(shader));
+    }
+    return shader;
+  }
+  const program = gl.createProgram();
+  if (!program) {
+    throw new Error(`Unable to create program.`);
+  }
+  const vertexShader = createShader(vertex, gl.VERTEX_SHADER);
+  const fragmentShader = createShader(fragment, gl.FRAGMENT_SHADER);
+  const vertexInfo = gl.getShaderInfoLog(vertexShader), fragmentInfo = gl.getShaderInfoLog(fragmentShader);
+  if (vertexInfo) {
+    console.log("VERTEX", vertexInfo);
+  }
+  if (fragmentInfo) {
+    console.log("FRAGMENT", fragmentInfo);
+  }
+  gl.attachShader(program, vertexShader);
+  gl.attachShader(program, fragmentShader);
+  gl.linkProgram(program);
+  const programInfo = gl.getProgramInfoLog(program);
+  if (programInfo) {
+    console.log("PROGRAM", programInfo);
+  }
+  gl.detachShader(program, vertexShader);
+  gl.detachShader(program, fragmentShader);
+  gl.deleteShader(vertexShader);
+  gl.deleteShader(fragmentShader);
+  gl.validateProgram(program);
+  Object.entries(GL).forEach(([k, value]) => {
+    if (value && gl.getError() === value) {
+      console.log(`gl.${k}`);
+    }
+  });
+  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+    throw new Error("Unable to initialize the shader program:\n" + gl.getProgramInfoLog(program));
+  }
+  return program;
+};
+var deleteProgram = function(gl, program) {
+  gl.deleteProgram(program);
+};
+
+class GLProgram extends Disposable {
+  gl;
+  program;
+  constructor(gl, vertex, fragment) {
+    super();
+    this.gl = gl;
+    this.program = createProgram(gl, vertex.trim(), fragment.trim());
+  }
+  use() {
+    this.gl.useProgram(this.program);
+  }
+  destroy() {
+    super.destroy();
+    deleteProgram(this.gl, this.program);
+  }
+}
+
+// src/gl/programs/GLPrograms.ts
+class GLPrograms extends Disposable {
+  activeProgramId = "";
+  gl;
+  programs = {};
+  constructor(gl) {
+    super();
+    this.gl = gl;
+  }
+  addProgram(id, vertex, fragment) {
+    if (this.programs[id]) {
+      this.removeProgram(id);
+    }
+    this.programs[id] = this.own(new GLProgram(this.gl, vertex, fragment));
+  }
+  useProgram(id) {
+    if (this.activeProgramId !== id) {
+      this.activeProgramId = id;
+      this.programs[id].use();
+    }
+  }
+  removeProgram(id) {
+    this.programs[id].destroy();
+    delete this.programs[id];
+  }
+  getProgram(id) {
+    return this.programs[id ?? this.activeProgramId]?.program;
+  }
+}
+
+// src/gl/VertexArray.ts
+class VertexArray extends Disposable {
+  gl;
+  triangleArray;
+  constructor(gl) {
+    super();
+    this.gl = gl;
+    this.triangleArray = gl.createVertexArray();
+    gl.bindVertexArray(this.triangleArray);
+  }
+  destroy() {
+    this.gl.deleteVertexArray(this.triangleArray);
+  }
+}
+
+// src/gl/attributes/GLAttributeBuffers.ts
+class GLAttributeBuffers extends Disposable {
+  bufferRecord = {};
+  gl;
+  programs;
+  constructor(gl, programs) {
+    super();
+    this.gl = gl;
+    this.programs = programs;
+  }
+  getAttributeLocation(name, programId) {
+    const program = this.programs.getProgram(programId);
+    return program ? this.gl.getAttribLocation(program, name) ?? -1 : -1;
+  }
+  createBuffer(location) {
+    this.deleteBuffer(location);
+    const bufferBuffer = this.gl?.createBuffer();
+    if (!bufferBuffer) {
+      throw new Error(`Unable to create buffer "${location}"`);
+    }
+    const record = {
+      buffer: bufferBuffer,
+      location: this.getAttributeLocation(location)
+    };
+    this.bufferRecord[location] = record;
+    return record;
+  }
+  deleteBuffer(location) {
+    if (this.bufferRecord[location]) {
+      this.gl.deleteBuffer(this.bufferRecord[location].buffer);
+      delete this.bufferRecord[location];
+    }
+  }
+  getAttributeBuffer(location) {
+    const attribute = this.bufferRecord[location];
+    if (!attribute) {
+      throw new Error(`Attribute "${location}" not created. Make sure "createBuffer" is called.`);
+    }
+    return attribute;
+  }
+  destroy() {
+    Object.keys(this.bufferRecord).forEach((location) => this.deleteBuffer(location));
+  }
+}
+
+// src/gl/uniforms/GLUniforms.ts
+class GLUniforms extends Disposable {
+  gl;
+  programs;
+  constructor(gl, programs) {
+    super();
+    this.gl = gl;
+    this.programs = programs;
+  }
+  getUniformLocation(name, programId) {
+    const program = this.programs.getProgram(programId);
+    return this.gl.getUniformLocation(program, name);
+  }
+}
+
+// node_modules/avl/src/utils.js
+function print(root, printNode = (n) => n.key) {
+  var out = [];
+  row(root, "", true, (v) => out.push(v), printNode);
+  return out.join("");
+}
+var row = function(root, prefix, isTail, out, printNode) {
+  if (root) {
+    out(`${prefix}${isTail ? "\u2514\u2500\u2500 " : "\u251C\u2500\u2500 "}${printNode(root)}\n`);
+    const indent = prefix + (isTail ? "    " : "\u2502   ");
+    if (root.left)
+      row(root.left, indent, false, out, printNode);
+    if (root.right)
+      row(root.right, indent, true, out, printNode);
+  }
+};
+function isBalanced(root) {
+  if (root === null)
+    return true;
+  var lh = height(root.left);
+  var rh = height(root.right);
+  if (Math.abs(lh - rh) <= 1 && isBalanced(root.left) && isBalanced(root.right))
+    return true;
+  return false;
+}
+var height = function(node) {
+  return node ? 1 + Math.max(height(node.left), height(node.right)) : 0;
+};
+function loadRecursive(parent, keys, values, start, end) {
+  const size = end - start;
+  if (size > 0) {
+    const middle = start + Math.floor(size / 2);
+    const key = keys[middle];
+    const data = values[middle];
+    const node = { key, data, parent };
+    node.left = loadRecursive(node, keys, values, start, middle);
+    node.right = loadRecursive(node, keys, values, middle + 1, end);
+    return node;
+  }
+  return null;
+}
+function markBalance(node) {
+  if (node === null)
+    return 0;
+  const lh = markBalance(node.left);
+  const rh = markBalance(node.right);
+  node.balanceFactor = lh - rh;
+  return Math.max(lh, rh) + 1;
+}
+function sort(keys, values, left, right, compare) {
+  if (left >= right)
+    return;
+  const pivot = keys[left + right >> 1];
+  let i = left - 1;
+  let j = right + 1;
+  while (true) {
+    do
+      i++;
+    while (compare(keys[i], pivot) < 0);
+    do
+      j--;
+    while (compare(keys[j], pivot) > 0);
+    if (i >= j)
+      break;
+    let tmp = keys[i];
+    keys[i] = keys[j];
+    keys[j] = tmp;
+    tmp = values[i];
+    values[i] = values[j];
+    values[j] = tmp;
+  }
+  sort(keys, values, left, j, compare);
+  sort(keys, values, j + 1, right, compare);
+}
+
+// node_modules/avl/src/index.js
+var DEFAULT_COMPARE = function(a, b) {
+  return a > b ? 1 : a < b ? -1 : 0;
+};
+var rotateLeft = function(node) {
+  var rightNode = node.right;
+  node.right = rightNode.left;
+  if (rightNode.left)
+    rightNode.left.parent = node;
+  rightNode.parent = node.parent;
+  if (rightNode.parent) {
+    if (rightNode.parent.left === node) {
+      rightNode.parent.left = rightNode;
+    } else {
+      rightNode.parent.right = rightNode;
+    }
+  }
+  node.parent = rightNode;
+  rightNode.left = node;
+  node.balanceFactor += 1;
+  if (rightNode.balanceFactor < 0) {
+    node.balanceFactor -= rightNode.balanceFactor;
+  }
+  rightNode.balanceFactor += 1;
+  if (node.balanceFactor > 0) {
+    rightNode.balanceFactor += node.balanceFactor;
+  }
+  return rightNode;
+};
+var rotateRight = function(node) {
+  var leftNode = node.left;
+  node.left = leftNode.right;
+  if (node.left)
+    node.left.parent = node;
+  leftNode.parent = node.parent;
+  if (leftNode.parent) {
+    if (leftNode.parent.left === node) {
+      leftNode.parent.left = leftNode;
+    } else {
+      leftNode.parent.right = leftNode;
+    }
+  }
+  node.parent = leftNode;
+  leftNode.right = node;
+  node.balanceFactor -= 1;
+  if (leftNode.balanceFactor > 0) {
+    node.balanceFactor -= leftNode.balanceFactor;
+  }
+  leftNode.balanceFactor -= 1;
+  if (node.balanceFactor < 0) {
+    leftNode.balanceFactor += node.balanceFactor;
+  }
+  return leftNode;
+};
+
+class AVLTree {
+  constructor(comparator, noDuplicates = false) {
+    this._comparator = comparator || DEFAULT_COMPARE;
+    this._root = null;
+    this._size = 0;
+    this._noDuplicates = !!noDuplicates;
+  }
+  destroy() {
+    return this.clear();
+  }
+  clear() {
+    this._root = null;
+    this._size = 0;
+    return this;
+  }
+  get size() {
+    return this._size;
+  }
+  contains(key) {
+    if (this._root) {
+      var node = this._root;
+      var comparator = this._comparator;
+      while (node) {
+        var cmp = comparator(key, node.key);
+        if (cmp === 0)
+          return true;
+        else if (cmp < 0)
+          node = node.left;
+        else
+          node = node.right;
+      }
+    }
+    return false;
+  }
+  next(node) {
+    var successor = node;
+    if (successor) {
+      if (successor.right) {
+        successor = successor.right;
+        while (successor.left)
+          successor = successor.left;
+      } else {
+        successor = node.parent;
+        while (successor && successor.right === node) {
+          node = successor;
+          successor = successor.parent;
+        }
+      }
+    }
+    return successor;
+  }
+  prev(node) {
+    var predecessor = node;
+    if (predecessor) {
+      if (predecessor.left) {
+        predecessor = predecessor.left;
+        while (predecessor.right)
+          predecessor = predecessor.right;
+      } else {
+        predecessor = node.parent;
+        while (predecessor && predecessor.left === node) {
+          node = predecessor;
+          predecessor = predecessor.parent;
+        }
+      }
+    }
+    return predecessor;
+  }
+  forEach(callback) {
+    var current = this._root;
+    var s = [], done = false, i = 0;
+    while (!done) {
+      if (current) {
+        s.push(current);
+        current = current.left;
+      } else {
+        if (s.length > 0) {
+          current = s.pop();
+          callback(current, i++);
+          current = current.right;
+        } else
+          done = true;
+      }
+    }
+    return this;
+  }
+  range(low, high, fn, ctx) {
+    const Q = [];
+    const compare = this._comparator;
+    let node = this._root, cmp;
+    while (Q.length !== 0 || node) {
+      if (node) {
+        Q.push(node);
+        node = node.left;
+      } else {
+        node = Q.pop();
+        cmp = compare(node.key, high);
+        if (cmp > 0) {
+          break;
+        } else if (compare(node.key, low) >= 0) {
+          if (fn.call(ctx, node))
+            return this;
+        }
+        node = node.right;
+      }
+    }
+    return this;
+  }
+  keys() {
+    var current = this._root;
+    var s = [], r = [], done = false;
+    while (!done) {
+      if (current) {
+        s.push(current);
+        current = current.left;
+      } else {
+        if (s.length > 0) {
+          current = s.pop();
+          r.push(current.key);
+          current = current.right;
+        } else
+          done = true;
+      }
+    }
+    return r;
+  }
+  values() {
+    var current = this._root;
+    var s = [], r = [], done = false;
+    while (!done) {
+      if (current) {
+        s.push(current);
+        current = current.left;
+      } else {
+        if (s.length > 0) {
+          current = s.pop();
+          r.push(current.data);
+          current = current.right;
+        } else
+          done = true;
+      }
+    }
+    return r;
+  }
+  at(index) {
+    var current = this._root;
+    var s = [], done = false, i = 0;
+    while (!done) {
+      if (current) {
+        s.push(current);
+        current = current.left;
+      } else {
+        if (s.length > 0) {
+          current = s.pop();
+          if (i === index)
+            return current;
+          i++;
+          current = current.right;
+        } else
+          done = true;
+      }
+    }
+    return null;
+  }
+  minNode() {
+    var node = this._root;
+    if (!node)
+      return null;
+    while (node.left)
+      node = node.left;
+    return node;
+  }
+  maxNode() {
+    var node = this._root;
+    if (!node)
+      return null;
+    while (node.right)
+      node = node.right;
+    return node;
+  }
+  min() {
+    var node = this._root;
+    if (!node)
+      return null;
+    while (node.left)
+      node = node.left;
+    return node.key;
+  }
+  max() {
+    var node = this._root;
+    if (!node)
+      return null;
+    while (node.right)
+      node = node.right;
+    return node.key;
+  }
+  isEmpty() {
+    return !this._root;
+  }
+  pop() {
+    var node = this._root, returnValue = null;
+    if (node) {
+      while (node.left)
+        node = node.left;
+      returnValue = { key: node.key, data: node.data };
+      this.remove(node.key);
+    }
+    return returnValue;
+  }
+  popMax() {
+    var node = this._root, returnValue = null;
+    if (node) {
+      while (node.right)
+        node = node.right;
+      returnValue = { key: node.key, data: node.data };
+      this.remove(node.key);
+    }
+    return returnValue;
+  }
+  find(key) {
+    var root = this._root;
+    var subtree = root, cmp;
+    var compare = this._comparator;
+    while (subtree) {
+      cmp = compare(key, subtree.key);
+      if (cmp === 0)
+        return subtree;
+      else if (cmp < 0)
+        subtree = subtree.left;
+      else
+        subtree = subtree.right;
+    }
+    return null;
+  }
+  insert(key, data) {
+    if (!this._root) {
+      this._root = {
+        parent: null,
+        left: null,
+        right: null,
+        balanceFactor: 0,
+        key,
+        data
+      };
+      this._size++;
+      return this._root;
+    }
+    var compare = this._comparator;
+    var node = this._root;
+    var parent = null;
+    var cmp = 0;
+    if (this._noDuplicates) {
+      while (node) {
+        cmp = compare(key, node.key);
+        parent = node;
+        if (cmp === 0)
+          return null;
+        else if (cmp < 0)
+          node = node.left;
+        else
+          node = node.right;
+      }
+    } else {
+      while (node) {
+        cmp = compare(key, node.key);
+        parent = node;
+        if (cmp <= 0)
+          node = node.left;
+        else
+          node = node.right;
+      }
+    }
+    var newNode = {
+      left: null,
+      right: null,
+      balanceFactor: 0,
+      parent,
+      key,
+      data
+    };
+    var newRoot;
+    if (cmp <= 0)
+      parent.left = newNode;
+    else
+      parent.right = newNode;
+    while (parent) {
+      cmp = compare(parent.key, key);
+      if (cmp < 0)
+        parent.balanceFactor -= 1;
+      else
+        parent.balanceFactor += 1;
+      if (parent.balanceFactor === 0)
+        break;
+      else if (parent.balanceFactor < -1) {
+        if (parent.right.balanceFactor === 1)
+          rotateRight(parent.right);
+        newRoot = rotateLeft(parent);
+        if (parent === this._root)
+          this._root = newRoot;
+        break;
+      } else if (parent.balanceFactor > 1) {
+        if (parent.left.balanceFactor === -1)
+          rotateLeft(parent.left);
+        newRoot = rotateRight(parent);
+        if (parent === this._root)
+          this._root = newRoot;
+        break;
+      }
+      parent = parent.parent;
+    }
+    this._size++;
+    return newNode;
+  }
+  remove(key) {
+    if (!this._root)
+      return null;
+    var node = this._root;
+    var compare = this._comparator;
+    var cmp = 0;
+    while (node) {
+      cmp = compare(key, node.key);
+      if (cmp === 0)
+        break;
+      else if (cmp < 0)
+        node = node.left;
+      else
+        node = node.right;
+    }
+    if (!node)
+      return null;
+    var returnValue = node.key;
+    var max, min;
+    if (node.left) {
+      max = node.left;
+      while (max.left || max.right) {
+        while (max.right)
+          max = max.right;
+        node.key = max.key;
+        node.data = max.data;
+        if (max.left) {
+          node = max;
+          max = max.left;
+        }
+      }
+      node.key = max.key;
+      node.data = max.data;
+      node = max;
+    }
+    if (node.right) {
+      min = node.right;
+      while (min.left || min.right) {
+        while (min.left)
+          min = min.left;
+        node.key = min.key;
+        node.data = min.data;
+        if (min.right) {
+          node = min;
+          min = min.right;
+        }
+      }
+      node.key = min.key;
+      node.data = min.data;
+      node = min;
+    }
+    var parent = node.parent;
+    var pp = node;
+    var newRoot;
+    while (parent) {
+      if (parent.left === pp)
+        parent.balanceFactor -= 1;
+      else
+        parent.balanceFactor += 1;
+      if (parent.balanceFactor < -1) {
+        if (parent.right.balanceFactor === 1)
+          rotateRight(parent.right);
+        newRoot = rotateLeft(parent);
+        if (parent === this._root)
+          this._root = newRoot;
+        parent = newRoot;
+      } else if (parent.balanceFactor > 1) {
+        if (parent.left.balanceFactor === -1)
+          rotateLeft(parent.left);
+        newRoot = rotateRight(parent);
+        if (parent === this._root)
+          this._root = newRoot;
+        parent = newRoot;
+      }
+      if (parent.balanceFactor === -1 || parent.balanceFactor === 1)
+        break;
+      pp = parent;
+      parent = parent.parent;
+    }
+    if (node.parent) {
+      if (node.parent.left === node)
+        node.parent.left = null;
+      else
+        node.parent.right = null;
+    }
+    if (node === this._root)
+      this._root = null;
+    this._size--;
+    return returnValue;
+  }
+  load(keys = [], values = [], presort) {
+    if (this._size !== 0)
+      throw new Error("bulk-load: tree is not empty");
+    const size = keys.length;
+    if (presort)
+      sort(keys, values, 0, size - 1, this._comparator);
+    this._root = loadRecursive(null, keys, values, 0, size);
+    markBalance(this._root);
+    this._size = size;
+    return this;
+  }
+  isBalanced() {
+    return isBalanced(this._root);
+  }
+  toString(printNode) {
+    return print(this._root, printNode);
+  }
+}
+AVLTree.default = AVLTree;
+
+// node_modules/texture-slot-allocator/dist/src/texture/TextureSlot.js
+class TextureSlot {
+  size;
+  slotNumber;
+  x;
+  y;
+  textureIndex;
+  parent;
+  sibbling;
+  textureSizeLimits;
+  constructor(size, slotNumber, parent, textureSizeLimits) {
+    this.textureSizeLimits = parent?.textureSizeLimits ?? textureSizeLimits ?? { min: DEFAULT_MIN_TEXTURE_SIZE, max: DEFAULT_MAX_TEXTURE_SIZE };
+    this.size = size;
+    this.slotNumber = slotNumber;
+    this.parent = parent;
+    this.sibbling = undefined;
+    const { x, y, textureIndex } = this.calculatePosition(size, slotNumber);
+    this.x = x;
+    this.y = y;
+    this.textureIndex = textureIndex;
+  }
+  calculateTextureIndex(size, slotNumber) {
+    const [w, h] = size;
+    const slotsPerTexture = this.textureSizeLimits.max / w * (this.textureSizeLimits.max / h);
+    return Math.floor(slotNumber / slotsPerTexture);
+  }
+  calculatePosition(size, slotNumber) {
+    const [w, h] = size;
+    const slotsPerRow = this.textureSizeLimits.max / w;
+    const slotsPerColumn = this.textureSizeLimits.max / h;
+    const x = slotNumber % slotsPerRow * w;
+    const y = Math.floor(slotNumber / slotsPerRow) % slotsPerColumn * h;
+    return { x, y, textureIndex: this.calculateTextureIndex(size, slotNumber) };
+  }
+  getTag() {
+    return TextureSlot.getTag(this);
+  }
+  static getTag(slot) {
+    return `${slot.size[0]}x${slot.size[1]}-#${slot.slotNumber}`;
+  }
+  static positionToTextureSlot(x, y, size, textureIndex, parent) {
+    const [w, h] = size;
+    const slotsPerRow = parent.textureSizeLimits.max / w;
+    const slotsPerTexture = parent.textureSizeLimits.max / w * (parent.textureSizeLimits.max / h);
+    const slotNumber = slotsPerTexture * textureIndex + y / h * slotsPerRow + x / w;
+    return new TextureSlot(size, slotNumber, parent);
+  }
+  getPosition() {
+    return { x: this.x, y: this.y, size: this.size, textureIndex: this.textureIndex };
+  }
+  canSplitHorizontally() {
+    const [, h] = this.size;
+    return h > this.textureSizeLimits.min;
+  }
+  canSplitVertically() {
+    const [w] = this.size;
+    return w > this.textureSizeLimits.min;
+  }
+  splitHorizontally() {
+    const { x, y, size, textureIndex } = this;
+    const [w, h] = size;
+    if (!this.canSplitHorizontally()) {
+      throw new Error(`Cannot split texture slot of size ${w} horizontally`);
+    }
+    const halfWidth = w / 2;
+    const left = TextureSlot.positionToTextureSlot(x, y, [halfWidth, h], textureIndex, this);
+    const right = TextureSlot.positionToTextureSlot(x + halfWidth, y, [halfWidth, h], textureIndex, this);
+    left.sibbling = right;
+    right.sibbling = left;
+    return [left, right];
+  }
+  splitVertically() {
+    const { x, y, size, textureIndex } = this;
+    const [w, h] = size;
+    if (!this.canSplitVertically()) {
+      throw new Error(`Cannot split texture slot of size ${h} vertically`);
+    }
+    const halfHeight = h / 2;
+    const top = TextureSlot.positionToTextureSlot(x, y, [w, halfHeight], textureIndex, this);
+    const bottom = TextureSlot.positionToTextureSlot(x, y + halfHeight, [w, halfHeight], textureIndex, this);
+    top.sibbling = bottom;
+    bottom.sibbling = top;
+    return [top, bottom];
+  }
+}
+
+// node_modules/texture-slot-allocator/dist/src/texture/TextureUtils.js
+function getMinTextureSlotSize(size, minSize) {
+  return Math.max(minSize, Math.pow(2, Math.ceil(Math.log(size) / Math.log(2))));
+}
+function getFlexSizes(w, h, count, textureSizeLimits) {
+  if (count < 1) {
+    throw new Error("Invalid count");
+  }
+  const wFixed = getMinTextureSlotSize(w, textureSizeLimits.min), hFixed = getMinTextureSlotSize(h, textureSizeLimits.min);
+  const flexSizes = new Map;
+  let wSize = textureSizeLimits.min;
+  for (let i = 1;i <= count; i++) {
+    wSize = getMinTextureSlotSize(wFixed * i, textureSizeLimits.min);
+    const hSize = getMinTextureSlotSize(hFixed * Math.ceil(count / i), textureSizeLimits.min);
+    flexSizes.set(wSize, hSize);
+  }
+  for (let size = wSize;size <= textureSizeLimits.max; size *= 2) {
+    if (!flexSizes.has(size)) {
+      flexSizes.set(size, hFixed);
+    }
+  }
+  return flexSizes;
+}
+
+// node_modules/texture-slot-allocator/dist/src/texture/TextureSlotAllocator.js
+var DEBUG = false;
+var DEFAULT_MIN_TEXTURE_SIZE = 16;
+var DEFAULT_MAX_TEXTURE_SIZE = 4096;
+var DEFAULT_NUM_TEXTURE_SHEETS = 16;
+
+class TextureSlotAllocator2 {
+  textureSlots = new AVLTree((slot1, slot2) => {
+    const sizeDiff = slot1.size[0] * slot1.size[1] - slot2.size[0] * slot2.size[1];
+    if (sizeDiff !== 0) {
+      return sizeDiff;
+    }
+    return slot1.slotNumber - slot2.slotNumber;
+  }, false);
+  allocatedTextures = {};
+  minTextureSize;
+  maxTextureSize;
+  numTextureSheets;
+  initialSlots = [];
+  constructor({ numTextureSheets, minTextureSize, maxTextureSize, excludeTexture } = {}, gl) {
+    this.numTextureSheets = numTextureSheets ?? DEFAULT_NUM_TEXTURE_SHEETS;
+    this.minTextureSize = minTextureSize ?? DEFAULT_MIN_TEXTURE_SIZE;
+    this.maxTextureSize = maxTextureSize ?? DEFAULT_MAX_TEXTURE_SIZE;
+    if (gl) {
+      this.numTextureSheets = Math.min(this.numTextureSheets, gl.getParameter(WebGL2RenderingContext.MAX_TEXTURE_IMAGE_UNITS));
+      this.maxTextureSize = Math.min(this.maxTextureSize, gl.getParameter(WebGL2RenderingContext.MAX_TEXTURE_SIZE));
+      this.minTextureSize = Math.min(this.minTextureSize, this.maxTextureSize);
+    }
+    for (let i = 0;i < this.numTextureSheets; i++) {
+      if (excludeTexture?.(i)) {
+        continue;
+      }
+      this.initialSlots.push(new TextureSlot([this.maxTextureSize, this.maxTextureSize], i, undefined, {
+        min: this.minTextureSize,
+        max: this.maxTextureSize
+      }));
+    }
+    this.initialSlots.forEach((slot) => this.textureSlots.insert(slot));
+  }
+  allocate(w, h, count = 1) {
+    const { size, slotNumber, x, y, textureIndex } = this.allocateHelper(w, h, count);
+    return { size, slotNumber, x, y, textureIndex };
+  }
+  deallocate(slot) {
+    if (!this.isSlotUsed(slot)) {
+      throw new Error("Slot is not allocated");
+    }
+    const textureSlot = this.allocatedTextures[TextureSlot.getTag(slot)];
+    this.deallocateHelper(textureSlot);
+  }
+  get countUsedTextureSheets() {
+    return this.initialSlots.filter((slot) => this.isSlotUsed(slot)).length;
+  }
+  allocateHelper(w, h, count = 1) {
+    const flexSizes = getFlexSizes(w, h, count, { min: this.minTextureSize, max: this.maxTextureSize });
+    const slot = this.findSlot(flexSizes);
+    if (!slot) {
+      throw new Error(`Could not find a slot for texture to fit ${count} sprites of size ${w}x${h}`);
+    }
+    this.textureSlots.remove(slot);
+    const [bestWidth, bestHeight] = this.bestFit(flexSizes, slot);
+    return this.fitSlot(slot, bestWidth, bestHeight);
+  }
+  findSlot(flexSizes) {
+    for (let i = 0;i < this.textureSlots.size; i++) {
+      const slot = this.textureSlots.at(i);
+      const textureSlot = slot.key;
+      const [w, h] = textureSlot.size;
+      if (flexSizes.get(w) <= h) {
+        return textureSlot;
+      }
+    }
+    return null;
+  }
+  calculateRatio(w, h) {
+    return Math.max(w / h, h / w);
+  }
+  bestFit(flexSizes, slot) {
+    const [slotWidth, slotHeight] = slot.size;
+    let bestWidth = slot.textureSizeLimits.max;
+    flexSizes.forEach((hSize, wSize) => {
+      if (wSize <= slotWidth && hSize <= slotHeight) {
+        const product = wSize * hSize;
+        const bestProduct = flexSizes.get(bestWidth) * bestWidth;
+        if (product < bestProduct) {
+          bestWidth = wSize;
+        } else if (product === bestProduct) {
+          const ratio = this.calculateRatio(wSize, hSize);
+          if (ratio < this.calculateRatio(bestWidth, flexSizes.get(bestWidth))) {
+            bestWidth = wSize;
+          }
+        }
+      }
+    });
+    return [bestWidth, flexSizes.get(bestWidth)];
+  }
+  isSlotUsed(slot) {
+    return !!this.allocatedTextures[TextureSlot.getTag(slot)];
+  }
+  deallocateHelper(slot) {
+    if (slot.parent && slot.sibbling && !this.isSlotUsed(slot.sibbling)) {
+      const sibbling = slot.sibbling;
+      this.textureSlots.remove(sibbling);
+      if (DEBUG && this.textureSlots.find(slot)) {
+        throw new Error("Slot is not expected to be in the tree");
+      }
+      const parent = slot.parent;
+      this.deallocateHelper(parent);
+      return;
+    }
+    this.textureSlots.insert(slot);
+    delete this.allocatedTextures[slot.getTag()];
+  }
+  trySplitHorizontally(slot, w, h) {
+    if (slot.canSplitHorizontally()) {
+      const [leftColumn, rightColumn] = slot.splitHorizontally();
+      if (leftColumn.size[0] >= w) {
+        this.textureSlots.insert(rightColumn);
+        return this.fitSlot(leftColumn, w, h);
+      }
+    }
+    return null;
+  }
+  trySplitVertically(slot, w, h) {
+    if (slot.canSplitVertically()) {
+      const [topRow, bottomRow] = slot.splitVertically();
+      if (topRow.size[1] >= h) {
+        this.textureSlots.insert(bottomRow);
+        return this.fitSlot(topRow, w, h);
+      }
+    }
+    return null;
+  }
+  fitSlot(slot, w, h) {
+    this.allocatedTextures[slot.getTag()] = slot;
+    if (slot.size[0] > slot.size[1]) {
+      const splitAttempt = this.trySplitHorizontally(slot, w, h) ?? this.trySplitVertically(slot, w, h);
+      if (splitAttempt) {
+        return splitAttempt;
+      }
+    } else {
+      const splitAttempt = this.trySplitVertically(slot, w, h) ?? this.trySplitHorizontally(slot, w, h);
+      if (splitAttempt) {
+        return splitAttempt;
+      }
+    }
+    return slot;
+  }
+  listSlots() {
+    this.textureSlots.forEach((node) => {
+      console.log(node.key?.getTag());
+    });
+  }
+}
+
+// src/gl/texture/TextureManager.ts
+var TEXTURE_INDEX_FOR_VIDEO = 15;
+
+class TextureManager extends Disposable {
+  gl;
+  uniforms;
+  textureBuffers = {};
+  tempContext = new OffscreenCanvas(1, 1).getContext("2d");
+  textureSlotAllocator = new TextureSlotAllocator2({
+    excludeTexture: (tex) => tex === TEXTURE_INDEX_FOR_VIDEO
+  });
+  textureSlotAllocatorForVideo = new TextureSlotAllocator2({
+    excludeTexture: (tex) => tex !== TEXTURE_INDEX_FOR_VIDEO
+  });
+  constructor(gl, uniforms) {
+    super();
+    this.gl = gl;
+    this.uniforms = uniforms;
+    this.tempContext.imageSmoothingEnabled = true;
+  }
+  initialize() {
+    this.initTextureUniforms();
+    this.initMaxTexture();
+  }
+  getTexture(textureId) {
+    if (!this.textureBuffers[textureId]) {
+      const texture = this.gl.createTexture();
+      if (!texture) {
+        return;
+      }
+      this.gl.bindTexture(GL.TEXTURE_2D, texture);
+      this.gl.texImage2D(GL.TEXTURE_2D, 0, GL.RGBA, this.textureSlotAllocator.maxTextureSize, this.textureSlotAllocator.maxTextureSize, 0, GL.RGBA, GL.UNSIGNED_BYTE, null);
+      this.textureBuffers[textureId] = texture;
+      this.addOnDestroy(() => this.gl.deleteTexture(texture));
+    }
+    return this.textureBuffers[textureId];
+  }
+  loadTexture(mediaInfo, textureId, texture, sourceRect, destRect) {
+    this.gl.activeTexture(GL[textureId]);
+    this.gl.bindTexture(GL.TEXTURE_2D, texture);
+    this.applyTexImage2d(mediaInfo, sourceRect, destRect);
+    this.gl.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_MIN_FILTER, GL.LINEAR);
+  }
+  applyTexImage2d(mediaInfo, [srcX, srcY, srcWidth, srcHeight], [dstX, dstY, dstWidth, dstHeight]) {
+    if (srcWidth === dstWidth && srcHeight === dstHeight && !srcX && !srcY) {
+      this.gl.texSubImage2D(GL.TEXTURE_2D, 0, dstX, dstY, dstWidth, dstHeight, GL.RGBA, GL.UNSIGNED_BYTE, mediaInfo.texImgSrc);
+    } else {
+      const canvas = this.tempContext.canvas;
+      if (mediaInfo.texImgSrc instanceof ImageData) {
+        canvas.width = dstWidth || mediaInfo.width;
+        canvas.height = dstHeight || mediaInfo.height;
+        this.tempContext.putImageData(mediaInfo.texImgSrc, 0, 0);
+        if (srcX || srcY) {
+          console.warn("Offset not available when sending imageData");
+        }
+      } else {
+        const sourceWidth = srcWidth || mediaInfo.width;
+        const sourceHeight = srcHeight || mediaInfo.height;
+        canvas.width = dstWidth || sourceWidth;
+        canvas.height = dstHeight || sourceHeight;
+        this.tempContext.drawImage(mediaInfo.texImgSrc, srcX, srcY, sourceWidth, sourceHeight, 0, 0, canvas.width, canvas.height);
+      }
+      this.gl.texSubImage2D(GL.TEXTURE_2D, 0, dstX, dstY, canvas.width, canvas.height, GL.RGBA, GL.UNSIGNED_BYTE, canvas);
+    }
+  }
+  allocateSlotForImage(mediaInfo) {
+    const allocator = mediaInfo.isVideo ? this.textureSlotAllocatorForVideo : this.textureSlotAllocator;
+    const slot = allocator.allocate(mediaInfo.width, mediaInfo.height);
+    const textureId = `TEXTURE${slot.textureIndex}`;
+    const webGLTexture = this.getTexture(textureId);
+    if (!webGLTexture) {
+      throw new Error(`Invalid texture Id ${textureId}`);
+    }
+    const refreshCallback = this.assignImageToTexture(mediaInfo, textureId, webGLTexture, [0, 0, mediaInfo.width, mediaInfo.height], [slot.x, slot.y, ...slot.size]);
+    return { slot, refreshCallback };
+  }
+  assignImageToTexture(imageInfo, textureId, texture, sourceRect, destRect) {
+    const srcRect = sourceRect ?? [0, 0, imageInfo.width, imageInfo.height];
+    const dstRect = destRect ?? [0, 0, srcRect[2], srcRect[3]];
+    const refreshTexture = () => {
+      this.gl.bindTexture(GL.TEXTURE_2D, texture);
+      this.applyTexImage2d(imageInfo, srcRect, dstRect);
+    };
+    if (imageInfo.active) {
+      refreshTexture();
+    } else {
+      this.loadTexture(imageInfo, textureId, texture, srcRect, dstRect);
+      imageInfo.active = true;
+    }
+    return refreshTexture;
+  }
+  setupTextureForVideo(textureId) {
+    const texture = this.getTexture(textureId);
+    if (texture) {
+      this.gl.activeTexture(GL[textureId]);
+      this.gl.bindTexture(GL.TEXTURE_2D, texture);
+      this.gl.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_MIN_FILTER, GL.LINEAR);
+      this.gl.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_MAG_FILTER, GL.LINEAR);
+    }
+  }
+  generateMipMap(textureId) {
+    const texture = this.getTexture(textureId);
+    if (texture) {
+      this.gl.activeTexture(GL[textureId]);
+      this.gl.bindTexture(GL.TEXTURE_2D, texture);
+      this.gl.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_MIN_FILTER, GL.LINEAR_MIPMAP_LINEAR);
+      this.gl.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_MAG_FILTER, GL.LINEAR);
+      this.gl.generateMipmap(GL.TEXTURE_2D);
+    }
+  }
+  initTextureUniforms() {
+    const maxTextureUnits = this.gl.getParameter(GL.MAX_TEXTURE_IMAGE_UNITS);
+    const arrayOfTextureIndex = new Array(maxTextureUnits).fill(null).map((_, index) => index);
+    const textureUniformLocation = this.uniforms.getUniformLocation(TEXTURE_UNIFORM_LOC);
+    this.gl.uniform1iv(textureUniformLocation, arrayOfTextureIndex);
+  }
+  initMaxTexture() {
+    const loc = this.uniforms.getUniformLocation(MAX_TEXTURE_SIZE_LOC);
+    this.gl.uniform1f(loc, this.textureSlotAllocator.maxTextureSize);
+  }
+}
+
+// src/gl/texture/MediaData.ts
+class MediaData extends Disposable {
+  texImgSrc;
+  active = false;
+  width;
+  height;
+  isVideo;
+  schedule;
+  constructor(image, refreshRate) {
+    super();
+    this.texImgSrc = image;
+    const img = image;
+    this.isVideo = !!(img.videoWidth || img.videoHeight);
+    this.width = img.naturalWidth ?? img.videoWidth ?? img.displayWidth ?? img.width?.baseValue?.value ?? img.width;
+    this.height = img.naturalHeight ?? img.videoHeight ?? img.displayHeight ?? img.height?.baseValue?.value ?? img.height;
+    this.schedule = refreshRate ? { period: 1000 / refreshRate } : undefined;
+    if (!this.width || !this.height) {
+      throw new Error("Invalid image");
+    }
+  }
+  refresh() {
+    this.refreshCallback?.();
+  }
+  static createFromCanvas(canvas) {
+    return new MediaData(canvas);
+  }
+  static async loadImage(src) {
+    const image = await new Promise((resolve, reject) => {
+      const image2 = new Image;
+      image2.crossOrigin = "anonymous";
+      const imageError = (e) => reject(e.error);
+      image2.addEventListener("error", imageError);
+      image2.addEventListener("load", () => resolve(image2), { once: true });
+      image2.src = src;
+    });
+    return new MediaData(image);
+  }
+  static async loadVideo(src, volume, fps = 30, playSpeed = 1, maxRefreshRate = Number.MAX_SAFE_INTEGER) {
+    const video = await new Promise((resolve, reject) => {
+      const video2 = document.createElement("video");
+      video2.loop = true;
+      if (volume !== undefined) {
+        video2.volume = volume;
+      }
+      video2.addEventListener("loadedmetadata", () => {
+        video2.play();
+        video2.playbackRate = playSpeed;
+        resolve(video2);
+      }, { once: true });
+      document.addEventListener("focus", () => video2.play());
+      video2.addEventListener("error", (e) => reject(e.error));
+      video2.src = src;
+    });
+    const videoInfo = new MediaData(video, Math.min(fps * playSpeed, maxRefreshRate));
+    videoInfo.addOnDestroy(() => video.pause());
+    return videoInfo;
+  }
+  static async loadWebcam(deviceId) {
+    const video = await new Promise((resolve, reject) => {
+      const video2 = document.createElement("video");
+      video2.loop = true;
+      video2.addEventListener("loadedmetadata", () => video2.play());
+      video2.addEventListener("playing", () => resolve(video2), { once: true });
+      video2.addEventListener("error", (e) => reject(e.error));
+    });
+    const videoInfo = new MediaData(video);
+    let cancelled = false;
+    navigator.mediaDevices.getUserMedia({ video: { deviceId } }).then((stream) => {
+      if (!cancelled) {
+        video.srcObject = stream;
+        videoInfo.addOnDestroy(() => stream.getTracks().forEach((track) => track.stop()));
+      }
+    });
+    videoInfo.addOnDestroy(() => {
+      cancelled = true;
+      video.pause();
+    });
+    return videoInfo;
+  }
+}
+
+// src/gl/texture/ImageManager.ts
+var createDrawProcedure = function(procedure) {
+  return procedure;
+};
+
+class ImageManager extends Disposable {
+  constructor() {
+    super(...arguments);
+  }
+  images = {};
+  renderProcedures = {
+    image: createDrawProcedure((imageId, media) => this.loadImage(imageId, media.src)),
+    video: createDrawProcedure((imageId, media) => this.loadVideo(imageId, media.src, media.volume, media.fps, media.playSpeed)),
+    draw: createDrawProcedure((imageId, media) => this.drawImage(imageId, media.draw)),
+    canvas: createDrawProcedure((imageId, media) => this.loadCanvas(imageId, media.canvas)),
+    webcam: createDrawProcedure((imageId, media) => this.loadWebCam(imageId, media.deviceId))
+  };
+  hasImageId(imageId) {
+    return !!this.getMedia(imageId);
+  }
+  getMedia(imageId) {
+    return this.images[imageId];
+  }
+  setImage(imageId, mediaInfo) {
+    this.images[imageId] = mediaInfo;
+  }
+  async renderMedia(imageId, media) {
+    return this.renderProcedures[media.type](imageId, media);
+  }
+  async drawImage(imageId, drawProcedure) {
+    const canvas = new OffscreenCanvas(1, 1);
+    drawProcedure(canvas.getContext("2d"));
+    const imageInfo = MediaData.createFromCanvas(canvas);
+    this.images[imageId] = this.own(imageInfo);
+    return imageInfo;
+  }
+  async loadCanvas(imageId, canvas) {
+    const imageInfo = MediaData.createFromCanvas(canvas);
+    canvas.getContext("2d");
+    this.images[imageId] = this.own(imageInfo);
+    return imageInfo;
+  }
+  async loadImage(imageId, src) {
+    const imageInfo = await MediaData.loadImage(src);
+    this.images[imageId] = this.own(imageInfo);
+    return imageInfo;
+  }
+  async loadVideo(imageId, src, volume, fps, playSpeed, maxRefreshRate) {
+    const videoInfo = await MediaData.loadVideo(src, volume, fps, playSpeed, maxRefreshRate);
+    this.images[imageId] = this.own(videoInfo);
+    return videoInfo;
+  }
+  async loadWebCam(imageId, deviceId) {
+    const videoInfo = await MediaData.loadWebcam(deviceId);
+    this.images[imageId] = this.own(videoInfo);
+    return videoInfo;
+  }
+}
+
+// src/generated/src/gl/resources/vertexShader.txt
+var vertexShader_default = `#version 300 es
 //  ~{AUTHOR}
 
 precision highp float;
@@ -54,7 +1630,10 @@ void main() {
   float b = fract(instance / 255.0);
   vInstanceColor = vec3(r, g, b);
 }
-`;var L$=`#version 300 es
+`;
+
+// src/generated/src/gl/resources/fragmentShader.txt
+var fragmentShader_default = `#version 300 es
 //  ~{AUTHOR}
 precision highp float;
 
@@ -136,6 +1715,4361 @@ vec4 getTextureColor(float textureSlot, vec2 vTexturePoint) {
   }
   return texture(uTextures[0], vTexturePoint);
 }
-`;function d0($,Q){return $.replace(/~\{(\w+)\}/g,(J,B)=>{return Q?.[B]||J})}var G=0.000001,T=typeof Float32Array!=="undefined"?Float32Array:Array,l=Math.random,zB=Math.PI/180;if(!Math.hypot)Math.hypot=function(){var $=0,Q=arguments.length;while(Q--)$+=arguments[Q]*arguments[Q];return Math.sqrt($)};function T$(){var $=new T(9);if(T!=Float32Array)$[1]=0,$[2]=0,$[3]=0,$[5]=0,$[6]=0,$[7]=0;return $[0]=1,$[4]=1,$[8]=1,$}var L={};C0(L,{transpose:()=>{{return vQ}},translate:()=>{{return yQ}},targetTo:()=>{{return HJ}},subtract:()=>{{return f$}},sub:()=>{{return AJ}},str:()=>{{return XJ}},set:()=>{{return IQ}},scale:()=>{{return pQ}},rotateZ:()=>{{return nQ}},rotateY:()=>{{return mQ}},rotateX:()=>{{return cQ}},rotate:()=>{{return xQ}},perspectiveZO:()=>{{return BJ}},perspectiveNO:()=>{{return v$}},perspectiveFromFieldOfView:()=>{{return KJ}},perspective:()=>{{return JJ}},orthoZO:()=>{{return ZJ}},orthoNO:()=>{{return z$}},ortho:()=>{{return YJ}},multiplyScalarAndAdd:()=>{{return PJ}},multiplyScalar:()=>{{return jJ}},multiply:()=>{{return h$}},mul:()=>{{return NJ}},lookAt:()=>{{return VJ}},invert:()=>{{return zQ}},identity:()=>{{return S$}},getTranslation:()=>{{return uQ}},getScaling:()=>{{return I$}},getRotation:()=>{{return oQ}},frustum:()=>{{return QJ}},fromZRotation:()=>{{return rQ}},fromYRotation:()=>{{return sQ}},fromXRotation:()=>{{return iQ}},fromValues:()=>{{return wQ}},fromTranslation:()=>{{return lQ}},fromScaling:()=>{{return dQ}},fromRotationTranslationScaleOrigin:()=>{{return tQ}},fromRotationTranslationScale:()=>{{return aQ}},fromRotationTranslation:()=>{{return w$}},fromRotation:()=>{{return bQ}},fromQuat2:()=>{{return eQ}},fromQuat:()=>{{return $J}},frob:()=>{{return FJ}},exactEquals:()=>{{return OJ}},equals:()=>{{return UJ}},determinant:()=>{{return gQ}},create:()=>{{return TQ}},copy:()=>{{return hQ}},clone:()=>{{return SQ}},adjoint:()=>{{return fQ}},add:()=>{{return WJ}}});function TQ(){var $=new T(16);if(T!=Float32Array)$[1]=0,$[2]=0,$[3]=0,$[4]=0,$[6]=0,$[7]=0,$[8]=0,$[9]=0,$[11]=0,$[12]=0,$[13]=0,$[14]=0;return $[0]=1,$[5]=1,$[10]=1,$[15]=1,$}function SQ($){var Q=new T(16);return Q[0]=$[0],Q[1]=$[1],Q[2]=$[2],Q[3]=$[3],Q[4]=$[4],Q[5]=$[5],Q[6]=$[6],Q[7]=$[7],Q[8]=$[8],Q[9]=$[9],Q[10]=$[10],Q[11]=$[11],Q[12]=$[12],Q[13]=$[13],Q[14]=$[14],Q[15]=$[15],Q}function hQ($,Q){return $[0]=Q[0],$[1]=Q[1],$[2]=Q[2],$[3]=Q[3],$[4]=Q[4],$[5]=Q[5],$[6]=Q[6],$[7]=Q[7],$[8]=Q[8],$[9]=Q[9],$[10]=Q[10],$[11]=Q[11],$[12]=Q[12],$[13]=Q[13],$[14]=Q[14],$[15]=Q[15],$}function wQ($,Q,J,B,K,Y,Z,V,H,X,F,W,P,O,U,N){var j=new T(16);return j[0]=$,j[1]=Q,j[2]=J,j[3]=B,j[4]=K,j[5]=Y,j[6]=Z,j[7]=V,j[8]=H,j[9]=X,j[10]=F,j[11]=W,j[12]=P,j[13]=O,j[14]=U,j[15]=N,j}function IQ($,Q,J,B,K,Y,Z,V,H,X,F,W,P,O,U,N,j){return $[0]=Q,$[1]=J,$[2]=B,$[3]=K,$[4]=Y,$[5]=Z,$[6]=V,$[7]=H,$[8]=X,$[9]=F,$[10]=W,$[11]=P,$[12]=O,$[13]=U,$[14]=N,$[15]=j,$}function S$($){return $[0]=1,$[1]=0,$[2]=0,$[3]=0,$[4]=0,$[5]=1,$[6]=0,$[7]=0,$[8]=0,$[9]=0,$[10]=1,$[11]=0,$[12]=0,$[13]=0,$[14]=0,$[15]=1,$}function vQ($,Q){if($===Q){var J=Q[1],B=Q[2],K=Q[3],Y=Q[6],Z=Q[7],V=Q[11];$[1]=Q[4],$[2]=Q[8],$[3]=Q[12],$[4]=J,$[6]=Q[9],$[7]=Q[13],$[8]=B,$[9]=Y,$[11]=Q[14],$[12]=K,$[13]=Z,$[14]=V}else $[0]=Q[0],$[1]=Q[4],$[2]=Q[8],$[3]=Q[12],$[4]=Q[1],$[5]=Q[5],$[6]=Q[9],$[7]=Q[13],$[8]=Q[2],$[9]=Q[6],$[10]=Q[10],$[11]=Q[14],$[12]=Q[3],$[13]=Q[7],$[14]=Q[11],$[15]=Q[15];return $}function zQ($,Q){var J=Q[0],B=Q[1],K=Q[2],Y=Q[3],Z=Q[4],V=Q[5],H=Q[6],X=Q[7],F=Q[8],W=Q[9],P=Q[10],O=Q[11],U=Q[12],N=Q[13],j=Q[14],E=Q[15],C=J*V-B*Z,D=J*H-K*Z,R=J*X-Y*Z,_=B*H-K*V,q=B*X-Y*V,z=K*X-Y*H,h=F*N-W*U,w=F*j-P*U,I=F*E-O*U,f=W*j-P*N,g=W*E-O*N,y=P*E-O*j,k=C*y-D*g+R*f+_*I-q*w+z*h;if(!k)return null;return k=1/k,$[0]=(V*y-H*g+X*f)*k,$[1]=(K*g-B*y-Y*f)*k,$[2]=(N*z-j*q+E*_)*k,$[3]=(P*q-W*z-O*_)*k,$[4]=(H*I-Z*y-X*w)*k,$[5]=(J*y-K*I+Y*w)*k,$[6]=(j*R-U*z-E*D)*k,$[7]=(F*z-P*R+O*D)*k,$[8]=(Z*g-V*I+X*h)*k,$[9]=(B*I-J*g-Y*h)*k,$[10]=(U*q-N*R+E*C)*k,$[11]=(W*R-F*q-O*C)*k,$[12]=(V*w-Z*f-H*h)*k,$[13]=(J*f-B*w+K*h)*k,$[14]=(N*D-U*_-j*C)*k,$[15]=(F*_-W*D+P*C)*k,$}function fQ($,Q){var J=Q[0],B=Q[1],K=Q[2],Y=Q[3],Z=Q[4],V=Q[5],H=Q[6],X=Q[7],F=Q[8],W=Q[9],P=Q[10],O=Q[11],U=Q[12],N=Q[13],j=Q[14],E=Q[15];return $[0]=V*(P*E-O*j)-W*(H*E-X*j)+N*(H*O-X*P),$[1]=-(B*(P*E-O*j)-W*(K*E-Y*j)+N*(K*O-Y*P)),$[2]=B*(H*E-X*j)-V*(K*E-Y*j)+N*(K*X-Y*H),$[3]=-(B*(H*O-X*P)-V*(K*O-Y*P)+W*(K*X-Y*H)),$[4]=-(Z*(P*E-O*j)-F*(H*E-X*j)+U*(H*O-X*P)),$[5]=J*(P*E-O*j)-F*(K*E-Y*j)+U*(K*O-Y*P),$[6]=-(J*(H*E-X*j)-Z*(K*E-Y*j)+U*(K*X-Y*H)),$[7]=J*(H*O-X*P)-Z*(K*O-Y*P)+F*(K*X-Y*H),$[8]=Z*(W*E-O*N)-F*(V*E-X*N)+U*(V*O-X*W),$[9]=-(J*(W*E-O*N)-F*(B*E-Y*N)+U*(B*O-Y*W)),$[10]=J*(V*E-X*N)-Z*(B*E-Y*N)+U*(B*X-Y*V),$[11]=-(J*(V*O-X*W)-Z*(B*O-Y*W)+F*(B*X-Y*V)),$[12]=-(Z*(W*j-P*N)-F*(V*j-H*N)+U*(V*P-H*W)),$[13]=J*(W*j-P*N)-F*(B*j-K*N)+U*(B*P-K*W),$[14]=-(J*(V*j-H*N)-Z*(B*j-K*N)+U*(B*H-K*V)),$[15]=J*(V*P-H*W)-Z*(B*P-K*W)+F*(B*H-K*V),$}function gQ($){var Q=$[0],J=$[1],B=$[2],K=$[3],Y=$[4],Z=$[5],V=$[6],H=$[7],X=$[8],F=$[9],W=$[10],P=$[11],O=$[12],U=$[13],N=$[14],j=$[15],E=Q*Z-J*Y,C=Q*V-B*Y,D=Q*H-K*Y,R=J*V-B*Z,_=J*H-K*Z,q=B*H-K*V,z=X*U-F*O,h=X*N-W*O,w=X*j-P*O,I=F*N-W*U,f=F*j-P*U,g=W*j-P*N;return E*g-C*f+D*I+R*w-_*h+q*z}function h$($,Q,J){var B=Q[0],K=Q[1],Y=Q[2],Z=Q[3],V=Q[4],H=Q[5],X=Q[6],F=Q[7],W=Q[8],P=Q[9],O=Q[10],U=Q[11],N=Q[12],j=Q[13],E=Q[14],C=Q[15],D=J[0],R=J[1],_=J[2],q=J[3];return $[0]=D*B+R*V+_*W+q*N,$[1]=D*K+R*H+_*P+q*j,$[2]=D*Y+R*X+_*O+q*E,$[3]=D*Z+R*F+_*U+q*C,D=J[4],R=J[5],_=J[6],q=J[7],$[4]=D*B+R*V+_*W+q*N,$[5]=D*K+R*H+_*P+q*j,$[6]=D*Y+R*X+_*O+q*E,$[7]=D*Z+R*F+_*U+q*C,D=J[8],R=J[9],_=J[10],q=J[11],$[8]=D*B+R*V+_*W+q*N,$[9]=D*K+R*H+_*P+q*j,$[10]=D*Y+R*X+_*O+q*E,$[11]=D*Z+R*F+_*U+q*C,D=J[12],R=J[13],_=J[14],q=J[15],$[12]=D*B+R*V+_*W+q*N,$[13]=D*K+R*H+_*P+q*j,$[14]=D*Y+R*X+_*O+q*E,$[15]=D*Z+R*F+_*U+q*C,$}function yQ($,Q,J){var B=J[0],K=J[1],Y=J[2],Z,V,H,X,F,W,P,O,U,N,j,E;if(Q===$)$[12]=Q[0]*B+Q[4]*K+Q[8]*Y+Q[12],$[13]=Q[1]*B+Q[5]*K+Q[9]*Y+Q[13],$[14]=Q[2]*B+Q[6]*K+Q[10]*Y+Q[14],$[15]=Q[3]*B+Q[7]*K+Q[11]*Y+Q[15];else Z=Q[0],V=Q[1],H=Q[2],X=Q[3],F=Q[4],W=Q[5],P=Q[6],O=Q[7],U=Q[8],N=Q[9],j=Q[10],E=Q[11],$[0]=Z,$[1]=V,$[2]=H,$[3]=X,$[4]=F,$[5]=W,$[6]=P,$[7]=O,$[8]=U,$[9]=N,$[10]=j,$[11]=E,$[12]=Z*B+F*K+U*Y+Q[12],$[13]=V*B+W*K+N*Y+Q[13],$[14]=H*B+P*K+j*Y+Q[14],$[15]=X*B+O*K+E*Y+Q[15];return $}function pQ($,Q,J){var B=J[0],K=J[1],Y=J[2];return $[0]=Q[0]*B,$[1]=Q[1]*B,$[2]=Q[2]*B,$[3]=Q[3]*B,$[4]=Q[4]*K,$[5]=Q[5]*K,$[6]=Q[6]*K,$[7]=Q[7]*K,$[8]=Q[8]*Y,$[9]=Q[9]*Y,$[10]=Q[10]*Y,$[11]=Q[11]*Y,$[12]=Q[12],$[13]=Q[13],$[14]=Q[14],$[15]=Q[15],$}function xQ($,Q,J,B){var K=B[0],Y=B[1],Z=B[2],V=Math.hypot(K,Y,Z),H,X,F,W,P,O,U,N,j,E,C,D,R,_,q,z,h,w,I,f,g,y,k,x;if(V<G)return null;if(V=1/V,K*=V,Y*=V,Z*=V,H=Math.sin(J),X=Math.cos(J),F=1-X,W=Q[0],P=Q[1],O=Q[2],U=Q[3],N=Q[4],j=Q[5],E=Q[6],C=Q[7],D=Q[8],R=Q[9],_=Q[10],q=Q[11],z=K*K*F+X,h=Y*K*F+Z*H,w=Z*K*F-Y*H,I=K*Y*F-Z*H,f=Y*Y*F+X,g=Z*Y*F+K*H,y=K*Z*F+Y*H,k=Y*Z*F-K*H,x=Z*Z*F+X,$[0]=W*z+N*h+D*w,$[1]=P*z+j*h+R*w,$[2]=O*z+E*h+_*w,$[3]=U*z+C*h+q*w,$[4]=W*I+N*f+D*g,$[5]=P*I+j*f+R*g,$[6]=O*I+E*f+_*g,$[7]=U*I+C*f+q*g,$[8]=W*y+N*k+D*x,$[9]=P*y+j*k+R*x,$[10]=O*y+E*k+_*x,$[11]=U*y+C*k+q*x,Q!==$)$[12]=Q[12],$[13]=Q[13],$[14]=Q[14],$[15]=Q[15];return $}function cQ($,Q,J){var B=Math.sin(J),K=Math.cos(J),Y=Q[4],Z=Q[5],V=Q[6],H=Q[7],X=Q[8],F=Q[9],W=Q[10],P=Q[11];if(Q!==$)$[0]=Q[0],$[1]=Q[1],$[2]=Q[2],$[3]=Q[3],$[12]=Q[12],$[13]=Q[13],$[14]=Q[14],$[15]=Q[15];return $[4]=Y*K+X*B,$[5]=Z*K+F*B,$[6]=V*K+W*B,$[7]=H*K+P*B,$[8]=X*K-Y*B,$[9]=F*K-Z*B,$[10]=W*K-V*B,$[11]=P*K-H*B,$}function mQ($,Q,J){var B=Math.sin(J),K=Math.cos(J),Y=Q[0],Z=Q[1],V=Q[2],H=Q[3],X=Q[8],F=Q[9],W=Q[10],P=Q[11];if(Q!==$)$[4]=Q[4],$[5]=Q[5],$[6]=Q[6],$[7]=Q[7],$[12]=Q[12],$[13]=Q[13],$[14]=Q[14],$[15]=Q[15];return $[0]=Y*K-X*B,$[1]=Z*K-F*B,$[2]=V*K-W*B,$[3]=H*K-P*B,$[8]=Y*B+X*K,$[9]=Z*B+F*K,$[10]=V*B+W*K,$[11]=H*B+P*K,$}function nQ($,Q,J){var B=Math.sin(J),K=Math.cos(J),Y=Q[0],Z=Q[1],V=Q[2],H=Q[3],X=Q[4],F=Q[5],W=Q[6],P=Q[7];if(Q!==$)$[8]=Q[8],$[9]=Q[9],$[10]=Q[10],$[11]=Q[11],$[12]=Q[12],$[13]=Q[13],$[14]=Q[14],$[15]=Q[15];return $[0]=Y*K+X*B,$[1]=Z*K+F*B,$[2]=V*K+W*B,$[3]=H*K+P*B,$[4]=X*K-Y*B,$[5]=F*K-Z*B,$[6]=W*K-V*B,$[7]=P*K-H*B,$}function lQ($,Q){return $[0]=1,$[1]=0,$[2]=0,$[3]=0,$[4]=0,$[5]=1,$[6]=0,$[7]=0,$[8]=0,$[9]=0,$[10]=1,$[11]=0,$[12]=Q[0],$[13]=Q[1],$[14]=Q[2],$[15]=1,$}function dQ($,Q){return $[0]=Q[0],$[1]=0,$[2]=0,$[3]=0,$[4]=0,$[5]=Q[1],$[6]=0,$[7]=0,$[8]=0,$[9]=0,$[10]=Q[2],$[11]=0,$[12]=0,$[13]=0,$[14]=0,$[15]=1,$}function bQ($,Q,J){var B=J[0],K=J[1],Y=J[2],Z=Math.hypot(B,K,Y),V,H,X;if(Z<G)return null;return Z=1/Z,B*=Z,K*=Z,Y*=Z,V=Math.sin(Q),H=Math.cos(Q),X=1-H,$[0]=B*B*X+H,$[1]=K*B*X+Y*V,$[2]=Y*B*X-K*V,$[3]=0,$[4]=B*K*X-Y*V,$[5]=K*K*X+H,$[6]=Y*K*X+B*V,$[7]=0,$[8]=B*Y*X+K*V,$[9]=K*Y*X-B*V,$[10]=Y*Y*X+H,$[11]=0,$[12]=0,$[13]=0,$[14]=0,$[15]=1,$}function iQ($,Q){var J=Math.sin(Q),B=Math.cos(Q);return $[0]=1,$[1]=0,$[2]=0,$[3]=0,$[4]=0,$[5]=B,$[6]=J,$[7]=0,$[8]=0,$[9]=-J,$[10]=B,$[11]=0,$[12]=0,$[13]=0,$[14]=0,$[15]=1,$}function sQ($,Q){var J=Math.sin(Q),B=Math.cos(Q);return $[0]=B,$[1]=0,$[2]=-J,$[3]=0,$[4]=0,$[5]=1,$[6]=0,$[7]=0,$[8]=J,$[9]=0,$[10]=B,$[11]=0,$[12]=0,$[13]=0,$[14]=0,$[15]=1,$}function rQ($,Q){var J=Math.sin(Q),B=Math.cos(Q);return $[0]=B,$[1]=J,$[2]=0,$[3]=0,$[4]=-J,$[5]=B,$[6]=0,$[7]=0,$[8]=0,$[9]=0,$[10]=1,$[11]=0,$[12]=0,$[13]=0,$[14]=0,$[15]=1,$}function w$($,Q,J){var B=Q[0],K=Q[1],Y=Q[2],Z=Q[3],V=B+B,H=K+K,X=Y+Y,F=B*V,W=B*H,P=B*X,O=K*H,U=K*X,N=Y*X,j=Z*V,E=Z*H,C=Z*X;return $[0]=1-(O+N),$[1]=W+C,$[2]=P-E,$[3]=0,$[4]=W-C,$[5]=1-(F+N),$[6]=U+j,$[7]=0,$[8]=P+E,$[9]=U-j,$[10]=1-(F+O),$[11]=0,$[12]=J[0],$[13]=J[1],$[14]=J[2],$[15]=1,$}function eQ($,Q){var J=new T(3),B=-Q[0],K=-Q[1],Y=-Q[2],Z=Q[3],V=Q[4],H=Q[5],X=Q[6],F=Q[7],W=B*B+K*K+Y*Y+Z*Z;if(W>0)J[0]=(V*Z+F*B+H*Y-X*K)*2/W,J[1]=(H*Z+F*K+X*B-V*Y)*2/W,J[2]=(X*Z+F*Y+V*K-H*B)*2/W;else J[0]=(V*Z+F*B+H*Y-X*K)*2,J[1]=(H*Z+F*K+X*B-V*Y)*2,J[2]=(X*Z+F*Y+V*K-H*B)*2;return w$($,Q,J),$}function uQ($,Q){return $[0]=Q[12],$[1]=Q[13],$[2]=Q[14],$}function I$($,Q){var J=Q[0],B=Q[1],K=Q[2],Y=Q[4],Z=Q[5],V=Q[6],H=Q[8],X=Q[9],F=Q[10];return $[0]=Math.hypot(J,B,K),$[1]=Math.hypot(Y,Z,V),$[2]=Math.hypot(H,X,F),$}function oQ($,Q){var J=new T(3);I$(J,Q);var B=1/J[0],K=1/J[1],Y=1/J[2],Z=Q[0]*B,V=Q[1]*K,H=Q[2]*Y,X=Q[4]*B,F=Q[5]*K,W=Q[6]*Y,P=Q[8]*B,O=Q[9]*K,U=Q[10]*Y,N=Z+F+U,j=0;if(N>0)j=Math.sqrt(N+1)*2,$[3]=0.25*j,$[0]=(W-O)/j,$[1]=(P-H)/j,$[2]=(V-X)/j;else if(Z>F&&Z>U)j=Math.sqrt(1+Z-F-U)*2,$[3]=(W-O)/j,$[0]=0.25*j,$[1]=(V+X)/j,$[2]=(P+H)/j;else if(F>U)j=Math.sqrt(1+F-Z-U)*2,$[3]=(P-H)/j,$[0]=(V+X)/j,$[1]=0.25*j,$[2]=(W+O)/j;else j=Math.sqrt(1+U-Z-F)*2,$[3]=(V-X)/j,$[0]=(P+H)/j,$[1]=(W+O)/j,$[2]=0.25*j;return $}function aQ($,Q,J,B){var K=Q[0],Y=Q[1],Z=Q[2],V=Q[3],H=K+K,X=Y+Y,F=Z+Z,W=K*H,P=K*X,O=K*F,U=Y*X,N=Y*F,j=Z*F,E=V*H,C=V*X,D=V*F,R=B[0],_=B[1],q=B[2];return $[0]=(1-(U+j))*R,$[1]=(P+D)*R,$[2]=(O-C)*R,$[3]=0,$[4]=(P-D)*_,$[5]=(1-(W+j))*_,$[6]=(N+E)*_,$[7]=0,$[8]=(O+C)*q,$[9]=(N-E)*q,$[10]=(1-(W+U))*q,$[11]=0,$[12]=J[0],$[13]=J[1],$[14]=J[2],$[15]=1,$}function tQ($,Q,J,B,K){var Y=Q[0],Z=Q[1],V=Q[2],H=Q[3],X=Y+Y,F=Z+Z,W=V+V,P=Y*X,O=Y*F,U=Y*W,N=Z*F,j=Z*W,E=V*W,C=H*X,D=H*F,R=H*W,_=B[0],q=B[1],z=B[2],h=K[0],w=K[1],I=K[2],f=(1-(N+E))*_,g=(O+R)*_,y=(U-D)*_,k=(O-R)*q,x=(1-(P+E))*q,r=(j+C)*q,e=(U+D)*z,P$=(j-C)*z,O$=(1-(P+N))*z;return $[0]=f,$[1]=g,$[2]=y,$[3]=0,$[4]=k,$[5]=x,$[6]=r,$[7]=0,$[8]=e,$[9]=P$,$[10]=O$,$[11]=0,$[12]=J[0]+h-(f*h+k*w+e*I),$[13]=J[1]+w-(g*h+x*w+P$*I),$[14]=J[2]+I-(y*h+r*w+O$*I),$[15]=1,$}function $J($,Q){var J=Q[0],B=Q[1],K=Q[2],Y=Q[3],Z=J+J,V=B+B,H=K+K,X=J*Z,F=B*Z,W=B*V,P=K*Z,O=K*V,U=K*H,N=Y*Z,j=Y*V,E=Y*H;return $[0]=1-W-U,$[1]=F+E,$[2]=P-j,$[3]=0,$[4]=F-E,$[5]=1-X-U,$[6]=O+N,$[7]=0,$[8]=P+j,$[9]=O-N,$[10]=1-X-W,$[11]=0,$[12]=0,$[13]=0,$[14]=0,$[15]=1,$}function QJ($,Q,J,B,K,Y,Z){var V=1/(J-Q),H=1/(K-B),X=1/(Y-Z);return $[0]=Y*2*V,$[1]=0,$[2]=0,$[3]=0,$[4]=0,$[5]=Y*2*H,$[6]=0,$[7]=0,$[8]=(J+Q)*V,$[9]=(K+B)*H,$[10]=(Z+Y)*X,$[11]=-1,$[12]=0,$[13]=0,$[14]=Z*Y*2*X,$[15]=0,$}function v$($,Q,J,B,K){var Y=1/Math.tan(Q/2),Z;if($[0]=Y/J,$[1]=0,$[2]=0,$[3]=0,$[4]=0,$[5]=Y,$[6]=0,$[7]=0,$[8]=0,$[9]=0,$[11]=-1,$[12]=0,$[13]=0,$[15]=0,K!=null&&K!==Infinity)Z=1/(B-K),$[10]=(K+B)*Z,$[14]=2*K*B*Z;else $[10]=-1,$[14]=-2*B;return $}function BJ($,Q,J,B,K){var Y=1/Math.tan(Q/2),Z;if($[0]=Y/J,$[1]=0,$[2]=0,$[3]=0,$[4]=0,$[5]=Y,$[6]=0,$[7]=0,$[8]=0,$[9]=0,$[11]=-1,$[12]=0,$[13]=0,$[15]=0,K!=null&&K!==Infinity)Z=1/(B-K),$[10]=K*Z,$[14]=K*B*Z;else $[10]=-1,$[14]=-B;return $}function KJ($,Q,J,B){var K=Math.tan(Q.upDegrees*Math.PI/180),Y=Math.tan(Q.downDegrees*Math.PI/180),Z=Math.tan(Q.leftDegrees*Math.PI/180),V=Math.tan(Q.rightDegrees*Math.PI/180),H=2/(Z+V),X=2/(K+Y);return $[0]=H,$[1]=0,$[2]=0,$[3]=0,$[4]=0,$[5]=X,$[6]=0,$[7]=0,$[8]=-((Z-V)*H*0.5),$[9]=(K-Y)*X*0.5,$[10]=B/(J-B),$[11]=-1,$[12]=0,$[13]=0,$[14]=B*J/(J-B),$[15]=0,$}function z$($,Q,J,B,K,Y,Z){var V=1/(Q-J),H=1/(B-K),X=1/(Y-Z);return $[0]=-2*V,$[1]=0,$[2]=0,$[3]=0,$[4]=0,$[5]=-2*H,$[6]=0,$[7]=0,$[8]=0,$[9]=0,$[10]=2*X,$[11]=0,$[12]=(Q+J)*V,$[13]=(K+B)*H,$[14]=(Z+Y)*X,$[15]=1,$}function ZJ($,Q,J,B,K,Y,Z){var V=1/(Q-J),H=1/(B-K),X=1/(Y-Z);return $[0]=-2*V,$[1]=0,$[2]=0,$[3]=0,$[4]=0,$[5]=-2*H,$[6]=0,$[7]=0,$[8]=0,$[9]=0,$[10]=X,$[11]=0,$[12]=(Q+J)*V,$[13]=(K+B)*H,$[14]=Y*X,$[15]=1,$}function VJ($,Q,J,B){var K,Y,Z,V,H,X,F,W,P,O,U=Q[0],N=Q[1],j=Q[2],E=B[0],C=B[1],D=B[2],R=J[0],_=J[1],q=J[2];if(Math.abs(U-R)<G&&Math.abs(N-_)<G&&Math.abs(j-q)<G)return S$($);if(F=U-R,W=N-_,P=j-q,O=1/Math.hypot(F,W,P),F*=O,W*=O,P*=O,K=C*P-D*W,Y=D*F-E*P,Z=E*W-C*F,O=Math.hypot(K,Y,Z),!O)K=0,Y=0,Z=0;else O=1/O,K*=O,Y*=O,Z*=O;if(V=W*Z-P*Y,H=P*K-F*Z,X=F*Y-W*K,O=Math.hypot(V,H,X),!O)V=0,H=0,X=0;else O=1/O,V*=O,H*=O,X*=O;return $[0]=K,$[1]=V,$[2]=F,$[3]=0,$[4]=Y,$[5]=H,$[6]=W,$[7]=0,$[8]=Z,$[9]=X,$[10]=P,$[11]=0,$[12]=-(K*U+Y*N+Z*j),$[13]=-(V*U+H*N+X*j),$[14]=-(F*U+W*N+P*j),$[15]=1,$}function HJ($,Q,J,B){var K=Q[0],Y=Q[1],Z=Q[2],V=B[0],H=B[1],X=B[2],F=K-J[0],W=Y-J[1],P=Z-J[2],O=F*F+W*W+P*P;if(O>0)O=1/Math.sqrt(O),F*=O,W*=O,P*=O;var U=H*P-X*W,N=X*F-V*P,j=V*W-H*F;if(O=U*U+N*N+j*j,O>0)O=1/Math.sqrt(O),U*=O,N*=O,j*=O;return $[0]=U,$[1]=N,$[2]=j,$[3]=0,$[4]=W*j-P*N,$[5]=P*U-F*j,$[6]=F*N-W*U,$[7]=0,$[8]=F,$[9]=W,$[10]=P,$[11]=0,$[12]=K,$[13]=Y,$[14]=Z,$[15]=1,$}function XJ($){return"mat4("+$[0]+", "+$[1]+", "+$[2]+", "+$[3]+", "+$[4]+", "+$[5]+", "+$[6]+", "+$[7]+", "+$[8]+", "+$[9]+", "+$[10]+", "+$[11]+", "+$[12]+", "+$[13]+", "+$[14]+", "+$[15]+")"}function FJ($){return Math.hypot($[0],$[1],$[2],$[3],$[4],$[5],$[6],$[7],$[8],$[9],$[10],$[11],$[12],$[13],$[14],$[15])}function WJ($,Q,J){return $[0]=Q[0]+J[0],$[1]=Q[1]+J[1],$[2]=Q[2]+J[2],$[3]=Q[3]+J[3],$[4]=Q[4]+J[4],$[5]=Q[5]+J[5],$[6]=Q[6]+J[6],$[7]=Q[7]+J[7],$[8]=Q[8]+J[8],$[9]=Q[9]+J[9],$[10]=Q[10]+J[10],$[11]=Q[11]+J[11],$[12]=Q[12]+J[12],$[13]=Q[13]+J[13],$[14]=Q[14]+J[14],$[15]=Q[15]+J[15],$}function f$($,Q,J){return $[0]=Q[0]-J[0],$[1]=Q[1]-J[1],$[2]=Q[2]-J[2],$[3]=Q[3]-J[3],$[4]=Q[4]-J[4],$[5]=Q[5]-J[5],$[6]=Q[6]-J[6],$[7]=Q[7]-J[7],$[8]=Q[8]-J[8],$[9]=Q[9]-J[9],$[10]=Q[10]-J[10],$[11]=Q[11]-J[11],$[12]=Q[12]-J[12],$[13]=Q[13]-J[13],$[14]=Q[14]-J[14],$[15]=Q[15]-J[15],$}function jJ($,Q,J){return $[0]=Q[0]*J,$[1]=Q[1]*J,$[2]=Q[2]*J,$[3]=Q[3]*J,$[4]=Q[4]*J,$[5]=Q[5]*J,$[6]=Q[6]*J,$[7]=Q[7]*J,$[8]=Q[8]*J,$[9]=Q[9]*J,$[10]=Q[10]*J,$[11]=Q[11]*J,$[12]=Q[12]*J,$[13]=Q[13]*J,$[14]=Q[14]*J,$[15]=Q[15]*J,$}function PJ($,Q,J,B){return $[0]=Q[0]+J[0]*B,$[1]=Q[1]+J[1]*B,$[2]=Q[2]+J[2]*B,$[3]=Q[3]+J[3]*B,$[4]=Q[4]+J[4]*B,$[5]=Q[5]+J[5]*B,$[6]=Q[6]+J[6]*B,$[7]=Q[7]+J[7]*B,$[8]=Q[8]+J[8]*B,$[9]=Q[9]+J[9]*B,$[10]=Q[10]+J[10]*B,$[11]=Q[11]+J[11]*B,$[12]=Q[12]+J[12]*B,$[13]=Q[13]+J[13]*B,$[14]=Q[14]+J[14]*B,$[15]=Q[15]+J[15]*B,$}function OJ($,Q){return $[0]===Q[0]&&$[1]===Q[1]&&$[2]===Q[2]&&$[3]===Q[3]&&$[4]===Q[4]&&$[5]===Q[5]&&$[6]===Q[6]&&$[7]===Q[7]&&$[8]===Q[8]&&$[9]===Q[9]&&$[10]===Q[10]&&$[11]===Q[11]&&$[12]===Q[12]&&$[13]===Q[13]&&$[14]===Q[14]&&$[15]===Q[15]}function UJ($,Q){var J=$[0],B=$[1],K=$[2],Y=$[3],Z=$[4],V=$[5],H=$[6],X=$[7],F=$[8],W=$[9],P=$[10],O=$[11],U=$[12],N=$[13],j=$[14],E=$[15],C=Q[0],D=Q[1],R=Q[2],_=Q[3],q=Q[4],z=Q[5],h=Q[6],w=Q[7],I=Q[8],f=Q[9],g=Q[10],y=Q[11],k=Q[12],x=Q[13],r=Q[14],e=Q[15];return Math.abs(J-C)<=G*Math.max(1,Math.abs(J),Math.abs(C))&&Math.abs(B-D)<=G*Math.max(1,Math.abs(B),Math.abs(D))&&Math.abs(K-R)<=G*Math.max(1,Math.abs(K),Math.abs(R))&&Math.abs(Y-_)<=G*Math.max(1,Math.abs(Y),Math.abs(_))&&Math.abs(Z-q)<=G*Math.max(1,Math.abs(Z),Math.abs(q))&&Math.abs(V-z)<=G*Math.max(1,Math.abs(V),Math.abs(z))&&Math.abs(H-h)<=G*Math.max(1,Math.abs(H),Math.abs(h))&&Math.abs(X-w)<=G*Math.max(1,Math.abs(X),Math.abs(w))&&Math.abs(F-I)<=G*Math.max(1,Math.abs(F),Math.abs(I))&&Math.abs(W-f)<=G*Math.max(1,Math.abs(W),Math.abs(f))&&Math.abs(P-g)<=G*Math.max(1,Math.abs(P),Math.abs(g))&&Math.abs(O-y)<=G*Math.max(1,Math.abs(O),Math.abs(y))&&Math.abs(U-k)<=G*Math.max(1,Math.abs(U),Math.abs(k))&&Math.abs(N-x)<=G*Math.max(1,Math.abs(N),Math.abs(x))&&Math.abs(j-r)<=G*Math.max(1,Math.abs(j),Math.abs(r))&&Math.abs(E-e)<=G*Math.max(1,Math.abs(E),Math.abs(e))}var JJ=v$,YJ=z$,NJ=h$,AJ=f$;var Q0={};C0(Q0,{str:()=>{{return P8}},squaredLength:()=>{{return FQ}},sqrLen:()=>{{return R8}},sqlerp:()=>{{return M8}},slerp:()=>{{return D0}},setAxisAngle:()=>{{return JQ}},setAxes:()=>{{return L8}},set:()=>{{return A8}},scale:()=>{{return VQ}},rotationTo:()=>{{return k8}},rotateZ:()=>{{return Z8}},rotateY:()=>{{return Y8}},rotateX:()=>{{return K8}},random:()=>{{return X8}},pow:()=>{{return H8}},normalize:()=>{{return r0}},multiply:()=>{{return BQ}},mul:()=>{{return D8}},ln:()=>{{return YQ}},lerp:()=>{{return _8}},length:()=>{{return XQ}},len:()=>{{return q8}},invert:()=>{{return F8}},identity:()=>{{return Q8}},getAxisAngle:()=>{{return J8}},getAngle:()=>{{return B8}},fromValues:()=>{{return U8}},fromMat3:()=>{{return ZQ}},fromEuler:()=>{{return j8}},exp:()=>{{return KQ}},exactEquals:()=>{{return G8}},equals:()=>{{return C8}},dot:()=>{{return HQ}},create:()=>{{return s0}},copy:()=>{{return N8}},conjugate:()=>{{return W8}},clone:()=>{{return O8}},calculateW:()=>{{return V8}},add:()=>{{return E8}}});var i={};C0(i,{zero:()=>{{return nJ}},transformQuat:()=>{{return yJ}},transformMat4:()=>{{return fJ}},transformMat3:()=>{{return gJ}},subtract:()=>{{return y$}},sub:()=>{{return iJ}},str:()=>{{return lJ}},squaredLength:()=>{{return n$}},squaredDistance:()=>{{return m$}},sqrLen:()=>{{return oJ}},sqrDist:()=>{{return uJ}},set:()=>{{return _J}},scaleAndAdd:()=>{{return TJ}},scale:()=>{{return LJ}},round:()=>{{return MJ}},rotateZ:()=>{{return cJ}},rotateY:()=>{{return xJ}},rotateX:()=>{{return pJ}},random:()=>{{return zJ}},normalize:()=>{{return b0}},negate:()=>{{return SJ}},multiply:()=>{{return p$}},mul:()=>{{return sJ}},min:()=>{{return CJ}},max:()=>{{return kJ}},lerp:()=>{{return wJ}},length:()=>{{return g$}},len:()=>{{return i0}},inverse:()=>{{return hJ}},hermite:()=>{{return IJ}},fromValues:()=>{{return A0}},forEach:()=>{{return aJ}},floor:()=>{{return GJ}},exactEquals:()=>{{return dJ}},equals:()=>{{return bJ}},dot:()=>{{return E0}},divide:()=>{{return x$}},div:()=>{{return rJ}},distance:()=>{{return c$}},dist:()=>{{return eJ}},cross:()=>{{return $0}},create:()=>{{return N0}},copy:()=>{{return DJ}},clone:()=>{{return EJ}},ceil:()=>{{return RJ}},bezier:()=>{{return vJ}},angle:()=>{{return mJ}},add:()=>{{return qJ}}});function N0(){var $=new T(3);if(T!=Float32Array)$[0]=0,$[1]=0,$[2]=0;return $}function EJ($){var Q=new T(3);return Q[0]=$[0],Q[1]=$[1],Q[2]=$[2],Q}function g$($){var Q=$[0],J=$[1],B=$[2];return Math.hypot(Q,J,B)}function A0($,Q,J){var B=new T(3);return B[0]=$,B[1]=Q,B[2]=J,B}function DJ($,Q){return $[0]=Q[0],$[1]=Q[1],$[2]=Q[2],$}function _J($,Q,J,B){return $[0]=Q,$[1]=J,$[2]=B,$}function qJ($,Q,J){return $[0]=Q[0]+J[0],$[1]=Q[1]+J[1],$[2]=Q[2]+J[2],$}function y$($,Q,J){return $[0]=Q[0]-J[0],$[1]=Q[1]-J[1],$[2]=Q[2]-J[2],$}function p$($,Q,J){return $[0]=Q[0]*J[0],$[1]=Q[1]*J[1],$[2]=Q[2]*J[2],$}function x$($,Q,J){return $[0]=Q[0]/J[0],$[1]=Q[1]/J[1],$[2]=Q[2]/J[2],$}function RJ($,Q){return $[0]=Math.ceil(Q[0]),$[1]=Math.ceil(Q[1]),$[2]=Math.ceil(Q[2]),$}function GJ($,Q){return $[0]=Math.floor(Q[0]),$[1]=Math.floor(Q[1]),$[2]=Math.floor(Q[2]),$}function CJ($,Q,J){return $[0]=Math.min(Q[0],J[0]),$[1]=Math.min(Q[1],J[1]),$[2]=Math.min(Q[2],J[2]),$}function kJ($,Q,J){return $[0]=Math.max(Q[0],J[0]),$[1]=Math.max(Q[1],J[1]),$[2]=Math.max(Q[2],J[2]),$}function MJ($,Q){return $[0]=Math.round(Q[0]),$[1]=Math.round(Q[1]),$[2]=Math.round(Q[2]),$}function LJ($,Q,J){return $[0]=Q[0]*J,$[1]=Q[1]*J,$[2]=Q[2]*J,$}function TJ($,Q,J,B){return $[0]=Q[0]+J[0]*B,$[1]=Q[1]+J[1]*B,$[2]=Q[2]+J[2]*B,$}function c$($,Q){var J=Q[0]-$[0],B=Q[1]-$[1],K=Q[2]-$[2];return Math.hypot(J,B,K)}function m$($,Q){var J=Q[0]-$[0],B=Q[1]-$[1],K=Q[2]-$[2];return J*J+B*B+K*K}function n$($){var Q=$[0],J=$[1],B=$[2];return Q*Q+J*J+B*B}function SJ($,Q){return $[0]=-Q[0],$[1]=-Q[1],$[2]=-Q[2],$}function hJ($,Q){return $[0]=1/Q[0],$[1]=1/Q[1],$[2]=1/Q[2],$}function b0($,Q){var J=Q[0],B=Q[1],K=Q[2],Y=J*J+B*B+K*K;if(Y>0)Y=1/Math.sqrt(Y);return $[0]=Q[0]*Y,$[1]=Q[1]*Y,$[2]=Q[2]*Y,$}function E0($,Q){return $[0]*Q[0]+$[1]*Q[1]+$[2]*Q[2]}function $0($,Q,J){var B=Q[0],K=Q[1],Y=Q[2],Z=J[0],V=J[1],H=J[2];return $[0]=K*H-Y*V,$[1]=Y*Z-B*H,$[2]=B*V-K*Z,$}function wJ($,Q,J,B){var K=Q[0],Y=Q[1],Z=Q[2];return $[0]=K+B*(J[0]-K),$[1]=Y+B*(J[1]-Y),$[2]=Z+B*(J[2]-Z),$}function IJ($,Q,J,B,K,Y){var Z=Y*Y,V=Z*(2*Y-3)+1,H=Z*(Y-2)+Y,X=Z*(Y-1),F=Z*(3-2*Y);return $[0]=Q[0]*V+J[0]*H+B[0]*X+K[0]*F,$[1]=Q[1]*V+J[1]*H+B[1]*X+K[1]*F,$[2]=Q[2]*V+J[2]*H+B[2]*X+K[2]*F,$}function vJ($,Q,J,B,K,Y){var Z=1-Y,V=Z*Z,H=Y*Y,X=V*Z,F=3*Y*V,W=3*H*Z,P=H*Y;return $[0]=Q[0]*X+J[0]*F+B[0]*W+K[0]*P,$[1]=Q[1]*X+J[1]*F+B[1]*W+K[1]*P,$[2]=Q[2]*X+J[2]*F+B[2]*W+K[2]*P,$}function zJ($,Q){Q=Q||1;var J=l()*2*Math.PI,B=l()*2-1,K=Math.sqrt(1-B*B)*Q;return $[0]=Math.cos(J)*K,$[1]=Math.sin(J)*K,$[2]=B*Q,$}function fJ($,Q,J){var B=Q[0],K=Q[1],Y=Q[2],Z=J[3]*B+J[7]*K+J[11]*Y+J[15];return Z=Z||1,$[0]=(J[0]*B+J[4]*K+J[8]*Y+J[12])/Z,$[1]=(J[1]*B+J[5]*K+J[9]*Y+J[13])/Z,$[2]=(J[2]*B+J[6]*K+J[10]*Y+J[14])/Z,$}function gJ($,Q,J){var B=Q[0],K=Q[1],Y=Q[2];return $[0]=B*J[0]+K*J[3]+Y*J[6],$[1]=B*J[1]+K*J[4]+Y*J[7],$[2]=B*J[2]+K*J[5]+Y*J[8],$}function yJ($,Q,J){var B=J[0],K=J[1],Y=J[2],Z=J[3],V=Q[0],H=Q[1],X=Q[2],F=K*X-Y*H,W=Y*V-B*X,P=B*H-K*V,O=K*P-Y*W,U=Y*F-B*P,N=B*W-K*F,j=Z*2;return F*=j,W*=j,P*=j,O*=2,U*=2,N*=2,$[0]=V+F+O,$[1]=H+W+U,$[2]=X+P+N,$}function pJ($,Q,J,B){var K=[],Y=[];return K[0]=Q[0]-J[0],K[1]=Q[1]-J[1],K[2]=Q[2]-J[2],Y[0]=K[0],Y[1]=K[1]*Math.cos(B)-K[2]*Math.sin(B),Y[2]=K[1]*Math.sin(B)+K[2]*Math.cos(B),$[0]=Y[0]+J[0],$[1]=Y[1]+J[1],$[2]=Y[2]+J[2],$}function xJ($,Q,J,B){var K=[],Y=[];return K[0]=Q[0]-J[0],K[1]=Q[1]-J[1],K[2]=Q[2]-J[2],Y[0]=K[2]*Math.sin(B)+K[0]*Math.cos(B),Y[1]=K[1],Y[2]=K[2]*Math.cos(B)-K[0]*Math.sin(B),$[0]=Y[0]+J[0],$[1]=Y[1]+J[1],$[2]=Y[2]+J[2],$}function cJ($,Q,J,B){var K=[],Y=[];return K[0]=Q[0]-J[0],K[1]=Q[1]-J[1],K[2]=Q[2]-J[2],Y[0]=K[0]*Math.cos(B)-K[1]*Math.sin(B),Y[1]=K[0]*Math.sin(B)+K[1]*Math.cos(B),Y[2]=K[2],$[0]=Y[0]+J[0],$[1]=Y[1]+J[1],$[2]=Y[2]+J[2],$}function mJ($,Q){var J=$[0],B=$[1],K=$[2],Y=Q[0],Z=Q[1],V=Q[2],H=Math.sqrt(J*J+B*B+K*K),X=Math.sqrt(Y*Y+Z*Z+V*V),F=H*X,W=F&&E0($,Q)/F;return Math.acos(Math.min(Math.max(W,-1),1))}function nJ($){return $[0]=0,$[1]=0,$[2]=0,$}function lJ($){return"vec3("+$[0]+", "+$[1]+", "+$[2]+")"}function dJ($,Q){return $[0]===Q[0]&&$[1]===Q[1]&&$[2]===Q[2]}function bJ($,Q){var J=$[0],B=$[1],K=$[2],Y=Q[0],Z=Q[1],V=Q[2];return Math.abs(J-Y)<=G*Math.max(1,Math.abs(J),Math.abs(Y))&&Math.abs(B-Z)<=G*Math.max(1,Math.abs(B),Math.abs(Z))&&Math.abs(K-V)<=G*Math.max(1,Math.abs(K),Math.abs(V))}var iJ=y$,sJ=p$,rJ=x$,eJ=c$,uJ=m$,i0=g$,oJ=n$,aJ=function(){var $=N0();return function(Q,J,B,K,Y,Z){var V,H;if(!J)J=3;if(!B)B=0;if(K)H=Math.min(K*J+B,Q.length);else H=Q.length;for(V=B;V<H;V+=J)$[0]=Q[V],$[1]=Q[V+1],$[2]=Q[V+2],Y($,$,Z),Q[V]=$[0],Q[V+1]=$[1],Q[V+2]=$[2];return Q}}();function tJ(){var $=new T(4);if(T!=Float32Array)$[0]=0,$[1]=0,$[2]=0,$[3]=0;return $}function l$($){var Q=new T(4);return Q[0]=$[0],Q[1]=$[1],Q[2]=$[2],Q[3]=$[3],Q}function d$($,Q,J,B){var K=new T(4);return K[0]=$,K[1]=Q,K[2]=J,K[3]=B,K}function b$($,Q){return $[0]=Q[0],$[1]=Q[1],$[2]=Q[2],$[3]=Q[3],$}function i$($,Q,J,B,K){return $[0]=Q,$[1]=J,$[2]=B,$[3]=K,$}function s$($,Q,J){return $[0]=Q[0]+J[0],$[1]=Q[1]+J[1],$[2]=Q[2]+J[2],$[3]=Q[3]+J[3],$}function r$($,Q,J){return $[0]=Q[0]*J,$[1]=Q[1]*J,$[2]=Q[2]*J,$[3]=Q[3]*J,$}function e$($){var Q=$[0],J=$[1],B=$[2],K=$[3];return Math.hypot(Q,J,B,K)}function u$($){var Q=$[0],J=$[1],B=$[2],K=$[3];return Q*Q+J*J+B*B+K*K}function o$($,Q){var J=Q[0],B=Q[1],K=Q[2],Y=Q[3],Z=J*J+B*B+K*K+Y*Y;if(Z>0)Z=1/Math.sqrt(Z);return $[0]=J*Z,$[1]=B*Z,$[2]=K*Z,$[3]=Y*Z,$}function a$($,Q){return $[0]*Q[0]+$[1]*Q[1]+$[2]*Q[2]+$[3]*Q[3]}function t$($,Q,J,B){var K=Q[0],Y=Q[1],Z=Q[2],V=Q[3];return $[0]=K+B*(J[0]-K),$[1]=Y+B*(J[1]-Y),$[2]=Z+B*(J[2]-Z),$[3]=V+B*(J[3]-V),$}function $Q($,Q){return $[0]===Q[0]&&$[1]===Q[1]&&$[2]===Q[2]&&$[3]===Q[3]}function QQ($,Q){var J=$[0],B=$[1],K=$[2],Y=$[3],Z=Q[0],V=Q[1],H=Q[2],X=Q[3];return Math.abs(J-Z)<=G*Math.max(1,Math.abs(J),Math.abs(Z))&&Math.abs(B-V)<=G*Math.max(1,Math.abs(B),Math.abs(V))&&Math.abs(K-H)<=G*Math.max(1,Math.abs(K),Math.abs(H))&&Math.abs(Y-X)<=G*Math.max(1,Math.abs(Y),Math.abs(X))}var fB=function(){var $=tJ();return function(Q,J,B,K,Y,Z){var V,H;if(!J)J=4;if(!B)B=0;if(K)H=Math.min(K*J+B,Q.length);else H=Q.length;for(V=B;V<H;V+=J)$[0]=Q[V],$[1]=Q[V+1],$[2]=Q[V+2],$[3]=Q[V+3],Y($,$,Z),Q[V]=$[0],Q[V+1]=$[1],Q[V+2]=$[2],Q[V+3]=$[3];return Q}}();function s0(){var $=new T(4);if(T!=Float32Array)$[0]=0,$[1]=0,$[2]=0;return $[3]=1,$}function Q8($){return $[0]=0,$[1]=0,$[2]=0,$[3]=1,$}function JQ($,Q,J){J=J*0.5;var B=Math.sin(J);return $[0]=B*Q[0],$[1]=B*Q[1],$[2]=B*Q[2],$[3]=Math.cos(J),$}function J8($,Q){var J=Math.acos(Q[3])*2,B=Math.sin(J/2);if(B>G)$[0]=Q[0]/B,$[1]=Q[1]/B,$[2]=Q[2]/B;else $[0]=1,$[1]=0,$[2]=0;return J}function B8($,Q){var J=HQ($,Q);return Math.acos(2*J*J-1)}function BQ($,Q,J){var B=Q[0],K=Q[1],Y=Q[2],Z=Q[3],V=J[0],H=J[1],X=J[2],F=J[3];return $[0]=B*F+Z*V+K*X-Y*H,$[1]=K*F+Z*H+Y*V-B*X,$[2]=Y*F+Z*X+B*H-K*V,$[3]=Z*F-B*V-K*H-Y*X,$}function K8($,Q,J){J*=0.5;var B=Q[0],K=Q[1],Y=Q[2],Z=Q[3],V=Math.sin(J),H=Math.cos(J);return $[0]=B*H+Z*V,$[1]=K*H+Y*V,$[2]=Y*H-K*V,$[3]=Z*H-B*V,$}function Y8($,Q,J){J*=0.5;var B=Q[0],K=Q[1],Y=Q[2],Z=Q[3],V=Math.sin(J),H=Math.cos(J);return $[0]=B*H-Y*V,$[1]=K*H+Z*V,$[2]=Y*H+B*V,$[3]=Z*H-K*V,$}function Z8($,Q,J){J*=0.5;var B=Q[0],K=Q[1],Y=Q[2],Z=Q[3],V=Math.sin(J),H=Math.cos(J);return $[0]=B*H+K*V,$[1]=K*H-B*V,$[2]=Y*H+Z*V,$[3]=Z*H-Y*V,$}function V8($,Q){var J=Q[0],B=Q[1],K=Q[2];return $[0]=J,$[1]=B,$[2]=K,$[3]=Math.sqrt(Math.abs(1-J*J-B*B-K*K)),$}function KQ($,Q){var J=Q[0],B=Q[1],K=Q[2],Y=Q[3],Z=Math.sqrt(J*J+B*B+K*K),V=Math.exp(Y),H=Z>0?V*Math.sin(Z)/Z:0;return $[0]=J*H,$[1]=B*H,$[2]=K*H,$[3]=V*Math.cos(Z),$}function YQ($,Q){var J=Q[0],B=Q[1],K=Q[2],Y=Q[3],Z=Math.sqrt(J*J+B*B+K*K),V=Z>0?Math.atan2(Z,Y)/Z:0;return $[0]=J*V,$[1]=B*V,$[2]=K*V,$[3]=0.5*Math.log(J*J+B*B+K*K+Y*Y),$}function H8($,Q,J){return YQ($,Q),VQ($,$,J),KQ($,$),$}function D0($,Q,J,B){var K=Q[0],Y=Q[1],Z=Q[2],V=Q[3],H=J[0],X=J[1],F=J[2],W=J[3],P,O,U,N,j;if(O=K*H+Y*X+Z*F+V*W,O<0)O=-O,H=-H,X=-X,F=-F,W=-W;if(1-O>G)P=Math.acos(O),U=Math.sin(P),N=Math.sin((1-B)*P)/U,j=Math.sin(B*P)/U;else N=1-B,j=B;return $[0]=N*K+j*H,$[1]=N*Y+j*X,$[2]=N*Z+j*F,$[3]=N*V+j*W,$}function X8($){var Q=l(),J=l(),B=l(),K=Math.sqrt(1-Q),Y=Math.sqrt(Q);return $[0]=K*Math.sin(2*Math.PI*J),$[1]=K*Math.cos(2*Math.PI*J),$[2]=Y*Math.sin(2*Math.PI*B),$[3]=Y*Math.cos(2*Math.PI*B),$}function F8($,Q){var J=Q[0],B=Q[1],K=Q[2],Y=Q[3],Z=J*J+B*B+K*K+Y*Y,V=Z?1/Z:0;return $[0]=-J*V,$[1]=-B*V,$[2]=-K*V,$[3]=Y*V,$}function W8($,Q){return $[0]=-Q[0],$[1]=-Q[1],$[2]=-Q[2],$[3]=Q[3],$}function ZQ($,Q){var J=Q[0]+Q[4]+Q[8],B;if(J>0)B=Math.sqrt(J+1),$[3]=0.5*B,B=0.5/B,$[0]=(Q[5]-Q[7])*B,$[1]=(Q[6]-Q[2])*B,$[2]=(Q[1]-Q[3])*B;else{var K=0;if(Q[4]>Q[0])K=1;if(Q[8]>Q[K*3+K])K=2;var Y=(K+1)%3,Z=(K+2)%3;B=Math.sqrt(Q[K*3+K]-Q[Y*3+Y]-Q[Z*3+Z]+1),$[K]=0.5*B,B=0.5/B,$[3]=(Q[Y*3+Z]-Q[Z*3+Y])*B,$[Y]=(Q[Y*3+K]+Q[K*3+Y])*B,$[Z]=(Q[Z*3+K]+Q[K*3+Z])*B}return $}function j8($,Q,J,B){var K=0.5*Math.PI/180;Q*=K,J*=K,B*=K;var Y=Math.sin(Q),Z=Math.cos(Q),V=Math.sin(J),H=Math.cos(J),X=Math.sin(B),F=Math.cos(B);return $[0]=Y*H*F-Z*V*X,$[1]=Z*V*F+Y*H*X,$[2]=Z*H*X-Y*V*F,$[3]=Z*H*F+Y*V*X,$}function P8($){return"quat("+$[0]+", "+$[1]+", "+$[2]+", "+$[3]+")"}var O8=l$,U8=d$,N8=b$,A8=i$,E8=s$,D8=BQ,VQ=r$,HQ=a$,_8=t$,XQ=e$,q8=XQ,FQ=u$,R8=FQ,r0=o$,G8=$Q,C8=QQ,k8=function(){var $=N0(),Q=A0(1,0,0),J=A0(0,1,0);return function(B,K,Y){var Z=E0(K,Y);if(Z<-0.999999){if($0($,Q,K),i0($)<0.000001)$0($,J,K);return b0($,$),JQ(B,$,Math.PI),B}else if(Z>0.999999)return B[0]=0,B[1]=0,B[2]=0,B[3]=1,B;else return $0($,K,Y),B[0]=$[0],B[1]=$[1],B[2]=$[2],B[3]=1+Z,r0(B,B)}}(),M8=function(){var $=s0(),Q=s0();return function(J,B,K,Y,Z,V){return D0($,B,Z,V),D0(Q,K,Y,V),D0(J,$,Q,2*V*(1-V)),J}}(),L8=function(){var $=T$();return function(Q,J,B,K){return $[0]=B[0],$[3]=B[1],$[6]=B[2],$[1]=K[0],$[4]=K[1],$[7]=K[2],$[2]=-J[0],$[5]=-J[1],$[8]=-J[2],r0(Q,ZQ(Q,$))}}();var T8=Math.PI/90;class p{m4=Float32Array.from(L.create());static EMPTY=p.create();static IDENTITY=p.create();constructor(){this.identity()}static create(){return new p}set($){return L.copy(this.m4,$.getMatrix()),this}identity(){return L.identity(this.m4),this}invert($){return L.invert(this.m4,$?.getMatrix()??this.getMatrix()),this}multiply($){return L.multiply(this.m4,this.m4,$.getMatrix()),this}multiply2($,Q){return L.multiply(this.m4,$.getMatrix(),Q.getMatrix()),this}multiply3($,Q,J){return this.multiply2($,Q),this.multiply(J),this}translate($,Q,J){return L.translate(this.m4,this.m4,[$,Q,J]),this}translateToMatrix($){const Q=$.getMatrix();return this.translate(-Q[12],-Q[13],-Q[14])}rotateX($){return L.rotateX(this.m4,this.m4,$),this}rotateY($){return L.rotateY(this.m4,this.m4,$),this}rotateZ($){return L.rotateZ(this.m4,this.m4,$),this}setXRotation($){return L.fromXRotation(this.getMatrix(),$),this}setYRotation($){return L.fromYRotation(this.getMatrix(),$),this}scale($,Q,J){return L.scale(this.m4,this.m4,[$,Q??$,J??$]),this}perspective($,Q,J,B){return L.perspective(this.m4,$*T8,Q,J,B),this}ortho($,Q,J,B,K,Y){return L.ortho(this.m4,$,Q,J,B,K,Y),this}static aTemp=L.create();static bTemp=L.create();combine($,Q,J=0.5){return L.multiplyScalar(p.aTemp,$.getMatrix(),1-J),L.multiplyScalar(p.bTemp,Q.getMatrix(),J),L.add(this.m4,p.aTemp,p.bTemp),this}static tempQuat=Q0.create();static tempVec=i.create();moveMatrix($,Q,J,B){const K=p.tempVec;if(K[0]=$,K[1]=Q,K[2]=J,B)L.getRotation(p.tempQuat,B.getMatrix()),Q0.invert(p.tempQuat,p.tempQuat),i.transformQuat(K,K,p.tempQuat);return L.translate(this.m4,this.m4,K),this}setPosition($,Q,J){this.m4[12]=$,this.m4[13]=Q,this.m4[14]=J}getMatrix(){return this.m4}}var M=p;class e0{baseMatrix=M.create();perspectiveMatrix=M.create();orthoMatrix=M.create();perspectiveLevel=1;configPerspectiveMatrix($){this.perspectiveMatrix.perspective(45,$,0.01,1e5)}configOrthoMatrix($){this.orthoMatrix.ortho(-$,$,-1,1,-1e5,1e5)}configure($,Q){const J=$/Q;this.configPerspectiveMatrix(J),this.configOrthoMatrix(J)}setPerspective($){this.perspectiveLevel=$}getMatrix(){return this.baseMatrix.combine(this.orthoMatrix,this.perspectiveMatrix,this.perspectiveLevel),this.baseMatrix.getMatrix()}}function _0($){return($+Math.PI)%(2*Math.PI)-Math.PI}function d($,Q){return Math.round($/Q)*Q}class J0{$;Q;J;_goal;active=!1;speed=0;locker;constructor($,Q,J){this.element=$;this.getValue=Q;this.apply=J;this._goal=this.getValue($)}setGoal($,Q,J){if(this.locker&&this.locker!==J)return;if(this._goal!==$||this.speed!==Q)this.speed=Q,this._goal=$,this.locker=J,this.active=!0}get goal(){return this._goal}update($){if(this.active){const Q=this.getValue(this.element),J=this.goal-Q,B=Math.min(Math.abs(J),this.speed*$);if(B<=0.01)this.apply(this.element,this.goal),this.active=!1,this.locker=void 0;else this.apply(this.element,Q+B*Math.sign(J))}return this.active}}class u0{$;matrix=M.create();_tilt=0;progressive;constructor($){this.onChange=$;this.progressive=new J0(this,(Q)=>Q.tilt,(Q,J)=>Q.tilt=J)}get tilt(){return this._tilt}set tilt($){this._tilt=_0($),this.matrix.setXRotation(this._tilt),this.onChange?.()}getMatrix(){return this.matrix.getMatrix()}}class o0{$;matrix=M.create();_turn=0;progressive;constructor($){this.onChange=$;this.progressive=new J0(this,(Q)=>Q.turn,(Q,J)=>Q.turn=J)}get turn(){return this._turn}set turn($){this._turn=_0($),this.matrix.setYRotation(this._turn),this.onChange?.()}getMatrix(){return this.matrix.getMatrix()}}class a0{$;Q;J;updatedTypes=new Set;constructor($,Q,J){this.getCameraMatrix=$;this.engine=Q;this.motor=J}informUpdate($){this.motor.registerUpdate(this.withCameraType($))}withCameraType($){return this.updatedTypes.add($),this}refresh(){this.updatedTypes.forEach(($)=>this.engine.updateCameraMatrix($,this.getCameraMatrix($)))}}class t0{$;Q;J;updatedTypes=new Set;constructor($,Q,J){this.getCameraFloat=$;this.engine=Q;this.motor=J}informUpdate($){this.motor.registerUpdate(this.withCameraType($))}withCameraType($){return this.updatedTypes.add($),this}refresh(){this.updatedTypes.forEach(($)=>this.engine.updateCameraFloat($,this.getCameraFloat($)))}}function q0($,Q){if($)for(let J=0;J<$.length;J++){const B=$.at(J);if(B)Q(B,J)}}function B0($,Q){const J=[];for(let B=0;B<$.length;B++){const K=$.at(B);J.push(K?Q(K,B):void 0)}return J}function WQ($){const Q=$.getMatrix();return R0[0]=Q[12],R0[1]=Q[13],R0[2]=Q[14],R0}var R0=[0,0,0],YK=M.create();var S;(function(K){K[K["PROJECTION"]=0]="PROJECTION";K[K["POS"]=1]="POS";K[K["TURN"]=2]="TURN";K[K["TILT"]=3]="TILT"})(S||(S={}));var s;(function(Q){Q[Q["CURVATURE"]=0]="CURVATURE"})(s||(s={}));class $${positionMatrix=M.create().translate(0,0,0);camMatrix=M.create();projectionMatrix=new e0;tiltMatrix=new u0(()=>this.updateInformer.informUpdate(S.TILT));turnMatrix=new o0(()=>this.updateInformer.informUpdate(S.TURN));pespectiveLevel=1;curvature=0;updateInformer;updateInformerFloat;constructor({engine:$,motor:Q}){this.updateInformer=new a0(this.getCameraMatrix.bind(this),$,Q),this.updateInformerFloat=new t0(this.getCameraFloat.bind(this),$,Q)}activate(){this.updatePerspective(),this.updateInformer.informUpdate(S.POS),this.updateInformer.informUpdate(S.TURN),this.updateInformer.informUpdate(S.TILT)}cameraMatrices={[S.PROJECTION]:this.projectionMatrix,[S.POS]:this.camMatrix,[S.TURN]:this.turnMatrix,[S.TILT]:this.tiltMatrix};configProjectionMatrix($,Q){this.projectionMatrix.configure($,Q),this.updateInformer.informUpdate(S.PROJECTION)}updatePerspective($){this.projectionMatrix.setPerspective($??this.pespectiveLevel),this.updateInformer.informUpdate(S.PROJECTION)}updateCurvature($){this.curvature=$,this.updateInformerFloat.informUpdate(s.CURVATURE)}getCameraMatrix($){if($===S.POS)this.camMatrix.invert(this.positionMatrix);return this.cameraMatrices[$].getMatrix()}getCameraFloat($){switch($){case s.CURVATURE:return this.curvature}}gotoPos($,Q,J,B=0.1){const K=this.getPosition(),Y=$-K[0],Z=Q-K[1],V=J-K[2],H=Math.sqrt(Y*Y+Z*Z+V*V);if(H){const X=Math.min(H,B);this.positionMatrix.translate(Y/H*X,Z/H*X,V/H*X),this.updateInformer.informUpdate(S.POS)}}moveCam($,Q,J){this.positionMatrix.moveMatrix($,Q,J,this.turnMatrix),this.updateInformer.informUpdate(S.POS)}turn($){this.turnMatrix.turn+=$}tilt($){this.tiltMatrix.tilt+=$}getPosition(){return WQ(this.positionMatrix)}setPosition($,Q,J){this.positionMatrix.setPosition($,Q,J),this.updateInformer.informUpdate(S.POS)}}var I8=function($){if(!w8)return $;return new Proxy($,{get(J,B){const K=J,Y=K[B];if(typeof Y==="function")return(...V)=>{const H=Y.apply(K,V);return console.log(`gl.${String(B)}(`,V,") = ",H),H};else return console.log(`gl.${String(B)} = `,Y),Y}})},S8={alpha:!0,antialias:!1,depth:!0,desynchronized:!0,failIfMajorPerformanceCaveat:void 0,powerPreference:"default",premultipliedAlpha:!0,preserveDrawingBuffer:!1,stencil:!1},h8=6,w8=!1;class Q$ extends v{gl;programs;attributeBuffers;uniforms;canvas;textureManager;imageManager;textureSlots={};onResize=new Set;pixelListeners=new Set;spriteCount=0;cameraMatrixUniforms={};cameraFloatUniforms={};constructor($,{attributes:Q}={}){super();const J=$.getContext("webgl2",{...S8,...Q});this.gl=I8(J),this.canvas=$,this.programs=this.own(new f0(this.gl)),this.uniforms=this.own(new p0(this.gl,this.programs)),this.attributeBuffers=this.own(new y0(this.gl,this.programs)),this.textureManager=new n0(this.gl,this.uniforms),this.imageManager=new l0;const B=this.checkCanvasSize.bind(this);window.addEventListener("resize",B),this.addOnDestroy(()=>window.removeEventListener("resize",B)),this.initialize()}addResizeListener($){return $(this.gl.drawingBufferWidth,this.gl.drawingBufferHeight),this.onResize.add($),()=>this.removeResizeListener($)}removeResizeListener($){this.onResize.delete($)}clearTextureSlots(){for(let $ in this.textureSlots)delete this.textureSlots[$]}checkCanvasSize(){if(this.canvas instanceof HTMLCanvasElement)this.canvas.width=this.canvas.offsetWidth*2,this.canvas.height=this.canvas.offsetHeight*2;this.gl.viewport(0,0,this.gl.drawingBufferWidth,this.gl.drawingBufferHeight),this.onResize.forEach(($)=>$(this.gl.drawingBufferWidth,this.gl.drawingBufferHeight))}initialize(){const Q={AUTHOR:"Jack le hamster"};this.programs.addProgram("main",d0(M$,Q),d0(L$,Q)),this.programs.useProgram("main"),this.cameraMatrixUniforms[S.PROJECTION]=this.uniforms.getUniformLocation(_$,"main"),this.cameraMatrixUniforms[S.POS]=this.uniforms.getUniformLocation(A$,"main"),this.cameraMatrixUniforms[S.TURN]=this.uniforms.getUniformLocation(D$,"main"),this.cameraMatrixUniforms[S.TILT]=this.uniforms.getUniformLocation(E$,"main"),this.cameraFloatUniforms[s.CURVATURE]=this.uniforms.getUniformLocation(q$,"main"),this.gl.enable(A.DEPTH_TEST),this.gl.depthFunc(A.LESS),this.gl.clearDepth(1),this.gl.enable(A.BLEND),this.gl.blendFunc(A.SRC_ALPHA,A.ONE_MINUS_SRC_ALPHA),this.gl.viewport(0,0,this.gl.drawingBufferWidth,this.gl.drawingBufferHeight),this.gl.disable(this.gl.CULL_FACE),this.gl.clearColor(0,0,0,1),this.textureManager.initialize(),this.checkCanvasSize()}activate(){this.clearTextureSlots()}setMaxSpriteCount($){this.initializeBuffers($)}onCleanupBuffers=new Set;initializeBuffers($){if(this.onCleanupBuffers.forEach((Q)=>Q()),this.onCleanupBuffers.clear(),$)[this.initializeIndexBuffer(N$),this.initializePositionBuffer(U$),this.initializeTransformBuffer(w0,$),this.initializeSlotSizeBuffer(I0,$),this.initializeInstanceBuffer(v0,$),this.initializeFlagBuffer(v0,$)].forEach((J)=>this.onCleanupBuffers.add(J))}initializeIndexBuffer($){const Q=this.attributeBuffers.createBuffer($);return this.gl.bindBuffer(A.ELEMENT_ARRAY_BUFFER,Q.buffer),this.gl.bufferData(A.ELEMENT_ARRAY_BUFFER,Uint16Array.from([0,1,2,2,3,0]),A.STATIC_DRAW),()=>{this.attributeBuffers.deleteBuffer($)}}initializePositionBuffer($){const Q=this.attributeBuffers.createBuffer($);return this.gl.bindBuffer(A.ARRAY_BUFFER,Q.buffer),this.gl.vertexAttribPointer(Q.location,2,A.FLOAT,!1,0,0),this.gl.enableVertexAttribArray(Q.location),this.gl.bufferData(A.ARRAY_BUFFER,Float32Array.from([-1,-1,1,-1,1,1,-1,1]),A.STATIC_DRAW),()=>{this.gl.disableVertexAttribArray(Q.location),this.attributeBuffers.deleteBuffer($)}}initializeTransformBuffer($,Q){const J=this.attributeBuffers.createBuffer($);this.gl.bindBuffer(A.ARRAY_BUFFER,J.buffer);const B=4,K=B*Float32Array.BYTES_PER_ELEMENT,Y=4*K;for(let Z=0;Z<4;Z++){const V=J.location+Z;this.gl.vertexAttribPointer(V,B,A.FLOAT,!1,Y,Z*K),this.gl.enableVertexAttribArray(V),this.gl.vertexAttribDivisor(V,1)}return this.gl.bufferData(A.ARRAY_BUFFER,Q*Y,A.DYNAMIC_DRAW),()=>{this.gl.disableVertexAttribArray(J.location),this.attributeBuffers.deleteBuffer($)}}initializeSlotSizeBuffer($,Q){const J=this.attributeBuffers.createBuffer($);this.gl.bindBuffer(A.ARRAY_BUFFER,J.buffer);const B=J.location,K=2,Y=K*Float32Array.BYTES_PER_ELEMENT;return this.gl.vertexAttribPointer(B,K,A.FLOAT,!1,Y,0),this.gl.enableVertexAttribArray(B),this.gl.vertexAttribDivisor(B,1),this.gl.bufferData(A.ARRAY_BUFFER,Q*Y,A.DYNAMIC_DRAW),()=>{this.gl.disableVertexAttribArray(J.location),this.attributeBuffers.deleteBuffer($)}}initializeInstanceBuffer($,Q){const J=this.attributeBuffers.createBuffer($);this.gl.bindBuffer(A.ARRAY_BUFFER,J.buffer);const B=J.location,K=1;return this.gl.vertexAttribPointer(B,K,A.FLOAT,!1,K*Float32Array.BYTES_PER_ELEMENT,0),this.gl.enableVertexAttribArray(B),this.gl.vertexAttribDivisor(B,1),this.gl.bufferData(A.ARRAY_BUFFER,Float32Array.from(new Array(Q).fill(null).map((Y,Z)=>Z)),A.STATIC_DRAW),()=>{this.gl.disableVertexAttribArray(J.location),this.attributeBuffers.deleteBuffer($)}}initializeFlagBuffer($,Q){const J=this.attributeBuffers.createBuffer($);this.gl.bindBuffer(A.ARRAY_BUFFER,J.buffer);const B=J.location,K=1,Y=K*Float32Array.BYTES_PER_ELEMENT;return this.gl.vertexAttribPointer(B,K,A.FLOAT,!1,Y,0),this.gl.enableVertexAttribArray(B),this.gl.vertexAttribDivisor(B,1),this.gl.bufferData(A.ARRAY_BUFFER,Q*Y,A.STATIC_DRAW),()=>{this.gl.disableVertexAttribArray(J.location),this.attributeBuffers.deleteBuffer($)}}async updateTextures($,Q){const J=(await Promise.all($.map(async(Y)=>{const Z=Q(Y);if(!Z){console.warn(`No media for imageId ${Y}`);return}return{mediaData:await this.imageManager.renderMedia(Y,Z),imageId:Y}}))).filter((Y)=>!!Y),B=await Promise.all(J.map(async({mediaData:Y,imageId:Z})=>{const{slot:V,refreshCallback:H}=this.textureManager.allocateSlotForImage(Y),X=Math.log2(V.size[0]),F=Math.log2(V.size[1]),W=X*16+F;return this.textureSlots[Z]={buffer:Float32Array.from([W,V.slotNumber])},Y.refreshCallback=H,V.textureIndex}));return new Set(B).forEach((Y)=>{if(Y===U0)this.textureManager.setupTextureForVideo(`TEXTURE${Y}`);else this.textureManager.generateMipMap(`TEXTURE${Y}`)}),J.map(({mediaData:Y})=>Y)}drawElementsInstanced($,Q){this.gl.drawElementsInstanced(A.TRIANGLES,$,A.UNSIGNED_SHORT,0,Q)}updateSpriteTransforms($,Q){const J=this.attributeBuffers.getAttributeBuffer(w0);this.gl.bindBuffer(A.ARRAY_BUFFER,J.buffer);let B=this.spriteCount-1;$.forEach((K)=>{const Y=Q(K);if(this.gl.bufferSubData(A.ARRAY_BUFFER,16*Float32Array.BYTES_PER_ELEMENT*K,(Y?.transform??M.EMPTY).getMatrix()),Y)B=Math.max(B,K)}),$.clear();while(B>=0&&!Q(B))B--;this.spriteCount=Math.max(this.spriteCount,B+1)}updateSpriteAnims($,Q){const J=this.attributeBuffers.getAttributeBuffer(I0);this.gl.bindBuffer(A.ARRAY_BUFFER,J.buffer),$.forEach((B)=>{const K=Q(B),Y=this.textureSlots[K?.imageId??-1];if(Y){const{buffer:Z}=Y;this.gl.bufferSubData(A.ARRAY_BUFFER,2*Float32Array.BYTES_PER_ELEMENT*B,Z),$.delete(B)}})}updateCameraMatrix($,Q){this.gl.uniformMatrix4fv(this.cameraMatrixUniforms[$],!1,Q)}updateCameraFloat($,Q){this.gl.uniform1f(this.cameraFloatUniforms[$],Q)}bindVertexArray(){return this.own(new g0(this.gl))}addPixelListener($){return this.pixelListeners.add($),()=>{this.removePixelListener($)}}removePixelListener($){this.pixelListeners.delete($)}_pixel=new Uint8Array(4);getPixel($,Q){this.gl.readPixels($,Q,1,1,this.gl.RGBA,this.gl.UNSIGNED_BYTE,this._pixel);const[J,B,K,Y]=this._pixel;return J*65536+B*256+K}refresh(){this.gl.clear(A.COLOR_BUFFER_BIT),this.drawElementsInstanced(h8,this.spriteCount);for(let $ of this.pixelListeners)$.pixel=this.getPixel($.x,$.y)}}var v8=50,J$;(function(J){J[J["DEFAULT"]=0]="DEFAULT";J[J["LAST"]=1]="LAST"})(J$||(J$={}));class B${updateSchedule=new Map;time=0;loop($,Q,J,B){return this.registerUpdate($,{period:Q?1000/Q:1,expirationTime:B,priority:J})}registerUpdate($,Q={}){return Q.triggerTime=Q.triggerTime??this.time,Q.expirationTime=Q.expirationTime??Infinity,Q.period=Q.period,Q.priority=Q.priority??J$.DEFAULT,this.updateSchedule.set($,Q),()=>this.deregisterUpdate($)}deregisterUpdate($){this.updateSchedule.delete($)}activate(){let $=0;const Q={time:0,deltaTime:0},J=[],B=[],K=[J,B],Y=(Z)=>{Q.deltaTime=Math.min(Z-Q.time,v8),Q.time=Z,$=requestAnimationFrame(Y),this.time=Z,J.length=0,B.length=0,this.updateSchedule.forEach((V,H)=>{if(Z<V.triggerTime)return;if(K[V.priority].push(H),V.period&&Z<V.expirationTime)V.triggerTime=Math.max(V.triggerTime+V.period,Z);else this.updateSchedule.delete(H)}),K.forEach((V)=>V.forEach((H)=>H.refresh(Q)))};return requestAnimationFrame(Y),()=>cancelAnimationFrame($)}}var z8=200;class K${$;keys={};keysUp={};keyDownListener=new Set;keyUpListener=new Set;quickTapListener=new Set;isActive=!1;constructor($){this.timeProvider=$;this.keyDown=this.keyDown.bind(this),this.keyUp=this.keyUp.bind(this)}keyDown($){if(!this.keys[$.code]){const Q=this.timeProvider.time;this.keys[$.code]=Q,this.keyDownListener.forEach((J)=>J.onKeyDown?.($.code,Q))}$.preventDefault()}keyUp($){const Q=this.timeProvider.time-this.keys[$.code]<z8;if(this.keysUp[$.code]=this.timeProvider.time,this.keys[$.code]=0,this.keyUpListener.forEach((J)=>J.onKeyUp?.($.code,this.timeProvider.time)),Q)this.quickTapListener.forEach((J)=>J.onQuickTap?.($.code,this.timeProvider.time))}activate(){return this.setActive(!0),()=>this.setActive(!1)}setActive($){if(this.isActive!==$){if(this.isActive=$,document.removeEventListener("keydown",this.keyDown),document.removeEventListener("keyup",this.keyUp),this.isActive)document.addEventListener("keydown",this.keyDown),document.addEventListener("keyup",this.keyUp)}}addListener($){if($.onKeyDown)this.keyDownListener.add($);if($.onKeyUp)this.keyUpListener.add($);if($.onQuickTap)this.quickTapListener.add($);return()=>{this.removeListener($)}}removeListener($){this.keyDownListener.delete($),this.keyUpListener.delete($),this.quickTapListener.delete($)}}class Y${engine;camera;constructor({engine:$,camera:Q}){this.engine=$,this.camera=Q}activate(){return this.handleResize()}handleResize(){const{engine:$}=this,Q=(J,B)=>{this.camera.configProjectionMatrix(J,B)};return $.addResizeListener(Q)}}class Z$ extends u{motor;engine;keyboard;camera;constructor({motor:$,canvas:Q,engine:J,keyboard:B,size:K,camera:Y}){super();this.motor=$??new B$,this.engine=J??new Q$(Q??new OffscreenCanvas(K[0],K[1])),this.keyboard=B??new K$(this.motor),this.camera=Y??new $$(this)}start($){const{motor:Q,engine:J,keyboard:B,camera:K}=this,Y=Q.loop(this);J.setMaxSpriteCount($.sprites.length),this.addAuxiliary($,Q,J,B,K,new Y$(this));const Z=this.activate();return()=>{Y(),Z(),this.deactivate(),this.removeAllAuxiliaries()}}}class K0{$;active=!1;constructor($){this.auxiliaries=$}static from(...$){return new K0($)}get length(){return this.auxiliaries.length}at($){return this.auxiliaries.at($)}refresh($){q0(this.auxiliaries,(Q)=>Q.refresh?.($))}activate(){if(!this.active){this.active=!0;const $=B0(this.auxiliaries,(Q)=>Q.activate?.());return()=>$.forEach((Q)=>Q?.())}}deactivate(){if(this.active)this.active=!1,q0(this.auxiliaries,($)=>$.deactivate?.())}}class V${keyboard;camera;constructor($){this.keyboard=$.keyboard,this.camera=$.camera}refresh($){const{keys:Q}=this.keyboard,{deltaTime:J}=$,B=J/80,K=J/400;if(Q.KeyW||Q.ArrowUp&&!Q.ShiftRight)this.camera.moveCam(0,0,-B);if(Q.KeyS||Q.ArrowDown&&!Q.ShiftRight)this.camera.moveCam(0,0,B);if(Q.KeyA||Q.ArrowLeft&&!Q.ShiftRight)this.camera.moveCam(-B,0,0);if(Q.KeyD||Q.ArrowRight&&!Q.ShiftRight)this.camera.moveCam(B,0,0);if(Q.KeyQ||Q.ArrowLeft&&Q.ShiftRight)this.camera.turn(-K);if(Q.KeyE||Q.ArrowRight&&Q.ShiftRight)this.camera.turn(K);if(Q.ArrowUp&&Q.ShiftRight)this.camera.tilt(-K);if(Q.ArrowDown&&Q.ShiftRight)this.camera.tilt(K)}}class H${keyboard;camera;goalPos;stepCount=0;turnCount=0;tiltCount=0;config;constructor({keyboard:$,camera:Q},J={}){this.keyboard=$,this.camera=Q;const B=this.camera.getPosition();this.goalPos=[...B],this.config={step:J.step??2,turnStep:J.turnStep??Math.PI/2,tiltStep:J.tiltStep??Math.PI/2}}prePos=[0,0,0];refresh($){const{keys:Q}=this.keyboard,{deltaTime:J}=$,B=this.camera.getPosition(),{step:K,turnStep:Y,tiltStep:Z}=this.config;this.prePos[0]=Math.round(B[0]/K)*K,this.prePos[1]=Math.round(B[1]/K)*K,this.prePos[2]=Math.round(B[2]/K)*K;let V=0,H=0;if(Q.KeyW||Q.ArrowUp&&!Q.ShiftRight)H--;if(Q.KeyS||Q.ArrowDown&&!Q.ShiftRight)H++;if(Q.KeyA||Q.ArrowLeft&&!Q.ShiftRight)V--;if(Q.KeyD||Q.ArrowRight&&!Q.ShiftRight)V++;const X=this.camera.turnMatrix.progressive.goal;if(V||H||this.stepCount>0){const j=V*Math.cos(X)-H*Math.sin(X),E=V*Math.sin(X)+H*Math.cos(X),C=Math.round(B[0]/K+j)*K,D=Math.round(B[2]/K+E)*K;this.goalPos[0]=C,this.goalPos[2]=D}if(!V&&!H)this.stepCount=0;const F=V||H?J/150:J/100;this.camera.gotoPos(this.goalPos[0],B[1],this.goalPos[2],F);const W=this.camera.getPosition();if(Math.round(W[0]/K)*K!==this.prePos[0]||Math.round(W[1]/K)*K!==this.prePos[1]||Math.round(W[2]/K)*K!==this.prePos[2])this.stepCount++;let P=0;if(Q.KeyQ||Q.ArrowLeft&&Q.ShiftRight)P--;if(Q.KeyE||Q.ArrowRight&&Q.ShiftRight)P++;const O=d(this.camera.turnMatrix.turn,Y);if(P||this.turnCount>0)this.camera.turnMatrix.progressive.setGoal(d(O+Y*P,Y),P?0.005:0.01,this);if(!P)this.turnCount=0;if(this.camera.turnMatrix.progressive.update(J)){if(d(this.camera.turnMatrix.turn,Y)!==O)this.turnCount++}let U=0;if(Q.ArrowUp&&Q.ShiftRight)U--;if(Q.ArrowDown&&Q.ShiftRight)U++;const N=d(this.camera.tiltMatrix.tilt,Z);if(U||this.tiltCount>0)this.camera.tiltMatrix.progressive.setGoal(d(N+Z*U,Z),U?0.0025:0.005,this);if(!U)this.tiltCount=0;if(this.camera.tiltMatrix.progressive.update(J)){if(d(this.camera.tiltMatrix.tilt,Z)!==N)this.tiltCount++}}}class G0{keyboard;camera;key;resetting=!1;constructor($,Q){this.keyboard=$.keyboard,this.camera=$.camera,this.key=Q.key}activate(){const $=this.keyboard.addListener({onQuickTap:(Q)=>{if(Q===this.key)this.resetting=!0,this.camera.tiltMatrix.progressive.setGoal(0,0.0033333333333333335,this)}});return()=>$()}refresh($){if(this.resetting){const{deltaTime:Q}=$;if(!this.camera.tiltMatrix.progressive.update(Q))this.resetting=!1}}}class X${keyboard;camera;key;dropping=!1;constructor({keyboard:$,camera:Q},J={key:"Space"}){this.keyboard=$,this.camera=Q,this.key=J.key}activate(){const $=this.keyboard.addListener({onQuickTap:(Q)=>{if(Q===this.key)this.dropping=!0}});return()=>$()}refresh($){const{deltaTime:Q}=$;this.riseAndDrop(Q,this.keyboard)}riseAndDrop($,Q){const J=$/80,{keys:B}=Q;if(B[this.key])this.camera.moveCam(0,J,0);else if(this.dropping){this.camera.moveCam(0,-J,0);const[K,Y,Z]=this.camera.getPosition();if(Y<0)this.camera.setPosition(K,0,Z),this.dropping=!1}}}class F${keyboard;active=!1;toggleIndex=0;pendingDeactivate;keys;auxiliaries;constructor({keyboard:$},Q){this.keyboard=$,this.keys=B0(Q.auxiliariesMapping,({key:J})=>J),this.keyboard.addListener({onKeyDown:(J)=>{if(this.keys.indexOf(J)>=0){const B=this.active;if(this.deactivate(),this.toggle(J),B)this.activate()}}}),this.auxiliaries=B0(Q.auxiliariesMapping,({aux:J})=>J)}get auxiliary(){return this.auxiliaries.at(this.toggleIndex)}toggle($){if(this.keys[this.toggleIndex]!==$)this.toggleIndex=this.keys.indexOf($);else{const Q=this.keys.length?(this.toggleIndex+1)%this.keys.length:0;if(this.keys[Q]===$)this.toggleIndex=Q}}refresh($){this.auxiliary?.refresh?.($)}activate(){if(!this.active)this.active=!0,this.pendingDeactivate=this.auxiliary?.activate?.()}deactivate(){if(this.active)this.active=!1,this.pendingDeactivate?.(),this.auxiliary?.deactivate?.()}}var jQ=0,PQ=1,OQ=2,UQ=3,NQ=4,W$=5,AQ=6,n=512;class j$ extends Y0{$;hudSpriteId=0;constructor($){super($);this.core=$;this.addMedia({id:jQ,type:"image",src:"dobuki.png"},{id:PQ,type:"draw",draw:(Q)=>{const{canvas:J}=Q;J.width=n,J.height=n;const B=J.width/2,K=J.height/2,Y=J.width/2;Q.imageSmoothingEnabled=!0,Q.fillStyle="#ddd",Q.lineWidth=J.width/50,Q.fillRect(0,0,J.width,J.height),Q.strokeStyle="black",Q.fillStyle="gold",Q.beginPath(),Q.arc(B,K,Y*0.8,0,2*Math.PI),Q.fill(),Q.stroke(),Q.beginPath(),Q.arc(B,K,Y*0.5,0,Math.PI),Q.stroke(),Q.beginPath(),Q.arc(J.width/3,J.height/3,Y*0.1,0,Math.PI,!0),Q.stroke(),Q.beginPath(),Q.arc(J.width/3*2,J.height/3,Y*0.1,0,Math.PI*2,!0),Q.stroke()}},{id:OQ,type:"draw",draw:(Q)=>{const{canvas:J}=Q;J.width=n,J.height=n,Q.imageSmoothingEnabled=!0,Q.fillStyle="#ddd",Q.lineWidth=J.width/50,Q.fillRect(0,0,J.width,J.height),Q.strokeStyle="black",Q.fillStyle="silver",Q.beginPath(),Q.rect(J.width*0.2,J.height*0.2,J.width*0.6,J.height*0.6),Q.fill(),Q.stroke()}},{id:UQ,type:"video",src:"sample.mp4",volume:0,fps:30,playSpeed:0.1,maxRefreshRate:30},{id:NQ,type:"draw",draw:(Q)=>{const{canvas:J}=Q;J.width=n,J.height=n,Q.imageSmoothingEnabled=!0,Q.lineWidth=5,Q.strokeStyle="green",Q.beginPath(),Q.rect(10,10,J.width-20,J.height-20),Q.stroke()}},{id:W$,type:"draw",draw:(Q)=>{const{canvas:J}=Q;J.width=n,J.height=n,Q.imageSmoothingEnabled=!0,Q.lineWidth=5,Q.setLineDash([5,2]),Q.strokeStyle="blue",Q.beginPath(),Q.rect(10,10,J.width-20,J.height-20),Q.stroke()}},{id:AQ,type:"draw",draw:(Q)=>{const{canvas:J}=Q;J.width=n,J.height=n,Q.imageSmoothingEnabled=!0,Q.fillStyle="green",Q.lineWidth=J.width/50,Q.fillRect(0,0,J.width,J.height),Q.strokeStyle="black",Q.fillStyle="#4f8",Q.beginPath(),Q.rect(J.width*0.2,J.height*0.2,J.width*0.6,J.height*0.6),Q.fill(),Q.stroke()}}),this.addSprites({imageId:jQ,transform:M.create().translate(0,0,-1)},...[M.create().translate(-1,0,0).rotateY(Math.PI/2).scale(1),M.create().translate(1,0,0).rotateY(-Math.PI/2).scale(1)].map((Q)=>({imageId:PQ,transform:Q})),...[M.create().translate(0,-1,0).rotateX(-Math.PI/2).scale(1),M.create().translate(0,-1,2).rotateX(-Math.PI/2).scale(1),M.create().translate(-2,-1,2).rotateX(-Math.PI/2).scale(1),M.create().translate(2,-1,2).rotateX(-Math.PI/2).scale(1)].map((Q)=>({imageId:OQ,transform:Q})),{imageId:UQ,transform:M.create().translate(0,1e4,-50000).scale(9600,5400,1)},...new Array(400).fill(0).map((Q,J)=>M.create().translate((J%20-10)*2,-1.5,(Math.floor(J/20)-10)*2).rotateX(-Math.PI/2).scale(1)).map((Q)=>({imageId:NQ,transform:Q})),...new Array(400).fill(0).map((Q,J)=>M.create().translate((J%20-10)*2,-1,(Math.floor(J/20)-10)*2).rotateX(-Math.PI/2).scale(1)).map((Q)=>({imageId:AQ,transform:Q})),...new Array(400).fill(0).map((Q,J)=>M.create().translate((J%20-10)*2,1,(Math.floor(J/20)-10)*2).rotateX(-Math.PI/2).scale(1)).map((Q)=>({imageId:W$,transform:Q})),...new Array(400).fill(0).map((Q,J)=>M.create().translate((J%20-10)*2,0,(Math.floor(J/20)-10)*2-1)).map((Q)=>({imageId:W$,transform:Q})))}activate(){const $=super.activate(),Q=this.core.addAuxiliary(new F$(this.core,{auxiliariesMapping:[{key:"Tab",aux:K0.from(new H$(this.core,{step:2,turnStep:Math.PI/2,tiltStep:Math.PI/4}),new G0(this.core,{key:"ShiftRight"}))},{key:"Tab",aux:K0.from(new V$(this.core),new X$(this.core),new G0(this.core,{key:"ShiftRight"}))}]}));return()=>{$(),Q()}}}async function WY(){console.log("Hello World!")}async function jY($){$.style.border="2px solid silver",$.addEventListener("mouseenter",()=>{$.style.borderColor="black"}),$.addEventListener("mouseleave",()=>{$.style.borderColor="silver"});const Q={x:0,y:0,pixel:0};$.addEventListener("mousemove",(K)=>{const Y=(K.pageX-$.offsetLeft)*2,Z=($.offsetHeight-(K.pageY-$.offsetTop))*2;Q.x=Y,Q.y=Z});const J=new Z$({canvas:$});J.engine.addPixelListener(Q);const B=new j$(J);return EQ=J.start(B),{core:J,world:B}}function PY(){EQ()}var EQ;export{jY as testCanvas,PY as stop,WY as hello,Y0 as World};
+`;
 
-//# debugId=BEE990CDA837BE4164756e2164756e21
+// src/gl/utils/replaceTilda.ts
+function replaceTilda(inputString, replacementMap) {
+  return inputString.replace(/~\{(\w+)\}/g, (match, variable) => {
+    return replacementMap?.[variable] || match;
+  });
+}
+
+// node_modules/gl-matrix/esm/common.js
+var EPSILON = 0.000001;
+var ARRAY_TYPE = typeof Float32Array !== "undefined" ? Float32Array : Array;
+var RANDOM = Math.random;
+var degree = Math.PI / 180;
+if (!Math.hypot)
+  Math.hypot = function() {
+    var y = 0, i = arguments.length;
+    while (i--) {
+      y += arguments[i] * arguments[i];
+    }
+    return Math.sqrt(y);
+  };
+
+// node_modules/gl-matrix/esm/mat3.js
+function create() {
+  var out = new ARRAY_TYPE(9);
+  if (ARRAY_TYPE != Float32Array) {
+    out[1] = 0;
+    out[2] = 0;
+    out[3] = 0;
+    out[5] = 0;
+    out[6] = 0;
+    out[7] = 0;
+  }
+  out[0] = 1;
+  out[4] = 1;
+  out[8] = 1;
+  return out;
+}
+
+// node_modules/gl-matrix/esm/mat4.js
+var exports_mat4 = {};
+__export(exports_mat4, {
+  transpose: () => {
+    {
+      return transpose;
+    }
+  },
+  translate: () => {
+    {
+      return translate;
+    }
+  },
+  targetTo: () => {
+    {
+      return targetTo;
+    }
+  },
+  subtract: () => {
+    {
+      return subtract;
+    }
+  },
+  sub: () => {
+    {
+      return sub;
+    }
+  },
+  str: () => {
+    {
+      return str;
+    }
+  },
+  set: () => {
+    {
+      return set;
+    }
+  },
+  scale: () => {
+    {
+      return scale;
+    }
+  },
+  rotateZ: () => {
+    {
+      return rotateZ;
+    }
+  },
+  rotateY: () => {
+    {
+      return rotateY;
+    }
+  },
+  rotateX: () => {
+    {
+      return rotateX;
+    }
+  },
+  rotate: () => {
+    {
+      return rotate;
+    }
+  },
+  perspectiveZO: () => {
+    {
+      return perspectiveZO;
+    }
+  },
+  perspectiveNO: () => {
+    {
+      return perspectiveNO;
+    }
+  },
+  perspectiveFromFieldOfView: () => {
+    {
+      return perspectiveFromFieldOfView;
+    }
+  },
+  perspective: () => {
+    {
+      return perspective;
+    }
+  },
+  orthoZO: () => {
+    {
+      return orthoZO;
+    }
+  },
+  orthoNO: () => {
+    {
+      return orthoNO;
+    }
+  },
+  ortho: () => {
+    {
+      return ortho;
+    }
+  },
+  multiplyScalarAndAdd: () => {
+    {
+      return multiplyScalarAndAdd;
+    }
+  },
+  multiplyScalar: () => {
+    {
+      return multiplyScalar;
+    }
+  },
+  multiply: () => {
+    {
+      return multiply;
+    }
+  },
+  mul: () => {
+    {
+      return mul;
+    }
+  },
+  lookAt: () => {
+    {
+      return lookAt;
+    }
+  },
+  invert: () => {
+    {
+      return invert;
+    }
+  },
+  identity: () => {
+    {
+      return identity;
+    }
+  },
+  getTranslation: () => {
+    {
+      return getTranslation;
+    }
+  },
+  getScaling: () => {
+    {
+      return getScaling;
+    }
+  },
+  getRotation: () => {
+    {
+      return getRotation;
+    }
+  },
+  frustum: () => {
+    {
+      return frustum;
+    }
+  },
+  fromZRotation: () => {
+    {
+      return fromZRotation;
+    }
+  },
+  fromYRotation: () => {
+    {
+      return fromYRotation;
+    }
+  },
+  fromXRotation: () => {
+    {
+      return fromXRotation;
+    }
+  },
+  fromValues: () => {
+    {
+      return fromValues;
+    }
+  },
+  fromTranslation: () => {
+    {
+      return fromTranslation;
+    }
+  },
+  fromScaling: () => {
+    {
+      return fromScaling;
+    }
+  },
+  fromRotationTranslationScaleOrigin: () => {
+    {
+      return fromRotationTranslationScaleOrigin;
+    }
+  },
+  fromRotationTranslationScale: () => {
+    {
+      return fromRotationTranslationScale;
+    }
+  },
+  fromRotationTranslation: () => {
+    {
+      return fromRotationTranslation;
+    }
+  },
+  fromRotation: () => {
+    {
+      return fromRotation;
+    }
+  },
+  fromQuat2: () => {
+    {
+      return fromQuat2;
+    }
+  },
+  fromQuat: () => {
+    {
+      return fromQuat;
+    }
+  },
+  frob: () => {
+    {
+      return frob;
+    }
+  },
+  exactEquals: () => {
+    {
+      return exactEquals;
+    }
+  },
+  equals: () => {
+    {
+      return equals;
+    }
+  },
+  determinant: () => {
+    {
+      return determinant;
+    }
+  },
+  create: () => {
+    {
+      return create2;
+    }
+  },
+  copy: () => {
+    {
+      return copy;
+    }
+  },
+  clone: () => {
+    {
+      return clone;
+    }
+  },
+  adjoint: () => {
+    {
+      return adjoint;
+    }
+  },
+  add: () => {
+    {
+      return add;
+    }
+  }
+});
+function create2() {
+  var out = new ARRAY_TYPE(16);
+  if (ARRAY_TYPE != Float32Array) {
+    out[1] = 0;
+    out[2] = 0;
+    out[3] = 0;
+    out[4] = 0;
+    out[6] = 0;
+    out[7] = 0;
+    out[8] = 0;
+    out[9] = 0;
+    out[11] = 0;
+    out[12] = 0;
+    out[13] = 0;
+    out[14] = 0;
+  }
+  out[0] = 1;
+  out[5] = 1;
+  out[10] = 1;
+  out[15] = 1;
+  return out;
+}
+function clone(a) {
+  var out = new ARRAY_TYPE(16);
+  out[0] = a[0];
+  out[1] = a[1];
+  out[2] = a[2];
+  out[3] = a[3];
+  out[4] = a[4];
+  out[5] = a[5];
+  out[6] = a[6];
+  out[7] = a[7];
+  out[8] = a[8];
+  out[9] = a[9];
+  out[10] = a[10];
+  out[11] = a[11];
+  out[12] = a[12];
+  out[13] = a[13];
+  out[14] = a[14];
+  out[15] = a[15];
+  return out;
+}
+function copy(out, a) {
+  out[0] = a[0];
+  out[1] = a[1];
+  out[2] = a[2];
+  out[3] = a[3];
+  out[4] = a[4];
+  out[5] = a[5];
+  out[6] = a[6];
+  out[7] = a[7];
+  out[8] = a[8];
+  out[9] = a[9];
+  out[10] = a[10];
+  out[11] = a[11];
+  out[12] = a[12];
+  out[13] = a[13];
+  out[14] = a[14];
+  out[15] = a[15];
+  return out;
+}
+function fromValues(m00, m01, m02, m03, m10, m11, m12, m13, m20, m21, m22, m23, m30, m31, m32, m33) {
+  var out = new ARRAY_TYPE(16);
+  out[0] = m00;
+  out[1] = m01;
+  out[2] = m02;
+  out[3] = m03;
+  out[4] = m10;
+  out[5] = m11;
+  out[6] = m12;
+  out[7] = m13;
+  out[8] = m20;
+  out[9] = m21;
+  out[10] = m22;
+  out[11] = m23;
+  out[12] = m30;
+  out[13] = m31;
+  out[14] = m32;
+  out[15] = m33;
+  return out;
+}
+function set(out, m00, m01, m02, m03, m10, m11, m12, m13, m20, m21, m22, m23, m30, m31, m32, m33) {
+  out[0] = m00;
+  out[1] = m01;
+  out[2] = m02;
+  out[3] = m03;
+  out[4] = m10;
+  out[5] = m11;
+  out[6] = m12;
+  out[7] = m13;
+  out[8] = m20;
+  out[9] = m21;
+  out[10] = m22;
+  out[11] = m23;
+  out[12] = m30;
+  out[13] = m31;
+  out[14] = m32;
+  out[15] = m33;
+  return out;
+}
+function identity(out) {
+  out[0] = 1;
+  out[1] = 0;
+  out[2] = 0;
+  out[3] = 0;
+  out[4] = 0;
+  out[5] = 1;
+  out[6] = 0;
+  out[7] = 0;
+  out[8] = 0;
+  out[9] = 0;
+  out[10] = 1;
+  out[11] = 0;
+  out[12] = 0;
+  out[13] = 0;
+  out[14] = 0;
+  out[15] = 1;
+  return out;
+}
+function transpose(out, a) {
+  if (out === a) {
+    var a01 = a[1], a02 = a[2], a03 = a[3];
+    var a12 = a[6], a13 = a[7];
+    var a23 = a[11];
+    out[1] = a[4];
+    out[2] = a[8];
+    out[3] = a[12];
+    out[4] = a01;
+    out[6] = a[9];
+    out[7] = a[13];
+    out[8] = a02;
+    out[9] = a12;
+    out[11] = a[14];
+    out[12] = a03;
+    out[13] = a13;
+    out[14] = a23;
+  } else {
+    out[0] = a[0];
+    out[1] = a[4];
+    out[2] = a[8];
+    out[3] = a[12];
+    out[4] = a[1];
+    out[5] = a[5];
+    out[6] = a[9];
+    out[7] = a[13];
+    out[8] = a[2];
+    out[9] = a[6];
+    out[10] = a[10];
+    out[11] = a[14];
+    out[12] = a[3];
+    out[13] = a[7];
+    out[14] = a[11];
+    out[15] = a[15];
+  }
+  return out;
+}
+function invert(out, a) {
+  var a00 = a[0], a01 = a[1], a02 = a[2], a03 = a[3];
+  var a10 = a[4], a11 = a[5], a12 = a[6], a13 = a[7];
+  var a20 = a[8], a21 = a[9], a22 = a[10], a23 = a[11];
+  var a30 = a[12], a31 = a[13], a32 = a[14], a33 = a[15];
+  var b00 = a00 * a11 - a01 * a10;
+  var b01 = a00 * a12 - a02 * a10;
+  var b02 = a00 * a13 - a03 * a10;
+  var b03 = a01 * a12 - a02 * a11;
+  var b04 = a01 * a13 - a03 * a11;
+  var b05 = a02 * a13 - a03 * a12;
+  var b06 = a20 * a31 - a21 * a30;
+  var b07 = a20 * a32 - a22 * a30;
+  var b08 = a20 * a33 - a23 * a30;
+  var b09 = a21 * a32 - a22 * a31;
+  var b10 = a21 * a33 - a23 * a31;
+  var b11 = a22 * a33 - a23 * a32;
+  var det = b00 * b11 - b01 * b10 + b02 * b09 + b03 * b08 - b04 * b07 + b05 * b06;
+  if (!det) {
+    return null;
+  }
+  det = 1 / det;
+  out[0] = (a11 * b11 - a12 * b10 + a13 * b09) * det;
+  out[1] = (a02 * b10 - a01 * b11 - a03 * b09) * det;
+  out[2] = (a31 * b05 - a32 * b04 + a33 * b03) * det;
+  out[3] = (a22 * b04 - a21 * b05 - a23 * b03) * det;
+  out[4] = (a12 * b08 - a10 * b11 - a13 * b07) * det;
+  out[5] = (a00 * b11 - a02 * b08 + a03 * b07) * det;
+  out[6] = (a32 * b02 - a30 * b05 - a33 * b01) * det;
+  out[7] = (a20 * b05 - a22 * b02 + a23 * b01) * det;
+  out[8] = (a10 * b10 - a11 * b08 + a13 * b06) * det;
+  out[9] = (a01 * b08 - a00 * b10 - a03 * b06) * det;
+  out[10] = (a30 * b04 - a31 * b02 + a33 * b00) * det;
+  out[11] = (a21 * b02 - a20 * b04 - a23 * b00) * det;
+  out[12] = (a11 * b07 - a10 * b09 - a12 * b06) * det;
+  out[13] = (a00 * b09 - a01 * b07 + a02 * b06) * det;
+  out[14] = (a31 * b01 - a30 * b03 - a32 * b00) * det;
+  out[15] = (a20 * b03 - a21 * b01 + a22 * b00) * det;
+  return out;
+}
+function adjoint(out, a) {
+  var a00 = a[0], a01 = a[1], a02 = a[2], a03 = a[3];
+  var a10 = a[4], a11 = a[5], a12 = a[6], a13 = a[7];
+  var a20 = a[8], a21 = a[9], a22 = a[10], a23 = a[11];
+  var a30 = a[12], a31 = a[13], a32 = a[14], a33 = a[15];
+  out[0] = a11 * (a22 * a33 - a23 * a32) - a21 * (a12 * a33 - a13 * a32) + a31 * (a12 * a23 - a13 * a22);
+  out[1] = -(a01 * (a22 * a33 - a23 * a32) - a21 * (a02 * a33 - a03 * a32) + a31 * (a02 * a23 - a03 * a22));
+  out[2] = a01 * (a12 * a33 - a13 * a32) - a11 * (a02 * a33 - a03 * a32) + a31 * (a02 * a13 - a03 * a12);
+  out[3] = -(a01 * (a12 * a23 - a13 * a22) - a11 * (a02 * a23 - a03 * a22) + a21 * (a02 * a13 - a03 * a12));
+  out[4] = -(a10 * (a22 * a33 - a23 * a32) - a20 * (a12 * a33 - a13 * a32) + a30 * (a12 * a23 - a13 * a22));
+  out[5] = a00 * (a22 * a33 - a23 * a32) - a20 * (a02 * a33 - a03 * a32) + a30 * (a02 * a23 - a03 * a22);
+  out[6] = -(a00 * (a12 * a33 - a13 * a32) - a10 * (a02 * a33 - a03 * a32) + a30 * (a02 * a13 - a03 * a12));
+  out[7] = a00 * (a12 * a23 - a13 * a22) - a10 * (a02 * a23 - a03 * a22) + a20 * (a02 * a13 - a03 * a12);
+  out[8] = a10 * (a21 * a33 - a23 * a31) - a20 * (a11 * a33 - a13 * a31) + a30 * (a11 * a23 - a13 * a21);
+  out[9] = -(a00 * (a21 * a33 - a23 * a31) - a20 * (a01 * a33 - a03 * a31) + a30 * (a01 * a23 - a03 * a21));
+  out[10] = a00 * (a11 * a33 - a13 * a31) - a10 * (a01 * a33 - a03 * a31) + a30 * (a01 * a13 - a03 * a11);
+  out[11] = -(a00 * (a11 * a23 - a13 * a21) - a10 * (a01 * a23 - a03 * a21) + a20 * (a01 * a13 - a03 * a11));
+  out[12] = -(a10 * (a21 * a32 - a22 * a31) - a20 * (a11 * a32 - a12 * a31) + a30 * (a11 * a22 - a12 * a21));
+  out[13] = a00 * (a21 * a32 - a22 * a31) - a20 * (a01 * a32 - a02 * a31) + a30 * (a01 * a22 - a02 * a21);
+  out[14] = -(a00 * (a11 * a32 - a12 * a31) - a10 * (a01 * a32 - a02 * a31) + a30 * (a01 * a12 - a02 * a11));
+  out[15] = a00 * (a11 * a22 - a12 * a21) - a10 * (a01 * a22 - a02 * a21) + a20 * (a01 * a12 - a02 * a11);
+  return out;
+}
+function determinant(a) {
+  var a00 = a[0], a01 = a[1], a02 = a[2], a03 = a[3];
+  var a10 = a[4], a11 = a[5], a12 = a[6], a13 = a[7];
+  var a20 = a[8], a21 = a[9], a22 = a[10], a23 = a[11];
+  var a30 = a[12], a31 = a[13], a32 = a[14], a33 = a[15];
+  var b00 = a00 * a11 - a01 * a10;
+  var b01 = a00 * a12 - a02 * a10;
+  var b02 = a00 * a13 - a03 * a10;
+  var b03 = a01 * a12 - a02 * a11;
+  var b04 = a01 * a13 - a03 * a11;
+  var b05 = a02 * a13 - a03 * a12;
+  var b06 = a20 * a31 - a21 * a30;
+  var b07 = a20 * a32 - a22 * a30;
+  var b08 = a20 * a33 - a23 * a30;
+  var b09 = a21 * a32 - a22 * a31;
+  var b10 = a21 * a33 - a23 * a31;
+  var b11 = a22 * a33 - a23 * a32;
+  return b00 * b11 - b01 * b10 + b02 * b09 + b03 * b08 - b04 * b07 + b05 * b06;
+}
+function multiply(out, a, b) {
+  var a00 = a[0], a01 = a[1], a02 = a[2], a03 = a[3];
+  var a10 = a[4], a11 = a[5], a12 = a[6], a13 = a[7];
+  var a20 = a[8], a21 = a[9], a22 = a[10], a23 = a[11];
+  var a30 = a[12], a31 = a[13], a32 = a[14], a33 = a[15];
+  var b0 = b[0], b1 = b[1], b2 = b[2], b3 = b[3];
+  out[0] = b0 * a00 + b1 * a10 + b2 * a20 + b3 * a30;
+  out[1] = b0 * a01 + b1 * a11 + b2 * a21 + b3 * a31;
+  out[2] = b0 * a02 + b1 * a12 + b2 * a22 + b3 * a32;
+  out[3] = b0 * a03 + b1 * a13 + b2 * a23 + b3 * a33;
+  b0 = b[4];
+  b1 = b[5];
+  b2 = b[6];
+  b3 = b[7];
+  out[4] = b0 * a00 + b1 * a10 + b2 * a20 + b3 * a30;
+  out[5] = b0 * a01 + b1 * a11 + b2 * a21 + b3 * a31;
+  out[6] = b0 * a02 + b1 * a12 + b2 * a22 + b3 * a32;
+  out[7] = b0 * a03 + b1 * a13 + b2 * a23 + b3 * a33;
+  b0 = b[8];
+  b1 = b[9];
+  b2 = b[10];
+  b3 = b[11];
+  out[8] = b0 * a00 + b1 * a10 + b2 * a20 + b3 * a30;
+  out[9] = b0 * a01 + b1 * a11 + b2 * a21 + b3 * a31;
+  out[10] = b0 * a02 + b1 * a12 + b2 * a22 + b3 * a32;
+  out[11] = b0 * a03 + b1 * a13 + b2 * a23 + b3 * a33;
+  b0 = b[12];
+  b1 = b[13];
+  b2 = b[14];
+  b3 = b[15];
+  out[12] = b0 * a00 + b1 * a10 + b2 * a20 + b3 * a30;
+  out[13] = b0 * a01 + b1 * a11 + b2 * a21 + b3 * a31;
+  out[14] = b0 * a02 + b1 * a12 + b2 * a22 + b3 * a32;
+  out[15] = b0 * a03 + b1 * a13 + b2 * a23 + b3 * a33;
+  return out;
+}
+function translate(out, a, v) {
+  var x = v[0], y = v[1], z = v[2];
+  var a00, a01, a02, a03;
+  var a10, a11, a12, a13;
+  var a20, a21, a22, a23;
+  if (a === out) {
+    out[12] = a[0] * x + a[4] * y + a[8] * z + a[12];
+    out[13] = a[1] * x + a[5] * y + a[9] * z + a[13];
+    out[14] = a[2] * x + a[6] * y + a[10] * z + a[14];
+    out[15] = a[3] * x + a[7] * y + a[11] * z + a[15];
+  } else {
+    a00 = a[0];
+    a01 = a[1];
+    a02 = a[2];
+    a03 = a[3];
+    a10 = a[4];
+    a11 = a[5];
+    a12 = a[6];
+    a13 = a[7];
+    a20 = a[8];
+    a21 = a[9];
+    a22 = a[10];
+    a23 = a[11];
+    out[0] = a00;
+    out[1] = a01;
+    out[2] = a02;
+    out[3] = a03;
+    out[4] = a10;
+    out[5] = a11;
+    out[6] = a12;
+    out[7] = a13;
+    out[8] = a20;
+    out[9] = a21;
+    out[10] = a22;
+    out[11] = a23;
+    out[12] = a00 * x + a10 * y + a20 * z + a[12];
+    out[13] = a01 * x + a11 * y + a21 * z + a[13];
+    out[14] = a02 * x + a12 * y + a22 * z + a[14];
+    out[15] = a03 * x + a13 * y + a23 * z + a[15];
+  }
+  return out;
+}
+function scale(out, a, v) {
+  var x = v[0], y = v[1], z = v[2];
+  out[0] = a[0] * x;
+  out[1] = a[1] * x;
+  out[2] = a[2] * x;
+  out[3] = a[3] * x;
+  out[4] = a[4] * y;
+  out[5] = a[5] * y;
+  out[6] = a[6] * y;
+  out[7] = a[7] * y;
+  out[8] = a[8] * z;
+  out[9] = a[9] * z;
+  out[10] = a[10] * z;
+  out[11] = a[11] * z;
+  out[12] = a[12];
+  out[13] = a[13];
+  out[14] = a[14];
+  out[15] = a[15];
+  return out;
+}
+function rotate(out, a, rad, axis) {
+  var x = axis[0], y = axis[1], z = axis[2];
+  var len = Math.hypot(x, y, z);
+  var s, c, t;
+  var a00, a01, a02, a03;
+  var a10, a11, a12, a13;
+  var a20, a21, a22, a23;
+  var b00, b01, b02;
+  var b10, b11, b12;
+  var b20, b21, b22;
+  if (len < EPSILON) {
+    return null;
+  }
+  len = 1 / len;
+  x *= len;
+  y *= len;
+  z *= len;
+  s = Math.sin(rad);
+  c = Math.cos(rad);
+  t = 1 - c;
+  a00 = a[0];
+  a01 = a[1];
+  a02 = a[2];
+  a03 = a[3];
+  a10 = a[4];
+  a11 = a[5];
+  a12 = a[6];
+  a13 = a[7];
+  a20 = a[8];
+  a21 = a[9];
+  a22 = a[10];
+  a23 = a[11];
+  b00 = x * x * t + c;
+  b01 = y * x * t + z * s;
+  b02 = z * x * t - y * s;
+  b10 = x * y * t - z * s;
+  b11 = y * y * t + c;
+  b12 = z * y * t + x * s;
+  b20 = x * z * t + y * s;
+  b21 = y * z * t - x * s;
+  b22 = z * z * t + c;
+  out[0] = a00 * b00 + a10 * b01 + a20 * b02;
+  out[1] = a01 * b00 + a11 * b01 + a21 * b02;
+  out[2] = a02 * b00 + a12 * b01 + a22 * b02;
+  out[3] = a03 * b00 + a13 * b01 + a23 * b02;
+  out[4] = a00 * b10 + a10 * b11 + a20 * b12;
+  out[5] = a01 * b10 + a11 * b11 + a21 * b12;
+  out[6] = a02 * b10 + a12 * b11 + a22 * b12;
+  out[7] = a03 * b10 + a13 * b11 + a23 * b12;
+  out[8] = a00 * b20 + a10 * b21 + a20 * b22;
+  out[9] = a01 * b20 + a11 * b21 + a21 * b22;
+  out[10] = a02 * b20 + a12 * b21 + a22 * b22;
+  out[11] = a03 * b20 + a13 * b21 + a23 * b22;
+  if (a !== out) {
+    out[12] = a[12];
+    out[13] = a[13];
+    out[14] = a[14];
+    out[15] = a[15];
+  }
+  return out;
+}
+function rotateX(out, a, rad) {
+  var s = Math.sin(rad);
+  var c = Math.cos(rad);
+  var a10 = a[4];
+  var a11 = a[5];
+  var a12 = a[6];
+  var a13 = a[7];
+  var a20 = a[8];
+  var a21 = a[9];
+  var a22 = a[10];
+  var a23 = a[11];
+  if (a !== out) {
+    out[0] = a[0];
+    out[1] = a[1];
+    out[2] = a[2];
+    out[3] = a[3];
+    out[12] = a[12];
+    out[13] = a[13];
+    out[14] = a[14];
+    out[15] = a[15];
+  }
+  out[4] = a10 * c + a20 * s;
+  out[5] = a11 * c + a21 * s;
+  out[6] = a12 * c + a22 * s;
+  out[7] = a13 * c + a23 * s;
+  out[8] = a20 * c - a10 * s;
+  out[9] = a21 * c - a11 * s;
+  out[10] = a22 * c - a12 * s;
+  out[11] = a23 * c - a13 * s;
+  return out;
+}
+function rotateY(out, a, rad) {
+  var s = Math.sin(rad);
+  var c = Math.cos(rad);
+  var a00 = a[0];
+  var a01 = a[1];
+  var a02 = a[2];
+  var a03 = a[3];
+  var a20 = a[8];
+  var a21 = a[9];
+  var a22 = a[10];
+  var a23 = a[11];
+  if (a !== out) {
+    out[4] = a[4];
+    out[5] = a[5];
+    out[6] = a[6];
+    out[7] = a[7];
+    out[12] = a[12];
+    out[13] = a[13];
+    out[14] = a[14];
+    out[15] = a[15];
+  }
+  out[0] = a00 * c - a20 * s;
+  out[1] = a01 * c - a21 * s;
+  out[2] = a02 * c - a22 * s;
+  out[3] = a03 * c - a23 * s;
+  out[8] = a00 * s + a20 * c;
+  out[9] = a01 * s + a21 * c;
+  out[10] = a02 * s + a22 * c;
+  out[11] = a03 * s + a23 * c;
+  return out;
+}
+function rotateZ(out, a, rad) {
+  var s = Math.sin(rad);
+  var c = Math.cos(rad);
+  var a00 = a[0];
+  var a01 = a[1];
+  var a02 = a[2];
+  var a03 = a[3];
+  var a10 = a[4];
+  var a11 = a[5];
+  var a12 = a[6];
+  var a13 = a[7];
+  if (a !== out) {
+    out[8] = a[8];
+    out[9] = a[9];
+    out[10] = a[10];
+    out[11] = a[11];
+    out[12] = a[12];
+    out[13] = a[13];
+    out[14] = a[14];
+    out[15] = a[15];
+  }
+  out[0] = a00 * c + a10 * s;
+  out[1] = a01 * c + a11 * s;
+  out[2] = a02 * c + a12 * s;
+  out[3] = a03 * c + a13 * s;
+  out[4] = a10 * c - a00 * s;
+  out[5] = a11 * c - a01 * s;
+  out[6] = a12 * c - a02 * s;
+  out[7] = a13 * c - a03 * s;
+  return out;
+}
+function fromTranslation(out, v) {
+  out[0] = 1;
+  out[1] = 0;
+  out[2] = 0;
+  out[3] = 0;
+  out[4] = 0;
+  out[5] = 1;
+  out[6] = 0;
+  out[7] = 0;
+  out[8] = 0;
+  out[9] = 0;
+  out[10] = 1;
+  out[11] = 0;
+  out[12] = v[0];
+  out[13] = v[1];
+  out[14] = v[2];
+  out[15] = 1;
+  return out;
+}
+function fromScaling(out, v) {
+  out[0] = v[0];
+  out[1] = 0;
+  out[2] = 0;
+  out[3] = 0;
+  out[4] = 0;
+  out[5] = v[1];
+  out[6] = 0;
+  out[7] = 0;
+  out[8] = 0;
+  out[9] = 0;
+  out[10] = v[2];
+  out[11] = 0;
+  out[12] = 0;
+  out[13] = 0;
+  out[14] = 0;
+  out[15] = 1;
+  return out;
+}
+function fromRotation(out, rad, axis) {
+  var x = axis[0], y = axis[1], z = axis[2];
+  var len = Math.hypot(x, y, z);
+  var s, c, t;
+  if (len < EPSILON) {
+    return null;
+  }
+  len = 1 / len;
+  x *= len;
+  y *= len;
+  z *= len;
+  s = Math.sin(rad);
+  c = Math.cos(rad);
+  t = 1 - c;
+  out[0] = x * x * t + c;
+  out[1] = y * x * t + z * s;
+  out[2] = z * x * t - y * s;
+  out[3] = 0;
+  out[4] = x * y * t - z * s;
+  out[5] = y * y * t + c;
+  out[6] = z * y * t + x * s;
+  out[7] = 0;
+  out[8] = x * z * t + y * s;
+  out[9] = y * z * t - x * s;
+  out[10] = z * z * t + c;
+  out[11] = 0;
+  out[12] = 0;
+  out[13] = 0;
+  out[14] = 0;
+  out[15] = 1;
+  return out;
+}
+function fromXRotation(out, rad) {
+  var s = Math.sin(rad);
+  var c = Math.cos(rad);
+  out[0] = 1;
+  out[1] = 0;
+  out[2] = 0;
+  out[3] = 0;
+  out[4] = 0;
+  out[5] = c;
+  out[6] = s;
+  out[7] = 0;
+  out[8] = 0;
+  out[9] = -s;
+  out[10] = c;
+  out[11] = 0;
+  out[12] = 0;
+  out[13] = 0;
+  out[14] = 0;
+  out[15] = 1;
+  return out;
+}
+function fromYRotation(out, rad) {
+  var s = Math.sin(rad);
+  var c = Math.cos(rad);
+  out[0] = c;
+  out[1] = 0;
+  out[2] = -s;
+  out[3] = 0;
+  out[4] = 0;
+  out[5] = 1;
+  out[6] = 0;
+  out[7] = 0;
+  out[8] = s;
+  out[9] = 0;
+  out[10] = c;
+  out[11] = 0;
+  out[12] = 0;
+  out[13] = 0;
+  out[14] = 0;
+  out[15] = 1;
+  return out;
+}
+function fromZRotation(out, rad) {
+  var s = Math.sin(rad);
+  var c = Math.cos(rad);
+  out[0] = c;
+  out[1] = s;
+  out[2] = 0;
+  out[3] = 0;
+  out[4] = -s;
+  out[5] = c;
+  out[6] = 0;
+  out[7] = 0;
+  out[8] = 0;
+  out[9] = 0;
+  out[10] = 1;
+  out[11] = 0;
+  out[12] = 0;
+  out[13] = 0;
+  out[14] = 0;
+  out[15] = 1;
+  return out;
+}
+function fromRotationTranslation(out, q, v) {
+  var x = q[0], y = q[1], z = q[2], w = q[3];
+  var x2 = x + x;
+  var y2 = y + y;
+  var z2 = z + z;
+  var xx = x * x2;
+  var xy = x * y2;
+  var xz = x * z2;
+  var yy = y * y2;
+  var yz = y * z2;
+  var zz = z * z2;
+  var wx = w * x2;
+  var wy = w * y2;
+  var wz = w * z2;
+  out[0] = 1 - (yy + zz);
+  out[1] = xy + wz;
+  out[2] = xz - wy;
+  out[3] = 0;
+  out[4] = xy - wz;
+  out[5] = 1 - (xx + zz);
+  out[6] = yz + wx;
+  out[7] = 0;
+  out[8] = xz + wy;
+  out[9] = yz - wx;
+  out[10] = 1 - (xx + yy);
+  out[11] = 0;
+  out[12] = v[0];
+  out[13] = v[1];
+  out[14] = v[2];
+  out[15] = 1;
+  return out;
+}
+function fromQuat2(out, a) {
+  var translation = new ARRAY_TYPE(3);
+  var bx = -a[0], by = -a[1], bz = -a[2], bw = a[3], ax = a[4], ay = a[5], az = a[6], aw = a[7];
+  var magnitude = bx * bx + by * by + bz * bz + bw * bw;
+  if (magnitude > 0) {
+    translation[0] = (ax * bw + aw * bx + ay * bz - az * by) * 2 / magnitude;
+    translation[1] = (ay * bw + aw * by + az * bx - ax * bz) * 2 / magnitude;
+    translation[2] = (az * bw + aw * bz + ax * by - ay * bx) * 2 / magnitude;
+  } else {
+    translation[0] = (ax * bw + aw * bx + ay * bz - az * by) * 2;
+    translation[1] = (ay * bw + aw * by + az * bx - ax * bz) * 2;
+    translation[2] = (az * bw + aw * bz + ax * by - ay * bx) * 2;
+  }
+  fromRotationTranslation(out, a, translation);
+  return out;
+}
+function getTranslation(out, mat) {
+  out[0] = mat[12];
+  out[1] = mat[13];
+  out[2] = mat[14];
+  return out;
+}
+function getScaling(out, mat) {
+  var m11 = mat[0];
+  var m12 = mat[1];
+  var m13 = mat[2];
+  var m21 = mat[4];
+  var m22 = mat[5];
+  var m23 = mat[6];
+  var m31 = mat[8];
+  var m32 = mat[9];
+  var m33 = mat[10];
+  out[0] = Math.hypot(m11, m12, m13);
+  out[1] = Math.hypot(m21, m22, m23);
+  out[2] = Math.hypot(m31, m32, m33);
+  return out;
+}
+function getRotation(out, mat) {
+  var scaling = new ARRAY_TYPE(3);
+  getScaling(scaling, mat);
+  var is1 = 1 / scaling[0];
+  var is2 = 1 / scaling[1];
+  var is3 = 1 / scaling[2];
+  var sm11 = mat[0] * is1;
+  var sm12 = mat[1] * is2;
+  var sm13 = mat[2] * is3;
+  var sm21 = mat[4] * is1;
+  var sm22 = mat[5] * is2;
+  var sm23 = mat[6] * is3;
+  var sm31 = mat[8] * is1;
+  var sm32 = mat[9] * is2;
+  var sm33 = mat[10] * is3;
+  var trace = sm11 + sm22 + sm33;
+  var S = 0;
+  if (trace > 0) {
+    S = Math.sqrt(trace + 1) * 2;
+    out[3] = 0.25 * S;
+    out[0] = (sm23 - sm32) / S;
+    out[1] = (sm31 - sm13) / S;
+    out[2] = (sm12 - sm21) / S;
+  } else if (sm11 > sm22 && sm11 > sm33) {
+    S = Math.sqrt(1 + sm11 - sm22 - sm33) * 2;
+    out[3] = (sm23 - sm32) / S;
+    out[0] = 0.25 * S;
+    out[1] = (sm12 + sm21) / S;
+    out[2] = (sm31 + sm13) / S;
+  } else if (sm22 > sm33) {
+    S = Math.sqrt(1 + sm22 - sm11 - sm33) * 2;
+    out[3] = (sm31 - sm13) / S;
+    out[0] = (sm12 + sm21) / S;
+    out[1] = 0.25 * S;
+    out[2] = (sm23 + sm32) / S;
+  } else {
+    S = Math.sqrt(1 + sm33 - sm11 - sm22) * 2;
+    out[3] = (sm12 - sm21) / S;
+    out[0] = (sm31 + sm13) / S;
+    out[1] = (sm23 + sm32) / S;
+    out[2] = 0.25 * S;
+  }
+  return out;
+}
+function fromRotationTranslationScale(out, q, v, s) {
+  var x = q[0], y = q[1], z = q[2], w = q[3];
+  var x2 = x + x;
+  var y2 = y + y;
+  var z2 = z + z;
+  var xx = x * x2;
+  var xy = x * y2;
+  var xz = x * z2;
+  var yy = y * y2;
+  var yz = y * z2;
+  var zz = z * z2;
+  var wx = w * x2;
+  var wy = w * y2;
+  var wz = w * z2;
+  var sx = s[0];
+  var sy = s[1];
+  var sz = s[2];
+  out[0] = (1 - (yy + zz)) * sx;
+  out[1] = (xy + wz) * sx;
+  out[2] = (xz - wy) * sx;
+  out[3] = 0;
+  out[4] = (xy - wz) * sy;
+  out[5] = (1 - (xx + zz)) * sy;
+  out[6] = (yz + wx) * sy;
+  out[7] = 0;
+  out[8] = (xz + wy) * sz;
+  out[9] = (yz - wx) * sz;
+  out[10] = (1 - (xx + yy)) * sz;
+  out[11] = 0;
+  out[12] = v[0];
+  out[13] = v[1];
+  out[14] = v[2];
+  out[15] = 1;
+  return out;
+}
+function fromRotationTranslationScaleOrigin(out, q, v, s, o) {
+  var x = q[0], y = q[1], z = q[2], w = q[3];
+  var x2 = x + x;
+  var y2 = y + y;
+  var z2 = z + z;
+  var xx = x * x2;
+  var xy = x * y2;
+  var xz = x * z2;
+  var yy = y * y2;
+  var yz = y * z2;
+  var zz = z * z2;
+  var wx = w * x2;
+  var wy = w * y2;
+  var wz = w * z2;
+  var sx = s[0];
+  var sy = s[1];
+  var sz = s[2];
+  var ox = o[0];
+  var oy = o[1];
+  var oz = o[2];
+  var out0 = (1 - (yy + zz)) * sx;
+  var out1 = (xy + wz) * sx;
+  var out2 = (xz - wy) * sx;
+  var out4 = (xy - wz) * sy;
+  var out5 = (1 - (xx + zz)) * sy;
+  var out6 = (yz + wx) * sy;
+  var out8 = (xz + wy) * sz;
+  var out9 = (yz - wx) * sz;
+  var out10 = (1 - (xx + yy)) * sz;
+  out[0] = out0;
+  out[1] = out1;
+  out[2] = out2;
+  out[3] = 0;
+  out[4] = out4;
+  out[5] = out5;
+  out[6] = out6;
+  out[7] = 0;
+  out[8] = out8;
+  out[9] = out9;
+  out[10] = out10;
+  out[11] = 0;
+  out[12] = v[0] + ox - (out0 * ox + out4 * oy + out8 * oz);
+  out[13] = v[1] + oy - (out1 * ox + out5 * oy + out9 * oz);
+  out[14] = v[2] + oz - (out2 * ox + out6 * oy + out10 * oz);
+  out[15] = 1;
+  return out;
+}
+function fromQuat(out, q) {
+  var x = q[0], y = q[1], z = q[2], w = q[3];
+  var x2 = x + x;
+  var y2 = y + y;
+  var z2 = z + z;
+  var xx = x * x2;
+  var yx = y * x2;
+  var yy = y * y2;
+  var zx = z * x2;
+  var zy = z * y2;
+  var zz = z * z2;
+  var wx = w * x2;
+  var wy = w * y2;
+  var wz = w * z2;
+  out[0] = 1 - yy - zz;
+  out[1] = yx + wz;
+  out[2] = zx - wy;
+  out[3] = 0;
+  out[4] = yx - wz;
+  out[5] = 1 - xx - zz;
+  out[6] = zy + wx;
+  out[7] = 0;
+  out[8] = zx + wy;
+  out[9] = zy - wx;
+  out[10] = 1 - xx - yy;
+  out[11] = 0;
+  out[12] = 0;
+  out[13] = 0;
+  out[14] = 0;
+  out[15] = 1;
+  return out;
+}
+function frustum(out, left, right, bottom, top, near, far) {
+  var rl = 1 / (right - left);
+  var tb = 1 / (top - bottom);
+  var nf = 1 / (near - far);
+  out[0] = near * 2 * rl;
+  out[1] = 0;
+  out[2] = 0;
+  out[3] = 0;
+  out[4] = 0;
+  out[5] = near * 2 * tb;
+  out[6] = 0;
+  out[7] = 0;
+  out[8] = (right + left) * rl;
+  out[9] = (top + bottom) * tb;
+  out[10] = (far + near) * nf;
+  out[11] = -1;
+  out[12] = 0;
+  out[13] = 0;
+  out[14] = far * near * 2 * nf;
+  out[15] = 0;
+  return out;
+}
+function perspectiveNO(out, fovy, aspect, near, far) {
+  var f = 1 / Math.tan(fovy / 2), nf;
+  out[0] = f / aspect;
+  out[1] = 0;
+  out[2] = 0;
+  out[3] = 0;
+  out[4] = 0;
+  out[5] = f;
+  out[6] = 0;
+  out[7] = 0;
+  out[8] = 0;
+  out[9] = 0;
+  out[11] = -1;
+  out[12] = 0;
+  out[13] = 0;
+  out[15] = 0;
+  if (far != null && far !== Infinity) {
+    nf = 1 / (near - far);
+    out[10] = (far + near) * nf;
+    out[14] = 2 * far * near * nf;
+  } else {
+    out[10] = -1;
+    out[14] = -2 * near;
+  }
+  return out;
+}
+function perspectiveZO(out, fovy, aspect, near, far) {
+  var f = 1 / Math.tan(fovy / 2), nf;
+  out[0] = f / aspect;
+  out[1] = 0;
+  out[2] = 0;
+  out[3] = 0;
+  out[4] = 0;
+  out[5] = f;
+  out[6] = 0;
+  out[7] = 0;
+  out[8] = 0;
+  out[9] = 0;
+  out[11] = -1;
+  out[12] = 0;
+  out[13] = 0;
+  out[15] = 0;
+  if (far != null && far !== Infinity) {
+    nf = 1 / (near - far);
+    out[10] = far * nf;
+    out[14] = far * near * nf;
+  } else {
+    out[10] = -1;
+    out[14] = -near;
+  }
+  return out;
+}
+function perspectiveFromFieldOfView(out, fov, near, far) {
+  var upTan = Math.tan(fov.upDegrees * Math.PI / 180);
+  var downTan = Math.tan(fov.downDegrees * Math.PI / 180);
+  var leftTan = Math.tan(fov.leftDegrees * Math.PI / 180);
+  var rightTan = Math.tan(fov.rightDegrees * Math.PI / 180);
+  var xScale = 2 / (leftTan + rightTan);
+  var yScale = 2 / (upTan + downTan);
+  out[0] = xScale;
+  out[1] = 0;
+  out[2] = 0;
+  out[3] = 0;
+  out[4] = 0;
+  out[5] = yScale;
+  out[6] = 0;
+  out[7] = 0;
+  out[8] = -((leftTan - rightTan) * xScale * 0.5);
+  out[9] = (upTan - downTan) * yScale * 0.5;
+  out[10] = far / (near - far);
+  out[11] = -1;
+  out[12] = 0;
+  out[13] = 0;
+  out[14] = far * near / (near - far);
+  out[15] = 0;
+  return out;
+}
+function orthoNO(out, left, right, bottom, top, near, far) {
+  var lr = 1 / (left - right);
+  var bt = 1 / (bottom - top);
+  var nf = 1 / (near - far);
+  out[0] = -2 * lr;
+  out[1] = 0;
+  out[2] = 0;
+  out[3] = 0;
+  out[4] = 0;
+  out[5] = -2 * bt;
+  out[6] = 0;
+  out[7] = 0;
+  out[8] = 0;
+  out[9] = 0;
+  out[10] = 2 * nf;
+  out[11] = 0;
+  out[12] = (left + right) * lr;
+  out[13] = (top + bottom) * bt;
+  out[14] = (far + near) * nf;
+  out[15] = 1;
+  return out;
+}
+function orthoZO(out, left, right, bottom, top, near, far) {
+  var lr = 1 / (left - right);
+  var bt = 1 / (bottom - top);
+  var nf = 1 / (near - far);
+  out[0] = -2 * lr;
+  out[1] = 0;
+  out[2] = 0;
+  out[3] = 0;
+  out[4] = 0;
+  out[5] = -2 * bt;
+  out[6] = 0;
+  out[7] = 0;
+  out[8] = 0;
+  out[9] = 0;
+  out[10] = nf;
+  out[11] = 0;
+  out[12] = (left + right) * lr;
+  out[13] = (top + bottom) * bt;
+  out[14] = near * nf;
+  out[15] = 1;
+  return out;
+}
+function lookAt(out, eye, center, up) {
+  var x0, x1, x2, y0, y1, y2, z0, z1, z2, len;
+  var eyex = eye[0];
+  var eyey = eye[1];
+  var eyez = eye[2];
+  var upx = up[0];
+  var upy = up[1];
+  var upz = up[2];
+  var centerx = center[0];
+  var centery = center[1];
+  var centerz = center[2];
+  if (Math.abs(eyex - centerx) < EPSILON && Math.abs(eyey - centery) < EPSILON && Math.abs(eyez - centerz) < EPSILON) {
+    return identity(out);
+  }
+  z0 = eyex - centerx;
+  z1 = eyey - centery;
+  z2 = eyez - centerz;
+  len = 1 / Math.hypot(z0, z1, z2);
+  z0 *= len;
+  z1 *= len;
+  z2 *= len;
+  x0 = upy * z2 - upz * z1;
+  x1 = upz * z0 - upx * z2;
+  x2 = upx * z1 - upy * z0;
+  len = Math.hypot(x0, x1, x2);
+  if (!len) {
+    x0 = 0;
+    x1 = 0;
+    x2 = 0;
+  } else {
+    len = 1 / len;
+    x0 *= len;
+    x1 *= len;
+    x2 *= len;
+  }
+  y0 = z1 * x2 - z2 * x1;
+  y1 = z2 * x0 - z0 * x2;
+  y2 = z0 * x1 - z1 * x0;
+  len = Math.hypot(y0, y1, y2);
+  if (!len) {
+    y0 = 0;
+    y1 = 0;
+    y2 = 0;
+  } else {
+    len = 1 / len;
+    y0 *= len;
+    y1 *= len;
+    y2 *= len;
+  }
+  out[0] = x0;
+  out[1] = y0;
+  out[2] = z0;
+  out[3] = 0;
+  out[4] = x1;
+  out[5] = y1;
+  out[6] = z1;
+  out[7] = 0;
+  out[8] = x2;
+  out[9] = y2;
+  out[10] = z2;
+  out[11] = 0;
+  out[12] = -(x0 * eyex + x1 * eyey + x2 * eyez);
+  out[13] = -(y0 * eyex + y1 * eyey + y2 * eyez);
+  out[14] = -(z0 * eyex + z1 * eyey + z2 * eyez);
+  out[15] = 1;
+  return out;
+}
+function targetTo(out, eye, target, up) {
+  var eyex = eye[0], eyey = eye[1], eyez = eye[2], upx = up[0], upy = up[1], upz = up[2];
+  var z0 = eyex - target[0], z1 = eyey - target[1], z2 = eyez - target[2];
+  var len = z0 * z0 + z1 * z1 + z2 * z2;
+  if (len > 0) {
+    len = 1 / Math.sqrt(len);
+    z0 *= len;
+    z1 *= len;
+    z2 *= len;
+  }
+  var x0 = upy * z2 - upz * z1, x1 = upz * z0 - upx * z2, x2 = upx * z1 - upy * z0;
+  len = x0 * x0 + x1 * x1 + x2 * x2;
+  if (len > 0) {
+    len = 1 / Math.sqrt(len);
+    x0 *= len;
+    x1 *= len;
+    x2 *= len;
+  }
+  out[0] = x0;
+  out[1] = x1;
+  out[2] = x2;
+  out[3] = 0;
+  out[4] = z1 * x2 - z2 * x1;
+  out[5] = z2 * x0 - z0 * x2;
+  out[6] = z0 * x1 - z1 * x0;
+  out[7] = 0;
+  out[8] = z0;
+  out[9] = z1;
+  out[10] = z2;
+  out[11] = 0;
+  out[12] = eyex;
+  out[13] = eyey;
+  out[14] = eyez;
+  out[15] = 1;
+  return out;
+}
+function str(a) {
+  return "mat4(" + a[0] + ", " + a[1] + ", " + a[2] + ", " + a[3] + ", " + a[4] + ", " + a[5] + ", " + a[6] + ", " + a[7] + ", " + a[8] + ", " + a[9] + ", " + a[10] + ", " + a[11] + ", " + a[12] + ", " + a[13] + ", " + a[14] + ", " + a[15] + ")";
+}
+function frob(a) {
+  return Math.hypot(a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8], a[9], a[10], a[11], a[12], a[13], a[14], a[15]);
+}
+function add(out, a, b) {
+  out[0] = a[0] + b[0];
+  out[1] = a[1] + b[1];
+  out[2] = a[2] + b[2];
+  out[3] = a[3] + b[3];
+  out[4] = a[4] + b[4];
+  out[5] = a[5] + b[5];
+  out[6] = a[6] + b[6];
+  out[7] = a[7] + b[7];
+  out[8] = a[8] + b[8];
+  out[9] = a[9] + b[9];
+  out[10] = a[10] + b[10];
+  out[11] = a[11] + b[11];
+  out[12] = a[12] + b[12];
+  out[13] = a[13] + b[13];
+  out[14] = a[14] + b[14];
+  out[15] = a[15] + b[15];
+  return out;
+}
+function subtract(out, a, b) {
+  out[0] = a[0] - b[0];
+  out[1] = a[1] - b[1];
+  out[2] = a[2] - b[2];
+  out[3] = a[3] - b[3];
+  out[4] = a[4] - b[4];
+  out[5] = a[5] - b[5];
+  out[6] = a[6] - b[6];
+  out[7] = a[7] - b[7];
+  out[8] = a[8] - b[8];
+  out[9] = a[9] - b[9];
+  out[10] = a[10] - b[10];
+  out[11] = a[11] - b[11];
+  out[12] = a[12] - b[12];
+  out[13] = a[13] - b[13];
+  out[14] = a[14] - b[14];
+  out[15] = a[15] - b[15];
+  return out;
+}
+function multiplyScalar(out, a, b) {
+  out[0] = a[0] * b;
+  out[1] = a[1] * b;
+  out[2] = a[2] * b;
+  out[3] = a[3] * b;
+  out[4] = a[4] * b;
+  out[5] = a[5] * b;
+  out[6] = a[6] * b;
+  out[7] = a[7] * b;
+  out[8] = a[8] * b;
+  out[9] = a[9] * b;
+  out[10] = a[10] * b;
+  out[11] = a[11] * b;
+  out[12] = a[12] * b;
+  out[13] = a[13] * b;
+  out[14] = a[14] * b;
+  out[15] = a[15] * b;
+  return out;
+}
+function multiplyScalarAndAdd(out, a, b, scale2) {
+  out[0] = a[0] + b[0] * scale2;
+  out[1] = a[1] + b[1] * scale2;
+  out[2] = a[2] + b[2] * scale2;
+  out[3] = a[3] + b[3] * scale2;
+  out[4] = a[4] + b[4] * scale2;
+  out[5] = a[5] + b[5] * scale2;
+  out[6] = a[6] + b[6] * scale2;
+  out[7] = a[7] + b[7] * scale2;
+  out[8] = a[8] + b[8] * scale2;
+  out[9] = a[9] + b[9] * scale2;
+  out[10] = a[10] + b[10] * scale2;
+  out[11] = a[11] + b[11] * scale2;
+  out[12] = a[12] + b[12] * scale2;
+  out[13] = a[13] + b[13] * scale2;
+  out[14] = a[14] + b[14] * scale2;
+  out[15] = a[15] + b[15] * scale2;
+  return out;
+}
+function exactEquals(a, b) {
+  return a[0] === b[0] && a[1] === b[1] && a[2] === b[2] && a[3] === b[3] && a[4] === b[4] && a[5] === b[5] && a[6] === b[6] && a[7] === b[7] && a[8] === b[8] && a[9] === b[9] && a[10] === b[10] && a[11] === b[11] && a[12] === b[12] && a[13] === b[13] && a[14] === b[14] && a[15] === b[15];
+}
+function equals(a, b) {
+  var a0 = a[0], a1 = a[1], a2 = a[2], a3 = a[3];
+  var a4 = a[4], a5 = a[5], a6 = a[6], a7 = a[7];
+  var a8 = a[8], a9 = a[9], a10 = a[10], a11 = a[11];
+  var a12 = a[12], a13 = a[13], a14 = a[14], a15 = a[15];
+  var b0 = b[0], b1 = b[1], b2 = b[2], b3 = b[3];
+  var b4 = b[4], b5 = b[5], b6 = b[6], b7 = b[7];
+  var b8 = b[8], b9 = b[9], b10 = b[10], b11 = b[11];
+  var b12 = b[12], b13 = b[13], b14 = b[14], b15 = b[15];
+  return Math.abs(a0 - b0) <= EPSILON * Math.max(1, Math.abs(a0), Math.abs(b0)) && Math.abs(a1 - b1) <= EPSILON * Math.max(1, Math.abs(a1), Math.abs(b1)) && Math.abs(a2 - b2) <= EPSILON * Math.max(1, Math.abs(a2), Math.abs(b2)) && Math.abs(a3 - b3) <= EPSILON * Math.max(1, Math.abs(a3), Math.abs(b3)) && Math.abs(a4 - b4) <= EPSILON * Math.max(1, Math.abs(a4), Math.abs(b4)) && Math.abs(a5 - b5) <= EPSILON * Math.max(1, Math.abs(a5), Math.abs(b5)) && Math.abs(a6 - b6) <= EPSILON * Math.max(1, Math.abs(a6), Math.abs(b6)) && Math.abs(a7 - b7) <= EPSILON * Math.max(1, Math.abs(a7), Math.abs(b7)) && Math.abs(a8 - b8) <= EPSILON * Math.max(1, Math.abs(a8), Math.abs(b8)) && Math.abs(a9 - b9) <= EPSILON * Math.max(1, Math.abs(a9), Math.abs(b9)) && Math.abs(a10 - b10) <= EPSILON * Math.max(1, Math.abs(a10), Math.abs(b10)) && Math.abs(a11 - b11) <= EPSILON * Math.max(1, Math.abs(a11), Math.abs(b11)) && Math.abs(a12 - b12) <= EPSILON * Math.max(1, Math.abs(a12), Math.abs(b12)) && Math.abs(a13 - b13) <= EPSILON * Math.max(1, Math.abs(a13), Math.abs(b13)) && Math.abs(a14 - b14) <= EPSILON * Math.max(1, Math.abs(a14), Math.abs(b14)) && Math.abs(a15 - b15) <= EPSILON * Math.max(1, Math.abs(a15), Math.abs(b15));
+}
+var perspective = perspectiveNO;
+var ortho = orthoNO;
+var mul = multiply;
+var sub = subtract;
+
+// node_modules/gl-matrix/esm/quat.js
+var exports_quat = {};
+__export(exports_quat, {
+  str: () => {
+    {
+      return str3;
+    }
+  },
+  squaredLength: () => {
+    {
+      return squaredLength3;
+    }
+  },
+  sqrLen: () => {
+    {
+      return sqrLen2;
+    }
+  },
+  sqlerp: () => {
+    {
+      return sqlerp;
+    }
+  },
+  slerp: () => {
+    {
+      return slerp;
+    }
+  },
+  setAxisAngle: () => {
+    {
+      return setAxisAngle;
+    }
+  },
+  setAxes: () => {
+    {
+      return setAxes;
+    }
+  },
+  set: () => {
+    {
+      return set4;
+    }
+  },
+  scale: () => {
+    {
+      return scale4;
+    }
+  },
+  rotationTo: () => {
+    {
+      return rotationTo;
+    }
+  },
+  rotateZ: () => {
+    {
+      return rotateZ3;
+    }
+  },
+  rotateY: () => {
+    {
+      return rotateY3;
+    }
+  },
+  rotateX: () => {
+    {
+      return rotateX3;
+    }
+  },
+  random: () => {
+    {
+      return random2;
+    }
+  },
+  pow: () => {
+    {
+      return pow;
+    }
+  },
+  normalize: () => {
+    {
+      return normalize3;
+    }
+  },
+  multiply: () => {
+    {
+      return multiply3;
+    }
+  },
+  mul: () => {
+    {
+      return mul3;
+    }
+  },
+  ln: () => {
+    {
+      return ln;
+    }
+  },
+  lerp: () => {
+    {
+      return lerp3;
+    }
+  },
+  length: () => {
+    {
+      return length3;
+    }
+  },
+  len: () => {
+    {
+      return len2;
+    }
+  },
+  invert: () => {
+    {
+      return invert2;
+    }
+  },
+  identity: () => {
+    {
+      return identity2;
+    }
+  },
+  getAxisAngle: () => {
+    {
+      return getAxisAngle;
+    }
+  },
+  getAngle: () => {
+    {
+      return getAngle;
+    }
+  },
+  fromValues: () => {
+    {
+      return fromValues4;
+    }
+  },
+  fromMat3: () => {
+    {
+      return fromMat3;
+    }
+  },
+  fromEuler: () => {
+    {
+      return fromEuler;
+    }
+  },
+  exp: () => {
+    {
+      return exp;
+    }
+  },
+  exactEquals: () => {
+    {
+      return exactEquals4;
+    }
+  },
+  equals: () => {
+    {
+      return equals4;
+    }
+  },
+  dot: () => {
+    {
+      return dot3;
+    }
+  },
+  create: () => {
+    {
+      return create5;
+    }
+  },
+  copy: () => {
+    {
+      return copy4;
+    }
+  },
+  conjugate: () => {
+    {
+      return conjugate;
+    }
+  },
+  clone: () => {
+    {
+      return clone4;
+    }
+  },
+  calculateW: () => {
+    {
+      return calculateW;
+    }
+  },
+  add: () => {
+    {
+      return add4;
+    }
+  }
+});
+
+// node_modules/gl-matrix/esm/vec3.js
+var exports_vec3 = {};
+__export(exports_vec3, {
+  zero: () => {
+    {
+      return zero;
+    }
+  },
+  transformQuat: () => {
+    {
+      return transformQuat;
+    }
+  },
+  transformMat4: () => {
+    {
+      return transformMat4;
+    }
+  },
+  transformMat3: () => {
+    {
+      return transformMat3;
+    }
+  },
+  subtract: () => {
+    {
+      return subtract2;
+    }
+  },
+  sub: () => {
+    {
+      return sub2;
+    }
+  },
+  str: () => {
+    {
+      return str2;
+    }
+  },
+  squaredLength: () => {
+    {
+      return squaredLength;
+    }
+  },
+  squaredDistance: () => {
+    {
+      return squaredDistance;
+    }
+  },
+  sqrLen: () => {
+    {
+      return sqrLen;
+    }
+  },
+  sqrDist: () => {
+    {
+      return sqrDist;
+    }
+  },
+  set: () => {
+    {
+      return set2;
+    }
+  },
+  scaleAndAdd: () => {
+    {
+      return scaleAndAdd;
+    }
+  },
+  scale: () => {
+    {
+      return scale2;
+    }
+  },
+  round: () => {
+    {
+      return round;
+    }
+  },
+  rotateZ: () => {
+    {
+      return rotateZ2;
+    }
+  },
+  rotateY: () => {
+    {
+      return rotateY2;
+    }
+  },
+  rotateX: () => {
+    {
+      return rotateX2;
+    }
+  },
+  random: () => {
+    {
+      return random;
+    }
+  },
+  normalize: () => {
+    {
+      return normalize;
+    }
+  },
+  negate: () => {
+    {
+      return negate;
+    }
+  },
+  multiply: () => {
+    {
+      return multiply2;
+    }
+  },
+  mul: () => {
+    {
+      return mul2;
+    }
+  },
+  min: () => {
+    {
+      return min;
+    }
+  },
+  max: () => {
+    {
+      return max;
+    }
+  },
+  lerp: () => {
+    {
+      return lerp;
+    }
+  },
+  length: () => {
+    {
+      return length;
+    }
+  },
+  len: () => {
+    {
+      return len;
+    }
+  },
+  inverse: () => {
+    {
+      return inverse;
+    }
+  },
+  hermite: () => {
+    {
+      return hermite;
+    }
+  },
+  fromValues: () => {
+    {
+      return fromValues2;
+    }
+  },
+  forEach: () => {
+    {
+      return forEach2;
+    }
+  },
+  floor: () => {
+    {
+      return floor;
+    }
+  },
+  exactEquals: () => {
+    {
+      return exactEquals2;
+    }
+  },
+  equals: () => {
+    {
+      return equals2;
+    }
+  },
+  dot: () => {
+    {
+      return dot;
+    }
+  },
+  divide: () => {
+    {
+      return divide;
+    }
+  },
+  div: () => {
+    {
+      return div;
+    }
+  },
+  distance: () => {
+    {
+      return distance;
+    }
+  },
+  dist: () => {
+    {
+      return dist;
+    }
+  },
+  cross: () => {
+    {
+      return cross;
+    }
+  },
+  create: () => {
+    {
+      return create3;
+    }
+  },
+  copy: () => {
+    {
+      return copy2;
+    }
+  },
+  clone: () => {
+    {
+      return clone2;
+    }
+  },
+  ceil: () => {
+    {
+      return ceil;
+    }
+  },
+  bezier: () => {
+    {
+      return bezier;
+    }
+  },
+  angle: () => {
+    {
+      return angle;
+    }
+  },
+  add: () => {
+    {
+      return add2;
+    }
+  }
+});
+function create3() {
+  var out = new ARRAY_TYPE(3);
+  if (ARRAY_TYPE != Float32Array) {
+    out[0] = 0;
+    out[1] = 0;
+    out[2] = 0;
+  }
+  return out;
+}
+function clone2(a) {
+  var out = new ARRAY_TYPE(3);
+  out[0] = a[0];
+  out[1] = a[1];
+  out[2] = a[2];
+  return out;
+}
+function length(a) {
+  var x = a[0];
+  var y = a[1];
+  var z = a[2];
+  return Math.hypot(x, y, z);
+}
+function fromValues2(x, y, z) {
+  var out = new ARRAY_TYPE(3);
+  out[0] = x;
+  out[1] = y;
+  out[2] = z;
+  return out;
+}
+function copy2(out, a) {
+  out[0] = a[0];
+  out[1] = a[1];
+  out[2] = a[2];
+  return out;
+}
+function set2(out, x, y, z) {
+  out[0] = x;
+  out[1] = y;
+  out[2] = z;
+  return out;
+}
+function add2(out, a, b) {
+  out[0] = a[0] + b[0];
+  out[1] = a[1] + b[1];
+  out[2] = a[2] + b[2];
+  return out;
+}
+function subtract2(out, a, b) {
+  out[0] = a[0] - b[0];
+  out[1] = a[1] - b[1];
+  out[2] = a[2] - b[2];
+  return out;
+}
+function multiply2(out, a, b) {
+  out[0] = a[0] * b[0];
+  out[1] = a[1] * b[1];
+  out[2] = a[2] * b[2];
+  return out;
+}
+function divide(out, a, b) {
+  out[0] = a[0] / b[0];
+  out[1] = a[1] / b[1];
+  out[2] = a[2] / b[2];
+  return out;
+}
+function ceil(out, a) {
+  out[0] = Math.ceil(a[0]);
+  out[1] = Math.ceil(a[1]);
+  out[2] = Math.ceil(a[2]);
+  return out;
+}
+function floor(out, a) {
+  out[0] = Math.floor(a[0]);
+  out[1] = Math.floor(a[1]);
+  out[2] = Math.floor(a[2]);
+  return out;
+}
+function min(out, a, b) {
+  out[0] = Math.min(a[0], b[0]);
+  out[1] = Math.min(a[1], b[1]);
+  out[2] = Math.min(a[2], b[2]);
+  return out;
+}
+function max(out, a, b) {
+  out[0] = Math.max(a[0], b[0]);
+  out[1] = Math.max(a[1], b[1]);
+  out[2] = Math.max(a[2], b[2]);
+  return out;
+}
+function round(out, a) {
+  out[0] = Math.round(a[0]);
+  out[1] = Math.round(a[1]);
+  out[2] = Math.round(a[2]);
+  return out;
+}
+function scale2(out, a, b) {
+  out[0] = a[0] * b;
+  out[1] = a[1] * b;
+  out[2] = a[2] * b;
+  return out;
+}
+function scaleAndAdd(out, a, b, scale3) {
+  out[0] = a[0] + b[0] * scale3;
+  out[1] = a[1] + b[1] * scale3;
+  out[2] = a[2] + b[2] * scale3;
+  return out;
+}
+function distance(a, b) {
+  var x = b[0] - a[0];
+  var y = b[1] - a[1];
+  var z = b[2] - a[2];
+  return Math.hypot(x, y, z);
+}
+function squaredDistance(a, b) {
+  var x = b[0] - a[0];
+  var y = b[1] - a[1];
+  var z = b[2] - a[2];
+  return x * x + y * y + z * z;
+}
+function squaredLength(a) {
+  var x = a[0];
+  var y = a[1];
+  var z = a[2];
+  return x * x + y * y + z * z;
+}
+function negate(out, a) {
+  out[0] = -a[0];
+  out[1] = -a[1];
+  out[2] = -a[2];
+  return out;
+}
+function inverse(out, a) {
+  out[0] = 1 / a[0];
+  out[1] = 1 / a[1];
+  out[2] = 1 / a[2];
+  return out;
+}
+function normalize(out, a) {
+  var x = a[0];
+  var y = a[1];
+  var z = a[2];
+  var len = x * x + y * y + z * z;
+  if (len > 0) {
+    len = 1 / Math.sqrt(len);
+  }
+  out[0] = a[0] * len;
+  out[1] = a[1] * len;
+  out[2] = a[2] * len;
+  return out;
+}
+function dot(a, b) {
+  return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+}
+function cross(out, a, b) {
+  var ax = a[0], ay = a[1], az = a[2];
+  var bx = b[0], by = b[1], bz = b[2];
+  out[0] = ay * bz - az * by;
+  out[1] = az * bx - ax * bz;
+  out[2] = ax * by - ay * bx;
+  return out;
+}
+function lerp(out, a, b, t) {
+  var ax = a[0];
+  var ay = a[1];
+  var az = a[2];
+  out[0] = ax + t * (b[0] - ax);
+  out[1] = ay + t * (b[1] - ay);
+  out[2] = az + t * (b[2] - az);
+  return out;
+}
+function hermite(out, a, b, c, d, t) {
+  var factorTimes2 = t * t;
+  var factor1 = factorTimes2 * (2 * t - 3) + 1;
+  var factor2 = factorTimes2 * (t - 2) + t;
+  var factor3 = factorTimes2 * (t - 1);
+  var factor4 = factorTimes2 * (3 - 2 * t);
+  out[0] = a[0] * factor1 + b[0] * factor2 + c[0] * factor3 + d[0] * factor4;
+  out[1] = a[1] * factor1 + b[1] * factor2 + c[1] * factor3 + d[1] * factor4;
+  out[2] = a[2] * factor1 + b[2] * factor2 + c[2] * factor3 + d[2] * factor4;
+  return out;
+}
+function bezier(out, a, b, c, d, t) {
+  var inverseFactor = 1 - t;
+  var inverseFactorTimesTwo = inverseFactor * inverseFactor;
+  var factorTimes2 = t * t;
+  var factor1 = inverseFactorTimesTwo * inverseFactor;
+  var factor2 = 3 * t * inverseFactorTimesTwo;
+  var factor3 = 3 * factorTimes2 * inverseFactor;
+  var factor4 = factorTimes2 * t;
+  out[0] = a[0] * factor1 + b[0] * factor2 + c[0] * factor3 + d[0] * factor4;
+  out[1] = a[1] * factor1 + b[1] * factor2 + c[1] * factor3 + d[1] * factor4;
+  out[2] = a[2] * factor1 + b[2] * factor2 + c[2] * factor3 + d[2] * factor4;
+  return out;
+}
+function random(out, scale3) {
+  scale3 = scale3 || 1;
+  var r = RANDOM() * 2 * Math.PI;
+  var z = RANDOM() * 2 - 1;
+  var zScale = Math.sqrt(1 - z * z) * scale3;
+  out[0] = Math.cos(r) * zScale;
+  out[1] = Math.sin(r) * zScale;
+  out[2] = z * scale3;
+  return out;
+}
+function transformMat4(out, a, m) {
+  var x = a[0], y = a[1], z = a[2];
+  var w = m[3] * x + m[7] * y + m[11] * z + m[15];
+  w = w || 1;
+  out[0] = (m[0] * x + m[4] * y + m[8] * z + m[12]) / w;
+  out[1] = (m[1] * x + m[5] * y + m[9] * z + m[13]) / w;
+  out[2] = (m[2] * x + m[6] * y + m[10] * z + m[14]) / w;
+  return out;
+}
+function transformMat3(out, a, m) {
+  var x = a[0], y = a[1], z = a[2];
+  out[0] = x * m[0] + y * m[3] + z * m[6];
+  out[1] = x * m[1] + y * m[4] + z * m[7];
+  out[2] = x * m[2] + y * m[5] + z * m[8];
+  return out;
+}
+function transformQuat(out, a, q) {
+  var qx = q[0], qy = q[1], qz = q[2], qw = q[3];
+  var x = a[0], y = a[1], z = a[2];
+  var uvx = qy * z - qz * y, uvy = qz * x - qx * z, uvz = qx * y - qy * x;
+  var uuvx = qy * uvz - qz * uvy, uuvy = qz * uvx - qx * uvz, uuvz = qx * uvy - qy * uvx;
+  var w2 = qw * 2;
+  uvx *= w2;
+  uvy *= w2;
+  uvz *= w2;
+  uuvx *= 2;
+  uuvy *= 2;
+  uuvz *= 2;
+  out[0] = x + uvx + uuvx;
+  out[1] = y + uvy + uuvy;
+  out[2] = z + uvz + uuvz;
+  return out;
+}
+function rotateX2(out, a, b, rad) {
+  var p = [], r = [];
+  p[0] = a[0] - b[0];
+  p[1] = a[1] - b[1];
+  p[2] = a[2] - b[2];
+  r[0] = p[0];
+  r[1] = p[1] * Math.cos(rad) - p[2] * Math.sin(rad);
+  r[2] = p[1] * Math.sin(rad) + p[2] * Math.cos(rad);
+  out[0] = r[0] + b[0];
+  out[1] = r[1] + b[1];
+  out[2] = r[2] + b[2];
+  return out;
+}
+function rotateY2(out, a, b, rad) {
+  var p = [], r = [];
+  p[0] = a[0] - b[0];
+  p[1] = a[1] - b[1];
+  p[2] = a[2] - b[2];
+  r[0] = p[2] * Math.sin(rad) + p[0] * Math.cos(rad);
+  r[1] = p[1];
+  r[2] = p[2] * Math.cos(rad) - p[0] * Math.sin(rad);
+  out[0] = r[0] + b[0];
+  out[1] = r[1] + b[1];
+  out[2] = r[2] + b[2];
+  return out;
+}
+function rotateZ2(out, a, b, rad) {
+  var p = [], r = [];
+  p[0] = a[0] - b[0];
+  p[1] = a[1] - b[1];
+  p[2] = a[2] - b[2];
+  r[0] = p[0] * Math.cos(rad) - p[1] * Math.sin(rad);
+  r[1] = p[0] * Math.sin(rad) + p[1] * Math.cos(rad);
+  r[2] = p[2];
+  out[0] = r[0] + b[0];
+  out[1] = r[1] + b[1];
+  out[2] = r[2] + b[2];
+  return out;
+}
+function angle(a, b) {
+  var ax = a[0], ay = a[1], az = a[2], bx = b[0], by = b[1], bz = b[2], mag1 = Math.sqrt(ax * ax + ay * ay + az * az), mag2 = Math.sqrt(bx * bx + by * by + bz * bz), mag = mag1 * mag2, cosine = mag && dot(a, b) / mag;
+  return Math.acos(Math.min(Math.max(cosine, -1), 1));
+}
+function zero(out) {
+  out[0] = 0;
+  out[1] = 0;
+  out[2] = 0;
+  return out;
+}
+function str2(a) {
+  return "vec3(" + a[0] + ", " + a[1] + ", " + a[2] + ")";
+}
+function exactEquals2(a, b) {
+  return a[0] === b[0] && a[1] === b[1] && a[2] === b[2];
+}
+function equals2(a, b) {
+  var a0 = a[0], a1 = a[1], a2 = a[2];
+  var b0 = b[0], b1 = b[1], b2 = b[2];
+  return Math.abs(a0 - b0) <= EPSILON * Math.max(1, Math.abs(a0), Math.abs(b0)) && Math.abs(a1 - b1) <= EPSILON * Math.max(1, Math.abs(a1), Math.abs(b1)) && Math.abs(a2 - b2) <= EPSILON * Math.max(1, Math.abs(a2), Math.abs(b2));
+}
+var sub2 = subtract2;
+var mul2 = multiply2;
+var div = divide;
+var dist = distance;
+var sqrDist = squaredDistance;
+var len = length;
+var sqrLen = squaredLength;
+var forEach2 = function() {
+  var vec = create3();
+  return function(a, stride, offset, count, fn, arg) {
+    var i, l;
+    if (!stride) {
+      stride = 3;
+    }
+    if (!offset) {
+      offset = 0;
+    }
+    if (count) {
+      l = Math.min(count * stride + offset, a.length);
+    } else {
+      l = a.length;
+    }
+    for (i = offset;i < l; i += stride) {
+      vec[0] = a[i];
+      vec[1] = a[i + 1];
+      vec[2] = a[i + 2];
+      fn(vec, vec, arg);
+      a[i] = vec[0];
+      a[i + 1] = vec[1];
+      a[i + 2] = vec[2];
+    }
+    return a;
+  };
+}();
+
+// node_modules/gl-matrix/esm/vec4.js
+function create4() {
+  var out = new ARRAY_TYPE(4);
+  if (ARRAY_TYPE != Float32Array) {
+    out[0] = 0;
+    out[1] = 0;
+    out[2] = 0;
+    out[3] = 0;
+  }
+  return out;
+}
+function clone3(a) {
+  var out = new ARRAY_TYPE(4);
+  out[0] = a[0];
+  out[1] = a[1];
+  out[2] = a[2];
+  out[3] = a[3];
+  return out;
+}
+function fromValues3(x, y, z, w) {
+  var out = new ARRAY_TYPE(4);
+  out[0] = x;
+  out[1] = y;
+  out[2] = z;
+  out[3] = w;
+  return out;
+}
+function copy3(out, a) {
+  out[0] = a[0];
+  out[1] = a[1];
+  out[2] = a[2];
+  out[3] = a[3];
+  return out;
+}
+function set3(out, x, y, z, w) {
+  out[0] = x;
+  out[1] = y;
+  out[2] = z;
+  out[3] = w;
+  return out;
+}
+function add3(out, a, b) {
+  out[0] = a[0] + b[0];
+  out[1] = a[1] + b[1];
+  out[2] = a[2] + b[2];
+  out[3] = a[3] + b[3];
+  return out;
+}
+function scale3(out, a, b) {
+  out[0] = a[0] * b;
+  out[1] = a[1] * b;
+  out[2] = a[2] * b;
+  out[3] = a[3] * b;
+  return out;
+}
+function length2(a) {
+  var x = a[0];
+  var y = a[1];
+  var z = a[2];
+  var w = a[3];
+  return Math.hypot(x, y, z, w);
+}
+function squaredLength2(a) {
+  var x = a[0];
+  var y = a[1];
+  var z = a[2];
+  var w = a[3];
+  return x * x + y * y + z * z + w * w;
+}
+function normalize2(out, a) {
+  var x = a[0];
+  var y = a[1];
+  var z = a[2];
+  var w = a[3];
+  var len2 = x * x + y * y + z * z + w * w;
+  if (len2 > 0) {
+    len2 = 1 / Math.sqrt(len2);
+  }
+  out[0] = x * len2;
+  out[1] = y * len2;
+  out[2] = z * len2;
+  out[3] = w * len2;
+  return out;
+}
+function dot2(a, b) {
+  return a[0] * b[0] + a[1] * b[1] + a[2] * b[2] + a[3] * b[3];
+}
+function lerp2(out, a, b, t) {
+  var ax = a[0];
+  var ay = a[1];
+  var az = a[2];
+  var aw = a[3];
+  out[0] = ax + t * (b[0] - ax);
+  out[1] = ay + t * (b[1] - ay);
+  out[2] = az + t * (b[2] - az);
+  out[3] = aw + t * (b[3] - aw);
+  return out;
+}
+function exactEquals3(a, b) {
+  return a[0] === b[0] && a[1] === b[1] && a[2] === b[2] && a[3] === b[3];
+}
+function equals3(a, b) {
+  var a0 = a[0], a1 = a[1], a2 = a[2], a3 = a[3];
+  var b0 = b[0], b1 = b[1], b2 = b[2], b3 = b[3];
+  return Math.abs(a0 - b0) <= EPSILON * Math.max(1, Math.abs(a0), Math.abs(b0)) && Math.abs(a1 - b1) <= EPSILON * Math.max(1, Math.abs(a1), Math.abs(b1)) && Math.abs(a2 - b2) <= EPSILON * Math.max(1, Math.abs(a2), Math.abs(b2)) && Math.abs(a3 - b3) <= EPSILON * Math.max(1, Math.abs(a3), Math.abs(b3));
+}
+var forEach3 = function() {
+  var vec = create4();
+  return function(a, stride, offset, count, fn, arg) {
+    var i, l;
+    if (!stride) {
+      stride = 4;
+    }
+    if (!offset) {
+      offset = 0;
+    }
+    if (count) {
+      l = Math.min(count * stride + offset, a.length);
+    } else {
+      l = a.length;
+    }
+    for (i = offset;i < l; i += stride) {
+      vec[0] = a[i];
+      vec[1] = a[i + 1];
+      vec[2] = a[i + 2];
+      vec[3] = a[i + 3];
+      fn(vec, vec, arg);
+      a[i] = vec[0];
+      a[i + 1] = vec[1];
+      a[i + 2] = vec[2];
+      a[i + 3] = vec[3];
+    }
+    return a;
+  };
+}();
+
+// node_modules/gl-matrix/esm/quat.js
+function create5() {
+  var out = new ARRAY_TYPE(4);
+  if (ARRAY_TYPE != Float32Array) {
+    out[0] = 0;
+    out[1] = 0;
+    out[2] = 0;
+  }
+  out[3] = 1;
+  return out;
+}
+function identity2(out) {
+  out[0] = 0;
+  out[1] = 0;
+  out[2] = 0;
+  out[3] = 1;
+  return out;
+}
+function setAxisAngle(out, axis, rad) {
+  rad = rad * 0.5;
+  var s = Math.sin(rad);
+  out[0] = s * axis[0];
+  out[1] = s * axis[1];
+  out[2] = s * axis[2];
+  out[3] = Math.cos(rad);
+  return out;
+}
+function getAxisAngle(out_axis, q) {
+  var rad = Math.acos(q[3]) * 2;
+  var s = Math.sin(rad / 2);
+  if (s > EPSILON) {
+    out_axis[0] = q[0] / s;
+    out_axis[1] = q[1] / s;
+    out_axis[2] = q[2] / s;
+  } else {
+    out_axis[0] = 1;
+    out_axis[1] = 0;
+    out_axis[2] = 0;
+  }
+  return rad;
+}
+function getAngle(a, b) {
+  var dotproduct = dot3(a, b);
+  return Math.acos(2 * dotproduct * dotproduct - 1);
+}
+function multiply3(out, a, b) {
+  var ax = a[0], ay = a[1], az = a[2], aw = a[3];
+  var bx = b[0], by = b[1], bz = b[2], bw = b[3];
+  out[0] = ax * bw + aw * bx + ay * bz - az * by;
+  out[1] = ay * bw + aw * by + az * bx - ax * bz;
+  out[2] = az * bw + aw * bz + ax * by - ay * bx;
+  out[3] = aw * bw - ax * bx - ay * by - az * bz;
+  return out;
+}
+function rotateX3(out, a, rad) {
+  rad *= 0.5;
+  var ax = a[0], ay = a[1], az = a[2], aw = a[3];
+  var bx = Math.sin(rad), bw = Math.cos(rad);
+  out[0] = ax * bw + aw * bx;
+  out[1] = ay * bw + az * bx;
+  out[2] = az * bw - ay * bx;
+  out[3] = aw * bw - ax * bx;
+  return out;
+}
+function rotateY3(out, a, rad) {
+  rad *= 0.5;
+  var ax = a[0], ay = a[1], az = a[2], aw = a[3];
+  var by = Math.sin(rad), bw = Math.cos(rad);
+  out[0] = ax * bw - az * by;
+  out[1] = ay * bw + aw * by;
+  out[2] = az * bw + ax * by;
+  out[3] = aw * bw - ay * by;
+  return out;
+}
+function rotateZ3(out, a, rad) {
+  rad *= 0.5;
+  var ax = a[0], ay = a[1], az = a[2], aw = a[3];
+  var bz = Math.sin(rad), bw = Math.cos(rad);
+  out[0] = ax * bw + ay * bz;
+  out[1] = ay * bw - ax * bz;
+  out[2] = az * bw + aw * bz;
+  out[3] = aw * bw - az * bz;
+  return out;
+}
+function calculateW(out, a) {
+  var x = a[0], y = a[1], z = a[2];
+  out[0] = x;
+  out[1] = y;
+  out[2] = z;
+  out[3] = Math.sqrt(Math.abs(1 - x * x - y * y - z * z));
+  return out;
+}
+function exp(out, a) {
+  var x = a[0], y = a[1], z = a[2], w = a[3];
+  var r = Math.sqrt(x * x + y * y + z * z);
+  var et = Math.exp(w);
+  var s = r > 0 ? et * Math.sin(r) / r : 0;
+  out[0] = x * s;
+  out[1] = y * s;
+  out[2] = z * s;
+  out[3] = et * Math.cos(r);
+  return out;
+}
+function ln(out, a) {
+  var x = a[0], y = a[1], z = a[2], w = a[3];
+  var r = Math.sqrt(x * x + y * y + z * z);
+  var t = r > 0 ? Math.atan2(r, w) / r : 0;
+  out[0] = x * t;
+  out[1] = y * t;
+  out[2] = z * t;
+  out[3] = 0.5 * Math.log(x * x + y * y + z * z + w * w);
+  return out;
+}
+function pow(out, a, b) {
+  ln(out, a);
+  scale4(out, out, b);
+  exp(out, out);
+  return out;
+}
+function slerp(out, a, b, t) {
+  var ax = a[0], ay = a[1], az = a[2], aw = a[3];
+  var bx = b[0], by = b[1], bz = b[2], bw = b[3];
+  var omega, cosom, sinom, scale0, scale1;
+  cosom = ax * bx + ay * by + az * bz + aw * bw;
+  if (cosom < 0) {
+    cosom = -cosom;
+    bx = -bx;
+    by = -by;
+    bz = -bz;
+    bw = -bw;
+  }
+  if (1 - cosom > EPSILON) {
+    omega = Math.acos(cosom);
+    sinom = Math.sin(omega);
+    scale0 = Math.sin((1 - t) * omega) / sinom;
+    scale1 = Math.sin(t * omega) / sinom;
+  } else {
+    scale0 = 1 - t;
+    scale1 = t;
+  }
+  out[0] = scale0 * ax + scale1 * bx;
+  out[1] = scale0 * ay + scale1 * by;
+  out[2] = scale0 * az + scale1 * bz;
+  out[3] = scale0 * aw + scale1 * bw;
+  return out;
+}
+function random2(out) {
+  var u1 = RANDOM();
+  var u2 = RANDOM();
+  var u3 = RANDOM();
+  var sqrt1MinusU1 = Math.sqrt(1 - u1);
+  var sqrtU1 = Math.sqrt(u1);
+  out[0] = sqrt1MinusU1 * Math.sin(2 * Math.PI * u2);
+  out[1] = sqrt1MinusU1 * Math.cos(2 * Math.PI * u2);
+  out[2] = sqrtU1 * Math.sin(2 * Math.PI * u3);
+  out[3] = sqrtU1 * Math.cos(2 * Math.PI * u3);
+  return out;
+}
+function invert2(out, a) {
+  var a0 = a[0], a1 = a[1], a2 = a[2], a3 = a[3];
+  var dot3 = a0 * a0 + a1 * a1 + a2 * a2 + a3 * a3;
+  var invDot = dot3 ? 1 / dot3 : 0;
+  out[0] = -a0 * invDot;
+  out[1] = -a1 * invDot;
+  out[2] = -a2 * invDot;
+  out[3] = a3 * invDot;
+  return out;
+}
+function conjugate(out, a) {
+  out[0] = -a[0];
+  out[1] = -a[1];
+  out[2] = -a[2];
+  out[3] = a[3];
+  return out;
+}
+function fromMat3(out, m) {
+  var fTrace = m[0] + m[4] + m[8];
+  var fRoot;
+  if (fTrace > 0) {
+    fRoot = Math.sqrt(fTrace + 1);
+    out[3] = 0.5 * fRoot;
+    fRoot = 0.5 / fRoot;
+    out[0] = (m[5] - m[7]) * fRoot;
+    out[1] = (m[6] - m[2]) * fRoot;
+    out[2] = (m[1] - m[3]) * fRoot;
+  } else {
+    var i = 0;
+    if (m[4] > m[0])
+      i = 1;
+    if (m[8] > m[i * 3 + i])
+      i = 2;
+    var j = (i + 1) % 3;
+    var k = (i + 2) % 3;
+    fRoot = Math.sqrt(m[i * 3 + i] - m[j * 3 + j] - m[k * 3 + k] + 1);
+    out[i] = 0.5 * fRoot;
+    fRoot = 0.5 / fRoot;
+    out[3] = (m[j * 3 + k] - m[k * 3 + j]) * fRoot;
+    out[j] = (m[j * 3 + i] + m[i * 3 + j]) * fRoot;
+    out[k] = (m[k * 3 + i] + m[i * 3 + k]) * fRoot;
+  }
+  return out;
+}
+function fromEuler(out, x, y, z) {
+  var halfToRad = 0.5 * Math.PI / 180;
+  x *= halfToRad;
+  y *= halfToRad;
+  z *= halfToRad;
+  var sx = Math.sin(x);
+  var cx = Math.cos(x);
+  var sy = Math.sin(y);
+  var cy = Math.cos(y);
+  var sz = Math.sin(z);
+  var cz = Math.cos(z);
+  out[0] = sx * cy * cz - cx * sy * sz;
+  out[1] = cx * sy * cz + sx * cy * sz;
+  out[2] = cx * cy * sz - sx * sy * cz;
+  out[3] = cx * cy * cz + sx * sy * sz;
+  return out;
+}
+function str3(a) {
+  return "quat(" + a[0] + ", " + a[1] + ", " + a[2] + ", " + a[3] + ")";
+}
+var clone4 = clone3;
+var fromValues4 = fromValues3;
+var copy4 = copy3;
+var set4 = set3;
+var add4 = add3;
+var mul3 = multiply3;
+var scale4 = scale3;
+var dot3 = dot2;
+var lerp3 = lerp2;
+var length3 = length2;
+var len2 = length3;
+var squaredLength3 = squaredLength2;
+var sqrLen2 = squaredLength3;
+var normalize3 = normalize2;
+var exactEquals4 = exactEquals3;
+var equals4 = equals3;
+var rotationTo = function() {
+  var tmpvec3 = create3();
+  var xUnitVec3 = fromValues2(1, 0, 0);
+  var yUnitVec3 = fromValues2(0, 1, 0);
+  return function(out, a, b) {
+    var dot4 = dot(a, b);
+    if (dot4 < -0.999999) {
+      cross(tmpvec3, xUnitVec3, a);
+      if (len(tmpvec3) < 0.000001)
+        cross(tmpvec3, yUnitVec3, a);
+      normalize(tmpvec3, tmpvec3);
+      setAxisAngle(out, tmpvec3, Math.PI);
+      return out;
+    } else if (dot4 > 0.999999) {
+      out[0] = 0;
+      out[1] = 0;
+      out[2] = 0;
+      out[3] = 1;
+      return out;
+    } else {
+      cross(tmpvec3, a, b);
+      out[0] = tmpvec3[0];
+      out[1] = tmpvec3[1];
+      out[2] = tmpvec3[2];
+      out[3] = 1 + dot4;
+      return normalize3(out, out);
+    }
+  };
+}();
+var sqlerp = function() {
+  var temp1 = create5();
+  var temp2 = create5();
+  return function(out, a, b, c, d, t) {
+    slerp(temp1, a, d, t);
+    slerp(temp2, b, c, t);
+    slerp(out, temp1, temp2, 2 * t * (1 - t));
+    return out;
+  };
+}();
+var setAxes = function() {
+  var matr = create();
+  return function(out, view, right, up) {
+    matr[0] = right[0];
+    matr[3] = right[1];
+    matr[6] = right[2];
+    matr[1] = up[0];
+    matr[4] = up[1];
+    matr[7] = up[2];
+    matr[2] = -view[0];
+    matr[5] = -view[1];
+    matr[8] = -view[2];
+    return normalize3(out, fromMat3(out, matr));
+  };
+}();
+
+// src/gl/transform/Matrix.ts
+var DEG_TO_RADIANT = Math.PI / 90;
+
+class Matrix {
+  m4 = Float32Array.from(exports_mat4.create());
+  static HIDDEN = Matrix.create().identity().scale(0, 0, 0);
+  static IDENTITY = Matrix.create().identity();
+  constructor() {
+    this.identity();
+  }
+  static create() {
+    return new Matrix;
+  }
+  set(matrix) {
+    exports_mat4.copy(this.m4, matrix.getMatrix());
+    return this;
+  }
+  identity() {
+    exports_mat4.identity(this.m4);
+    return this;
+  }
+  invert(matrix) {
+    exports_mat4.invert(this.m4, matrix?.getMatrix() ?? this.getMatrix());
+    return this;
+  }
+  multiply(matrix) {
+    exports_mat4.multiply(this.m4, this.m4, matrix.getMatrix());
+    return this;
+  }
+  multiply2(matrix1, matrix2) {
+    exports_mat4.multiply(this.m4, matrix1.getMatrix(), matrix2.getMatrix());
+    return this;
+  }
+  multiply3(matrix1, matrix2, matrix3) {
+    this.multiply2(matrix1, matrix2);
+    this.multiply(matrix3);
+    return this;
+  }
+  translate(x, y, z) {
+    exports_mat4.translate(this.m4, this.m4, [x, y, z]);
+    return this;
+  }
+  translateToMatrix(matrix) {
+    const m4 = matrix.getMatrix();
+    return this.translate(-m4[12], -m4[13], -m4[14]);
+  }
+  rotateX(angle2) {
+    exports_mat4.rotateX(this.m4, this.m4, angle2);
+    return this;
+  }
+  rotateY(angle2) {
+    exports_mat4.rotateY(this.m4, this.m4, angle2);
+    return this;
+  }
+  rotateZ(angle2) {
+    exports_mat4.rotateZ(this.m4, this.m4, angle2);
+    return this;
+  }
+  setXRotation(angle2) {
+    exports_mat4.fromXRotation(this.getMatrix(), angle2);
+    return this;
+  }
+  setYRotation(angle2) {
+    exports_mat4.fromYRotation(this.getMatrix(), angle2);
+    return this;
+  }
+  scale(x, y, z) {
+    exports_mat4.scale(this.m4, this.m4, [x, y ?? x, z ?? x]);
+    return this;
+  }
+  perspective(degAngle, ratio, near, far) {
+    exports_mat4.perspective(this.m4, degAngle * DEG_TO_RADIANT, ratio, near, far);
+    return this;
+  }
+  ortho(left, right, bottom, top, near, far) {
+    exports_mat4.ortho(this.m4, left, right, bottom, top, near, far);
+    return this;
+  }
+  static aTemp = exports_mat4.create();
+  static bTemp = exports_mat4.create();
+  combine(matrix1, matrix2, level = 0.5) {
+    exports_mat4.multiplyScalar(Matrix.aTemp, matrix1.getMatrix(), 1 - level);
+    exports_mat4.multiplyScalar(Matrix.bTemp, matrix2.getMatrix(), level);
+    exports_mat4.add(this.m4, Matrix.aTemp, Matrix.bTemp);
+    return this;
+  }
+  static tempQuat = exports_quat.create();
+  static tempVec = exports_vec3.create();
+  moveMatrix(x, y, z, turnMatrix) {
+    const v = Matrix.tempVec;
+    v[0] = x;
+    v[1] = y;
+    v[2] = z;
+    if (turnMatrix) {
+      exports_mat4.getRotation(Matrix.tempQuat, turnMatrix.getMatrix());
+      exports_quat.invert(Matrix.tempQuat, Matrix.tempQuat);
+      exports_vec3.transformQuat(v, v, Matrix.tempQuat);
+    }
+    exports_mat4.translate(this.m4, this.m4, v);
+    return this;
+  }
+  setPosition(x, y, z) {
+    this.m4[12] = x;
+    this.m4[13] = y;
+    this.m4[14] = z;
+    return this;
+  }
+  getMatrix() {
+    return this.m4;
+  }
+}
+var Matrix_default = Matrix;
+
+// src/gl/transform/ProjectionMatrix.ts
+class ProjectionMatrix {
+  baseMatrix = Matrix_default.create();
+  perspectiveMatrix = Matrix_default.create();
+  orthoMatrix = Matrix_default.create();
+  perspectiveLevel = 1;
+  configPerspectiveMatrix(ratio) {
+    this.perspectiveMatrix.perspective(45, ratio, 0.01, 1e5);
+  }
+  configOrthoMatrix(ratio) {
+    this.orthoMatrix.ortho(-ratio, ratio, -1, 1, -1e5, 1e5);
+  }
+  configure(width, height2) {
+    const ratio = width / height2;
+    this.configPerspectiveMatrix(ratio);
+    this.configOrthoMatrix(ratio);
+  }
+  setPerspective(level) {
+    this.perspectiveLevel = level;
+  }
+  getMatrix() {
+    this.baseMatrix.combine(this.orthoMatrix, this.perspectiveMatrix, this.perspectiveLevel);
+    return this.baseMatrix.getMatrix();
+  }
+}
+
+// src/gl/utils/angleUtils.ts
+function angle2(value) {
+  return (value + Math.PI) % (2 * Math.PI) - Math.PI;
+}
+function angleStep(angle3, step) {
+  return Math.round(angle3 / step) * step;
+}
+
+// src/core/value/Progressive.ts
+class Progressive {
+  element;
+  getValue;
+  apply;
+  _goal;
+  active = false;
+  speed = 0;
+  locker;
+  constructor(element, getValue, apply) {
+    this.element = element;
+    this.getValue = getValue;
+    this.apply = apply;
+    this._goal = this.getValue(element);
+  }
+  setGoal(value, speed, locker) {
+    if (this.locker && this.locker !== locker) {
+      return;
+    }
+    if (this._goal !== value || this.speed !== speed) {
+      this.speed = speed;
+      this._goal = value;
+      this.locker = locker;
+      this.active = true;
+    }
+  }
+  get goal() {
+    return this._goal;
+  }
+  update(deltaTime) {
+    if (this.active) {
+      const curValue = this.getValue(this.element);
+      const diff = this.goal - curValue;
+      const dDist = Math.min(Math.abs(diff), this.speed * deltaTime);
+      if (dDist <= 0.01) {
+        this.apply(this.element, this.goal);
+        this.active = false;
+        this.locker = undefined;
+      } else {
+        this.apply(this.element, curValue + dDist * Math.sign(diff));
+      }
+    }
+    return this.active;
+  }
+}
+
+// src/gl/transform/TiltMatrix.ts
+class TiltMatrix {
+  onChange;
+  matrix = Matrix_default.create();
+  _tilt = 0;
+  progressive;
+  constructor(onChange) {
+    this.onChange = onChange;
+    this.progressive = new Progressive(this, (matrix) => matrix.tilt, (matrix, value) => matrix.tilt = value);
+  }
+  get tilt() {
+    return this._tilt;
+  }
+  set tilt(value) {
+    this._tilt = angle2(value);
+    this.matrix.setXRotation(this._tilt);
+    this.onChange?.();
+  }
+  getMatrix() {
+    return this.matrix.getMatrix();
+  }
+}
+
+// src/gl/transform/TurnMatrix.ts
+class TurnMatrix {
+  onChange;
+  matrix = Matrix_default.create();
+  _turn = 0;
+  progressive;
+  constructor(onChange) {
+    this.onChange = onChange;
+    this.progressive = new Progressive(this, (matrix) => matrix.turn, (matrix, value) => matrix.turn = value);
+  }
+  get turn() {
+    return this._turn;
+  }
+  set turn(value) {
+    this._turn = angle2(value);
+    this.matrix.setYRotation(this._turn);
+    this.onChange?.();
+  }
+  getMatrix() {
+    return this.matrix.getMatrix();
+  }
+}
+
+// src/updates/CameraUpdate.ts
+class CameraUpdate {
+  getCameraMatrix;
+  engine;
+  motor;
+  updatedTypes = new Set;
+  constructor(getCameraMatrix, engine, motor) {
+    this.getCameraMatrix = getCameraMatrix;
+    this.engine = engine;
+    this.motor = motor;
+  }
+  informUpdate(type) {
+    this.motor.registerUpdate(this.withCameraType(type));
+  }
+  withCameraType(type) {
+    this.updatedTypes.add(type);
+    return this;
+  }
+  refresh() {
+    this.updatedTypes.forEach((type) => this.engine.updateCameraMatrix(type, this.getCameraMatrix(type)));
+  }
+}
+
+// src/updates/CameraFloatUpdate.ts
+class CameraFloatUpdate {
+  getCameraFloat;
+  engine;
+  motor;
+  updatedTypes = new Set;
+  constructor(getCameraFloat, engine, motor) {
+    this.getCameraFloat = getCameraFloat;
+    this.engine = engine;
+    this.motor = motor;
+  }
+  informUpdate(type) {
+    this.motor.registerUpdate(this.withCameraType(type));
+  }
+  withCameraType(type) {
+    this.updatedTypes.add(type);
+    return this;
+  }
+  refresh() {
+    this.updatedTypes.forEach((type) => this.engine.updateCameraFloat(type, this.getCameraFloat(type)));
+  }
+}
+
+// src/world/grid/Position.ts
+function transformToPosition(transform, pos = _position) {
+  const m = transform.getMatrix();
+  pos[0] = m[12];
+  pos[1] = m[13];
+  pos[2] = m[14];
+  return pos;
+}
+var _position = [0, 0, 0];
+var _matrix = Matrix_default.create();
+
+// src/gl/transform/PositionMatrix.ts
+class PositionMatrix {
+  onChange;
+  matrix = Matrix_default.create().setPosition(0, 0, 0);
+  prePosition = [0, 0, 0];
+  position = [0, 0, 0];
+  constructor(onChange) {
+    this.onChange = onChange;
+  }
+  changedPosition() {
+    this.prePosition[0] = this.position[0];
+    this.prePosition[1] = this.position[1];
+    this.prePosition[2] = this.position[2];
+    transformToPosition(this.matrix, this.position);
+    this.onChange?.(this.prePosition);
+  }
+  moveMatrix(x, y, z, turnMatrix) {
+    this.matrix.moveMatrix(x, y, z, turnMatrix);
+    this.changedPosition();
+  }
+  setPosition(x, y, z) {
+    this.matrix.setPosition(x, y, z);
+    this.changedPosition();
+  }
+  getPosition() {
+    return this.position;
+  }
+  static _cellPos = [0, 0, 0, 0];
+  getCellPosition(cellSize) {
+    return PositionMatrix.getCellPos(this.getPosition(), cellSize);
+  }
+  static getCellPos(pos, cellSize) {
+    this._cellPos[0] = Math.floor(pos[0] / cellSize);
+    this._cellPos[1] = Math.floor(pos[1] / cellSize);
+    this._cellPos[2] = Math.floor(pos[2] / cellSize);
+    this._cellPos[3] = cellSize;
+    return this._cellPos;
+  }
+  translate(x, y, z) {
+    this.matrix.translate(x, y, z);
+    this.changedPosition();
+  }
+  getMatrix() {
+    return this.matrix.getMatrix();
+  }
+}
+
+// src/gl/camera/Camera.ts
+var CameraMatrixType;
+(function(CameraMatrixType2) {
+  CameraMatrixType2[CameraMatrixType2["PROJECTION"] = 0] = "PROJECTION";
+  CameraMatrixType2[CameraMatrixType2["POS"] = 1] = "POS";
+  CameraMatrixType2[CameraMatrixType2["TURN"] = 2] = "TURN";
+  CameraMatrixType2[CameraMatrixType2["TILT"] = 3] = "TILT";
+})(CameraMatrixType || (CameraMatrixType = {}));
+var CameraFloatType;
+(function(CameraFloatType2) {
+  CameraFloatType2[CameraFloatType2["CURVATURE"] = 0] = "CURVATURE";
+})(CameraFloatType || (CameraFloatType = {}));
+
+class Camera {
+  camMatrix = Matrix_default.create();
+  projectionMatrix = new ProjectionMatrix;
+  posMatrix = new PositionMatrix(() => this.updateInformer.informUpdate(CameraMatrixType.POS));
+  tiltMatrix = new TiltMatrix(() => this.updateInformer.informUpdate(CameraMatrixType.TILT));
+  turnMatrix = new TurnMatrix(() => this.updateInformer.informUpdate(CameraMatrixType.TURN));
+  pespectiveLevel = 1;
+  curvature = 0;
+  updateInformer;
+  updateInformerFloat;
+  constructor({ engine, motor }) {
+    this.updateInformer = new CameraUpdate(this.getCameraMatrix.bind(this), engine, motor);
+    this.updateInformerFloat = new CameraFloatUpdate(this.getCameraFloat.bind(this), engine, motor);
+  }
+  activate() {
+    this.updatePerspective();
+    this.updateInformer.informUpdate(CameraMatrixType.POS);
+    this.updateInformer.informUpdate(CameraMatrixType.TURN);
+    this.updateInformer.informUpdate(CameraMatrixType.TILT);
+  }
+  cameraMatrices = {
+    [CameraMatrixType.PROJECTION]: this.projectionMatrix,
+    [CameraMatrixType.POS]: this.camMatrix,
+    [CameraMatrixType.TURN]: this.turnMatrix,
+    [CameraMatrixType.TILT]: this.tiltMatrix
+  };
+  configProjectionMatrix(width, height2) {
+    this.projectionMatrix.configure(width, height2);
+    this.updateInformer.informUpdate(CameraMatrixType.PROJECTION);
+  }
+  updatePerspective(level) {
+    this.projectionMatrix.setPerspective(level ?? this.pespectiveLevel);
+    this.updateInformer.informUpdate(CameraMatrixType.PROJECTION);
+  }
+  updateCurvature(value) {
+    this.curvature = value;
+    this.updateInformerFloat.informUpdate(CameraFloatType.CURVATURE);
+  }
+  getCameraMatrix(cameraMatrixType) {
+    if (cameraMatrixType === CameraMatrixType.POS) {
+      this.camMatrix.invert(this.posMatrix);
+    }
+    return this.cameraMatrices[cameraMatrixType].getMatrix();
+  }
+  getCameraFloat(cameraFloatType) {
+    switch (cameraFloatType) {
+      case CameraFloatType.CURVATURE:
+        return this.curvature;
+    }
+  }
+  gotoPos(x, y, z, speed = 0.1) {
+    const curPos = this.getPosition();
+    const dx = x - curPos[0];
+    const dy = y - curPos[1];
+    const dz = z - curPos[2];
+    const dist2 = Math.sqrt(dx * dx + dy * dy + dz * dz);
+    if (dist2 > 0.01) {
+      const sp = Math.min(dist2, speed);
+      this.posMatrix.translate(dx / dist2 * sp, dy / dist2 * sp, dz / dist2 * sp);
+    } else {
+      this.posMatrix.setPosition(x, y, z);
+    }
+  }
+  moveCam(x, y, z) {
+    this.posMatrix.moveMatrix(x, y, z, this.turnMatrix);
+  }
+  turn(angle3) {
+    this.turnMatrix.turn += angle3;
+  }
+  tilt(angle3) {
+    this.tiltMatrix.tilt += angle3;
+  }
+  getPosition() {
+    return this.posMatrix.getPosition();
+  }
+  setPosition(x, y, z) {
+    this.posMatrix.setPosition(x, y, z);
+  }
+}
+
+// src/updates/RefreshOrder.ts
+var RefreshOrder;
+(function(RefreshOrder2) {
+  RefreshOrder2[RefreshOrder2["FIRST"] = Number.MIN_SAFE_INTEGER] = "FIRST";
+  RefreshOrder2[RefreshOrder2["DEFAULT"] = 0] = "DEFAULT";
+  RefreshOrder2[RefreshOrder2["LAST"] = Number.MAX_SAFE_INTEGER] = "LAST";
+})(RefreshOrder || (RefreshOrder = {}));
+
+// src/core/graphics/GraphicsEngine.ts
+var glProxy = function(gl) {
+  if (!LOG_GL) {
+    return gl;
+  }
+  const proxy = new Proxy(gl, {
+    get(target, prop) {
+      const t = target;
+      const result = t[prop];
+      if (typeof result === "function") {
+        const f = (...params) => {
+          const returnValue = result.apply(t, params);
+          console.log(`gl.${String(prop)}(`, params, ") = ", returnValue);
+          return returnValue;
+        };
+        return f;
+      } else {
+        console.log(`gl.${String(prop)} = `, result);
+        return result;
+      }
+    }
+  });
+  return proxy;
+};
+var DEFAULT_ATTRIBUTES = {
+  alpha: true,
+  antialias: false,
+  depth: true,
+  desynchronized: true,
+  failIfMajorPerformanceCaveat: undefined,
+  powerPreference: "default",
+  premultipliedAlpha: true,
+  preserveDrawingBuffer: false,
+  stencil: false
+};
+var VERTEX_COUNT = 6;
+var LOG_GL = false;
+
+class GraphicsEngine extends Disposable {
+  gl;
+  programs;
+  attributeBuffers;
+  uniforms;
+  canvas;
+  textureManager;
+  imageManager;
+  textureSlots = {};
+  onResize = new Set;
+  pixelListeners = new Set;
+  spriteCount = 0;
+  cameraMatrixUniforms = {};
+  cameraFloatUniforms = {};
+  refreshOrder = RefreshOrder.LAST;
+  constructor(canvas, {
+    attributes
+  } = {}) {
+    super();
+    const gl = canvas.getContext("webgl2", { ...DEFAULT_ATTRIBUTES, ...attributes });
+    this.gl = glProxy(gl);
+    this.canvas = canvas;
+    this.programs = this.own(new GLPrograms(this.gl));
+    this.uniforms = this.own(new GLUniforms(this.gl, this.programs));
+    this.attributeBuffers = this.own(new GLAttributeBuffers(this.gl, this.programs));
+    this.textureManager = new TextureManager(this.gl, this.uniforms);
+    this.imageManager = new ImageManager;
+    const onResize = this.checkCanvasSize.bind(this);
+    window.addEventListener("resize", onResize);
+    this.addOnDestroy(() => window.removeEventListener("resize", onResize));
+    this.initialize();
+  }
+  addResizeListener(listener) {
+    listener(this.gl.drawingBufferWidth, this.gl.drawingBufferHeight);
+    this.onResize.add(listener);
+    return () => this.removeResizeListener(listener);
+  }
+  removeResizeListener(listener) {
+    this.onResize.delete(listener);
+  }
+  clearTextureSlots() {
+    for (let i in this.textureSlots) {
+      delete this.textureSlots[i];
+    }
+  }
+  checkCanvasSize() {
+    if (this.canvas instanceof HTMLCanvasElement) {
+      this.canvas.width = this.canvas.offsetWidth * 2;
+      this.canvas.height = this.canvas.offsetHeight * 2;
+    }
+    this.gl.viewport(0, 0, this.gl.drawingBufferWidth, this.gl.drawingBufferHeight);
+    this.onResize.forEach((callback) => callback(this.gl.drawingBufferWidth, this.gl.drawingBufferHeight));
+  }
+  initialize() {
+    const PROGRAM_NAME = "main";
+    const replacementMap = {
+      AUTHOR: "Jack le hamster"
+    };
+    this.programs.addProgram(PROGRAM_NAME, replaceTilda(vertexShader_default, replacementMap), replaceTilda(fragmentShader_default, replacementMap));
+    this.programs.useProgram(PROGRAM_NAME);
+    this.cameraMatrixUniforms[CameraMatrixType.PROJECTION] = this.uniforms.getUniformLocation(CAM_PROJECTION_LOC, PROGRAM_NAME);
+    this.cameraMatrixUniforms[CameraMatrixType.POS] = this.uniforms.getUniformLocation(CAM_POS_LOC, PROGRAM_NAME);
+    this.cameraMatrixUniforms[CameraMatrixType.TURN] = this.uniforms.getUniformLocation(CAM_TURN_LOC, PROGRAM_NAME);
+    this.cameraMatrixUniforms[CameraMatrixType.TILT] = this.uniforms.getUniformLocation(CAM_TILT_LOC, PROGRAM_NAME);
+    this.cameraFloatUniforms[CameraFloatType.CURVATURE] = this.uniforms.getUniformLocation(CAM_CURVATURE_LOC, PROGRAM_NAME);
+    this.gl.enable(GL.DEPTH_TEST);
+    this.gl.depthFunc(GL.LESS);
+    this.gl.clearDepth(1);
+    this.gl.enable(GL.BLEND);
+    this.gl.blendFunc(GL.SRC_ALPHA, GL.ONE_MINUS_SRC_ALPHA);
+    this.gl.viewport(0, 0, this.gl.drawingBufferWidth, this.gl.drawingBufferHeight);
+    this.gl.disable(this.gl.CULL_FACE);
+    this.gl.clearColor(0, 0, 0, 1);
+    this.textureManager.initialize();
+    this.checkCanvasSize();
+  }
+  activate() {
+    this.clearTextureSlots();
+  }
+  setMaxSpriteCount(spriteCount) {
+    this.initializeBuffers(spriteCount);
+  }
+  onCleanupBuffers = new Set;
+  initializeBuffers(maxSpriteCount) {
+    this.onCleanupBuffers.forEach((cleanup) => cleanup());
+    this.onCleanupBuffers.clear();
+    if (maxSpriteCount) {
+      const cleanups = [
+        this.initializeIndexBuffer(INDEX_LOC),
+        this.initializePositionBuffer(POSITION_LOC),
+        this.initializeTransformBuffer(TRANSFORM_LOC, maxSpriteCount),
+        this.initializeSlotSizeBuffer(SLOT_SIZE_LOC, maxSpriteCount),
+        this.initializeInstanceBuffer(INSTANCE_LOC, maxSpriteCount),
+        this.initializeFlagBuffer(INSTANCE_LOC, maxSpriteCount)
+      ];
+      cleanups.forEach((cleanup) => this.onCleanupBuffers.add(cleanup));
+    }
+  }
+  initializeIndexBuffer(location) {
+    const bufferInfo = this.attributeBuffers.createBuffer(location);
+    this.gl.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, bufferInfo.buffer);
+    this.gl.bufferData(GL.ELEMENT_ARRAY_BUFFER, Uint16Array.from([0, 1, 2, 2, 3, 0]), GL.STATIC_DRAW);
+    return () => {
+      this.attributeBuffers.deleteBuffer(location);
+    };
+  }
+  initializePositionBuffer(location) {
+    const bufferInfo = this.attributeBuffers.createBuffer(location);
+    this.gl.bindBuffer(GL.ARRAY_BUFFER, bufferInfo.buffer);
+    this.gl.vertexAttribPointer(bufferInfo.location, 2, GL.FLOAT, false, 0, 0);
+    this.gl.enableVertexAttribArray(bufferInfo.location);
+    this.gl.bufferData(GL.ARRAY_BUFFER, Float32Array.from([-1, -1, 1, -1, 1, 1, -1, 1]), GL.STATIC_DRAW);
+    return () => {
+      this.gl.disableVertexAttribArray(bufferInfo.location);
+      this.attributeBuffers.deleteBuffer(location);
+    };
+  }
+  initializeTransformBuffer(location, spriteCount) {
+    const bufferInfo = this.attributeBuffers.createBuffer(location);
+    this.gl.bindBuffer(GL.ARRAY_BUFFER, bufferInfo.buffer);
+    const elemCount = 4;
+    const bytesPerRow = elemCount * Float32Array.BYTES_PER_ELEMENT;
+    const bytesPerInstance = 4 * bytesPerRow;
+    for (let i = 0;i < 4; i++) {
+      const loc = bufferInfo.location + i;
+      this.gl.vertexAttribPointer(loc, elemCount, GL.FLOAT, false, bytesPerInstance, i * bytesPerRow);
+      this.gl.enableVertexAttribArray(loc);
+      this.gl.vertexAttribDivisor(loc, 1);
+    }
+    this.gl.bufferData(GL.ARRAY_BUFFER, spriteCount * bytesPerInstance, GL.DYNAMIC_DRAW);
+    return () => {
+      this.gl.disableVertexAttribArray(bufferInfo.location);
+      this.attributeBuffers.deleteBuffer(location);
+    };
+  }
+  initializeSlotSizeBuffer(location, spriteCount) {
+    const bufferInfo = this.attributeBuffers.createBuffer(location);
+    this.gl.bindBuffer(GL.ARRAY_BUFFER, bufferInfo.buffer);
+    const loc = bufferInfo.location;
+    const elemCount = 2;
+    const bytesPerInstance = elemCount * Float32Array.BYTES_PER_ELEMENT;
+    this.gl.vertexAttribPointer(loc, elemCount, GL.FLOAT, false, bytesPerInstance, 0);
+    this.gl.enableVertexAttribArray(loc);
+    this.gl.vertexAttribDivisor(loc, 1);
+    this.gl.bufferData(GL.ARRAY_BUFFER, spriteCount * bytesPerInstance, GL.DYNAMIC_DRAW);
+    return () => {
+      this.gl.disableVertexAttribArray(bufferInfo.location);
+      this.attributeBuffers.deleteBuffer(location);
+    };
+  }
+  initializeInstanceBuffer(location, instanceCount) {
+    const bufferInfo = this.attributeBuffers.createBuffer(location);
+    this.gl.bindBuffer(GL.ARRAY_BUFFER, bufferInfo.buffer);
+    const loc = bufferInfo.location;
+    const elemCount = 1;
+    this.gl.vertexAttribPointer(loc, elemCount, GL.FLOAT, false, elemCount * Float32Array.BYTES_PER_ELEMENT, 0);
+    this.gl.enableVertexAttribArray(loc);
+    this.gl.vertexAttribDivisor(loc, 1);
+    this.gl.bufferData(GL.ARRAY_BUFFER, Float32Array.from(new Array(instanceCount).fill(null).map((_, index) => index)), GL.STATIC_DRAW);
+    return () => {
+      this.gl.disableVertexAttribArray(bufferInfo.location);
+      this.attributeBuffers.deleteBuffer(location);
+    };
+  }
+  initializeFlagBuffer(location, instanceCount) {
+    const bufferInfo = this.attributeBuffers.createBuffer(location);
+    this.gl.bindBuffer(GL.ARRAY_BUFFER, bufferInfo.buffer);
+    const loc = bufferInfo.location;
+    const elemCount = 1;
+    const bytesPerInstance = elemCount * Float32Array.BYTES_PER_ELEMENT;
+    this.gl.vertexAttribPointer(loc, elemCount, GL.FLOAT, false, bytesPerInstance, 0);
+    this.gl.enableVertexAttribArray(loc);
+    this.gl.vertexAttribDivisor(loc, 1);
+    this.gl.bufferData(GL.ARRAY_BUFFER, instanceCount * bytesPerInstance, GL.STATIC_DRAW);
+    return () => {
+      this.gl.disableVertexAttribArray(bufferInfo.location);
+      this.attributeBuffers.deleteBuffer(location);
+    };
+  }
+  async updateTextures(imageIds, getMedia) {
+    const mediaInfos = (await Promise.all(imageIds.map(async (imageId) => {
+      const media = getMedia(imageId);
+      if (!media) {
+        console.warn(`No media for imageId ${imageId}`);
+        return;
+      }
+      const mediaData = await this.imageManager.renderMedia(imageId, media);
+      return { mediaData, imageId };
+    }))).filter((data) => !!data);
+    const textureIndices = await Promise.all(mediaInfos.map(async ({ mediaData, imageId }) => {
+      const { slot, refreshCallback } = this.textureManager.allocateSlotForImage(mediaData);
+      const slotW = Math.log2(slot.size[0]), slotH = Math.log2(slot.size[1]);
+      const wh = slotW * 16 + slotH;
+      this.textureSlots[imageId] = {
+        buffer: Float32Array.from([wh, slot.slotNumber])
+      };
+      mediaData.refreshCallback = refreshCallback;
+      return slot.textureIndex;
+    }));
+    const textureIndicesSet = new Set(textureIndices);
+    textureIndicesSet.forEach((textureIndex) => {
+      if (textureIndex === TEXTURE_INDEX_FOR_VIDEO) {
+        this.textureManager.setupTextureForVideo(`TEXTURE${textureIndex}`);
+      } else {
+        this.textureManager.generateMipMap(`TEXTURE${textureIndex}`);
+      }
+    });
+    return mediaInfos.map(({ mediaData }) => mediaData);
+  }
+  drawElementsInstanced(vertexCount, instances) {
+    this.gl.drawElementsInstanced(GL.TRIANGLES, vertexCount, GL.UNSIGNED_SHORT, 0, instances);
+  }
+  updateSpriteTransforms(spriteIds, sprites) {
+    const bufferInfo = this.attributeBuffers.getAttributeBuffer(TRANSFORM_LOC);
+    this.gl.bindBuffer(GL.ARRAY_BUFFER, bufferInfo.buffer);
+    let topVisibleSprite = this.spriteCount - 1;
+    spriteIds.forEach((spriteId) => {
+      const sprite = sprites.at(spriteId);
+      this.gl.bufferSubData(GL.ARRAY_BUFFER, 16 * Float32Array.BYTES_PER_ELEMENT * spriteId, (sprite?.transform ?? Matrix_default.HIDDEN).getMatrix());
+      if (sprite) {
+        topVisibleSprite = Math.max(topVisibleSprite, spriteId);
+      }
+    });
+    spriteIds.clear();
+    while (topVisibleSprite >= 0 && !sprites.at(topVisibleSprite)) {
+      topVisibleSprite--;
+    }
+    this.spriteCount = Math.max(this.spriteCount, topVisibleSprite + 1);
+  }
+  updateSpriteAnims(spriteIds, sprites) {
+    const bufferInfo = this.attributeBuffers.getAttributeBuffer(SLOT_SIZE_LOC);
+    this.gl.bindBuffer(GL.ARRAY_BUFFER, bufferInfo.buffer);
+    spriteIds.forEach((spriteId) => {
+      const sprite = sprites.at(spriteId);
+      const slotObj = this.textureSlots[sprite?.imageId ?? -1];
+      if (slotObj) {
+        const { buffer } = slotObj;
+        this.gl.bufferSubData(GL.ARRAY_BUFFER, 2 * Float32Array.BYTES_PER_ELEMENT * spriteId, buffer);
+        spriteIds.delete(spriteId);
+      }
+    });
+  }
+  updateCameraMatrix(type, matrix) {
+    this.gl.uniformMatrix4fv(this.cameraMatrixUniforms[type], false, matrix);
+  }
+  updateCameraFloat(type, value) {
+    this.gl.uniform1f(this.cameraFloatUniforms[type], value);
+  }
+  bindVertexArray() {
+    return this.own(new VertexArray(this.gl));
+  }
+  addPixelListener(listener) {
+    this.pixelListeners.add(listener);
+    return () => {
+      this.removePixelListener(listener);
+    };
+  }
+  removePixelListener(listener) {
+    this.pixelListeners.delete(listener);
+  }
+  _pixel = new Uint8Array(4);
+  getPixel(x, y) {
+    this.gl.readPixels(x, y, 1, 1, this.gl.RGBA, this.gl.UNSIGNED_BYTE, this._pixel);
+    const [r, g, b, _a] = this._pixel;
+    return r * 65536 + g * 256 + b;
+  }
+  refresh() {
+    this.gl.clear(GL.COLOR_BUFFER_BIT);
+    this.drawElementsInstanced(VERTEX_COUNT, this.spriteCount);
+    for (const listener of this.pixelListeners) {
+      listener.pixel = this.getPixel(listener.x, listener.y);
+    }
+  }
+}
+
+// src/core/motor/Motor.ts
+var MAX_DELTA_TIME = 50;
+var Priority;
+(function(Priority2) {
+  Priority2[Priority2["DEFAULT"] = 0] = "DEFAULT";
+  Priority2[Priority2["LAST"] = 1] = "LAST";
+})(Priority || (Priority = {}));
+
+class Motor {
+  updateSchedule = new Map;
+  time = 0;
+  loop(update, frameRate, priority, expirationTime) {
+    return this.registerUpdate(update, { period: frameRate ? 1000 / frameRate : 1, expirationTime, priority });
+  }
+  registerUpdate(update, schedule = {}) {
+    schedule.triggerTime = schedule.triggerTime ?? this.time;
+    schedule.expirationTime = schedule.expirationTime ?? Infinity;
+    schedule.period = schedule.period;
+    schedule.priority = schedule.priority ?? Priority.DEFAULT;
+    this.updateSchedule.set(update, schedule);
+    return () => this.deregisterUpdate(update);
+  }
+  deregisterUpdate(update) {
+    this.updateSchedule.delete(update);
+  }
+  activate() {
+    let handle = 0;
+    const updatePayload = {
+      time: 0,
+      deltaTime: 0
+    };
+    const normalUpdates = [];
+    const lastUpdates = [];
+    const updateList = [normalUpdates, lastUpdates];
+    const loop = (time) => {
+      updatePayload.deltaTime = Math.min(time - updatePayload.time, MAX_DELTA_TIME);
+      updatePayload.time = time;
+      handle = requestAnimationFrame(loop);
+      this.time = time;
+      normalUpdates.length = 0;
+      lastUpdates.length = 0;
+      this.updateSchedule.forEach((schedule, update) => {
+        if (time < schedule.triggerTime) {
+          return;
+        }
+        updateList[schedule.priority].push(update);
+        if (schedule.period && time < schedule.expirationTime) {
+          schedule.triggerTime = Math.max(schedule.triggerTime + schedule.period, time);
+        } else {
+          this.updateSchedule.delete(update);
+        }
+      });
+      updateList.forEach((updates) => updates.forEach((update) => update.refresh(updatePayload)));
+    };
+    requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(handle);
+  }
+}
+
+// src/controls/Keyboard.ts
+var QUICK_TAP_TIME = 200;
+
+class Keyboard {
+  timeProvider;
+  keys = {};
+  keysUp = {};
+  keyDownListener = new Set;
+  keyUpListener = new Set;
+  quickTapListener = new Set;
+  isActive = false;
+  constructor(timeProvider) {
+    this.timeProvider = timeProvider;
+    this.keyDown = this.keyDown.bind(this);
+    this.keyUp = this.keyUp.bind(this);
+  }
+  keyDown(e) {
+    if (!this.keys[e.code]) {
+      const time = this.timeProvider.time;
+      this.keys[e.code] = time;
+      this.keyDownListener.forEach((listener) => listener.onKeyDown?.(e.code, time));
+    }
+    e.preventDefault();
+  }
+  keyUp(e) {
+    const quickTap = this.timeProvider.time - this.keys[e.code] < QUICK_TAP_TIME;
+    this.keysUp[e.code] = this.timeProvider.time;
+    this.keys[e.code] = 0;
+    this.keyUpListener.forEach((listener) => listener.onKeyUp?.(e.code, this.timeProvider.time));
+    if (quickTap) {
+      this.quickTapListener.forEach((listener) => listener.onQuickTap?.(e.code, this.timeProvider.time));
+    }
+  }
+  activate() {
+    this.setActive(true);
+    return () => this.setActive(false);
+  }
+  setActive(value) {
+    if (this.isActive !== value) {
+      this.isActive = value;
+      document.removeEventListener("keydown", this.keyDown);
+      document.removeEventListener("keyup", this.keyUp);
+      if (this.isActive) {
+        document.addEventListener("keydown", this.keyDown);
+        document.addEventListener("keyup", this.keyUp);
+      }
+    }
+  }
+  addListener(listener) {
+    if (listener.onKeyDown) {
+      this.keyDownListener.add(listener);
+    }
+    if (listener.onKeyUp) {
+      this.keyUpListener.add(listener);
+    }
+    if (listener.onQuickTap) {
+      this.quickTapListener.add(listener);
+    }
+    return () => {
+      this.removeListener(listener);
+    };
+  }
+  removeListener(listener) {
+    this.keyDownListener.delete(listener);
+    this.keyUpListener.delete(listener);
+    this.quickTapListener.delete(listener);
+  }
+}
+
+// src/core/aux/ResizeAux.ts
+class ResizeAux {
+  engine;
+  camera;
+  constructor({ engine, camera }) {
+    this.engine = engine;
+    this.camera = camera;
+  }
+  activate() {
+    return this.handleResize();
+  }
+  handleResize() {
+    const { engine } = this;
+    const onResize = (width, height2) => {
+      this.camera.configProjectionMatrix(width, height2);
+    };
+    return engine.addResizeListener(onResize);
+  }
+}
+
+// src/core/Core.ts
+class Core extends AuxiliaryHolder {
+  motor;
+  engine;
+  keyboard;
+  camera;
+  constructor({ motor, canvas, engine, keyboard, size, camera }) {
+    super();
+    this.motor = motor ?? new Motor;
+    this.engine = engine ?? new GraphicsEngine(canvas ?? new OffscreenCanvas(size[0], size[1]));
+    this.keyboard = keyboard ?? new Keyboard(this.motor);
+    this.camera = camera ?? new Camera(this);
+  }
+  start(world) {
+    const { motor, engine, keyboard, camera } = this;
+    const deregisterLoop = motor.loop(this);
+    const onRemoveAux = this.addAuxiliary(world, motor, engine, keyboard, camera, new ResizeAux(this));
+    const clearActivate = this.activate();
+    return () => {
+      deregisterLoop();
+      onRemoveAux();
+      clearActivate?.();
+      this.deactivate();
+    };
+  }
+}
+
+// src/world/grid/CellPos.ts
+function cellTag(x, y, z, cellSize) {
+  return `(${x},${y},${z})_${cellSize}`;
+}
+
+// src/gl/transform/aux/CellChangeAuxiliary.ts
+class CellChangeAuxiliary {
+  matrix;
+  cellSize;
+  cell;
+  visitCellObj;
+  refreshOrder = RefreshOrder.FIRST;
+  constructor({ matrix, visitCell }, config) {
+    this.matrix = matrix;
+    this.cellSize = config?.cellSize ?? 1;
+    this.visitCellObj = visitCell;
+    this.cell = { pos: [0, 0, 0, this.cellSize], tag: "" };
+    const cellPos = matrix.getCellPosition(this.cellSize);
+    this.cell.pos[0] = cellPos[0];
+    this.cell.pos[1] = cellPos[1];
+    this.cell.pos[2] = cellPos[2];
+    this.cell.tag = cellTag(...this.cell.pos);
+  }
+  activate() {
+    this.visitCellObj.visitCell(this.cell);
+  }
+  refresh(updatePayload) {
+    const [x, y, z] = this.matrix.getCellPosition(this.cellSize);
+    if (this.cell.pos[0] !== x || this.cell.pos[1] !== y || this.cell.pos[2] !== z) {
+      this.cell.pos[0] = x;
+      this.cell.pos[1] = y;
+      this.cell.pos[2] = z;
+      this.cell.tag = cellTag(...this.cell.pos);
+      this.visitCellObj.visitCell(this.cell, updatePayload);
+    }
+  }
+}
+
+// src/world/aux/Auxiliaries.ts
+class Auxiliaries {
+  auxiliaries;
+  active = false;
+  constructor(auxiliaries) {
+    this.auxiliaries = auxiliaries;
+  }
+  static from(...aux) {
+    return new Auxiliaries(aux);
+  }
+  get length() {
+    return this.auxiliaries.length;
+  }
+  at(index) {
+    return this.auxiliaries.at(index);
+  }
+  refresh(updatePayload) {
+    forEach(this.auxiliaries, (aux) => aux.refresh?.(updatePayload));
+  }
+  activate() {
+    if (!this.active) {
+      this.active = true;
+      const onDeactivates = map(this.auxiliaries, (aux) => aux.activate?.());
+      return () => onDeactivates.forEach((d) => d?.());
+    }
+  }
+  deactivate() {
+    if (this.active) {
+      this.active = false;
+      forEach(this.auxiliaries, (aux) => aux.deactivate?.());
+    }
+  }
+}
+
+// src/world/aux/CamMoveAuxiliary.ts
+class CamMoveAuxiliary {
+  keyboard;
+  camera;
+  config;
+  constructor(props, config) {
+    this.keyboard = props.keyboard;
+    this.camera = props.camera;
+    this.config = {
+      speed: config?.speed ?? 1
+    };
+  }
+  refresh(update) {
+    const { keys } = this.keyboard;
+    const { deltaTime } = update;
+    const speed = deltaTime / 80 * this.config.speed;
+    const turnspeed = deltaTime / 400;
+    if (keys.KeyW || keys.ArrowUp && !keys.ShiftRight) {
+      this.camera.moveCam(0, 0, -speed);
+    }
+    if (keys.KeyS || keys.ArrowDown && !keys.ShiftRight) {
+      this.camera.moveCam(0, 0, speed);
+    }
+    if (keys.KeyA || keys.ArrowLeft && !keys.ShiftRight) {
+      this.camera.moveCam(-speed, 0, 0);
+    }
+    if (keys.KeyD || keys.ArrowRight && !keys.ShiftRight) {
+      this.camera.moveCam(speed, 0, 0);
+    }
+    if (keys.KeyQ || keys.ArrowLeft && keys.ShiftRight) {
+      this.camera.turn(-turnspeed);
+    }
+    if (keys.KeyE || keys.ArrowRight && keys.ShiftRight) {
+      this.camera.turn(turnspeed);
+    }
+    if (keys.ArrowUp && keys.ShiftRight) {
+      this.camera.tilt(-turnspeed);
+    }
+    if (keys.ArrowDown && keys.ShiftRight) {
+      this.camera.tilt(turnspeed);
+    }
+  }
+}
+
+// src/world/aux/CamStepAuxiliary.ts
+class CamStepAuxiliary {
+  keyboard;
+  camera;
+  goalPos;
+  stepCount = 0;
+  turnCount = 0;
+  tiltCount = 0;
+  config;
+  constructor({ keyboard, camera }, config = {}) {
+    this.keyboard = keyboard;
+    this.camera = camera;
+    const camPos = this.camera.getPosition();
+    this.goalPos = [...camPos];
+    this.config = {
+      step: config.step ?? 2,
+      turnStep: config.turnStep ?? Math.PI / 2,
+      tiltStep: config.tiltStep ?? Math.PI / 2,
+      speed: config.speed ?? 1
+    };
+  }
+  prePos = [0, 0, 0];
+  refresh(update) {
+    const { keys } = this.keyboard;
+    const { deltaTime } = update;
+    const pos = this.camera.getPosition();
+    const { step, turnStep, tiltStep } = this.config;
+    this.prePos[0] = Math.round(pos[0] / step) * step;
+    this.prePos[1] = Math.round(pos[1] / step) * step;
+    this.prePos[2] = Math.round(pos[2] / step) * step;
+    let dx = 0, dz = 0;
+    if (keys.KeyW || keys.ArrowUp && !keys.ShiftRight) {
+      dz--;
+    }
+    if (keys.KeyS || keys.ArrowDown && !keys.ShiftRight) {
+      dz++;
+    }
+    if (keys.KeyA || keys.ArrowLeft && !keys.ShiftRight) {
+      dx--;
+    }
+    if (keys.KeyD || keys.ArrowRight && !keys.ShiftRight) {
+      dx++;
+    }
+    const turnGoal = this.camera.turnMatrix.progressive.goal;
+    if (dx || dz || this.stepCount > 0) {
+      const relativeDx = dx * Math.cos(turnGoal) - dz * Math.sin(turnGoal);
+      const relativeDz = dx * Math.sin(turnGoal) + dz * Math.cos(turnGoal);
+      const gx = Math.round(pos[0] / step + relativeDx) * step;
+      const gz = Math.round(pos[2] / step + relativeDz) * step;
+      this.goalPos[0] = gx;
+      this.goalPos[2] = gz;
+    }
+    if (!dx && !dz) {
+      this.stepCount = 0;
+    }
+    const speed = (dx || dz ? deltaTime / 150 : deltaTime / 100) * this.config.speed;
+    this.camera.gotoPos(this.goalPos[0], pos[1], this.goalPos[2], speed);
+    const newPos = this.camera.getPosition();
+    if (Math.round(newPos[0] / step) * step !== this.prePos[0] || Math.round(newPos[1] / step) * step !== this.prePos[1] || Math.round(newPos[2] / step) * step !== this.prePos[2]) {
+      this.stepCount++;
+    }
+    let dTurn = 0;
+    if (keys.KeyQ || keys.ArrowLeft && keys.ShiftRight) {
+      dTurn--;
+    }
+    if (keys.KeyE || keys.ArrowRight && keys.ShiftRight) {
+      dTurn++;
+    }
+    const turn = angleStep(this.camera.turnMatrix.turn, turnStep);
+    if (dTurn || this.turnCount > 0) {
+      this.camera.turnMatrix.progressive.setGoal(angleStep(turn + turnStep * dTurn, turnStep), dTurn ? 0.005 : 0.01, this);
+    }
+    if (!dTurn) {
+      this.turnCount = 0;
+    }
+    if (this.camera.turnMatrix.progressive.update(deltaTime)) {
+      const newTurn = angleStep(this.camera.turnMatrix.turn, turnStep);
+      if (newTurn !== turn) {
+        this.turnCount++;
+      }
+    }
+    let dTilt = 0;
+    if (keys.ArrowUp && keys.ShiftRight) {
+      dTilt--;
+    }
+    if (keys.ArrowDown && keys.ShiftRight) {
+      dTilt++;
+    }
+    const tilt = angleStep(this.camera.tiltMatrix.tilt, tiltStep);
+    if (dTilt || this.tiltCount > 0) {
+      this.camera.tiltMatrix.progressive.setGoal(angleStep(tilt + tiltStep * dTilt, tiltStep), dTilt ? 0.0025 : 0.005, this);
+    }
+    if (!dTilt) {
+      this.tiltCount = 0;
+    }
+    if (this.camera.tiltMatrix.progressive.update(deltaTime)) {
+      const newTilt = angleStep(this.camera.tiltMatrix.tilt, tiltStep);
+      if (newTilt !== tilt) {
+        this.tiltCount++;
+      }
+    }
+  }
+}
+
+// src/world/aux/CamTiltResetAuxiliary.ts
+class CamTiltResetAuxiliary {
+  keyboard;
+  camera;
+  key;
+  resetting = false;
+  constructor(props, config) {
+    this.keyboard = props.keyboard;
+    this.camera = props.camera;
+    this.key = config.key;
+  }
+  activate() {
+    const removeListener = this.keyboard.addListener({
+      onQuickTap: (keyCode) => {
+        if (keyCode === this.key) {
+          this.resetting = true;
+          this.camera.tiltMatrix.progressive.setGoal(0, 0.0033333333333333335, this);
+        }
+      }
+    });
+    return () => removeListener();
+  }
+  refresh(update) {
+    if (this.resetting) {
+      const { deltaTime } = update;
+      if (!this.camera.tiltMatrix.progressive.update(deltaTime)) {
+        this.resetting = false;
+      }
+    }
+  }
+}
+
+// src/world/aux/RiseAuxiliary.ts
+class RiseAuxiliary {
+  keyboard;
+  camera;
+  key;
+  dropping = false;
+  constructor({ keyboard, camera }, config = { key: "Space" }) {
+    this.keyboard = keyboard;
+    this.camera = camera;
+    this.key = config.key;
+  }
+  activate() {
+    const removeListener = this.keyboard.addListener({
+      onQuickTap: (keyCode) => {
+        if (keyCode === this.key) {
+          this.dropping = true;
+        }
+      }
+    });
+    return () => removeListener();
+  }
+  refresh(update) {
+    const { deltaTime } = update;
+    this.riseAndDrop(deltaTime, this.keyboard);
+  }
+  riseAndDrop(deltaTime, keyboard) {
+    const speed = deltaTime / 80;
+    const { keys } = keyboard;
+    if (keys[this.key]) {
+      this.camera.moveCam(0, speed, 0);
+    } else if (this.dropping) {
+      this.camera.moveCam(0, -speed, 0);
+      const [x, y, z] = this.camera.getPosition();
+      if (y < 0) {
+        this.camera.setPosition(x, 0, z);
+        this.dropping = false;
+      }
+    }
+  }
+}
+
+// src/world/aux/ToggleAuxiliary.ts
+class ToggleAuxiliary {
+  keyboard;
+  active = false;
+  toggleIndex = 0;
+  pendingDeactivate;
+  keys;
+  auxiliaries;
+  constructor({ keyboard }, config) {
+    this.keyboard = keyboard;
+    this.keys = map(config.auxiliariesMapping, ({ key }) => key);
+    this.keyboard.addListener({
+      onKeyDown: (keyCode) => {
+        if (this.keys.indexOf(keyCode) >= 0) {
+          const wasActive = this.active;
+          this.deactivate();
+          this.toggle(keyCode);
+          if (wasActive) {
+            this.activate();
+          }
+        }
+      }
+    });
+    this.auxiliaries = map(config.auxiliariesMapping, ({ aux }) => aux);
+  }
+  get auxiliary() {
+    return this.auxiliaries.at(this.toggleIndex);
+  }
+  toggle(key) {
+    if (this.keys[this.toggleIndex] !== key) {
+      this.toggleIndex = this.keys.indexOf(key);
+    } else {
+      const nextIndex = this.keys.length ? (this.toggleIndex + 1) % this.keys.length : 0;
+      if (this.keys[nextIndex] === key) {
+        this.toggleIndex = nextIndex;
+      }
+    }
+  }
+  refresh(updatePayload) {
+    this.auxiliary?.refresh?.(updatePayload);
+  }
+  activate() {
+    if (!this.active) {
+      this.active = true;
+      this.pendingDeactivate = this.auxiliary?.activate?.();
+    }
+  }
+  deactivate() {
+    if (this.active) {
+      this.active = false;
+      this.pendingDeactivate?.();
+      this.auxiliary?.deactivate?.();
+    }
+  }
+}
+
+// src/world/grid/CellTracker.ts
+class CellTracker {
+  cellTrack;
+  range;
+  base;
+  cellLimit;
+  cellSize;
+  tempCell;
+  cellTagVisitsStart;
+  cellTagVisitsEnd;
+  cellTagMap = new Map;
+  constructor(cellTrack, { range, cellLimit, cellSize = 1 } = {}) {
+    this.cellTrack = cellTrack;
+    this.range = [range?.[0] ?? 3, range?.[1] ?? 3, range?.[2] ?? 3];
+    this.base = this.range.map((r) => Math.ceil(-r / 2));
+    this.cellLimit = Math.max(0, cellLimit ?? 10);
+    this.cellSize = cellSize ?? 1;
+    this.cellTagVisitsStart = { value: "start" };
+    this.cellTagVisitsEnd = { value: "end" };
+    this.cellTagVisitsStart.next = this.cellTagVisitsEnd;
+    this.cellTagVisitsEnd.prev = this.cellTagVisitsStart;
+    this.tempCell = {
+      pos: [0, 0, 0, this.cellSize],
+      tag: ""
+    };
+  }
+  getCellTags() {
+    const tags = [];
+    for (let e = this.cellTagVisitsStart.next;e !== this.cellTagVisitsEnd; e = e.next) {
+      tags.push(e.value);
+    }
+    return tags;
+  }
+  iterateCells(visitedCell, callback) {
+    const { range, base, tempCell } = this;
+    const { pos } = visitedCell;
+    for (let z = 0;z < range[0]; z++) {
+      for (let x = 0;x < range[2]; x++) {
+        for (let y = 0;y < range[1]; y++) {
+          tempCell.pos[0] = pos[0] + x + base[0];
+          tempCell.pos[1] = pos[1] + y + base[1];
+          tempCell.pos[2] = pos[2] + z + base[2];
+          tempCell.tag = cellTag(...tempCell.pos);
+          callback(tempCell);
+        }
+      }
+    }
+  }
+  visitCell(visitedCell) {
+    this.iterateCells(visitedCell, (cell) => {
+      let entry = this.cellTagMap.get(cell.tag);
+      if (entry) {
+        if (entry.prev) {
+          entry.prev.next = entry.next;
+        }
+        if (entry.next) {
+          entry.next.prev = entry.prev;
+        }
+        entry.prev = undefined;
+        entry.next = undefined;
+      } else {
+        this.cellTrack.trackCell?.(cell);
+        entry = { value: cell.tag };
+        this.cellTagMap.set(cell.tag, entry);
+      }
+      entry.prev = this.cellTagVisitsEnd.prev;
+      entry.prev.next = entry;
+      this.cellTagVisitsEnd.prev = entry;
+      entry.next = this.cellTagVisitsEnd;
+    });
+    while (this.cellTagMap.size > this.cellLimit && this.cellTagVisitsStart) {
+      const entryToRemove = this.cellTagVisitsStart.next;
+      const newFirstEntry = entryToRemove.next;
+      this.cellTagMap.delete(entryToRemove.value);
+      this.cellTagVisitsStart.next = newFirstEntry;
+      newFirstEntry.prev = this.cellTagVisitsStart;
+      this.cellTrack.untrackCell?.(entryToRemove.value);
+    }
+  }
+}
+
+// src/world/sprite/aux/SpriteGrid.ts
+class SpriteGrid {
+  getSpritesAtCell;
+  slots = [];
+  spriteLimit;
+  ranges;
+  informUpdate(_id, _type) {
+  }
+  constructor(config, getSpritesAtCell = () => []) {
+    this.getSpritesAtCell = getSpritesAtCell;
+    this.spriteLimit = config?.spriteLimit ?? 100;
+    this.ranges = [
+      config?.xRange ?? [Number.MIN_SAFE_INTEGER, Number.MAX_SAFE_INTEGER],
+      config?.yRange ?? [Number.MIN_SAFE_INTEGER, Number.MAX_SAFE_INTEGER],
+      config?.zRange ?? [Number.MIN_SAFE_INTEGER, Number.MAX_SAFE_INTEGER]
+    ];
+  }
+  get length() {
+    return this.spriteLimit;
+  }
+  at(index) {
+    return index < this.length ? this.slots[index]?.sprite : undefined;
+  }
+  trackCell(cell) {
+    const [[minX, maxX], [minY, maxY], [minZ, maxZ]] = this.ranges;
+    const [x, y, z] = cell.pos;
+    if (x < minX || maxX < x || y < minY || maxY < y || z < minZ || maxZ < z) {
+      return;
+    }
+    forEach(this.getSpritesAtCell(cell), (sprite) => {
+      if (sprite) {
+        this.informUpdate(this.slots.length);
+        this.slots.push({
+          sprite,
+          tag: cell.tag
+        });
+      }
+    });
+  }
+  untrackCell(cellTag2) {
+    for (let i = this.slots.length - 1;i >= 0; i--) {
+      const slot = this.slots[i];
+      if (slot.tag === cellTag2) {
+        this.informUpdate(i, SpriteUpdateType.ALL);
+        this.informUpdate(this.slots.length - 1, SpriteUpdateType.TRANSFORM);
+        this.slots[i] = this.slots[this.slots.length - 1];
+        this.slots.pop();
+      }
+    }
+  }
+}
+
+// src/world/sprite/aux/FixedSpriteGrid.ts
+var EMPTY = [];
+
+class FixedSpriteGrid extends SpriteGrid {
+  sprites;
+  cellSize;
+  spritesPerCell = {};
+  constructor(config, sprites) {
+    super({ spriteLimit: config.spriteLimit ?? sprites.length }, (cell) => {
+      return this.spritesPerCell[cell.tag] ?? EMPTY;
+    });
+    this.sprites = sprites;
+    this.cellSize = config.cellSize ?? 1;
+  }
+  activate() {
+    forEach(this.sprites, (sprite) => {
+      if (sprite) {
+        const pos = transformToPosition(sprite.transform);
+        const cellPos = PositionMatrix.getCellPos(pos, this.cellSize);
+        const tag = cellTag(...cellPos);
+        this.spritesPerCell[tag] = this.spritesPerCell[tag] ?? [];
+        this.spritesPerCell[tag].push(sprite);
+      }
+    });
+  }
+}
+
+// src/demo/DemoWorld.ts
+var DOBUKI = 0;
+var LOGO = 1;
+var GROUND = 2;
+var VIDEO = 3;
+var WIREFRAME = 4;
+var GRASS = 5;
+var LOGO_SIZE = 512;
+var CELLSIZE = 2;
+var SPRITE_LIMIT = 1e4;
+
+class DemoWorld extends World {
+  core;
+  constructor(core) {
+    super(core);
+    this.core = core;
+    this.addMedia({
+      id: DOBUKI,
+      type: "image",
+      src: "dobuki.png"
+    }, {
+      id: LOGO,
+      type: "draw",
+      draw: (ctx) => {
+        const { canvas } = ctx;
+        canvas.width = LOGO_SIZE;
+        canvas.height = LOGO_SIZE;
+        const centerX = canvas.width / 2, centerY = canvas.height / 2;
+        const halfSize = canvas.width / 2;
+        ctx.imageSmoothingEnabled = true;
+        ctx.fillStyle = "#ddd";
+        ctx.lineWidth = canvas.width / 50;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.strokeStyle = "black";
+        ctx.fillStyle = "gold";
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, halfSize * 0.8, 0, 2 * Math.PI);
+        ctx.fill();
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, halfSize * 0.5, 0, Math.PI);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(canvas.width / 3, canvas.height / 3, halfSize * 0.1, 0, Math.PI, true);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(canvas.width / 3 * 2, canvas.height / 3, halfSize * 0.1, 0, Math.PI * 2, true);
+        ctx.stroke();
+      }
+    }, {
+      id: GROUND,
+      type: "draw",
+      draw: (ctx) => {
+        const { canvas } = ctx;
+        canvas.width = LOGO_SIZE;
+        canvas.height = LOGO_SIZE;
+        ctx.imageSmoothingEnabled = true;
+        ctx.fillStyle = "#ddd";
+        ctx.lineWidth = canvas.width / 50;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.strokeStyle = "black";
+        ctx.fillStyle = "silver";
+        ctx.beginPath();
+        ctx.rect(canvas.width * 0.2, canvas.height * 0.2, canvas.width * 0.6, canvas.height * 0.6);
+        ctx.fill();
+        ctx.stroke();
+      }
+    }, {
+      id: VIDEO,
+      type: "video",
+      src: "sample.mp4",
+      volume: 0,
+      fps: 30,
+      playSpeed: 0.1,
+      maxRefreshRate: 30
+    }, {
+      id: WIREFRAME,
+      type: "draw",
+      draw: (ctx) => {
+        const { canvas } = ctx;
+        canvas.width = LOGO_SIZE;
+        canvas.height = LOGO_SIZE;
+        ctx.imageSmoothingEnabled = true;
+        ctx.lineWidth = 5;
+        ctx.setLineDash([5, 2]);
+        ctx.strokeStyle = "blue";
+        ctx.beginPath();
+        ctx.rect(10, 10, canvas.width - 20, canvas.height - 20);
+        ctx.stroke();
+      }
+    }, {
+      id: GRASS,
+      type: "draw",
+      draw: (ctx) => {
+        const { canvas } = ctx;
+        canvas.width = LOGO_SIZE;
+        canvas.height = LOGO_SIZE;
+        ctx.imageSmoothingEnabled = true;
+        ctx.fillStyle = "green";
+        ctx.lineWidth = canvas.width / 50;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.strokeStyle = "black";
+        ctx.fillStyle = "#4f8";
+        ctx.beginPath();
+        ctx.rect(canvas.width * 0.2, canvas.height * 0.2, canvas.width * 0.6, canvas.height * 0.6);
+        ctx.fill();
+        ctx.stroke();
+      }
+    });
+    const spriteGrid = new FixedSpriteGrid({ cellSize: CELLSIZE }, [
+      {
+        imageId: DOBUKI,
+        transform: Matrix_default.create().translate(0, 0, -1)
+      },
+      ...[
+        Matrix_default.create().translate(-1, 0, 0).rotateY(Math.PI / 2).scale(1),
+        Matrix_default.create().translate(1, 0, 0).rotateY(-Math.PI / 2).scale(1)
+      ].map((transform) => ({ imageId: LOGO, transform })),
+      ...[
+        Matrix_default.create().translate(0, -1, 0).rotateX(-Math.PI / 2).scale(1),
+        Matrix_default.create().translate(0, -1, 2).rotateX(-Math.PI / 2).scale(1),
+        Matrix_default.create().translate(-2, -1, 2).rotateX(-Math.PI / 2).scale(1),
+        Matrix_default.create().translate(2, -1, 2).rotateX(-Math.PI / 2).scale(1)
+      ].map((transform) => ({ imageId: GROUND, transform }))
+    ]);
+    this.addAuxiliary(spriteGrid);
+    const wireframeGrid = new SpriteGrid({ spriteLimit: SPRITE_LIMIT, yRange: [0, 0] }, (cell) => [
+      {
+        name: `${cell.pos[0]}_${cell.pos[2]}`,
+        imageId: GRASS,
+        transform: Matrix_default.create().translate(cell.pos[0] * cell.pos[3], -1, cell.pos[2] * cell.pos[3]).rotateX(-Math.PI / 2).scale(1)
+      },
+      {
+        imageId: WIREFRAME,
+        transform: Matrix_default.create().translate(cell.pos[0] * cell.pos[3], 1, cell.pos[2] * cell.pos[3]).rotateX(-Math.PI / 2).scale(1)
+      },
+      {
+        imageId: WIREFRAME,
+        transform: Matrix_default.create().translate(cell.pos[0] * cell.pos[3], 0, cell.pos[2] * cell.pos[3] - 1).scale(1)
+      }
+    ]);
+    this.addAuxiliary(wireframeGrid);
+    this.addSprites(spriteGrid, {
+      imageId: VIDEO,
+      transform: Matrix_default.create().translate(0, 1e4, -50000).scale(9600, 5400, 1)
+    }, wireframeGrid);
+  }
+  activate() {
+    const cleanAuxiliary = this.addAuxiliary(new ToggleAuxiliary(this.core, {
+      auxiliariesMapping: [
+        {
+          key: "Tab",
+          aux: Auxiliaries.from(new CamStepAuxiliary(this.core, { step: 2, turnStep: Math.PI / 2, tiltStep: Math.PI / 4 }), new CamTiltResetAuxiliary(this.core, { key: "ShiftRight" }))
+        },
+        {
+          key: "Tab",
+          aux: Auxiliaries.from(new CamMoveAuxiliary(this.core), new RiseAuxiliary(this.core), new CamTiltResetAuxiliary(this.core, { key: "ShiftRight" }))
+        }
+      ]
+    }), new CellChangeAuxiliary({
+      matrix: this.core.camera.posMatrix,
+      visitCell: new CellTracker(this, {
+        cellLimit: 1000,
+        range: [5, 3, 5],
+        cellSize: CELLSIZE
+      })
+    }, {
+      cellSize: CELLSIZE
+    }));
+    const onDeactivate = super.activate();
+    return () => {
+      onDeactivate?.();
+      cleanAuxiliary();
+    };
+  }
+}
+
+// src/index.tsx
+async function hello() {
+  console.log("Hello World!");
+}
+async function testCanvas(canvas) {
+  canvas.style.border = "2px solid silver";
+  canvas.addEventListener("mouseenter", () => {
+    canvas.style.borderColor = "black";
+  });
+  canvas.addEventListener("mouseleave", () => {
+    canvas.style.borderColor = "silver";
+  });
+  const pixelListener = { x: 0, y: 0, pixel: 0 };
+  canvas.addEventListener("mousemove", (e) => {
+    const x = (e.pageX - canvas.offsetLeft) * 2;
+    const y = (canvas.offsetHeight - (e.pageY - canvas.offsetTop)) * 2;
+    pixelListener.x = x;
+    pixelListener.y = y;
+  });
+  const core = new Core({
+    canvas
+  });
+  core.engine.addPixelListener(pixelListener);
+  const world = new DemoWorld(core);
+  onStop = core.start(world);
+  return { core, world };
+}
+function stop() {
+  onStop();
+}
+var onStop;
+export {
+  testCanvas,
+  stop,
+  hello,
+  World
+};
+
+//# debugId=19DEB41A21709D6464756e2164756e21

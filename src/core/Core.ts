@@ -37,10 +37,7 @@ export class Core extends AuxiliaryHolder {
     const { motor, engine, keyboard, camera } = this;
     const deregisterLoop = motor.loop(this);
 
-    //  Initialize engine buffer
-    engine.setMaxSpriteCount(world.sprites.length);
-
-    this.addAuxiliary(
+    const onRemoveAux = this.addAuxiliary(
       world,
       motor,
       engine,
@@ -48,14 +45,13 @@ export class Core extends AuxiliaryHolder {
       camera,
       new ResizeAux(this),
     );
-
     const clearActivate = this.activate();
 
     return () => {
       deregisterLoop();
-      clearActivate();
+      onRemoveAux();
+      clearActivate?.();
       this.deactivate();
-      this.removeAllAuxiliaries();
     };
   }
 }

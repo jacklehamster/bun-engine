@@ -1,9 +1,9 @@
 import { Media } from "gl/texture/Media";
 import { List } from "./List";
 import { UpdatableList } from "updates/UpdatableList";
-import { TextureUpdate } from "updates/TextureUpdate";
 import { IGraphicsEngine } from "core/graphics/IGraphicsEngine";
 import { IMotor } from "core/motor/IMotor";
+import { UpdateRegistry } from "updates/UpdateRegistry";
 
 export type Medias = List<Media>;
 
@@ -19,6 +19,18 @@ export class UpdatableMedias extends UpdatableList<Media> {
       while (!medias[medias.length - 1]) {
         medias.length--;
       }
-    }, new TextureUpdate(motor, medias.at.bind(medias), engine));
+    },
+      new UpdateRegistry(ids => {
+        const imageIds = Array.from(ids);
+        ids.clear();
+        engine.updateTextures(imageIds, medias.at.bind(medias)).then((mediaInfos) => {
+          mediaInfos.forEach(mediaInfo => {
+            if (mediaInfo.isVideo) {
+              motor.registerUpdate(mediaInfo, mediaInfo.schedule);
+            }
+          });
+        });
+      }, motor),
+    );
   }
 }

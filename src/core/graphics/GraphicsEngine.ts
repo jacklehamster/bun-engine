@@ -32,6 +32,7 @@ import { Media } from 'gl/texture/Media';
 import { SpriteId } from 'world/sprite/Sprite';
 import { IGraphicsEngine } from './IGraphicsEngine';
 import { Sprites } from 'world/sprite/Sprites';
+import { RefreshOrder } from 'updates/RefreshOrder';
 
 const DEFAULT_ATTRIBUTES: WebGLContextAttributes = {
   alpha: true,
@@ -94,6 +95,7 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
   private spriteCount = 0;
   private cameraMatrixUniforms: Record<CameraMatrixType | any, WebGLUniformLocation> = {};
   private cameraFloatUniforms: Record<CameraFloatType | any, WebGLUniformLocation> = {};
+  readonly refreshOrder = RefreshOrder.LAST;
 
   constructor(canvas: HTMLCanvasElement | OffscreenCanvas, {
     attributes,
@@ -388,7 +390,7 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
     let topVisibleSprite = this.spriteCount - 1;
     spriteIds.forEach(spriteId => {
       const sprite = sprites.at(spriteId);
-      this.gl.bufferSubData(GL.ARRAY_BUFFER, 4 * 4 * Float32Array.BYTES_PER_ELEMENT * spriteId, (sprite?.transform ?? Matrix.EMPTY).getMatrix());
+      this.gl.bufferSubData(GL.ARRAY_BUFFER, 4 * 4 * Float32Array.BYTES_PER_ELEMENT * spriteId, (sprite?.transform ?? Matrix.HIDDEN).getMatrix());
       if (sprite) {
         topVisibleSprite = Math.max(topVisibleSprite, spriteId);
       }
