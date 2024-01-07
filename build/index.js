@@ -39,12 +39,10 @@ class UpdatableList {
 class UpdateRegistry {
   applyUpdate;
   motor;
-  updateListener;
   updatedIds = new Set;
-  constructor(applyUpdate, motor, updateListener) {
+  constructor(applyUpdate, motor) {
     this.applyUpdate = applyUpdate;
     this.motor = motor;
-    this.updateListener = updateListener;
   }
   informUpdate(id) {
     this.addId(id);
@@ -53,13 +51,10 @@ class UpdateRegistry {
   addId(spriteId) {
     this.updatedIds.add(spriteId);
   }
-  refresh(updatePayload) {
+  refresh() {
+    this.applyUpdate(this.updatedIds);
     if (this.updatedIds.size) {
-      this.applyUpdate(this.updatedIds);
-      if (this.updatedIds.size) {
-        this.motor.registerUpdate(this);
-      }
-      this.updateListener?.onUpdate(updatePayload);
+      this.motor.registerUpdate(this);
     }
   }
 }
@@ -214,8 +209,8 @@ class SpriteUpdater {
   spriteTransformUpdate;
   spriteAnimUpdate;
   constructor({ engine, motor }) {
-    this.spriteTransformUpdate = new UpdateRegistry((ids) => engine.updateSpriteTransforms(ids, this), motor, this);
-    this.spriteAnimUpdate = new UpdateRegistry((ids) => engine.updateSpriteAnims(ids, this), motor, this);
+    this.spriteTransformUpdate = new UpdateRegistry((ids) => engine.updateSpriteTransforms(ids, this), motor);
+    this.spriteAnimUpdate = new UpdateRegistry((ids) => engine.updateSpriteAnims(ids, this), motor);
   }
   informUpdate(id, type = SpriteUpdateType.ALL) {
     if (id < this.length) {
@@ -256,8 +251,6 @@ class SpritesAccumulator extends SpriteUpdater {
       this.spritesIndices.push(slot);
       this.informUpdate(slot.baseIndex + index);
     });
-  }
-  onUpdate(updatePayload) {
   }
 }
 
@@ -6072,4 +6065,4 @@ export {
   World
 };
 
-//# debugId=19DEB41A21709D6464756e2164756e21
+//# debugId=AA7423627B10BEF164756e2164756e21

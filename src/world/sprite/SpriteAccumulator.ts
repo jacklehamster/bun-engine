@@ -4,7 +4,6 @@ import { IMotor } from "core/motor/IMotor";
 import { forEach } from "./List";
 import { Sprites } from "./Sprites";
 import { SpriteUpdater } from "./update/SpriteUpdater";
-import { UpdatePayload } from "updates/Refresh";
 
 interface Props {
   engine: IGraphicsEngine;
@@ -47,8 +46,5 @@ export class SpritesAccumulator extends SpriteUpdater {
       this.spritesIndices.push(slot);
       this.informUpdate(slot.baseIndex + index);
     });
-  }
-
-  onUpdate(updatePayload: UpdatePayload): void {
   }
 }
