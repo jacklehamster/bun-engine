@@ -19,6 +19,7 @@ export enum CameraMatrixType {
 
 export enum CameraFloatType {
   CURVATURE = 0,
+  DISTANCE = 1,
 }
 
 interface Props {
@@ -34,6 +35,7 @@ export class Camera implements ICamera {
   readonly turnMatrix = new TurnMatrix(() => this.updateInformer.informUpdate(CameraMatrixType.TURN));
   private pespectiveLevel = 1;
   private curvature = 0;
+  private distance = 0;
   private readonly updateInformer;
   private readonly updateInformerFloat;
 
@@ -47,6 +49,8 @@ export class Camera implements ICamera {
     this.updateInformer.informUpdate(CameraMatrixType.POS);
     this.updateInformer.informUpdate(CameraMatrixType.TURN);
     this.updateInformer.informUpdate(CameraMatrixType.TILT);
+    this.updateInformerFloat.informUpdate(CameraFloatType.CURVATURE);
+    this.updateInformerFloat.informUpdate(CameraFloatType.DISTANCE);
   }
 
   private readonly cameraMatrices: Record<CameraMatrixType, IMatrix> = {
@@ -71,6 +75,11 @@ export class Camera implements ICamera {
     this.updateInformerFloat.informUpdate(CameraFloatType.CURVATURE);
   }
 
+  updateDistance(value: number) {
+    this.distance = value;
+    this.updateInformerFloat.informUpdate(CameraFloatType.DISTANCE);
+  }
+
   getCameraMatrix(cameraMatrixType: CameraMatrixType): Float32Array {
     if (cameraMatrixType === CameraMatrixType.POS) {
       this.camMatrix.invert(this.posMatrix);
@@ -82,6 +91,8 @@ export class Camera implements ICamera {
     switch (cameraFloatType) {
       case CameraFloatType.CURVATURE:
         return this.curvature;
+      case CameraFloatType.DISTANCE:
+        return this.distance;
     }
   }
 

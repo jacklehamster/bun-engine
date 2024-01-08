@@ -19,6 +19,7 @@ import {
   CAM_TILT_LOC,
   CAM_TURN_LOC,
   CAM_CURVATURE_LOC,
+  CAM_DISTANCE_LOC,
 } from '../../gl/attributes/Constants';
 import { TEXTURE_INDEX_FOR_VIDEO, TextureId, TextureManager } from '../../gl/texture/TextureManager';
 import { MediaId, ImageManager } from 'gl/texture/ImageManager';
@@ -161,6 +162,7 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
     this.cameraMatrixUniforms[CameraMatrixType.TILT] = this.uniforms.getUniformLocation(CAM_TILT_LOC, PROGRAM_NAME);
 
     this.cameraFloatUniforms[CameraFloatType.CURVATURE] = this.uniforms.getUniformLocation(CAM_CURVATURE_LOC, PROGRAM_NAME);
+    this.cameraFloatUniforms[CameraFloatType.DISTANCE] = this.uniforms.getUniformLocation(CAM_DISTANCE_LOC, PROGRAM_NAME);
 
     //  enable depth
     this.gl.enable(GL.DEPTH_TEST);

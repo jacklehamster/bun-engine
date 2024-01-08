@@ -1,10 +1,11 @@
-import { Sprite } from "../Sprite";
+import { Sprite, copySprite } from "../Sprite";
 import { Cell } from "world/grid/CellPos";
 import { SpriteUpdateType } from "../update/SpriteUpdateType";
 import { Auxiliary } from "world/aux/Auxiliary";
-import { Sprites } from "../Sprites";
 import { forEach } from "../List";
 import { UpdateNotifier } from "updates/UpdateNotifier";
+import IWorld from "world/IWorld";
+import { SpriteFactory } from "./SpriteFactory";
 
 interface Config {
   spriteLimit?: number;
@@ -26,7 +27,11 @@ export class SpriteGrid implements Auxiliary, UpdateNotifier {
   informUpdate(_id: number, _type?: number | undefined): void {
   }
 
-  constructor(config?: Config, private getSpritesAtCell: (cell: Cell) => Sprites = () => []) {
+  activate(world: IWorld): void {
+    world.addSprites(this);
+  }
+
+  constructor(config?: Config, private spriteFactory: SpriteFactory = {}) {
     this.spriteLimit = config?.spriteLimit ?? 100;
     this.ranges = [
       config?.xRange ?? [Number.MIN_SAFE_INTEGER, Number.MAX_SAFE_INTEGER],
@@ -49,13 +54,12 @@ export class SpriteGrid implements Auxiliary, UpdateNotifier {
     if (x < minX || maxX < x || y < minY || maxY < y || z < minZ || maxZ < z) {
       return;
     }
-
-    forEach(this.getSpritesAtCell(cell), sprite => {
+    const { tag } = cell;
+    forEach(this.spriteFactory.getSpritesAtCell?.(cell), sprite => {
       if (sprite) {
         this.informUpdate(this.slots.length);
         this.slots.push({
-          sprite,
-          tag: cell.tag,
+          sprite: copySprite(sprite), tag,
         });
       }
     });

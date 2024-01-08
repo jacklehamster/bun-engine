@@ -6,6 +6,7 @@ import { CellTrack } from "./grid/CellTracker";
 interface IWorld extends Auxiliary, CellTrack {
   readonly sprites: Sprites;
   readonly medias: Medias;
+  addSprites(...sprites: Sprites[]): void;
 }
 
 export default IWorld;

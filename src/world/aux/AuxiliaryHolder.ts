@@ -3,6 +3,7 @@ import { Auxiliary } from "./Auxiliary";
 import { Disposable } from "lifecycle/Disposable";
 import { Cell } from "world/grid/CellPos";
 import { CellTrack } from "world/grid/CellTracker";
+import IWorld from "world/IWorld";
 
 export class AuxiliaryHolder extends Disposable implements Auxiliary {
   private auxiliaries: Auxiliary[] = [];
@@ -12,10 +13,10 @@ export class AuxiliaryHolder extends Disposable implements Auxiliary {
     super();
   }
 
-  activate(): (() => void) | void {
+  activate(world: IWorld): (() => void) | void {
     const deactivates = new Set<() => void>();
     for (const a of this.auxiliaries) {
-      const onDeactivate = a.activate?.();
+      const onDeactivate = a.activate?.(world);
       if (onDeactivate) {
         deactivates.add(onDeactivate);
       }
@@ -49,17 +50,10 @@ export class AuxiliaryHolder extends Disposable implements Auxiliary {
     }
   }
 
-  onAddAuxiliary?(...aux: Auxiliary[]): () => void;
   addAuxiliary(...aux: Auxiliary[]) {
     this.auxiliaries.push(...aux);
     this.onAuxiliariesChange();
-    const onDeactivates = new Set<() => void>();
-    const onAddDeactivate = this.onAddAuxiliary?.(...aux);
-    if (onAddDeactivate) {
-      onDeactivates.add(onAddDeactivate);
-    }
     return () => {
-      onDeactivates.forEach(d => d());
       this.removeAllAuxiliaries();
     };
   }

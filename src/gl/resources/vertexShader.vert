@@ -18,6 +18,7 @@ uniform float maxTextureSize;
 uniform mat4 camPos;
 uniform mat4 camTurn;
 uniform mat4 camTilt;
+uniform float camDist;
 uniform mat4 projection;
 uniform float curvature;
 
@@ -40,6 +41,7 @@ void main() {
   vec4 elemPosition = transform * vec4(position, 0.0, 1.0);
   // elementPosition => relativePosition
   vec4 relativePosition = camTilt * camTurn * camPos * elemPosition;
+  relativePosition.z -= camDist;
   relativePosition.y -= curvature * ((relativePosition.z * relativePosition.z) + (relativePosition.x * relativePosition.x) / 4.) / 10.;
   // relativePosition => gl_Position
   gl_Position = projection * relativePosition;

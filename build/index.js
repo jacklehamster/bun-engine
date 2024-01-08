@@ -111,10 +111,10 @@ class AuxiliaryHolder extends Disposable {
   constructor() {
     super();
   }
-  activate() {
+  activate(world) {
     const deactivates = new Set;
     for (const a of this.auxiliaries) {
-      const onDeactivate = a.activate?.();
+      const onDeactivate = a.activate?.(world);
       if (onDeactivate) {
         deactivates.add(onDeactivate);
       }
@@ -146,13 +146,7 @@ class AuxiliaryHolder extends Disposable {
   addAuxiliary(...aux) {
     this.auxiliaries.push(...aux);
     this.onAuxiliariesChange();
-    const onDeactivates = new Set;
-    const onAddDeactivate = this.onAddAuxiliary?.(...aux);
-    if (onAddDeactivate) {
-      onDeactivates.add(onAddDeactivate);
-    }
     return () => {
-      onDeactivates.forEach((d) => d());
       this.removeAllAuxiliaries();
     };
   }
@@ -268,8 +262,9 @@ class World extends AuxiliaryHolder {
     this.medias = new UpdatableMedias(props);
     this.spritesAccumulator = new SpritesAccumulator(props);
   }
-  activate() {
-    const deActivate = super.activate();
+  refreshOrder;
+  activate(world) {
+    const deActivate = super.activate(world);
     this.engine.setMaxSpriteCount(this.sprites.length);
     console.log("Sprite limit:", this.sprites.length);
     return () => deActivate?.();
@@ -283,8 +278,7 @@ class World extends AuxiliaryHolder {
     });
   }
   addSprites(...sprites) {
-    sprites.forEach((s) => {
-      const spriteList = s.length ? s : [s];
+    sprites.forEach((spriteList) => {
       this.spritesAccumulator.add(spriteList);
     });
   }
@@ -300,6 +294,7 @@ var INSTANCE_LOC = "instance";
 var CAM_POS_LOC = "camPos";
 var CAM_TILT_LOC = "camTilt";
 var CAM_TURN_LOC = "camTurn";
+var CAM_DISTANCE_LOC = "camDist";
 var CAM_PROJECTION_LOC = "projection";
 var CAM_CURVATURE_LOC = "curvature";
 var MAX_TEXTURE_SIZE_LOC = "maxTextureSize";
@@ -1587,6 +1582,7 @@ uniform float maxTextureSize;
 uniform mat4 camPos;
 uniform mat4 camTurn;
 uniform mat4 camTilt;
+uniform float camDist;
 uniform mat4 projection;
 uniform float curvature;
 
@@ -1609,6 +1605,7 @@ void main() {
   vec4 elemPosition = transform * vec4(position, 0.0, 1.0);
   // elementPosition => relativePosition
   vec4 relativePosition = camTilt * camTurn * camPos * elemPosition;
+  relativePosition.z -= camDist;
   relativePosition.y -= curvature * ((relativePosition.z * relativePosition.z) + (relativePosition.x * relativePosition.x) / 4.) / 10.;
   // relativePosition => gl_Position
   gl_Position = projection * relativePosition;
@@ -4422,7 +4419,7 @@ class Matrix {
   static create() {
     return new Matrix;
   }
-  set(matrix) {
+  copy(matrix) {
     exports_mat4.copy(this.m4, matrix.getMatrix());
     return this;
   }
@@ -4763,6 +4760,7 @@ var CameraMatrixType;
 var CameraFloatType;
 (function(CameraFloatType2) {
   CameraFloatType2[CameraFloatType2["CURVATURE"] = 0] = "CURVATURE";
+  CameraFloatType2[CameraFloatType2["DISTANCE"] = 1] = "DISTANCE";
 })(CameraFloatType || (CameraFloatType = {}));
 
 class Camera {
@@ -4773,6 +4771,7 @@ class Camera {
   turnMatrix = new TurnMatrix(() => this.updateInformer.informUpdate(CameraMatrixType.TURN));
   pespectiveLevel = 1;
   curvature = 0;
+  distance = 0;
   updateInformer;
   updateInformerFloat;
   constructor({ engine, motor }) {
@@ -4784,6 +4783,8 @@ class Camera {
     this.updateInformer.informUpdate(CameraMatrixType.POS);
     this.updateInformer.informUpdate(CameraMatrixType.TURN);
     this.updateInformer.informUpdate(CameraMatrixType.TILT);
+    this.updateInformerFloat.informUpdate(CameraFloatType.CURVATURE);
+    this.updateInformerFloat.informUpdate(CameraFloatType.DISTANCE);
   }
   cameraMatrices = {
     [CameraMatrixType.PROJECTION]: this.projectionMatrix,
@@ -4803,6 +4804,10 @@ class Camera {
     this.curvature = value;
     this.updateInformerFloat.informUpdate(CameraFloatType.CURVATURE);
   }
+  updateDistance(value) {
+    this.distance = value;
+    this.updateInformerFloat.informUpdate(CameraFloatType.DISTANCE);
+  }
   getCameraMatrix(cameraMatrixType) {
     if (cameraMatrixType === CameraMatrixType.POS) {
       this.camMatrix.invert(this.posMatrix);
@@ -4813,6 +4818,8 @@ class Camera {
     switch (cameraFloatType) {
       case CameraFloatType.CURVATURE:
         return this.curvature;
+      case CameraFloatType.DISTANCE:
+        return this.distance;
     }
   }
   gotoPos(x, y, z, speed = 0.1) {
@@ -4956,6 +4963,7 @@ class GraphicsEngine extends Disposable {
     this.cameraMatrixUniforms[CameraMatrixType.TURN] = this.uniforms.getUniformLocation(CAM_TURN_LOC, PROGRAM_NAME);
     this.cameraMatrixUniforms[CameraMatrixType.TILT] = this.uniforms.getUniformLocation(CAM_TILT_LOC, PROGRAM_NAME);
     this.cameraFloatUniforms[CameraFloatType.CURVATURE] = this.uniforms.getUniformLocation(CAM_CURVATURE_LOC, PROGRAM_NAME);
+    this.cameraFloatUniforms[CameraFloatType.DISTANCE] = this.uniforms.getUniformLocation(CAM_DISTANCE_LOC, PROGRAM_NAME);
     this.gl.enable(GL.DEPTH_TEST);
     this.gl.depthFunc(GL.LESS);
     this.gl.clearDepth(1);
@@ -5331,7 +5339,7 @@ class Core extends AuxiliaryHolder {
     const { motor, engine, keyboard, camera } = this;
     const deregisterLoop = motor.loop(this);
     const onRemoveAux = this.addAuxiliary(world, motor, engine, keyboard, camera, new ResizeAux(this));
-    const clearActivate = this.activate();
+    const clearActivate = this.activate(world);
     return () => {
       deregisterLoop();
       onRemoveAux();
@@ -5771,16 +5779,58 @@ class CellTracker {
   }
 }
 
+// src/world/sprite/SpritesGroup.ts
+class SpriteGroup {
+  children;
+  transform;
+  spriteModel = {
+    imageId: 0,
+    transform: Matrix_default.create()
+  };
+  constructor(children, transform = Matrix_default.create().identity()) {
+    this.children = children;
+    this.transform = transform;
+  }
+  get length() {
+    return this.children.length;
+  }
+  at(index) {
+    const s = this.children.at(index);
+    if (!s) {
+      return;
+    }
+    this.spriteModel.name = `s${index}`;
+    this.spriteModel.imageId = s.imageId;
+    this.spriteModel.transform.identity().multiply2(this.transform, s.transform);
+    return this.spriteModel;
+  }
+  informUpdate(id, type) {
+    this.children.informUpdate?.(id, type);
+  }
+}
+
+// src/world/sprite/Sprite.ts
+function copySprite(sprite) {
+  return {
+    name: sprite.name,
+    transform: Matrix_default.create().copy(sprite.transform),
+    imageId: sprite.imageId
+  };
+}
+
 // src/world/sprite/aux/SpriteGrid.ts
 class SpriteGrid {
-  getSpritesAtCell;
+  spriteFactory;
   slots = [];
   spriteLimit;
   ranges;
   informUpdate(_id, _type) {
   }
-  constructor(config, getSpritesAtCell = () => []) {
-    this.getSpritesAtCell = getSpritesAtCell;
+  activate(world) {
+    world.addSprites(this);
+  }
+  constructor(config, spriteFactory = {}) {
+    this.spriteFactory = spriteFactory;
     this.spriteLimit = config?.spriteLimit ?? 100;
     this.ranges = [
       config?.xRange ?? [Number.MIN_SAFE_INTEGER, Number.MAX_SAFE_INTEGER],
@@ -5800,12 +5850,13 @@ class SpriteGrid {
     if (x < minX || maxX < x || y < minY || maxY < y || z < minZ || maxZ < z) {
       return;
     }
-    forEach(this.getSpritesAtCell(cell), (sprite) => {
+    const { tag } = cell;
+    forEach(this.spriteFactory.getSpritesAtCell?.(cell), (sprite) => {
       if (sprite) {
         this.informUpdate(this.slots.length);
         this.slots.push({
-          sprite,
-          tag: cell.tag
+          sprite: copySprite(sprite),
+          tag
         });
       }
     });
@@ -5827,26 +5878,49 @@ class SpriteGrid {
 var EMPTY = [];
 
 class FixedSpriteGrid extends SpriteGrid {
-  sprites;
   cellSize;
   spritesPerCell = {};
-  constructor(config, sprites) {
-    super({ spriteLimit: config.spriteLimit ?? sprites.length }, (cell) => {
-      return this.spritesPerCell[cell.tag] ?? EMPTY;
-    });
-    this.sprites = sprites;
-    this.cellSize = config.cellSize ?? 1;
-  }
-  activate() {
-    forEach(this.sprites, (sprite) => {
-      if (sprite) {
-        const pos = transformToPosition(sprite.transform);
-        const cellPos = PositionMatrix.getCellPos(pos, this.cellSize);
-        const tag = cellTag(...cellPos);
-        this.spritesPerCell[tag] = this.spritesPerCell[tag] ?? [];
-        this.spritesPerCell[tag].push(sprite);
+  spritesList;
+  constructor(config, ...spritesList) {
+    super({ spriteLimit: config.spriteLimit ?? spritesList.reduce((a, s) => a + s.length, 0) }, {
+      getSpritesAtCell: (cell) => {
+        return this.spritesPerCell[cell.tag] ?? EMPTY;
       }
     });
+    this.cellSize = config.cellSize ?? 1;
+    this.spritesList = spritesList;
+  }
+  activate(world) {
+    super.activate(world);
+    this.spritesList.forEach((sprites) => {
+      forEach(sprites, (sprite) => {
+        if (sprite) {
+          const pos = transformToPosition(sprite.transform);
+          const cellPos = PositionMatrix.getCellPos(pos, this.cellSize);
+          const tag = cellTag(...cellPos);
+          this.spritesPerCell[tag] = this.spritesPerCell[tag] ?? [];
+          this.spritesPerCell[tag].push(copySprite(sprite));
+        }
+      });
+    });
+  }
+}
+
+// src/world/sprite/aux/StaticSprites.ts
+class StaticSprites {
+  sprites;
+  constructor(sprites) {
+    this.sprites = sprites;
+    this.informUpdate = sprites.informUpdate?.bind(sprites);
+  }
+  get length() {
+    return this.sprites.length;
+  }
+  at(index) {
+    return this.sprites.at(index);
+  }
+  activate(world) {
+    world.addSprites(this);
   }
 }
 
@@ -5959,45 +6033,54 @@ class DemoWorld extends World {
         ctx.stroke();
       }
     });
-    const spriteGrid = new FixedSpriteGrid({ cellSize: CELLSIZE }, [
-      {
-        imageId: DOBUKI,
-        transform: Matrix_default.create().translate(0, 0, -1)
-      },
+    this.addAuxiliary(new FixedSpriteGrid({ cellSize: CELLSIZE }, new SpriteGroup([
       ...[
         Matrix_default.create().translate(-1, 0, 0).rotateY(Math.PI / 2).scale(1),
         Matrix_default.create().translate(1, 0, 0).rotateY(-Math.PI / 2).scale(1)
       ].map((transform) => ({ imageId: LOGO, transform })),
       ...[
-        Matrix_default.create().translate(0, -1, 0).rotateX(-Math.PI / 2).scale(1),
-        Matrix_default.create().translate(0, -1, 2).rotateX(-Math.PI / 2).scale(1),
-        Matrix_default.create().translate(-2, -1, 2).rotateX(-Math.PI / 2).scale(1),
-        Matrix_default.create().translate(2, -1, 2).rotateX(-Math.PI / 2).scale(1)
+        Matrix_default.create().translate(0, -1, 0).rotateX(-Math.PI / 2),
+        Matrix_default.create().translate(0, -1, 2).rotateX(-Math.PI / 2),
+        Matrix_default.create().translate(-2, -1, 2).rotateX(-Math.PI / 2),
+        Matrix_default.create().translate(2, -1, 2).rotateX(-Math.PI / 2)
       ].map((transform) => ({ imageId: GROUND, transform }))
-    ]);
-    this.addAuxiliary(spriteGrid);
-    const wireframeGrid = new SpriteGrid({ spriteLimit: SPRITE_LIMIT, yRange: [0, 0] }, (cell) => [
+    ], Matrix_default.create().identity()), new SpriteGroup([
+      ...[
+        Matrix_default.create().translate(-1, 0, 0).rotateY(Math.PI / 2),
+        Matrix_default.create().translate(1, 0, 0).rotateY(-Math.PI / 2),
+        Matrix_default.create().translate(0, 0, -1).rotateY(0),
+        Matrix_default.create().translate(0, 0, 1).rotateY(Math.PI)
+      ].map((transform) => ({ imageId: GROUND, transform }))
+    ], Matrix_default.create().translate(0, 0, -6))));
+    this.addAuxiliary(new FixedSpriteGrid({ cellSize: CELLSIZE }, [
       {
-        name: `${cell.pos[0]}_${cell.pos[2]}`,
-        imageId: GRASS,
-        transform: Matrix_default.create().translate(cell.pos[0] * cell.pos[3], -1, cell.pos[2] * cell.pos[3]).rotateX(-Math.PI / 2).scale(1)
-      },
-      {
-        imageId: WIREFRAME,
-        transform: Matrix_default.create().translate(cell.pos[0] * cell.pos[3], 1, cell.pos[2] * cell.pos[3]).rotateX(-Math.PI / 2).scale(1)
-      },
-      {
-        imageId: WIREFRAME,
-        transform: Matrix_default.create().translate(cell.pos[0] * cell.pos[3], 0, cell.pos[2] * cell.pos[3] - 1).scale(1)
+        imageId: DOBUKI,
+        transform: Matrix_default.create().translate(0, 0, -1)
       }
-    ]);
-    this.addAuxiliary(wireframeGrid);
-    this.addSprites(spriteGrid, {
+    ]));
+    this.addAuxiliary(new SpriteGrid({ spriteLimit: SPRITE_LIMIT, yRange: [0, 0] }, {
+      getSpritesAtCell: (cell) => [
+        {
+          name: `${cell.pos[0]}_${cell.pos[2]}`,
+          imageId: GRASS,
+          transform: Matrix_default.create().translate(cell.pos[0] * cell.pos[3], -1, cell.pos[2] * cell.pos[3]).rotateX(-Math.PI / 2).scale(1)
+        },
+        {
+          imageId: WIREFRAME,
+          transform: Matrix_default.create().translate(cell.pos[0] * cell.pos[3], 1, cell.pos[2] * cell.pos[3]).rotateX(-Math.PI / 2).scale(1)
+        },
+        {
+          imageId: WIREFRAME,
+          transform: Matrix_default.create().translate(cell.pos[0] * cell.pos[3], 0, cell.pos[2] * cell.pos[3] - 1).scale(1)
+        }
+      ]
+    }));
+    this.addAuxiliary(new StaticSprites([{
       imageId: VIDEO,
       transform: Matrix_default.create().translate(0, 1e4, -50000).scale(9600, 5400, 1)
-    }, wireframeGrid);
+    }]));
   }
-  activate() {
+  activate(world) {
     const cleanAuxiliary = this.addAuxiliary(new ToggleAuxiliary(this.core, {
       auxiliariesMapping: [
         {
@@ -6019,7 +6102,7 @@ class DemoWorld extends World {
     }, {
       cellSize: CELLSIZE
     }));
-    const onDeactivate = super.activate();
+    const onDeactivate = super.activate(world);
     return () => {
       onDeactivate?.();
       cleanAuxiliary();
@@ -6065,4 +6148,4 @@ export {
   World
 };
 
-//# debugId=AA7423627B10BEF164756e2164756e21
+//# debugId=2219FDCA7F2130E164756e2164756e21

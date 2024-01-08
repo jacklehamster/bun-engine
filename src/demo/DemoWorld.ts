@@ -2,6 +2,7 @@ import { Core } from "core/Core";
 import Matrix from "gl/transform/Matrix";
 import { CellChangeAuxiliary } from "gl/transform/aux/CellChangeAuxiliary";
 import { World } from "index";
+import IWorld from "world/IWorld";
 import { Auxiliaries } from "world/aux/Auxiliaries";
 import { CamMoveAuxiliary } from "world/aux/CamMoveAuxiliary";
 import { CamStepAuxiliary } from "world/aux/CamStepAuxiliary";
@@ -9,8 +10,10 @@ import { CamTiltResetAuxiliary } from "world/aux/CamTiltResetAuxiliary";
 import { RiseAuxiliary } from "world/aux/RiseAuxiliary";
 import { ToggleAuxiliary } from "world/aux/ToggleAuxiliary";
 import { CellTracker } from "world/grid/CellTracker";
+import { SpriteGroup } from "world/sprite/SpritesGroup";
 import { FixedSpriteGrid } from "world/sprite/aux/FixedSpriteGrid";
 import { SpriteGrid } from "world/sprite/aux/SpriteGrid";
+import { StaticSprites } from "world/sprite/aux/StaticSprites";
 
 const DOBUKI = 0, LOGO = 1, GROUND = 2, VIDEO = 3, WIREFRAME = 4, GRASS = 5;
 const LOGO_SIZE = 512;
@@ -135,13 +138,9 @@ export class DemoWorld extends World {
       },
     );
 
-    const spriteGrid = new FixedSpriteGrid(
+    this.addAuxiliary(new FixedSpriteGrid(
       { cellSize: CELLSIZE },
-      [
-        {
-          imageId: DOBUKI,
-          transform: Matrix.create().translate(0, 0, -1),
-        },
+      new SpriteGroup([
         //  side walls
         ...[
           Matrix.create().translate(-1, 0, 0).rotateY(Math.PI / 2).scale(1),
@@ -149,17 +148,47 @@ export class DemoWorld extends World {
         ].map(transform => ({ imageId: LOGO, transform })),
         //  floor
         ...[
-          Matrix.create().translate(0, -1, 0).rotateX(-Math.PI / 2).scale(1),
-          Matrix.create().translate(0, -1, 2).rotateX(-Math.PI / 2).scale(1),
-          Matrix.create().translate(-2, -1, 2).rotateX(-Math.PI / 2).scale(1),
-          Matrix.create().translate(2, -1, 2).rotateX(-Math.PI / 2).scale(1),
+          Matrix.create().translate(0, -1, 0).rotateX(-Math.PI / 2),
+          Matrix.create().translate(0, -1, 2).rotateX(-Math.PI / 2),
+          Matrix.create().translate(-2, -1, 2).rotateX(-Math.PI / 2),
+          Matrix.create().translate(2, -1, 2).rotateX(-Math.PI / 2),
         ].map(transform => ({ imageId: GROUND, transform })),
-      ]);
-    this.addAuxiliary(spriteGrid);
+      ], Matrix.create().identity()),
+      new SpriteGroup([
+        //  side walls
+        ...[
+          Matrix.create().translate(-1, 0, 0).rotateY(Math.PI / 2),
+          Matrix.create().translate(1, 0, 0).rotateY(-Math.PI / 2),
+          Matrix.create().translate(0, 0, -1).rotateY(0),
+          Matrix.create().translate(0, 0, 1).rotateY(Math.PI),
+        ].map(transform => ({ imageId: GROUND, transform })),
+      ], Matrix.create().translate(0, 0, -6)),
+    ));
 
-    const wireframeGrid = new SpriteGrid(
-      { spriteLimit: SPRITE_LIMIT, yRange: [0, 0] },
-      cell => [
+    this.addAuxiliary(new FixedSpriteGrid(
+      { cellSize: CELLSIZE },
+      [
+        {
+          imageId: DOBUKI,
+          transform: Matrix.create().translate(0, 0, -1),
+        },
+        // //  side walls
+        // ...[
+        //   Matrix.create().translate(-1, 0, 0).rotateY(Math.PI / 2).scale(1),
+        //   Matrix.create().translate(1, 0, 0).rotateY(-Math.PI / 2).scale(1),
+        // ].map(transform => ({ imageId: LOGO, transform })),
+        // //  floor
+        // ...[
+        //   Matrix.create().translate(0, -1, 0).rotateX(-Math.PI / 2).scale(1),
+        //   Matrix.create().translate(0, -1, 2).rotateX(-Math.PI / 2).scale(1),
+        //   Matrix.create().translate(-2, -1, 2).rotateX(-Math.PI / 2).scale(1),
+        //   Matrix.create().translate(2, -1, 2).rotateX(-Math.PI / 2).scale(1),
+        // ].map(transform => ({ imageId: GROUND, transform })),
+      ]));
+
+    this.addAuxiliary(new SpriteGrid(
+      { spriteLimit: SPRITE_LIMIT, yRange: [0, 0] }, {
+      getSpritesAtCell: cell => [
         { //  ground
           name: `${cell.pos[0]}_${cell.pos[2]}`,
           imageId: GRASS,
@@ -173,18 +202,18 @@ export class DemoWorld extends World {
           imageId: WIREFRAME,
           transform: Matrix.create().translate(cell.pos[0] * cell.pos[3], 0, cell.pos[2] * cell.pos[3] - 1).scale(1)
         }
-      ]);
-    this.addAuxiliary(wireframeGrid);
+      ]
+    }));
 
-    this.addSprites(spriteGrid, {
+    this.addAuxiliary(new StaticSprites([{
       imageId: VIDEO,
       transform: Matrix.create()
         .translate(0, 10000, -50000)
         .scale(480 * 20, 270 * 20, 1),
-    }, wireframeGrid);
+    }]));
   }
 
-  activate(): () => void {
+  activate(world: IWorld): () => void {
     const cleanAuxiliary = this.addAuxiliary(
       new ToggleAuxiliary(this.core, {
         auxiliariesMapping: [
@@ -216,7 +245,7 @@ export class DemoWorld extends World {
       }),
     );
 
-    const onDeactivate = super.activate();
+    const onDeactivate = super.activate(world);
 
     return () => {
       onDeactivate?.();

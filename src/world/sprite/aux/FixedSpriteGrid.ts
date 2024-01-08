@@ -1,10 +1,11 @@
 import { SpriteGrid } from "./SpriteGrid";
 import { Sprites } from "../Sprites";
-import { Sprite } from "../Sprite";
+import { Sprite, copySprite } from "../Sprite";
 import { forEach } from "../List";
 import { transformToPosition } from "world/grid/Position";
 import { PositionMatrix } from "gl/transform/PositionMatrix";
 import { cellTag } from "world/grid/CellPos";
+import IWorld from "world/IWorld";
 
 interface Config {
   cellSize?: number;
@@ -16,23 +17,30 @@ const EMPTY: Sprite[] = [];
 export class FixedSpriteGrid extends SpriteGrid {
   private cellSize: number;
   private spritesPerCell: Record<string, Sprite[]> = {};
+  private readonly spritesList: Sprites[];
 
-  constructor(config: Config, private sprites: Sprites) {
-    super({ spriteLimit: config.spriteLimit ?? sprites.length }, cell => {
-      return this.spritesPerCell[cell.tag] ?? EMPTY
+  constructor(config: Config, ...spritesList: Sprites[]) {
+    super({ spriteLimit: config.spriteLimit ?? spritesList.reduce((a, s) => a + s.length, 0) }, {
+      getSpritesAtCell: cell => {
+        return this.spritesPerCell[cell.tag] ?? EMPTY
+      }
     });
     this.cellSize = config.cellSize ?? 1;
+    this.spritesList = spritesList;
   }
 
-  activate(): void | (() => void) {
-    forEach(this.sprites, (sprite) => {
-      if (sprite) {
-        const pos = transformToPosition(sprite.transform);
-        const cellPos = PositionMatrix.getCellPos(pos, this.cellSize);
-        const tag = cellTag(...cellPos);
-        this.spritesPerCell[tag] = this.spritesPerCell[tag] ?? [];
-        this.spritesPerCell[tag].push(sprite);
-      }
+  activate(world: IWorld): void | (() => void) {
+    super.activate(world);
+    this.spritesList.forEach(sprites => {
+      forEach(sprites, (sprite) => {
+        if (sprite) {
+          const pos = transformToPosition(sprite.transform);
+          const cellPos = PositionMatrix.getCellPos(pos, this.cellSize);
+          const tag = cellTag(...cellPos);
+          this.spritesPerCell[tag] = this.spritesPerCell[tag] ?? [];
+          this.spritesPerCell[tag].push(copySprite(sprite));
+        }
+      });
     });
   }
 }

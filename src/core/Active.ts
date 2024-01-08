@@ -1,4 +1,6 @@
+import IWorld from "world/IWorld";
+
 export interface Active {
-  activate(): (() => void) | void;
+  activate(world: IWorld): (() => void) | void;
   deactivate(): void;
 }

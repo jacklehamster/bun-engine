@@ -45,7 +45,7 @@ export class Core extends AuxiliaryHolder {
       camera,
       new ResizeAux(this),
     );
-    const clearActivate = this.activate();
+    const clearActivate = this.activate(world);
 
     return () => {
       deregisterLoop();

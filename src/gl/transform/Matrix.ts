@@ -17,27 +17,27 @@ class Matrix implements IMatrix {
     return new Matrix();
   }
 
-  public set(matrix: Matrix): Matrix {
+  copy(matrix: Matrix): Matrix {
     mat4.copy(this.m4, matrix.getMatrix());
     return this;
   }
 
-  public identity(): Matrix {
+  identity(): Matrix {
     mat4.identity(this.m4);
     return this;
   }
 
-  public invert(matrix?: IMatrix): Matrix {
+  invert(matrix?: IMatrix): Matrix {
     mat4.invert(this.m4, matrix?.getMatrix() ?? this.getMatrix());
     return this;
   }
 
-  public multiply(matrix: IMatrix): Matrix {
+  multiply(matrix: IMatrix): Matrix {
     mat4.multiply(this.m4, this.m4, matrix.getMatrix());
     return this;
   }
 
-  public multiply2(matrix1: IMatrix, matrix2: IMatrix): Matrix {
+  multiply2(matrix1: IMatrix, matrix2: IMatrix): Matrix {
     mat4.multiply(this.m4, matrix1.getMatrix(), matrix2.getMatrix());
     return this;
   }
@@ -48,47 +48,47 @@ class Matrix implements IMatrix {
     return this;
   }
 
-  public translate(x: number, y: number, z: number): Matrix {
+  translate(x: number, y: number, z: number): Matrix {
     mat4.translate(this.m4, this.m4, [x, y, z]);
     return this;
   }
 
-  public translateToMatrix(matrix: Matrix): Matrix {
+  translateToMatrix(matrix: Matrix): Matrix {
     const m4 = matrix.getMatrix();
     return this.translate(-m4[12], -m4[13], -m4[14]);
   }
 
-  public rotateX(angle: Angle): Matrix {
+  rotateX(angle: Angle): Matrix {
     mat4.rotateX(this.m4, this.m4, angle);
     return this;
   }
 
-  public rotateY(angle: Angle): Matrix {
+  rotateY(angle: Angle): Matrix {
     mat4.rotateY(this.m4, this.m4, angle);
     return this;
   }
 
-  public rotateZ(angle: Angle): Matrix {
+  rotateZ(angle: Angle): Matrix {
     mat4.rotateZ(this.m4, this.m4, angle);
     return this;
   }
 
-  public setXRotation(angle: Angle): Matrix {
+  setXRotation(angle: Angle): Matrix {
     mat4.fromXRotation(this.getMatrix(), angle);
     return this;
   }
 
-  public setYRotation(angle: Angle): Matrix {
+  setYRotation(angle: Angle): Matrix {
     mat4.fromYRotation(this.getMatrix(), angle);
     return this;
   }
 
-  public scale(x: number, y?: number, z?: number): Matrix {
+  scale(x: number, y?: number, z?: number): Matrix {
     mat4.scale(this.m4, this.m4, [x, y ?? x, z ?? x]);
     return this;
   }
 
-  public perspective(degAngle: number, ratio: number, near: number, far: number): Matrix {
+  perspective(degAngle: number, ratio: number, near: number, far: number): Matrix {
     mat4.perspective(
       this.m4,
       degAngle * DEG_TO_RADIANT,
@@ -99,7 +99,7 @@ class Matrix implements IMatrix {
     return this;
   }
 
-  public ortho(left: number, right: number, bottom: number, top: number, near: number, far: number): Matrix {
+  ortho(left: number, right: number, bottom: number, top: number, near: number, far: number): Matrix {
     mat4.ortho(this.m4, left, right, bottom, top, near, far);
     return this;
   }
@@ -113,8 +113,8 @@ class Matrix implements IMatrix {
     return this;
   }
 
-  static tempQuat = quat.create();
-  static tempVec = vec3.create();
+  private static tempQuat = quat.create();
+  private static tempVec = vec3.create();
   moveMatrix(x: number, y: number, z: number, turnMatrix?: IMatrix) {
     const v = Matrix.tempVec;
     v[0] = x;

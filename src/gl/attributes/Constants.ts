@@ -20,6 +20,7 @@ export const SPRITE_FLAGS_LOC: LocationName = 'spriteFlag';
 export const CAM_POS_LOC: LocationName = 'camPos';
 export const CAM_TILT_LOC: LocationName = 'camTilt';
 export const CAM_TURN_LOC: LocationName = 'camTurn';
+export const CAM_DISTANCE_LOC: LocationName = 'camDist';
 export const CAM_PROJECTION_LOC: LocationName = 'projection';
 export const CAM_CURVATURE_LOC: LocationName = 'curvature';
 export const MAX_TEXTURE_SIZE_LOC: LocationName = 'maxTextureSize';
