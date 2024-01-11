@@ -13,8 +13,8 @@ export class UpdateRegistry implements Refresh, UpdateNotifier {
     this.motor.registerUpdate(this);
   }
 
-  addId(spriteId: IdType): void {
-    this.updatedIds.add(spriteId);
+  addId(id: IdType): void {
+    this.updatedIds.add(id);
   }
 
   refresh(): void {

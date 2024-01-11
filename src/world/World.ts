@@ -7,7 +7,6 @@ import { AuxiliaryHolder } from "./aux/AuxiliaryHolder";
 import { IGraphicsEngine } from "core/graphics/IGraphicsEngine";
 import { IMotor } from "core/motor/IMotor";
 import { SpritesAccumulator } from "./sprite/SpriteAccumulator";
-import { RefreshOrder } from "updates/RefreshOrder";
 
 interface Props {
   engine: IGraphicsEngine;
@@ -28,7 +27,6 @@ export abstract class World extends AuxiliaryHolder<IWorld> implements IWorld, A
     this.medias = new UpdatableMedias(props)
     this.spritesAccumulator = new SpritesAccumulator(props);
   }
-  refreshOrder?: RefreshOrder | undefined;
 
   activate(): void {
     super.activate();

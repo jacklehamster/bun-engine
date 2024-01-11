@@ -40,9 +40,9 @@ export class Core extends AuxiliaryHolder<Core> {
     this.addAuxiliary(
       world,
       motor,
-      engine,
       keyboard,
       camera,
+      engine,
     );
     camera.addAuxiliary(new ResizeAux({ engine }));
     this.activate();

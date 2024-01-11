@@ -8,7 +8,6 @@ const float threshold = 0.00001;
 
 //  IN
 //  texture
-uniform sampler2D uTextures[NUM_TEXTURES];
 in float vTextureIndex;
 in vec2 vTex;
 in float opacity;
@@ -17,6 +16,10 @@ in float dist;
 
 //  OUT
 out vec4 fragColor;
+
+// UNIFORMS
+uniform sampler2D uTextures[NUM_TEXTURES];
+uniform vec3 bgColor;
 
 //  FUNCTIONS
 vec4 getTextureColor(float textureSlot, vec2 vTexturePoint);
@@ -34,10 +37,9 @@ void main() {
   if (color.a <= .0001) {
     discard;
   };
-  vec3 bgColor = vec3(0.);
   float colorFactor = 1.3 / pow(dist, .3);
   color.rgb = (color.rgb * colorFactor) + (bgColor * (1. - colorFactor));
-  fragColor = color;// * (1000. / dist);
+  fragColor = color;
 //  fragColor = vec4(vInstanceColor.rgb, 1.0);
 }
 

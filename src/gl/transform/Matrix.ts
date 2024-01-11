@@ -8,7 +8,7 @@ class Matrix implements IMatrix {
   private m4 = Float32Array.from(mat4.create());
   static readonly HIDDEN = Matrix.create().scale(0, 0, 0);
   static readonly IDENTITY = Matrix.create();
-  private static tempVec = vec3.create();
+  private static tempVec: vector = [0, 0, 0];
 
   constructor() {
     this.identity();
@@ -118,7 +118,7 @@ class Matrix implements IMatrix {
   }
 
   private static tempQuat = quat.create();
-  getMoveVector(x: number, y: number, z: number, turnMatrix?: IMatrix): vec3 {
+  getMoveVector(x: number, y: number, z: number, turnMatrix?: IMatrix): vector {
     const v = Matrix.tempVec;
     v[0] = x;
     v[1] = y;

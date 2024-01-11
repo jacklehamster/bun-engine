@@ -48,8 +48,8 @@ class UpdateRegistry {
     this.addId(id);
     this.motor.registerUpdate(this);
   }
-  addId(spriteId) {
-    this.updatedIds.add(spriteId);
+  addId(id) {
+    this.updatedIds.add(id);
   }
   refresh() {
     this.applyUpdate(this.updatedIds);
@@ -163,7 +163,7 @@ class AuxiliaryHolder {
     this.onAuxiliariesChange();
   }
   onAuxiliariesChange() {
-    this.refreshes = this.auxiliaries?.filter((a) => !!a.refresh).sort((a, b) => (a.refreshOrder ?? 0) - (b.refreshOrder ?? 0)) ?? undefined;
+    this.refreshes = this.auxiliaries?.filter((a) => !!a.refresh) ?? undefined;
     this.cellTracks = this.auxiliaries?.filter((a) => !!a.trackCell || !!a.untrackCell) ?? undefined;
     this.refresh = this.refreshes ? this._refresh.bind(this) : undefined;
     this.trackCell = this.cellTracks ? this._trackCell.bind(this) : undefined;
@@ -262,7 +262,6 @@ class World extends AuxiliaryHolder {
     this.medias = new UpdatableMedias(props);
     this.spritesAccumulator = new SpritesAccumulator(props);
   }
-  refreshOrder;
   activate() {
     super.activate();
     this.engine.setMaxSpriteCount(this.sprites.length);
@@ -287,7 +286,7 @@ class World extends AuxiliaryHolder {
   }
 }
 
-// src/lifecycle/Disposable.ts
+// src/gl/lifecycle/Disposable.ts
 class Disposable {
   disposables;
   own(disposable) {
@@ -322,6 +321,7 @@ var CAM_TURN_LOC = "camTurn";
 var CAM_DISTANCE_LOC = "camDist";
 var CAM_PROJECTION_LOC = "projection";
 var CAM_CURVATURE_LOC = "curvature";
+var BG_COLOR_LOC = "bgColor";
 var MAX_TEXTURE_SIZE_LOC = "maxTextureSize";
 var TEXTURE_UNIFORM_LOC = "uTextures";
 
@@ -432,11 +432,10 @@ class GLPrograms extends Disposable {
 }
 
 // src/gl/VertexArray.ts
-class VertexArray extends Disposable {
+class VertexArray {
   gl;
   triangleArray;
   constructor(gl) {
-    super();
     this.gl = gl;
     this.triangleArray = gl.createVertexArray();
     gl.bindVertexArray(this.triangleArray);
@@ -447,12 +446,11 @@ class VertexArray extends Disposable {
 }
 
 // src/gl/attributes/GLAttributeBuffers.ts
-class GLAttributeBuffers extends Disposable {
+class GLAttributeBuffers {
   bufferRecord = {};
   gl;
   programs;
   constructor(gl, programs) {
-    super();
     this.gl = gl;
     this.programs = programs;
   }
@@ -492,11 +490,10 @@ class GLAttributeBuffers extends Disposable {
 }
 
 // src/gl/uniforms/GLUniforms.ts
-class GLUniforms extends Disposable {
+class GLUniforms {
   gl;
   programs;
   constructor(gl, programs) {
-    super();
     this.gl = gl;
     this.programs = programs;
   }
@@ -1661,7 +1658,6 @@ const float threshold = 0.00001;
 
 //  IN
 //  texture
-uniform sampler2D uTextures[NUM_TEXTURES];
 in float vTextureIndex;
 in vec2 vTex;
 in float opacity;
@@ -1670,6 +1666,10 @@ in float dist;
 
 //  OUT
 out vec4 fragColor;
+
+// UNIFORMS
+uniform sampler2D uTextures[NUM_TEXTURES];
+uniform vec3 bgColor;
 
 //  FUNCTIONS
 vec4 getTextureColor(float textureSlot, vec2 vTexturePoint);
@@ -1687,10 +1687,9 @@ void main() {
   if (color.a <= .0001) {
     discard;
   };
-  vec3 bgColor = vec3(0.);
   float colorFactor = 1.3 / pow(dist, .3);
   color.rgb = (color.rgb * colorFactor) + (bgColor * (1. - colorFactor));
-  fragColor = color;// * (1000. / dist);
+  fragColor = color;
 //  fragColor = vec4(vInstanceColor.rgb, 1.0);
 }
 
@@ -4453,7 +4452,7 @@ class Matrix {
   m4 = Float32Array.from(exports_mat4.create());
   static HIDDEN = Matrix.create().scale(0, 0, 0);
   static IDENTITY = Matrix.create();
-  static tempVec = exports_vec3.create();
+  static tempVec = [0, 0, 0];
   constructor() {
     this.identity();
   }
@@ -4560,6 +4559,400 @@ class Matrix {
   }
 }
 var Matrix_default = Matrix;
+
+// src/core/graphics/Uniforms.ts
+var FloatUniform;
+(function(FloatUniform2) {
+  FloatUniform2[FloatUniform2["CURVATURE"] = 0] = "CURVATURE";
+  FloatUniform2[FloatUniform2["CAM_DISTANCE"] = 1] = "CAM_DISTANCE";
+})(FloatUniform || (FloatUniform = {}));
+var MatrixUniform;
+(function(MatrixUniform2) {
+  MatrixUniform2[MatrixUniform2["PROJECTION"] = 0] = "PROJECTION";
+  MatrixUniform2[MatrixUniform2["CAM_POS"] = 1] = "CAM_POS";
+  MatrixUniform2[MatrixUniform2["CAM_TURN"] = 2] = "CAM_TURN";
+  MatrixUniform2[MatrixUniform2["CAM_TILT"] = 3] = "CAM_TILT";
+})(MatrixUniform || (MatrixUniform = {}));
+var VectorUniform;
+(function(VectorUniform2) {
+  VectorUniform2[VectorUniform2["BG_COLOR"] = 0] = "BG_COLOR";
+})(VectorUniform || (VectorUniform = {}));
+
+// src/core/graphics/GraphicsEngine.ts
+var glProxy = function(gl) {
+  if (!LOG_GL) {
+    return gl;
+  }
+  const proxy = new Proxy(gl, {
+    get(target, prop) {
+      const t = target;
+      const result = t[prop];
+      if (typeof result === "function") {
+        const f = (...params) => {
+          const returnValue = result.apply(t, params);
+          console.log(`gl.${String(prop)}(`, params, ") = ", returnValue);
+          return returnValue;
+        };
+        return f;
+      } else {
+        console.log(`gl.${String(prop)} = `, result);
+        return result;
+      }
+    }
+  });
+  return proxy;
+};
+var DEFAULT_ATTRIBUTES = {
+  alpha: true,
+  antialias: false,
+  depth: true,
+  desynchronized: true,
+  failIfMajorPerformanceCaveat: undefined,
+  powerPreference: "default",
+  premultipliedAlpha: true,
+  preserveDrawingBuffer: false,
+  stencil: false
+};
+var VERTEX_COUNT = 6;
+var LOG_GL = false;
+var EMPTY_VEC2 = Float32Array.from([0, 0]);
+
+class GraphicsEngine extends Disposable {
+  gl;
+  programs;
+  attributeBuffers;
+  uniforms;
+  canvas;
+  textureManager;
+  imageManager;
+  textureSlots = {};
+  onResize = new Set;
+  pixelListener;
+  spriteCount = 0;
+  matrixUniforms;
+  floatUniforms;
+  vec3Uniforms;
+  constructor(canvas, {
+    attributes
+  } = {}) {
+    super();
+    const gl = canvas.getContext("webgl2", { ...DEFAULT_ATTRIBUTES, ...attributes });
+    this.gl = glProxy(gl);
+    this.canvas = canvas;
+    this.programs = this.own(new GLPrograms(this.gl));
+    this.uniforms = new GLUniforms(this.gl, this.programs);
+    this.attributeBuffers = this.own(new GLAttributeBuffers(this.gl, this.programs));
+    this.textureManager = new TextureManager(this.gl, this.uniforms);
+    this.imageManager = new ImageManager;
+    const onResize = this.checkCanvasSize.bind(this);
+    window.addEventListener("resize", onResize);
+    this.addOnDestroy(() => window.removeEventListener("resize", onResize));
+    const PROGRAM_NAME = "main";
+    const replacementMap = {
+      AUTHOR: "Jack le hamster"
+    };
+    this.programs.addProgram(PROGRAM_NAME, replaceTilda(vertexShader_default, replacementMap), replaceTilda(fragmentShader_default, replacementMap));
+    this.matrixUniforms = {
+      [MatrixUniform.PROJECTION]: this.uniforms.getUniformLocation(CAM_PROJECTION_LOC, PROGRAM_NAME),
+      [MatrixUniform.CAM_POS]: this.uniforms.getUniformLocation(CAM_POS_LOC, PROGRAM_NAME),
+      [MatrixUniform.CAM_TURN]: this.uniforms.getUniformLocation(CAM_TURN_LOC, PROGRAM_NAME),
+      [MatrixUniform.CAM_TILT]: this.uniforms.getUniformLocation(CAM_TILT_LOC, PROGRAM_NAME)
+    };
+    this.floatUniforms = {
+      [FloatUniform.CURVATURE]: this.uniforms.getUniformLocation(CAM_CURVATURE_LOC, PROGRAM_NAME),
+      [FloatUniform.CAM_DISTANCE]: this.uniforms.getUniformLocation(CAM_DISTANCE_LOC, PROGRAM_NAME)
+    };
+    this.vec3Uniforms = {
+      [VectorUniform.BG_COLOR]: this.uniforms.getUniformLocation(BG_COLOR_LOC, PROGRAM_NAME)
+    };
+    this.initialize(PROGRAM_NAME);
+  }
+  addResizeListener(listener) {
+    listener(this.gl.drawingBufferWidth, this.gl.drawingBufferHeight);
+    this.onResize.add(listener);
+    return () => this.removeResizeListener(listener);
+  }
+  removeResizeListener(listener) {
+    this.onResize.delete(listener);
+  }
+  clearTextureSlots() {
+    for (let i in this.textureSlots) {
+      delete this.textureSlots[i];
+    }
+  }
+  checkCanvasSize() {
+    if (this.canvas instanceof HTMLCanvasElement) {
+      this.canvas.width = this.canvas.offsetWidth * 2;
+      this.canvas.height = this.canvas.offsetHeight * 2;
+    }
+    this.gl.viewport(0, 0, this.gl.drawingBufferWidth, this.gl.drawingBufferHeight);
+    this.onResize.forEach((callback) => callback(this.gl.drawingBufferWidth, this.gl.drawingBufferHeight));
+  }
+  initialize(programName) {
+    this.programs.useProgram(programName);
+    this.gl.enable(GL.DEPTH_TEST);
+    this.gl.depthFunc(GL.LESS);
+    this.gl.clearDepth(1);
+    this.gl.enable(GL.BLEND);
+    this.gl.blendFunc(GL.SRC_ALPHA, GL.ONE_MINUS_SRC_ALPHA);
+    this.gl.viewport(0, 0, this.gl.drawingBufferWidth, this.gl.drawingBufferHeight);
+    this.gl.enable(GL.CULL_FACE);
+    this.gl.cullFace(GL.BACK);
+    this.gl.clearColor(0, 0, 0, 1);
+    this.textureManager.initialize();
+    this.checkCanvasSize();
+  }
+  activate() {
+    this.clearTextureSlots();
+  }
+  setMaxSpriteCount(spriteCount) {
+    this.initializeBuffers(spriteCount);
+  }
+  setBgColor(rgb) {
+    this.gl.clearColor(rgb[0], rgb[1], rgb[2], 1);
+    this.gl.clear(this.gl.COLOR_BUFFER_BIT);
+  }
+  onCleanupBuffers = new Set;
+  initializeBuffers(maxSpriteCount) {
+    this.onCleanupBuffers.forEach((cleanup) => cleanup());
+    this.onCleanupBuffers.clear();
+    if (maxSpriteCount) {
+      const cleanups = [
+        this.initializeIndexBuffer(INDEX_LOC),
+        this.initializePositionBuffer(POSITION_LOC),
+        this.initializeTransformBuffer(TRANSFORM_LOC, maxSpriteCount),
+        this.initializeSlotSizeBuffer(SLOT_SIZE_LOC, maxSpriteCount),
+        this.initializeInstanceBuffer(INSTANCE_LOC, maxSpriteCount),
+        this.initializeFlagBuffer(INSTANCE_LOC, maxSpriteCount)
+      ];
+      cleanups.forEach((cleanup) => this.onCleanupBuffers.add(cleanup));
+    }
+  }
+  initializeIndexBuffer(location) {
+    const bufferInfo = this.attributeBuffers.createBuffer(location);
+    this.gl.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, bufferInfo.buffer);
+    this.gl.bufferData(GL.ELEMENT_ARRAY_BUFFER, Uint16Array.from([0, 1, 2, 2, 3, 0]), GL.STATIC_DRAW);
+    return () => {
+      this.attributeBuffers.deleteBuffer(location);
+    };
+  }
+  initializePositionBuffer(location) {
+    const bufferInfo = this.attributeBuffers.createBuffer(location);
+    this.gl.bindBuffer(GL.ARRAY_BUFFER, bufferInfo.buffer);
+    this.gl.vertexAttribPointer(bufferInfo.location, 2, GL.FLOAT, false, 0, 0);
+    this.gl.enableVertexAttribArray(bufferInfo.location);
+    this.gl.bufferData(GL.ARRAY_BUFFER, Float32Array.from([-1, -1, 1, -1, 1, 1, -1, 1]), GL.STATIC_DRAW);
+    return () => {
+      this.gl.disableVertexAttribArray(bufferInfo.location);
+      this.attributeBuffers.deleteBuffer(location);
+    };
+  }
+  initializeTransformBuffer(location, spriteCount) {
+    const bufferInfo = this.attributeBuffers.createBuffer(location);
+    this.gl.bindBuffer(GL.ARRAY_BUFFER, bufferInfo.buffer);
+    const elemCount = 4;
+    const bytesPerRow = elemCount * Float32Array.BYTES_PER_ELEMENT;
+    const bytesPerInstance = 4 * bytesPerRow;
+    for (let i = 0;i < 4; i++) {
+      const loc = bufferInfo.location + i;
+      this.gl.vertexAttribPointer(loc, elemCount, GL.FLOAT, false, bytesPerInstance, i * bytesPerRow);
+      this.gl.enableVertexAttribArray(loc);
+      this.gl.vertexAttribDivisor(loc, 1);
+    }
+    this.gl.bufferData(GL.ARRAY_BUFFER, spriteCount * bytesPerInstance, GL.DYNAMIC_DRAW);
+    return () => {
+      this.gl.disableVertexAttribArray(bufferInfo.location);
+      this.attributeBuffers.deleteBuffer(location);
+    };
+  }
+  initializeSlotSizeBuffer(location, spriteCount) {
+    const bufferInfo = this.attributeBuffers.createBuffer(location);
+    this.gl.bindBuffer(GL.ARRAY_BUFFER, bufferInfo.buffer);
+    const loc = bufferInfo.location;
+    const elemCount = 2;
+    const bytesPerInstance = elemCount * Float32Array.BYTES_PER_ELEMENT;
+    this.gl.vertexAttribPointer(loc, elemCount, GL.FLOAT, false, bytesPerInstance, 0);
+    this.gl.enableVertexAttribArray(loc);
+    this.gl.vertexAttribDivisor(loc, 1);
+    this.gl.bufferData(GL.ARRAY_BUFFER, spriteCount * bytesPerInstance, GL.DYNAMIC_DRAW);
+    return () => {
+      this.gl.disableVertexAttribArray(bufferInfo.location);
+      this.attributeBuffers.deleteBuffer(location);
+    };
+  }
+  initializeInstanceBuffer(location, instanceCount) {
+    const bufferInfo = this.attributeBuffers.createBuffer(location);
+    this.gl.bindBuffer(GL.ARRAY_BUFFER, bufferInfo.buffer);
+    const loc = bufferInfo.location;
+    const elemCount = 1;
+    this.gl.vertexAttribPointer(loc, elemCount, GL.FLOAT, false, elemCount * Float32Array.BYTES_PER_ELEMENT, 0);
+    this.gl.enableVertexAttribArray(loc);
+    this.gl.vertexAttribDivisor(loc, 1);
+    this.gl.bufferData(GL.ARRAY_BUFFER, Float32Array.from(new Array(instanceCount).fill(null).map((_, index) => index)), GL.STATIC_DRAW);
+    return () => {
+      this.gl.disableVertexAttribArray(bufferInfo.location);
+      this.attributeBuffers.deleteBuffer(location);
+    };
+  }
+  initializeFlagBuffer(location, instanceCount) {
+    const bufferInfo = this.attributeBuffers.createBuffer(location);
+    this.gl.bindBuffer(GL.ARRAY_BUFFER, bufferInfo.buffer);
+    const loc = bufferInfo.location;
+    const elemCount = 1;
+    const bytesPerInstance = elemCount * Float32Array.BYTES_PER_ELEMENT;
+    this.gl.vertexAttribPointer(loc, elemCount, GL.FLOAT, false, bytesPerInstance, 0);
+    this.gl.enableVertexAttribArray(loc);
+    this.gl.vertexAttribDivisor(loc, 1);
+    this.gl.bufferData(GL.ARRAY_BUFFER, instanceCount * bytesPerInstance, GL.STATIC_DRAW);
+    return () => {
+      this.gl.disableVertexAttribArray(bufferInfo.location);
+      this.attributeBuffers.deleteBuffer(location);
+    };
+  }
+  async updateTextures(imageIds, getMedia) {
+    const mediaInfos = (await Promise.all(imageIds.map(async (imageId) => {
+      const media = getMedia(imageId);
+      if (!media) {
+        console.warn(`No media for imageId ${imageId}`);
+        return;
+      }
+      const mediaData = await this.imageManager.renderMedia(imageId, media);
+      return { mediaData, imageId };
+    }))).filter((data) => !!data);
+    const textureIndices = await Promise.all(mediaInfos.map(async ({ mediaData, imageId }) => {
+      const { slot, refreshCallback } = this.textureManager.allocateSlotForImage(mediaData);
+      const slotW = Math.log2(slot.size[0]), slotH = Math.log2(slot.size[1]);
+      const wh = slotW * 16 + slotH;
+      this.textureSlots[imageId] = {
+        buffer: Float32Array.from([wh, slot.slotNumber])
+      };
+      mediaData.refreshCallback = refreshCallback;
+      return slot.textureIndex;
+    }));
+    const textureIndicesSet = new Set(textureIndices);
+    textureIndicesSet.forEach((textureIndex) => {
+      if (textureIndex === TEXTURE_INDEX_FOR_VIDEO) {
+        this.textureManager.setupTextureForVideo(`TEXTURE${textureIndex}`);
+      } else {
+        this.textureManager.generateMipMap(`TEXTURE${textureIndex}`);
+      }
+    });
+    return mediaInfos.map(({ mediaData }) => mediaData);
+  }
+  drawElementsInstanced(vertexCount, instances) {
+    this.gl.drawElementsInstanced(GL.TRIANGLES, vertexCount, GL.UNSIGNED_SHORT, 0, instances);
+  }
+  updateSpriteTransforms(spriteIds, sprites) {
+    const bufferInfo = this.attributeBuffers.getAttributeBuffer(TRANSFORM_LOC);
+    this.gl.bindBuffer(GL.ARRAY_BUFFER, bufferInfo.buffer);
+    let topVisibleSprite = this.spriteCount - 1;
+    spriteIds.forEach((spriteId) => {
+      const sprite = sprites.at(spriteId);
+      this.gl.bufferSubData(GL.ARRAY_BUFFER, 16 * Float32Array.BYTES_PER_ELEMENT * spriteId, (sprite?.transform ?? Matrix_default.HIDDEN).getMatrix());
+      if (sprite) {
+        topVisibleSprite = Math.max(topVisibleSprite, spriteId);
+      }
+    });
+    spriteIds.clear();
+    while (topVisibleSprite >= 0 && !sprites.at(topVisibleSprite)) {
+      topVisibleSprite--;
+    }
+    this.spriteCount = Math.max(this.spriteCount, topVisibleSprite + 1);
+  }
+  updateSpriteAnims(spriteIds, sprites) {
+    const bufferInfo = this.attributeBuffers.getAttributeBuffer(SLOT_SIZE_LOC);
+    this.gl.bindBuffer(GL.ARRAY_BUFFER, bufferInfo.buffer);
+    spriteIds.forEach((spriteId) => {
+      const sprite = sprites.at(spriteId);
+      const slotObj = sprite ? this.textureSlots[sprite.imageId] : undefined;
+      this.gl.bufferSubData(GL.ARRAY_BUFFER, 2 * Float32Array.BYTES_PER_ELEMENT * spriteId, slotObj?.buffer ?? EMPTY_VEC2);
+      const spriteWaitingForTexture = sprite && !slotObj;
+      if (!spriteWaitingForTexture) {
+        spriteIds.delete(spriteId);
+      }
+    });
+  }
+  updateCameraMatrix(type, matrix) {
+    this.gl.uniformMatrix4fv(this.matrixUniforms[type], false, matrix);
+  }
+  updateCameraFloat(type, value) {
+    this.gl.uniform1f(this.floatUniforms[type], value);
+  }
+  updateCameraVector(type, vector) {
+    this.gl.uniform3fv(this.vec3Uniforms[type], vector);
+  }
+  bindVertexArray() {
+    return this.own(new VertexArray(this.gl));
+  }
+  setPixelListener(listener) {
+    this.pixelListener = listener;
+  }
+  _pixel = new Uint8Array(4);
+  getPixel(x, y) {
+    this.gl.readPixels(x, y, 1, 1, this.gl.RGBA, this.gl.UNSIGNED_BYTE, this._pixel);
+    const [r, g, b, _a] = this._pixel;
+    return r * 65536 + g * 256 + b;
+  }
+  static clearBit = GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT;
+  refresh() {
+    this.gl.clear(GraphicsEngine.clearBit);
+    this.drawElementsInstanced(VERTEX_COUNT, this.spriteCount);
+    this.pixelListener?.setPixel(this.getPixel(this.pixelListener.x, this.pixelListener.y));
+  }
+}
+
+// src/core/motor/Motor.ts
+var MAX_DELTA_TIME = 50;
+
+class Motor {
+  updateSchedule = new Map;
+  time = 0;
+  loop(update, frameRate, expirationTime) {
+    return this.registerUpdate(update, { period: frameRate ? 1000 / frameRate : 1, expirationTime });
+  }
+  registerUpdate(update, schedule = {}) {
+    schedule.triggerTime = schedule.triggerTime ?? this.time;
+    schedule.expirationTime = schedule.expirationTime ?? Infinity;
+    schedule.period = schedule.period;
+    this.updateSchedule.set(update, schedule);
+    return () => this.deregisterUpdate(update);
+  }
+  deregisterUpdate(update) {
+    this.updateSchedule.delete(update);
+  }
+  activate() {
+    let handle = 0;
+    const updatePayload = {
+      time: 0,
+      deltaTime: 0
+    };
+    const updates = [];
+    const loop = (time) => {
+      updatePayload.deltaTime = Math.min(time - updatePayload.time, MAX_DELTA_TIME);
+      updatePayload.time = time;
+      handle = requestAnimationFrame(loop);
+      this.time = time;
+      updates.length = 0;
+      this.updateSchedule.forEach((schedule, update) => {
+        if (time < schedule.triggerTime) {
+          return;
+        }
+        updates.push(update);
+        if (schedule.period && time < schedule.expirationTime) {
+          schedule.triggerTime = Math.max(schedule.triggerTime + schedule.period, time);
+        } else {
+          this.updateSchedule.delete(update);
+        }
+      });
+      updates.forEach((update) => update.refresh?.(updatePayload));
+    };
+    requestAnimationFrame(loop);
+    this.deactivate = () => {
+      cancelAnimationFrame(handle);
+      this.deactivate = undefined;
+    };
+  }
+}
 
 // src/gl/transform/ProjectionMatrix.ts
 class ProjectionMatrix {
@@ -4809,469 +5202,116 @@ class PositionMatrix extends AuxiliaryHolder {
   }
 }
 
-// src/gl/camera/Camera.ts
-var CameraMatrixType;
-(function(CameraMatrixType2) {
-  CameraMatrixType2[CameraMatrixType2["PROJECTION"] = 0] = "PROJECTION";
-  CameraMatrixType2[CameraMatrixType2["POS"] = 1] = "POS";
-  CameraMatrixType2[CameraMatrixType2["TURN"] = 2] = "TURN";
-  CameraMatrixType2[CameraMatrixType2["TILT"] = 3] = "TILT";
-})(CameraMatrixType || (CameraMatrixType = {}));
-var CameraFloatType;
-(function(CameraFloatType2) {
-  CameraFloatType2[CameraFloatType2["CURVATURE"] = 0] = "CURVATURE";
-  CameraFloatType2[CameraFloatType2["DISTANCE"] = 1] = "DISTANCE";
-})(CameraFloatType || (CameraFloatType = {}));
+// src/updates/CameraVectorUpdate.ts
+class CameraVectorUpdate {
+  getCameraVector;
+  engine;
+  motor;
+  updatedTypes = new Set;
+  constructor(getCameraVector, engine, motor) {
+    this.getCameraVector = getCameraVector;
+    this.engine = engine;
+    this.motor = motor;
+  }
+  informUpdate(type) {
+    this.motor.registerUpdate(this.withCameraType(type));
+  }
+  withCameraType(type) {
+    this.updatedTypes.add(type);
+    return this;
+  }
+  refresh() {
+    this.updatedTypes.forEach((type) => this.engine.updateCameraVector(type, this.getCameraVector(type)));
+  }
+}
 
+// src/gl/camera/Camera.ts
 class Camera extends AuxiliaryHolder {
   camMatrix = Matrix_default.create();
   projectionMatrix = new ProjectionMatrix;
-  posMatrix = new PositionMatrix(() => this.updateInformer.informUpdate(CameraMatrixType.POS));
-  tiltMatrix = new TiltMatrix(() => this.updateInformer.informUpdate(CameraMatrixType.TILT));
-  turnMatrix = new TurnMatrix(() => this.updateInformer.informUpdate(CameraMatrixType.TURN));
+  posMatrix = new PositionMatrix(() => this.updateInformer.informUpdate(MatrixUniform.CAM_POS));
+  tiltMatrix = new TiltMatrix(() => this.updateInformer.informUpdate(MatrixUniform.CAM_TILT));
+  turnMatrix = new TurnMatrix(() => this.updateInformer.informUpdate(MatrixUniform.CAM_TURN));
   _pespectiveLevel = 1;
   _curvature = 0;
   _distance = 0;
+  _bgColor = [0, 0, 0];
   updateInformer;
   updateInformerFloat;
+  updateInformerVector;
+  engine;
   constructor({ engine, motor }) {
     super();
+    this.engine = engine;
     this.updateInformer = new CameraUpdate(this.getCameraMatrix.bind(this), engine, motor);
     this.updateInformerFloat = new CameraFloatUpdate(this.getCameraFloat.bind(this), engine, motor);
+    this.updateInformerVector = new CameraVectorUpdate(this.getCameraVector.bind(this), engine, motor);
     this.addAuxiliary(this.posMatrix);
   }
   activate() {
     super.activate();
-    this.updateInformer.informUpdate(CameraMatrixType.PROJECTION);
-    this.updateInformer.informUpdate(CameraMatrixType.POS);
-    this.updateInformer.informUpdate(CameraMatrixType.TURN);
-    this.updateInformer.informUpdate(CameraMatrixType.TILT);
-    this.updateInformerFloat.informUpdate(CameraFloatType.CURVATURE);
-    this.updateInformerFloat.informUpdate(CameraFloatType.DISTANCE);
+    this.updateInformer.informUpdate(MatrixUniform.PROJECTION);
+    this.updateInformer.informUpdate(MatrixUniform.CAM_POS);
+    this.updateInformer.informUpdate(MatrixUniform.CAM_TURN);
+    this.updateInformer.informUpdate(MatrixUniform.CAM_TILT);
+    this.updateInformerFloat.informUpdate(FloatUniform.CURVATURE);
+    this.updateInformerFloat.informUpdate(FloatUniform.CAM_DISTANCE);
+    this.updateInformerVector.informUpdate(VectorUniform.BG_COLOR);
   }
   cameraMatrices = {
-    [CameraMatrixType.PROJECTION]: this.projectionMatrix,
-    [CameraMatrixType.POS]: this.camMatrix,
-    [CameraMatrixType.TURN]: this.turnMatrix,
-    [CameraMatrixType.TILT]: this.tiltMatrix
+    [MatrixUniform.PROJECTION]: this.projectionMatrix,
+    [MatrixUniform.CAM_POS]: this.camMatrix,
+    [MatrixUniform.CAM_TURN]: this.turnMatrix,
+    [MatrixUniform.CAM_TILT]: this.tiltMatrix
   };
   configProjectionMatrix(width, height2) {
     this.projectionMatrix.configure(width, height2);
-    this.updateInformer.informUpdate(CameraMatrixType.PROJECTION);
+    this.updateInformer.informUpdate(MatrixUniform.PROJECTION);
   }
   set perspective(level) {
     this.projectionMatrix.setPerspective(level ?? this._pespectiveLevel);
-    this.updateInformer.informUpdate(CameraMatrixType.PROJECTION);
+    this.updateInformer.informUpdate(MatrixUniform.PROJECTION);
   }
   set curvature(value) {
     this._curvature = value;
-    this.updateInformerFloat.informUpdate(CameraFloatType.CURVATURE);
+    this.updateInformerFloat.informUpdate(FloatUniform.CURVATURE);
   }
   set distance(value) {
     this._distance = value;
-    this.updateInformerFloat.informUpdate(CameraFloatType.DISTANCE);
+    this.updateInformerFloat.informUpdate(FloatUniform.CAM_DISTANCE);
   }
-  getCameraMatrix(cameraMatrixType) {
-    if (cameraMatrixType === CameraMatrixType.POS) {
+  set bgColor(rgb) {
+    const red = rgb >> 16 & 255;
+    const green = rgb >> 8 & 255;
+    const blue = rgb & 255;
+    this._bgColor[0] = red / 255;
+    this._bgColor[1] = green / 255;
+    this._bgColor[2] = blue / 255;
+    this.updateInformerVector.informUpdate(VectorUniform.BG_COLOR);
+    this.engine.setBgColor(this._bgColor);
+  }
+  getCameraMatrix(uniform) {
+    if (uniform === MatrixUniform.CAM_POS) {
       this.camMatrix.invert(this.posMatrix);
     }
-    return this.cameraMatrices[cameraMatrixType].getMatrix();
+    return this.cameraMatrices[uniform].getMatrix();
   }
-  getCameraFloat(cameraFloatType) {
-    switch (cameraFloatType) {
-      case CameraFloatType.CURVATURE:
+  getCameraFloat(uniform) {
+    switch (uniform) {
+      case FloatUniform.CURVATURE:
         return this._curvature;
-      case CameraFloatType.DISTANCE:
+      case FloatUniform.CAM_DISTANCE:
         return this._distance;
+    }
+  }
+  getCameraVector(uniform) {
+    switch (uniform) {
+      case VectorUniform.BG_COLOR:
+        return this._bgColor;
     }
   }
   moveCam(x, y, z) {
     this.posMatrix.moveBy(x, y, z, this.turnMatrix);
-  }
-}
-
-// src/updates/RefreshOrder.ts
-var RefreshOrder;
-(function(RefreshOrder2) {
-  RefreshOrder2[RefreshOrder2["FIRST"] = Number.MIN_SAFE_INTEGER] = "FIRST";
-  RefreshOrder2[RefreshOrder2["DEFAULT"] = 0] = "DEFAULT";
-  RefreshOrder2[RefreshOrder2["LAST"] = Number.MAX_SAFE_INTEGER] = "LAST";
-})(RefreshOrder || (RefreshOrder = {}));
-
-// src/core/graphics/GraphicsEngine.ts
-var glProxy = function(gl) {
-  if (!LOG_GL) {
-    return gl;
-  }
-  const proxy = new Proxy(gl, {
-    get(target, prop) {
-      const t = target;
-      const result = t[prop];
-      if (typeof result === "function") {
-        const f = (...params) => {
-          const returnValue = result.apply(t, params);
-          console.log(`gl.${String(prop)}(`, params, ") = ", returnValue);
-          return returnValue;
-        };
-        return f;
-      } else {
-        console.log(`gl.${String(prop)} = `, result);
-        return result;
-      }
-    }
-  });
-  return proxy;
-};
-var DEFAULT_ATTRIBUTES = {
-  alpha: true,
-  antialias: false,
-  depth: true,
-  desynchronized: true,
-  failIfMajorPerformanceCaveat: undefined,
-  powerPreference: "default",
-  premultipliedAlpha: true,
-  preserveDrawingBuffer: false,
-  stencil: false
-};
-var VERTEX_COUNT = 6;
-var LOG_GL = false;
-
-class GraphicsEngine extends Disposable {
-  gl;
-  programs;
-  attributeBuffers;
-  uniforms;
-  canvas;
-  textureManager;
-  imageManager;
-  textureSlots = {};
-  onResize = new Set;
-  pixelListeners = new Set;
-  spriteCount = 0;
-  cameraMatrixUniforms = {};
-  cameraFloatUniforms = {};
-  refreshOrder = RefreshOrder.LAST;
-  constructor(canvas, {
-    attributes
-  } = {}) {
-    super();
-    const gl = canvas.getContext("webgl2", { ...DEFAULT_ATTRIBUTES, ...attributes });
-    this.gl = glProxy(gl);
-    this.canvas = canvas;
-    this.programs = this.own(new GLPrograms(this.gl));
-    this.uniforms = this.own(new GLUniforms(this.gl, this.programs));
-    this.attributeBuffers = this.own(new GLAttributeBuffers(this.gl, this.programs));
-    this.textureManager = new TextureManager(this.gl, this.uniforms);
-    this.imageManager = new ImageManager;
-    const onResize = this.checkCanvasSize.bind(this);
-    window.addEventListener("resize", onResize);
-    this.addOnDestroy(() => window.removeEventListener("resize", onResize));
-    this.initialize();
-  }
-  addResizeListener(listener) {
-    listener(this.gl.drawingBufferWidth, this.gl.drawingBufferHeight);
-    this.onResize.add(listener);
-    return () => this.removeResizeListener(listener);
-  }
-  removeResizeListener(listener) {
-    this.onResize.delete(listener);
-  }
-  clearTextureSlots() {
-    for (let i in this.textureSlots) {
-      delete this.textureSlots[i];
-    }
-  }
-  checkCanvasSize() {
-    if (this.canvas instanceof HTMLCanvasElement) {
-      this.canvas.width = this.canvas.offsetWidth * 2;
-      this.canvas.height = this.canvas.offsetHeight * 2;
-    }
-    this.gl.viewport(0, 0, this.gl.drawingBufferWidth, this.gl.drawingBufferHeight);
-    this.onResize.forEach((callback) => callback(this.gl.drawingBufferWidth, this.gl.drawingBufferHeight));
-  }
-  initialize() {
-    const PROGRAM_NAME = "main";
-    const replacementMap = {
-      AUTHOR: "Jack le hamster"
-    };
-    this.programs.addProgram(PROGRAM_NAME, replaceTilda(vertexShader_default, replacementMap), replaceTilda(fragmentShader_default, replacementMap));
-    this.programs.useProgram(PROGRAM_NAME);
-    this.cameraMatrixUniforms[CameraMatrixType.PROJECTION] = this.uniforms.getUniformLocation(CAM_PROJECTION_LOC, PROGRAM_NAME);
-    this.cameraMatrixUniforms[CameraMatrixType.POS] = this.uniforms.getUniformLocation(CAM_POS_LOC, PROGRAM_NAME);
-    this.cameraMatrixUniforms[CameraMatrixType.TURN] = this.uniforms.getUniformLocation(CAM_TURN_LOC, PROGRAM_NAME);
-    this.cameraMatrixUniforms[CameraMatrixType.TILT] = this.uniforms.getUniformLocation(CAM_TILT_LOC, PROGRAM_NAME);
-    this.cameraFloatUniforms[CameraFloatType.CURVATURE] = this.uniforms.getUniformLocation(CAM_CURVATURE_LOC, PROGRAM_NAME);
-    this.cameraFloatUniforms[CameraFloatType.DISTANCE] = this.uniforms.getUniformLocation(CAM_DISTANCE_LOC, PROGRAM_NAME);
-    this.gl.enable(GL.DEPTH_TEST);
-    this.gl.depthFunc(GL.LESS);
-    this.gl.clearDepth(1);
-    this.gl.enable(GL.BLEND);
-    this.gl.blendFunc(GL.SRC_ALPHA, GL.ONE_MINUS_SRC_ALPHA);
-    this.gl.viewport(0, 0, this.gl.drawingBufferWidth, this.gl.drawingBufferHeight);
-    this.gl.enable(GL.CULL_FACE);
-    this.gl.cullFace(GL.BACK);
-    this.gl.clearColor(0, 0, 0, 1);
-    this.textureManager.initialize();
-    this.checkCanvasSize();
-  }
-  activate() {
-    this.clearTextureSlots();
-  }
-  setMaxSpriteCount(spriteCount) {
-    this.initializeBuffers(spriteCount);
-  }
-  onCleanupBuffers = new Set;
-  initializeBuffers(maxSpriteCount) {
-    this.onCleanupBuffers.forEach((cleanup) => cleanup());
-    this.onCleanupBuffers.clear();
-    if (maxSpriteCount) {
-      const cleanups = [
-        this.initializeIndexBuffer(INDEX_LOC),
-        this.initializePositionBuffer(POSITION_LOC),
-        this.initializeTransformBuffer(TRANSFORM_LOC, maxSpriteCount),
-        this.initializeSlotSizeBuffer(SLOT_SIZE_LOC, maxSpriteCount),
-        this.initializeInstanceBuffer(INSTANCE_LOC, maxSpriteCount),
-        this.initializeFlagBuffer(INSTANCE_LOC, maxSpriteCount)
-      ];
-      cleanups.forEach((cleanup) => this.onCleanupBuffers.add(cleanup));
-    }
-  }
-  initializeIndexBuffer(location) {
-    const bufferInfo = this.attributeBuffers.createBuffer(location);
-    this.gl.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, bufferInfo.buffer);
-    this.gl.bufferData(GL.ELEMENT_ARRAY_BUFFER, Uint16Array.from([0, 1, 2, 2, 3, 0]), GL.STATIC_DRAW);
-    return () => {
-      this.attributeBuffers.deleteBuffer(location);
-    };
-  }
-  initializePositionBuffer(location) {
-    const bufferInfo = this.attributeBuffers.createBuffer(location);
-    this.gl.bindBuffer(GL.ARRAY_BUFFER, bufferInfo.buffer);
-    this.gl.vertexAttribPointer(bufferInfo.location, 2, GL.FLOAT, false, 0, 0);
-    this.gl.enableVertexAttribArray(bufferInfo.location);
-    this.gl.bufferData(GL.ARRAY_BUFFER, Float32Array.from([-1, -1, 1, -1, 1, 1, -1, 1]), GL.STATIC_DRAW);
-    return () => {
-      this.gl.disableVertexAttribArray(bufferInfo.location);
-      this.attributeBuffers.deleteBuffer(location);
-    };
-  }
-  initializeTransformBuffer(location, spriteCount) {
-    const bufferInfo = this.attributeBuffers.createBuffer(location);
-    this.gl.bindBuffer(GL.ARRAY_BUFFER, bufferInfo.buffer);
-    const elemCount = 4;
-    const bytesPerRow = elemCount * Float32Array.BYTES_PER_ELEMENT;
-    const bytesPerInstance = 4 * bytesPerRow;
-    for (let i = 0;i < 4; i++) {
-      const loc = bufferInfo.location + i;
-      this.gl.vertexAttribPointer(loc, elemCount, GL.FLOAT, false, bytesPerInstance, i * bytesPerRow);
-      this.gl.enableVertexAttribArray(loc);
-      this.gl.vertexAttribDivisor(loc, 1);
-    }
-    this.gl.bufferData(GL.ARRAY_BUFFER, spriteCount * bytesPerInstance, GL.DYNAMIC_DRAW);
-    return () => {
-      this.gl.disableVertexAttribArray(bufferInfo.location);
-      this.attributeBuffers.deleteBuffer(location);
-    };
-  }
-  initializeSlotSizeBuffer(location, spriteCount) {
-    const bufferInfo = this.attributeBuffers.createBuffer(location);
-    this.gl.bindBuffer(GL.ARRAY_BUFFER, bufferInfo.buffer);
-    const loc = bufferInfo.location;
-    const elemCount = 2;
-    const bytesPerInstance = elemCount * Float32Array.BYTES_PER_ELEMENT;
-    this.gl.vertexAttribPointer(loc, elemCount, GL.FLOAT, false, bytesPerInstance, 0);
-    this.gl.enableVertexAttribArray(loc);
-    this.gl.vertexAttribDivisor(loc, 1);
-    this.gl.bufferData(GL.ARRAY_BUFFER, spriteCount * bytesPerInstance, GL.DYNAMIC_DRAW);
-    return () => {
-      this.gl.disableVertexAttribArray(bufferInfo.location);
-      this.attributeBuffers.deleteBuffer(location);
-    };
-  }
-  initializeInstanceBuffer(location, instanceCount) {
-    const bufferInfo = this.attributeBuffers.createBuffer(location);
-    this.gl.bindBuffer(GL.ARRAY_BUFFER, bufferInfo.buffer);
-    const loc = bufferInfo.location;
-    const elemCount = 1;
-    this.gl.vertexAttribPointer(loc, elemCount, GL.FLOAT, false, elemCount * Float32Array.BYTES_PER_ELEMENT, 0);
-    this.gl.enableVertexAttribArray(loc);
-    this.gl.vertexAttribDivisor(loc, 1);
-    this.gl.bufferData(GL.ARRAY_BUFFER, Float32Array.from(new Array(instanceCount).fill(null).map((_, index) => index)), GL.STATIC_DRAW);
-    return () => {
-      this.gl.disableVertexAttribArray(bufferInfo.location);
-      this.attributeBuffers.deleteBuffer(location);
-    };
-  }
-  initializeFlagBuffer(location, instanceCount) {
-    const bufferInfo = this.attributeBuffers.createBuffer(location);
-    this.gl.bindBuffer(GL.ARRAY_BUFFER, bufferInfo.buffer);
-    const loc = bufferInfo.location;
-    const elemCount = 1;
-    const bytesPerInstance = elemCount * Float32Array.BYTES_PER_ELEMENT;
-    this.gl.vertexAttribPointer(loc, elemCount, GL.FLOAT, false, bytesPerInstance, 0);
-    this.gl.enableVertexAttribArray(loc);
-    this.gl.vertexAttribDivisor(loc, 1);
-    this.gl.bufferData(GL.ARRAY_BUFFER, instanceCount * bytesPerInstance, GL.STATIC_DRAW);
-    return () => {
-      this.gl.disableVertexAttribArray(bufferInfo.location);
-      this.attributeBuffers.deleteBuffer(location);
-    };
-  }
-  async updateTextures(imageIds, getMedia) {
-    const mediaInfos = (await Promise.all(imageIds.map(async (imageId) => {
-      const media = getMedia(imageId);
-      if (!media) {
-        console.warn(`No media for imageId ${imageId}`);
-        return;
-      }
-      const mediaData = await this.imageManager.renderMedia(imageId, media);
-      return { mediaData, imageId };
-    }))).filter((data) => !!data);
-    const textureIndices = await Promise.all(mediaInfos.map(async ({ mediaData, imageId }) => {
-      const { slot, refreshCallback } = this.textureManager.allocateSlotForImage(mediaData);
-      const slotW = Math.log2(slot.size[0]), slotH = Math.log2(slot.size[1]);
-      const wh = slotW * 16 + slotH;
-      this.textureSlots[imageId] = {
-        buffer: Float32Array.from([wh, slot.slotNumber])
-      };
-      mediaData.refreshCallback = refreshCallback;
-      return slot.textureIndex;
-    }));
-    const textureIndicesSet = new Set(textureIndices);
-    textureIndicesSet.forEach((textureIndex) => {
-      if (textureIndex === TEXTURE_INDEX_FOR_VIDEO) {
-        this.textureManager.setupTextureForVideo(`TEXTURE${textureIndex}`);
-      } else {
-        this.textureManager.generateMipMap(`TEXTURE${textureIndex}`);
-      }
-    });
-    return mediaInfos.map(({ mediaData }) => mediaData);
-  }
-  drawElementsInstanced(vertexCount, instances) {
-    this.gl.drawElementsInstanced(GL.TRIANGLES, vertexCount, GL.UNSIGNED_SHORT, 0, instances);
-  }
-  updateSpriteTransforms(spriteIds, sprites) {
-    const bufferInfo = this.attributeBuffers.getAttributeBuffer(TRANSFORM_LOC);
-    this.gl.bindBuffer(GL.ARRAY_BUFFER, bufferInfo.buffer);
-    let topVisibleSprite = this.spriteCount - 1;
-    spriteIds.forEach((spriteId) => {
-      const sprite = sprites.at(spriteId);
-      this.gl.bufferSubData(GL.ARRAY_BUFFER, 16 * Float32Array.BYTES_PER_ELEMENT * spriteId, (sprite?.transform ?? Matrix_default.HIDDEN).getMatrix());
-      if (sprite) {
-        topVisibleSprite = Math.max(topVisibleSprite, spriteId);
-      }
-    });
-    spriteIds.clear();
-    while (topVisibleSprite >= 0 && !sprites.at(topVisibleSprite)) {
-      topVisibleSprite--;
-    }
-    this.spriteCount = Math.max(this.spriteCount, topVisibleSprite + 1);
-  }
-  updateSpriteAnims(spriteIds, sprites) {
-    const bufferInfo = this.attributeBuffers.getAttributeBuffer(SLOT_SIZE_LOC);
-    this.gl.bindBuffer(GL.ARRAY_BUFFER, bufferInfo.buffer);
-    spriteIds.forEach((spriteId) => {
-      const sprite = sprites.at(spriteId);
-      const slotObj = this.textureSlots[sprite?.imageId ?? -1];
-      if (slotObj) {
-        const { buffer } = slotObj;
-        this.gl.bufferSubData(GL.ARRAY_BUFFER, 2 * Float32Array.BYTES_PER_ELEMENT * spriteId, buffer);
-        spriteIds.delete(spriteId);
-      }
-    });
-  }
-  updateCameraMatrix(type, matrix) {
-    this.gl.uniformMatrix4fv(this.cameraMatrixUniforms[type], false, matrix);
-  }
-  updateCameraFloat(type, value) {
-    this.gl.uniform1f(this.cameraFloatUniforms[type], value);
-  }
-  bindVertexArray() {
-    return this.own(new VertexArray(this.gl));
-  }
-  addPixelListener(listener) {
-    this.pixelListeners.add(listener);
-    return () => {
-      this.removePixelListener(listener);
-    };
-  }
-  removePixelListener(listener) {
-    this.pixelListeners.delete(listener);
-  }
-  _pixel = new Uint8Array(4);
-  getPixel(x, y) {
-    this.gl.readPixels(x, y, 1, 1, this.gl.RGBA, this.gl.UNSIGNED_BYTE, this._pixel);
-    const [r, g, b, _a] = this._pixel;
-    return r * 65536 + g * 256 + b;
-  }
-  refresh() {
-    this.gl.clear(GL.COLOR_BUFFER_BIT);
-    this.drawElementsInstanced(VERTEX_COUNT, this.spriteCount);
-    for (const listener of this.pixelListeners) {
-      listener.pixel = this.getPixel(listener.x, listener.y);
-    }
-  }
-}
-
-// src/core/motor/Motor.ts
-var MAX_DELTA_TIME = 50;
-var Priority;
-(function(Priority2) {
-  Priority2[Priority2["DEFAULT"] = 0] = "DEFAULT";
-  Priority2[Priority2["LAST"] = 1] = "LAST";
-})(Priority || (Priority = {}));
-
-class Motor {
-  updateSchedule = new Map;
-  time = 0;
-  loop(update, frameRate, priority, expirationTime) {
-    return this.registerUpdate(update, { period: frameRate ? 1000 / frameRate : 1, expirationTime, priority });
-  }
-  registerUpdate(update, schedule = {}) {
-    schedule.triggerTime = schedule.triggerTime ?? this.time;
-    schedule.expirationTime = schedule.expirationTime ?? Infinity;
-    schedule.period = schedule.period;
-    schedule.priority = schedule.priority ?? Priority.DEFAULT;
-    this.updateSchedule.set(update, schedule);
-    return () => this.deregisterUpdate(update);
-  }
-  deregisterUpdate(update) {
-    this.updateSchedule.delete(update);
-  }
-  activate() {
-    let handle = 0;
-    const updatePayload = {
-      time: 0,
-      deltaTime: 0
-    };
-    const normalUpdates = [];
-    const lastUpdates = [];
-    const updateList = [normalUpdates, lastUpdates];
-    const loop = (time) => {
-      updatePayload.deltaTime = Math.min(time - updatePayload.time, MAX_DELTA_TIME);
-      updatePayload.time = time;
-      handle = requestAnimationFrame(loop);
-      this.time = time;
-      normalUpdates.length = 0;
-      lastUpdates.length = 0;
-      this.updateSchedule.forEach((schedule, update) => {
-        if (time < schedule.triggerTime) {
-          return;
-        }
-        updateList[schedule.priority].push(update);
-        if (schedule.period && time < schedule.expirationTime) {
-          schedule.triggerTime = Math.max(schedule.triggerTime + schedule.period, time);
-        } else {
-          this.updateSchedule.delete(update);
-        }
-      });
-      updateList.forEach((updates) => updates.forEach((update) => update.refresh?.(updatePayload)));
-    };
-    requestAnimationFrame(loop);
-    this.deactivate = () => {
-      cancelAnimationFrame(handle);
-      this.deactivate = undefined;
-    };
   }
 }
 
@@ -5391,7 +5431,7 @@ class Core extends AuxiliaryHolder {
   start(world) {
     const { motor, engine, keyboard, camera } = this;
     const deregisterLoop = motor.loop(this);
-    this.addAuxiliary(world, motor, engine, keyboard, camera);
+    this.addAuxiliary(world, motor, keyboard, camera, engine);
     camera.addAuxiliary(new ResizeAux({ engine }));
     this.activate();
     return () => {
@@ -5412,7 +5452,6 @@ class CellChangeAuxiliary {
   cellSize;
   cell;
   visitCellObj;
-  refreshOrder = RefreshOrder.FIRST;
   constructor({ visitCell }, config) {
     this.cellSize = config?.cellSize ?? 1;
     this.visitCellObj = visitCell;
@@ -5767,6 +5806,101 @@ class ToggleAuxiliary {
   }
 }
 
+// src/utils/ObjectPool.ts
+class ObjectPool {
+  initCall;
+  allObjectsCreated = [];
+  recycler = [];
+  constructor(initCall) {
+    this.initCall = initCall;
+  }
+  recycle(element) {
+    this.recycler.push(element);
+  }
+  create(value) {
+    const recycledElem = this.recycler.pop();
+    if (recycledElem) {
+      return this.initCall(value, recycledElem);
+    }
+    const elem = this.initCall(value);
+    this.allObjectsCreated.push(elem);
+    return elem;
+  }
+  reset() {
+    this.recycler.length = 0;
+    this.recycler.push(...this.allObjectsCreated);
+  }
+}
+
+// src/utils/DoubleLinkList.ts
+class DoubleLinkList {
+  start;
+  end;
+  nodeMap = new Map;
+  pool;
+  constructor(edgeValue) {
+    this.start = { value: edgeValue };
+    this.end = { value: edgeValue };
+    this.start.next = this.end;
+    this.end.prev = this.start;
+    this.pool = new ObjectPool((value, elem) => {
+      if (!elem) {
+        return { value };
+      }
+      elem.value = value;
+      return elem;
+    });
+  }
+  get size() {
+    return this.nodeMap.size;
+  }
+  tags = [];
+  getList() {
+    this.tags.length = 0;
+    for (let e = this.start.next;e !== this.end; e = e.next) {
+      this.tags.push(e.value);
+    }
+    return this.tags;
+  }
+  pushTop(value) {
+    const formerTop = this.end.prev;
+    const newTop = this.pool.create(value);
+    newTop.prev = formerTop;
+    newTop.next = this.end;
+    formerTop.next = this.end.prev = newTop;
+    this.nodeMap.set(value, newTop);
+  }
+  remove(value) {
+    const entry = this.nodeMap.get(value);
+    if (entry) {
+      if (entry.prev) {
+        entry.prev.next = entry.next;
+      }
+      if (entry.next) {
+        entry.next.prev = entry.prev;
+      }
+      entry.prev = entry.next = undefined;
+      this.pool.recycle(entry);
+      return true;
+    } else {
+      return false;
+    }
+  }
+  popBottom() {
+    const entryToRemove = this.start.next;
+    if (entryToRemove !== this.end) {
+      const newBottom = entryToRemove.next;
+      this.start.next = newBottom;
+      newBottom.prev = this.start;
+      this.nodeMap.delete(entryToRemove.value);
+      entryToRemove.prev = entryToRemove.next = undefined;
+      this.pool.recycle(entryToRemove);
+      return entryToRemove.value;
+    }
+    return;
+  }
+}
+
 // src/world/grid/CellTracker.ts
 class CellTracker {
   cellTrack;
@@ -5775,75 +5909,53 @@ class CellTracker {
   cellLimit;
   cellSize;
   tempCell;
-  cellTagVisitsStart;
-  cellTagVisitsEnd;
-  cellTagMap = new Map;
+  cellTags = new DoubleLinkList("");
   constructor(cellTrack, { range, cellLimit, cellSize = 1 } = {}) {
     this.cellTrack = cellTrack;
     this.range = [range?.[0] ?? 3, range?.[1] ?? 3, range?.[2] ?? 3];
     this.base = this.range.map((r) => Math.ceil(-r / 2));
     this.cellLimit = Math.max(0, cellLimit ?? 10);
     this.cellSize = cellSize ?? 1;
-    this.cellTagVisitsStart = { value: "start" };
-    this.cellTagVisitsEnd = { value: "end" };
-    this.cellTagVisitsStart.next = this.cellTagVisitsEnd;
-    this.cellTagVisitsEnd.prev = this.cellTagVisitsStart;
     this.tempCell = {
       pos: [0, 0, 0, this.cellSize],
       tag: ""
     };
+    this.onCellVisit = this.onCellVisit.bind(this);
   }
   getCellTags() {
-    const tags = [];
-    for (let e = this.cellTagVisitsStart.next;e !== this.cellTagVisitsEnd; e = e.next) {
-      tags.push(e.value);
-    }
-    return tags;
+    return this.cellTags.getList();
   }
   iterateCells(visitedCell, callback) {
     const { range, base, tempCell } = this;
     const { pos } = visitedCell;
+    const cellX = pos[0] + base[0];
+    const cellY = pos[1] + base[1];
+    const cellZ = pos[2] + base[2];
     for (let z = 0;z < range[0]; z++) {
       for (let x = 0;x < range[2]; x++) {
         for (let y = 0;y < range[1]; y++) {
-          tempCell.pos[0] = pos[0] + x + base[0];
-          tempCell.pos[1] = pos[1] + y + base[1];
-          tempCell.pos[2] = pos[2] + z + base[2];
+          tempCell.pos[0] = cellX + x;
+          tempCell.pos[1] = cellY + y;
+          tempCell.pos[2] = cellZ + z;
           tempCell.tag = cellTag(...tempCell.pos);
           callback(tempCell);
         }
       }
     }
   }
+  onCellVisit(cell) {
+    if (!this.cellTags.remove(cell.tag)) {
+      this.cellTrack.trackCell?.(cell);
+    }
+    this.cellTags.pushTop(cell.tag);
+  }
   visitCell(visitedCell) {
-    this.iterateCells(visitedCell, (cell) => {
-      let entry = this.cellTagMap.get(cell.tag);
-      if (entry) {
-        if (entry.prev) {
-          entry.prev.next = entry.next;
-        }
-        if (entry.next) {
-          entry.next.prev = entry.prev;
-        }
-        entry.prev = undefined;
-        entry.next = undefined;
-      } else {
-        this.cellTrack.trackCell?.(cell);
-        entry = { value: cell.tag };
-        this.cellTagMap.set(cell.tag, entry);
+    this.iterateCells(visitedCell, this.onCellVisit);
+    while (this.cellTags.size > this.cellLimit) {
+      const removedTag = this.cellTags.popBottom();
+      if (removedTag) {
+        this.cellTrack.untrackCell?.(removedTag);
       }
-      entry.prev = this.cellTagVisitsEnd.prev;
-      entry.prev.next = entry;
-      this.cellTagVisitsEnd.prev = entry;
-      entry.next = this.cellTagVisitsEnd;
-    });
-    while (this.cellTagMap.size > this.cellLimit && this.cellTagVisitsStart) {
-      const entryToRemove = this.cellTagVisitsStart.next;
-      const newFirstEntry = entryToRemove.next;
-      this.cellTagMap.delete(entryToRemove.value);
-      this.cellTagVisitsStart.next = newFirstEntry;
-      newFirstEntry.prev = this.cellTagVisitsStart;
-      this.cellTrack.untrackCell?.(entryToRemove.value);
     }
   }
 }
@@ -5903,16 +6015,16 @@ class SpriteGrid {
     this.spriteFactory = spriteFactory;
     this.spriteLimit = config?.spriteLimit ?? 100;
     this.ranges = [
-      config?.xRange ?? [Number.MIN_SAFE_INTEGER, Number.MAX_SAFE_INTEGER],
-      config?.yRange ?? [Number.MIN_SAFE_INTEGER, Number.MAX_SAFE_INTEGER],
-      config?.zRange ?? [Number.MIN_SAFE_INTEGER, Number.MAX_SAFE_INTEGER]
+      config?.xRange ?? [Number.NEGATIVE_INFINITY, Number.POSITIVE_INFINITY],
+      config?.yRange ?? [Number.NEGATIVE_INFINITY, Number.POSITIVE_INFINITY],
+      config?.zRange ?? [Number.NEGATIVE_INFINITY, Number.POSITIVE_INFINITY]
     ];
   }
   get length() {
     return this.spriteLimit;
   }
   at(index) {
-    return index < this.length ? this.slots[index]?.sprite : undefined;
+    return this.slots[index]?.sprite;
   }
   trackCell(cell) {
     const [[minX, maxX], [minY, maxY], [minZ, maxZ]] = this.ranges;
@@ -6163,8 +6275,8 @@ class DemoWorld extends World {
     }));
     this.core.camera.posMatrix.addAuxiliary(new CellChangeAuxiliary({
       visitCell: new CellTracker(this, {
-        cellLimit: 1e4,
-        range: [10, 3, 10],
+        cellLimit: 100,
+        range: [5, 3, 5],
         cellSize: CELLSIZE
       })
     }, {
@@ -6185,7 +6297,14 @@ async function testCanvas(canvas) {
   canvas.addEventListener("mouseleave", () => {
     canvas.style.borderColor = "silver";
   });
-  const pixelListener = { x: 0, y: 0, pixel: 0 };
+  const pixelListener = {
+    x: 0,
+    y: 0,
+    pixel: 0,
+    setPixel(value) {
+      this.pixel = value;
+    }
+  };
   canvas.addEventListener("mousemove", (e) => {
     const x = (e.pageX - canvas.offsetLeft) * 2;
     const y = (canvas.offsetHeight - (e.pageY - canvas.offsetTop)) * 2;
@@ -6195,7 +6314,7 @@ async function testCanvas(canvas) {
   const core = new Core({
     canvas
   });
-  core.engine.addPixelListener(pixelListener);
+  core.engine.setPixelListener(pixelListener);
   const world = new DemoWorld(core);
   onStop = core.start(world);
   return { core, world };
@@ -6211,4 +6330,4 @@ export {
   World
 };
 
-//# debugId=8890CA014FFAF59664756e2164756e21
+//# debugId=3CED406335686EE164756e2164756e21

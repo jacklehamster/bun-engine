@@ -1,4 +1,4 @@
-import { Disposable } from "lifecycle/Disposable";
+import { Disposable } from "gl/lifecycle/Disposable";
 import { Url } from "./TextureManager";
 import { MediaData } from "./MediaData";
 import { CanvasMedia, DrawMedia, ImageMedia, Media, MediaType, VideoMedia, WebcamMedia } from "./Media";

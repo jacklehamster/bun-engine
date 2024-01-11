@@ -1,5 +1,5 @@
 import { Refresh } from 'updates/Refresh';
-import { Disposable } from '../../lifecycle/Disposable';
+import { Disposable } from '../lifecycle/Disposable';
 import { Schedule } from 'core/motor/Motor';
 
 export class MediaData extends Disposable implements Refresh {

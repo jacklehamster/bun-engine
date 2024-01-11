@@ -1,4 +1,3 @@
-import { Disposable } from '../../lifecycle/Disposable';
 import { GLPrograms } from '../programs/GLPrograms';
 import { GL } from './Constants';
 
@@ -12,13 +11,12 @@ export interface BufferInfo {
 
 export type LocationName = string;
 
-export class GLAttributeBuffers extends Disposable {
+export class GLAttributeBuffers {
   private readonly bufferRecord: Record<LocationName, BufferInfo> = {};
   private readonly gl: GL;
   private readonly programs: GLPrograms;
 
   constructor(gl: GL, programs: GLPrograms) {
-    super();
     this.gl = gl;
     this.programs = programs;
   }

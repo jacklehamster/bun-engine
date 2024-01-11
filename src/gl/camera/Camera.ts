@@ -1,4 +1,4 @@
-import { IMatrix } from "gl/transform/IMatrix";
+import { IMatrix, vector } from "gl/transform/IMatrix";
 import Matrix from "gl/transform/Matrix";
 import { ProjectionMatrix } from "gl/transform/ProjectionMatrix";
 import { TiltMatrix } from "gl/transform/TiltMatrix";
@@ -10,18 +10,9 @@ import { IGraphicsEngine } from "core/graphics/IGraphicsEngine";
 import { IMotor } from "core/motor/IMotor";
 import { PositionMatrix } from "gl/transform/PositionMatrix";
 import { AuxiliaryHolder } from "world/aux/AuxiliaryHolder";
-
-export enum CameraMatrixType {
-  PROJECTION = 0,
-  POS = 1,
-  TURN = 2,
-  TILT = 3,
-}
-
-export enum CameraFloatType {
-  CURVATURE = 0,
-  DISTANCE = 1,
-}
+import { MatrixUniform, VectorUniform } from "core/graphics/Uniforms";
+import { FloatUniform } from "core/graphics/Uniforms";
+import { CameraVectorUpdate } from "updates/CameraVectorUpdate";
 
 interface Props {
   engine: IGraphicsEngine;
@@ -31,72 +22,96 @@ interface Props {
 export class Camera extends AuxiliaryHolder<ICamera> implements ICamera {
   private readonly camMatrix = Matrix.create();
   private readonly projectionMatrix = new ProjectionMatrix();
-  readonly posMatrix = new PositionMatrix(() => this.updateInformer.informUpdate(CameraMatrixType.POS));
-  readonly tiltMatrix = new TiltMatrix(() => this.updateInformer.informUpdate(CameraMatrixType.TILT));
-  readonly turnMatrix = new TurnMatrix(() => this.updateInformer.informUpdate(CameraMatrixType.TURN));
+  readonly posMatrix = new PositionMatrix(() => this.updateInformer.informUpdate(MatrixUniform.CAM_POS));
+  readonly tiltMatrix = new TiltMatrix(() => this.updateInformer.informUpdate(MatrixUniform.CAM_TILT));
+  readonly turnMatrix = new TurnMatrix(() => this.updateInformer.informUpdate(MatrixUniform.CAM_TURN));
   private _pespectiveLevel = 1;
   private _curvature = 0;
   private _distance = 0;
+  private _bgColor: vector = [0, 0, 0];
   private readonly updateInformer;
   private readonly updateInformerFloat;
+  private readonly updateInformerVector;
+  private engine: IGraphicsEngine;
 
   constructor({ engine, motor }: Props) {
     super();
+    this.engine = engine;
     this.updateInformer = new CameraUpdate(this.getCameraMatrix.bind(this), engine, motor);
     this.updateInformerFloat = new CameraFloatUpdate(this.getCameraFloat.bind(this), engine, motor);
+    this.updateInformerVector = new CameraVectorUpdate(this.getCameraVector.bind(this), engine, motor);
     this.addAuxiliary(this.posMatrix);
   }
 
   activate() {
     super.activate();
-    this.updateInformer.informUpdate(CameraMatrixType.PROJECTION);
-    this.updateInformer.informUpdate(CameraMatrixType.POS);
-    this.updateInformer.informUpdate(CameraMatrixType.TURN);
-    this.updateInformer.informUpdate(CameraMatrixType.TILT);
-    this.updateInformerFloat.informUpdate(CameraFloatType.CURVATURE);
-    this.updateInformerFloat.informUpdate(CameraFloatType.DISTANCE);
+    this.updateInformer.informUpdate(MatrixUniform.PROJECTION);
+    this.updateInformer.informUpdate(MatrixUniform.CAM_POS);
+    this.updateInformer.informUpdate(MatrixUniform.CAM_TURN);
+    this.updateInformer.informUpdate(MatrixUniform.CAM_TILT);
+    this.updateInformerFloat.informUpdate(FloatUniform.CURVATURE);
+    this.updateInformerFloat.informUpdate(FloatUniform.CAM_DISTANCE);
+    this.updateInformerVector.informUpdate(VectorUniform.BG_COLOR);
   }
 
-  private readonly cameraMatrices: Record<CameraMatrixType, IMatrix> = {
-    [CameraMatrixType.PROJECTION]: this.projectionMatrix,
-    [CameraMatrixType.POS]: this.camMatrix,
-    [CameraMatrixType.TURN]: this.turnMatrix,
-    [CameraMatrixType.TILT]: this.tiltMatrix,
+  private readonly cameraMatrices: Record<MatrixUniform, IMatrix> = {
+    [MatrixUniform.PROJECTION]: this.projectionMatrix,
+    [MatrixUniform.CAM_POS]: this.camMatrix,
+    [MatrixUniform.CAM_TURN]: this.turnMatrix,
+    [MatrixUniform.CAM_TILT]: this.tiltMatrix,
   };
 
   configProjectionMatrix(width: number, height: number) {
     this.projectionMatrix.configure(width, height);
-    this.updateInformer.informUpdate(CameraMatrixType.PROJECTION);
+    this.updateInformer.informUpdate(MatrixUniform.PROJECTION);
   }
 
   set perspective(level: number) {
     this.projectionMatrix.setPerspective(level ?? this._pespectiveLevel);
-    this.updateInformer.informUpdate(CameraMatrixType.PROJECTION);
+    this.updateInformer.informUpdate(MatrixUniform.PROJECTION);
   }
 
   set curvature(value: number) {
     this._curvature = value;
-    this.updateInformerFloat.informUpdate(CameraFloatType.CURVATURE);
+    this.updateInformerFloat.informUpdate(FloatUniform.CURVATURE);
   }
 
   set distance(value: number) {
     this._distance = value;
-    this.updateInformerFloat.informUpdate(CameraFloatType.DISTANCE);
+    this.updateInformerFloat.informUpdate(FloatUniform.CAM_DISTANCE);
   }
 
-  private getCameraMatrix(cameraMatrixType: CameraMatrixType): Float32Array {
-    if (cameraMatrixType === CameraMatrixType.POS) {
+  set bgColor(rgb: number) {
+    const red = (rgb >> 16) & 0xFF;
+    const green = (rgb >> 8) & 0xFF;
+    const blue = rgb & 0xFF;
+    this._bgColor[0] = red / 255.0;
+    this._bgColor[1] = green / 255.0;
+    this._bgColor[2] = blue / 255.0;
+    this.updateInformerVector.informUpdate(VectorUniform.BG_COLOR);
+    this.engine.setBgColor(this._bgColor);
+  }
+
+  private getCameraMatrix(uniform: MatrixUniform): Float32Array {
+    if (uniform === MatrixUniform.CAM_POS) {
       this.camMatrix.invert(this.posMatrix);
     }
-    return this.cameraMatrices[cameraMatrixType].getMatrix();
+    return this.cameraMatrices[uniform].getMatrix();
   }
 
-  private getCameraFloat(cameraFloatType: CameraFloatType): number {
-    switch (cameraFloatType) {
-      case CameraFloatType.CURVATURE:
+  private getCameraFloat(uniform: FloatUniform): number {
+    switch (uniform) {
+      case FloatUniform.CURVATURE:
         return this._curvature;
-      case CameraFloatType.DISTANCE:
+      case FloatUniform.CAM_DISTANCE:
         return this._distance;
+    }
+  }
+
+  private getCameraVector(uniform: VectorUniform): vector {
+    switch (uniform) {
+      case VectorUniform.BG_COLOR:
+        return this._bgColor;
     }
   }
 

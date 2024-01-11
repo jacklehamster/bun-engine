@@ -3,7 +3,6 @@ import { PositionMatrix } from "../PositionMatrix";
 import { Cell, cellTag } from "world/grid/CellPos";
 import { VisitCell } from "../../../world/grid/VisitCell";
 import { UpdatePayload } from "updates/Refresh";
-import { RefreshOrder } from "updates/RefreshOrder";
 
 interface Props {
   visitCell: VisitCell;
@@ -18,7 +17,6 @@ export class CellChangeAuxiliary implements Auxiliary<PositionMatrix> {
   private cellSize: number;
   private cell: Cell;
   private visitCellObj: VisitCell;
-  readonly refreshOrder = RefreshOrder.FIRST;
 
   constructor({ visitCell }: Props, config?: Config) {
     this.cellSize = config?.cellSize ?? 1;

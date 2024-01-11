@@ -1,5 +1,5 @@
 import { GLUniforms } from 'gl/uniforms/GLUniforms';
-import { Disposable } from '../../lifecycle/Disposable';
+import { Disposable } from '../lifecycle/Disposable';
 import { GL, MAX_TEXTURE_SIZE_LOC, TEXTURE_UNIFORM_LOC } from '../attributes/Constants';
 import { MediaData } from './MediaData';
 import { Slot, TextureIndex } from "texture-slot-allocator/dist/src/texture/TextureSlot";

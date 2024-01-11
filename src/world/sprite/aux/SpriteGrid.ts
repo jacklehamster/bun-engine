@@ -35,9 +35,9 @@ export class SpriteGrid implements Auxiliary<IWorld>, UpdateNotifier {
   constructor(config?: Config, private spriteFactory: SpriteFactory = {}) {
     this.spriteLimit = config?.spriteLimit ?? 100;
     this.ranges = [
-      config?.xRange ?? [Number.MIN_SAFE_INTEGER, Number.MAX_SAFE_INTEGER],
-      config?.yRange ?? [Number.MIN_SAFE_INTEGER, Number.MAX_SAFE_INTEGER],
-      config?.zRange ?? [Number.MIN_SAFE_INTEGER, Number.MAX_SAFE_INTEGER],
+      config?.xRange ?? [Number.NEGATIVE_INFINITY, Number.POSITIVE_INFINITY],
+      config?.yRange ?? [Number.NEGATIVE_INFINITY, Number.POSITIVE_INFINITY],
+      config?.zRange ?? [Number.NEGATIVE_INFINITY, Number.POSITIVE_INFINITY],
     ];
   }
 
@@ -46,7 +46,7 @@ export class SpriteGrid implements Auxiliary<IWorld>, UpdateNotifier {
   }
 
   at(index: number): Sprite | undefined {
-    return index < this.length ? this.slots[index]?.sprite : undefined;
+    return this.slots[index]?.sprite;
   }
 
   trackCell(cell: Cell): void {

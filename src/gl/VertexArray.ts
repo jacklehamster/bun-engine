@@ -1,12 +1,10 @@
-import { Disposable } from '../lifecycle/Disposable';
 import { GL } from './attributes/Constants';
 
-export class VertexArray extends Disposable {
+export class VertexArray {
   private gl: GL;
   private triangleArray: WebGLVertexArrayObject | null;
 
   constructor(gl: GL) {
-    super();
     this.gl = gl;
     this.triangleArray = gl.createVertexArray();
     gl.bindVertexArray(this.triangleArray);

@@ -1,13 +1,11 @@
 import { GL } from 'gl/attributes/Constants';
-import { Disposable } from '../../lifecycle/Disposable';
 import { GLPrograms } from '../programs/GLPrograms';
 
-export class GLUniforms extends Disposable {
+export class GLUniforms {
   private gl: GL;
   private programs: GLPrograms;
 
   constructor(gl: GL, programs: GLPrograms) {
-    super();
     this.gl = gl;
     this.programs = programs;
   }

@@ -3,7 +3,7 @@
 /// <reference lib="dom.iterable" />
 
 import { GLPrograms } from '../../gl/programs/GLPrograms';
-import { Disposable } from '../../lifecycle/Disposable';
+import { Disposable } from '../../gl/lifecycle/Disposable';
 import { VertexArray } from '../../gl/VertexArray';
 import { GLAttributeBuffers, LocationName } from '../../gl/attributes/GLAttributeBuffers';
 import { GLUniforms } from '../../gl/uniforms/GLUniforms';
@@ -20,6 +20,7 @@ import {
   CAM_TURN_LOC,
   CAM_CURVATURE_LOC,
   CAM_DISTANCE_LOC,
+  BG_COLOR_LOC,
 } from '../../gl/attributes/Constants';
 import { TEXTURE_INDEX_FOR_VIDEO, TextureId, TextureManager } from '../../gl/texture/TextureManager';
 import { MediaId, ImageManager } from 'gl/texture/ImageManager';
@@ -27,13 +28,14 @@ import vertexShader from 'generated/src/gl/resources/vertexShader.txt';
 import fragmentShader from 'generated/src/gl/resources/fragmentShader.txt';
 import { replaceTilda } from 'gl/utils/replaceTilda';
 import Matrix from 'gl/transform/Matrix';
-import { CameraFloatType, CameraMatrixType } from 'gl/camera/Camera';
+import { FloatUniform, VectorUniform } from "./Uniforms";
+import { MatrixUniform } from "./Uniforms";
 import { MediaData } from 'gl/texture/MediaData';
 import { Media } from 'gl/texture/Media';
 import { SpriteId } from 'world/sprite/Sprite';
 import { IGraphicsEngine } from './IGraphicsEngine';
 import { Sprites } from 'world/sprite/Sprites';
-import { RefreshOrder } from 'updates/RefreshOrder';
+import { vector } from 'gl/transform/IMatrix';
 
 const DEFAULT_ATTRIBUTES: WebGLContextAttributes = {
   alpha: true,
@@ -50,6 +52,8 @@ const DEFAULT_ATTRIBUTES: WebGLContextAttributes = {
 const VERTEX_COUNT = 6;
 
 const LOG_GL = false;
+
+const EMPTY_VEC2 = Float32Array.from([0, 0]);
 
 function glProxy(gl: GL) {
   if (!LOG_GL) {
@@ -92,11 +96,11 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
   private textureSlots: Record<MediaId, { buffer: Float32Array }> = {};
 
   private onResize: Set<(w: number, h: number) => void> = new Set();
-  private pixelListeners: Set<{ x: number; y: number; pixel: number }> = new Set();
+  private pixelListener?: { x: number; y: number; setPixel(value: number): void };
   private spriteCount = 0;
-  private cameraMatrixUniforms: Record<CameraMatrixType | any, WebGLUniformLocation> = {};
-  private cameraFloatUniforms: Record<CameraFloatType | any, WebGLUniformLocation> = {};
-  readonly refreshOrder = RefreshOrder.LAST;
+  private matrixUniforms: Record<MatrixUniform, WebGLUniformLocation>;
+  private floatUniforms: Record<FloatUniform, WebGLUniformLocation>;
+  private vec3Uniforms: Record<VectorUniform, WebGLUniformLocation>;
 
   constructor(canvas: HTMLCanvasElement | OffscreenCanvas, {
     attributes,
@@ -107,7 +111,7 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
     this.canvas = canvas;
 
     this.programs = this.own(new GLPrograms(this.gl));
-    this.uniforms = this.own(new GLUniforms(this.gl, this.programs));
+    this.uniforms = new GLUniforms(this.gl, this.programs);
     this.attributeBuffers = this.own(new GLAttributeBuffers(this.gl, this.programs));
 
     this.textureManager = new TextureManager(this.gl, this.uniforms);
@@ -116,7 +120,31 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
     const onResize = this.checkCanvasSize.bind(this);
     window.addEventListener('resize', onResize);
     this.addOnDestroy(() => window.removeEventListener('resize', onResize));
-    this.initialize();
+
+    const PROGRAM_NAME = 'main';
+    const replacementMap = {
+      AUTHOR: 'Jack le hamster',
+    };
+    this.programs.addProgram(PROGRAM_NAME,
+      replaceTilda(vertexShader, replacementMap),
+      replaceTilda(fragmentShader, replacementMap),
+    );
+
+    this.matrixUniforms = {
+      [MatrixUniform.PROJECTION]: this.uniforms.getUniformLocation(CAM_PROJECTION_LOC, PROGRAM_NAME),
+      [MatrixUniform.CAM_POS]: this.uniforms.getUniformLocation(CAM_POS_LOC, PROGRAM_NAME),
+      [MatrixUniform.CAM_TURN]: this.uniforms.getUniformLocation(CAM_TURN_LOC, PROGRAM_NAME),
+      [MatrixUniform.CAM_TILT]: this.uniforms.getUniformLocation(CAM_TILT_LOC, PROGRAM_NAME),
+    };
+    this.floatUniforms = {
+      [FloatUniform.CURVATURE]: this.uniforms.getUniformLocation(CAM_CURVATURE_LOC, PROGRAM_NAME),
+      [FloatUniform.CAM_DISTANCE]: this.uniforms.getUniformLocation(CAM_DISTANCE_LOC, PROGRAM_NAME),
+    };
+    this.vec3Uniforms = {
+      [VectorUniform.BG_COLOR]: this.uniforms.getUniformLocation(BG_COLOR_LOC, PROGRAM_NAME),
+    };
+
+    this.initialize(PROGRAM_NAME);
   }
 
   addResizeListener(listener: (w: number, h: number) => void): () => void {
@@ -144,25 +172,8 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
     this.onResize.forEach(callback => callback(this.gl.drawingBufferWidth, this.gl.drawingBufferHeight));
   }
 
-  private initialize() {
-    const PROGRAM_NAME = 'main';
-    const replacementMap = {
-      AUTHOR: 'Jack le hamster',
-    };
-    this.programs.addProgram(PROGRAM_NAME,
-      replaceTilda(vertexShader, replacementMap),
-      replaceTilda(fragmentShader, replacementMap),
-    );
-
-    this.programs.useProgram(PROGRAM_NAME);
-
-    this.cameraMatrixUniforms[CameraMatrixType.PROJECTION] = this.uniforms.getUniformLocation(CAM_PROJECTION_LOC, PROGRAM_NAME);
-    this.cameraMatrixUniforms[CameraMatrixType.POS] = this.uniforms.getUniformLocation(CAM_POS_LOC, PROGRAM_NAME);
-    this.cameraMatrixUniforms[CameraMatrixType.TURN] = this.uniforms.getUniformLocation(CAM_TURN_LOC, PROGRAM_NAME);
-    this.cameraMatrixUniforms[CameraMatrixType.TILT] = this.uniforms.getUniformLocation(CAM_TILT_LOC, PROGRAM_NAME);
-
-    this.cameraFloatUniforms[CameraFloatType.CURVATURE] = this.uniforms.getUniformLocation(CAM_CURVATURE_LOC, PROGRAM_NAME);
-    this.cameraFloatUniforms[CameraFloatType.DISTANCE] = this.uniforms.getUniformLocation(CAM_DISTANCE_LOC, PROGRAM_NAME);
+  private initialize(programName: string) {
+    this.programs.useProgram(programName);
 
     //  enable depth
     this.gl.enable(GL.DEPTH_TEST);
@@ -193,6 +204,10 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
     this.initializeBuffers(spriteCount);
   }
 
+  setBgColor(rgb: vector): void {
+    this.gl.clearColor(rgb[0], rgb[1], rgb[2], 1.0);
+    this.gl.clear(this.gl.COLOR_BUFFER_BIT);
+  }
   private onCleanupBuffers: Set<() => void> = new Set();
   initializeBuffers(maxSpriteCount: number) {
     this.onCleanupBuffers.forEach(cleanup => cleanup());
@@ -411,36 +426,33 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
     this.gl.bindBuffer(GL.ARRAY_BUFFER, bufferInfo.buffer);
     spriteIds.forEach(spriteId => {
       const sprite = sprites.at(spriteId);
-      const slotObj = this.textureSlots[sprite?.imageId ?? -1];
-      if (slotObj) {
-        const { buffer } = slotObj;
-        this.gl.bufferSubData(GL.ARRAY_BUFFER, 2 * Float32Array.BYTES_PER_ELEMENT * spriteId, buffer);
+      const slotObj = sprite ? this.textureSlots[sprite.imageId] : undefined;
+      this.gl.bufferSubData(GL.ARRAY_BUFFER, 2 * Float32Array.BYTES_PER_ELEMENT * spriteId, slotObj?.buffer ?? EMPTY_VEC2);
+      const spriteWaitingForTexture = sprite && !slotObj;
+      if (!spriteWaitingForTexture) {
         spriteIds.delete(spriteId);
       }
     });
   }
 
-  updateCameraMatrix(type: CameraMatrixType, matrix: Float32Array) {
-    this.gl.uniformMatrix4fv(this.cameraMatrixUniforms[type], false, matrix);
+  updateCameraMatrix(type: MatrixUniform, matrix: Float32Array) {
+    this.gl.uniformMatrix4fv(this.matrixUniforms[type], false, matrix);
   }
 
-  updateCameraFloat(type: CameraFloatType, value: number) {
-    this.gl.uniform1f(this.cameraFloatUniforms[type], value);
+  updateCameraFloat(type: FloatUniform, value: number) {
+    this.gl.uniform1f(this.floatUniforms[type], value);
+  }
+
+  updateCameraVector(type: VectorUniform, vector: vector) {
+    this.gl.uniform3fv(this.vec3Uniforms[type], vector);
   }
 
   bindVertexArray() {
     return this.own(new VertexArray(this.gl));
   }
 
-  addPixelListener(listener: { x: number, y: number, pixel: number }) {
-    this.pixelListeners.add(listener);
-    return () => {
-      this.removePixelListener(listener);
-    };
-  }
-
-  removePixelListener(listener: { x: number, y: number, pixel: number }) {
-    this.pixelListeners.delete(listener);
+  setPixelListener(listener?: { x: number, y: number, setPixel(value: number): void }) {
+    this.pixelListener = listener;
   }
 
   private _pixel: Uint8Array = new Uint8Array(4);
@@ -450,13 +462,11 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
     return r * (256 * 256) + g * (256) + b;
   }
 
+  private static clearBit = GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT;
   refresh(): void {
     // clear background
-    this.gl.clear(GL.COLOR_BUFFER_BIT);
-
+    this.gl.clear(GraphicsEngine.clearBit);
     this.drawElementsInstanced(VERTEX_COUNT, this.spriteCount);
-    for (const listener of this.pixelListeners) {
-      listener.pixel = this.getPixel(listener.x, listener.y);
-    }
+    this.pixelListener?.setPixel(this.getPixel(this.pixelListener.x, this.pixelListener.y));
   }
 }

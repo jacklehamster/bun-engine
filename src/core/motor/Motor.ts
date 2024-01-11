@@ -8,31 +8,24 @@ import { Duration } from "core/Time";
  */
 const MAX_DELTA_TIME = 1000 / 20;
 
-export enum Priority {
-  DEFAULT = 0,
-  LAST = 1,
-};
-
 export interface Schedule {
   triggerTime: Time;
   period: Duration;
   expirationTime: Time;
-  priority: Priority;
 }
 
 export class Motor implements IMotor {
   private readonly updateSchedule: Map<Refresh, Schedule> = new Map();
   time: Time = 0;
 
-  loop(update: Refresh, frameRate?: number, priority?: number, expirationTime?: Time) {
-    return this.registerUpdate(update, { period: frameRate ? 1000 / frameRate : 1, expirationTime, priority });
+  loop(update: Refresh, frameRate?: number, expirationTime?: Time) {
+    return this.registerUpdate(update, { period: frameRate ? 1000 / frameRate : 1, expirationTime });
   }
 
   registerUpdate(update: Refresh, schedule: Partial<Schedule> = {}): () => void {
     schedule.triggerTime = schedule.triggerTime ?? this.time;
     schedule.expirationTime = schedule.expirationTime ?? Infinity;
     schedule.period = schedule.period;
-    schedule.priority = schedule.priority ?? Priority.DEFAULT;
     this.updateSchedule.set(update, schedule as Schedule);
     return () => this.deregisterUpdate(update);
   }
@@ -49,9 +42,7 @@ export class Motor implements IMotor {
       time: 0,
       deltaTime: 0,
     };
-    const normalUpdates: Refresh[] = [];
-    const lastUpdates: Refresh[] = [];
-    const updateList = [normalUpdates, lastUpdates];
+    const updates: Refresh[] = [];
 
     const loop: FrameRequestCallback = (time: Time) => {
       updatePayload.deltaTime = Math.min(time - updatePayload.time, MAX_DELTA_TIME);
@@ -59,20 +50,19 @@ export class Motor implements IMotor {
       handle = requestAnimationFrame(loop);
       this.time = time;
 
-      normalUpdates.length = 0;
-      lastUpdates.length = 0;
+      updates.length = 0;
       this.updateSchedule.forEach((schedule, update) => {
         if (time < schedule.triggerTime) {
           return;
         }
-        updateList[schedule.priority].push(update);
+        updates.push(update);
         if (schedule.period && time < schedule.expirationTime) {
           schedule.triggerTime = Math.max(schedule.triggerTime + schedule.period, time);
         } else {
           this.updateSchedule.delete(update);
         }
       });
-      updateList.forEach((updates) => updates.forEach((update) => update.refresh?.(updatePayload)));
+      updates.forEach(update => update.refresh?.(updatePayload));
     };
     requestAnimationFrame(loop);
     this.deactivate = () => {

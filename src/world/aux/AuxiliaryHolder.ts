@@ -98,7 +98,7 @@ export class AuxiliaryHolder<H extends Holder> implements Holder<AuxiliaryHolder
   }
 
   private onAuxiliariesChange() {
-    this.refreshes = this.auxiliaries?.filter((a): a is Refresh => !!a.refresh).sort((a, b) => (a.refreshOrder ?? 0) - (b.refreshOrder ?? 0)) ?? undefined;
+    this.refreshes = this.auxiliaries?.filter((a): a is Refresh => !!a.refresh) ?? undefined;
     this.cellTracks = this.auxiliaries?.filter((a): a is CellTrack => !!a.trackCell || !!a.untrackCell) ?? undefined;
     this.refresh = this.refreshes ? this._refresh.bind(this) : undefined;
     this.trackCell = this.cellTracks ? this._trackCell.bind(this) : undefined;

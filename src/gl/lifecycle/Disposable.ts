@@ -1,11 +1,11 @@
-interface Destroyable {
+export interface Destroyable {
   destroy: () => void;
 }
 
 export class Disposable {
   disposables?: Set<Destroyable>;
 
-  own<D extends Disposable>(disposable: D): D {
+  own<D extends Destroyable>(disposable: D): D {
     if (!this.disposables) {
       this.disposables = new Set();
     }
