@@ -13,6 +13,7 @@ in float vTextureIndex;
 in vec2 vTex;
 in float opacity;
 in vec3 vInstanceColor;
+in float dist;
 
 //  OUT
 out vec4 fragColor;
@@ -20,12 +21,23 @@ out vec4 fragColor;
 //  FUNCTIONS
 vec4 getTextureColor(float textureSlot, vec2 vTexturePoint);
 
+float rand(vec2 co){
+    return fract(sin(dot(co, vec2(12.9898, 78.233))) * 43758.5453) - .5;
+}
+
 void main() {
-  vec4 color = getTextureColor(vTextureIndex, vTex);
+  vec2 vFragment = vTex;
+  float blur = pow(dist, 1.6) / 20000.;
+  vFragment += rand(vTex + dist) * blur;
+
+  vec4 color = getTextureColor(vTextureIndex, vFragment);
   if (color.a <= .0001) {
     discard;
   };
-  fragColor = color;
+  vec3 bgColor = vec3(0.);
+  float colorFactor = 1.3 / pow(dist, .3);
+  color.rgb = (color.rgb * colorFactor) + (bgColor * (1. - colorFactor));
+  fragColor = color;// * (1000. / dist);
 //  fragColor = vec4(vInstanceColor.rgb, 1.0);
 }
 

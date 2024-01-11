@@ -4,8 +4,8 @@ import { SpriteUpdateType } from "../update/SpriteUpdateType";
 import { Auxiliary } from "world/aux/Auxiliary";
 import { forEach } from "../List";
 import { UpdateNotifier } from "updates/UpdateNotifier";
-import IWorld from "world/IWorld";
 import { SpriteFactory } from "./SpriteFactory";
+import IWorld from "world/IWorld";
 
 interface Config {
   spriteLimit?: number;
@@ -19,16 +19,17 @@ interface Slot {
   tag: string;
 }
 
-export class SpriteGrid implements Auxiliary, UpdateNotifier {
+export class SpriteGrid implements Auxiliary<IWorld>, UpdateNotifier {
   private slots: Slot[] = [];
   private spriteLimit: number;
   private ranges: [[number, number], [number, number], [number, number]];
+  holder?: IWorld;
 
   informUpdate(_id: number, _type?: number | undefined): void {
   }
 
-  activate(world: IWorld): void {
-    world.addSprites(this);
+  activate(): void {
+    this.holder?.addSprites(this);
   }
 
   constructor(config?: Config, private spriteFactory: SpriteFactory = {}) {

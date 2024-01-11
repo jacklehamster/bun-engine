@@ -26,6 +26,7 @@ uniform float curvature;
 out vec2 vTex;
 out float vTextureIndex;
 out vec3 vInstanceColor;
+out float dist;
 
 void main() {
   vec2 tex = position.xy * vec2(0.49, -0.49) + 0.5;
@@ -43,6 +44,8 @@ void main() {
   vec4 relativePosition = camTilt * camTurn * camPos * elemPosition;
   relativePosition.z -= camDist;
   relativePosition.y -= curvature * ((relativePosition.z * relativePosition.z) + (relativePosition.x * relativePosition.x) / 4.) / 10.;
+  relativePosition.x /= (1. + curvature * 1.4);
+  dist = abs(relativePosition.z);
   // relativePosition => gl_Position
   gl_Position = projection * relativePosition;
 

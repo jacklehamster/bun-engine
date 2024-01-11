@@ -1,19 +1,12 @@
 import { PositionMatrix } from "gl/transform/PositionMatrix";
 import { TiltMatrix } from "gl/transform/TiltMatrix";
 import { TurnMatrix } from "gl/transform/TurnMatrix";
-import { Angle } from "gl/utils/angleUtils";
-import { Auxiliary } from "world/aux/Auxiliary";
-import { Position } from "world/grid/Position";
+import { Holder } from "world/aux/Holder";
 
-export interface ICamera extends Auxiliary {
+export interface ICamera extends Holder<ICamera> {
   configProjectionMatrix(width: number, height: number): void;
   moveCam(x: number, y: number, z: number): void;
-  turn(angle: Angle): void;
-  tilt(angle: Angle): void;
-  getPosition(): Position;
   readonly posMatrix: PositionMatrix;
   readonly tiltMatrix: TiltMatrix;
   readonly turnMatrix: TurnMatrix;
-  gotoPos(x: number, y: number, z: number, speed?: number): void;
-  setPosition(x: number, y: number, z: number): void;
 }

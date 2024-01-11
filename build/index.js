@@ -81,93 +81,93 @@ class UpdatableMedias extends UpdatableList {
   }
 }
 
-// src/lifecycle/Disposable.ts
-class Disposable {
-  disposables;
-  own(disposable) {
-    if (!this.disposables) {
-      this.disposables = new Set;
-    }
-    this.disposables.add(disposable);
-    return disposable;
-  }
-  addOnDestroy(callback) {
-    if (callback) {
-      this.disposables?.add({
-        destroy: callback
-      });
-    }
-  }
-  destroy() {
-    this.disposables?.forEach((disposable) => disposable.destroy());
-  }
-}
-
 // src/world/aux/AuxiliaryHolder.ts
-class AuxiliaryHolder extends Disposable {
+class AuxiliaryHolder {
   auxiliaries = [];
   refreshes = [];
   cellTracks = [];
-  constructor() {
-    super();
-  }
-  activate(world) {
-    const deactivates = new Set;
-    for (const a of this.auxiliaries) {
-      const onDeactivate = a.activate?.(world);
-      if (onDeactivate) {
-        deactivates.add(onDeactivate);
+  active = false;
+  activate() {
+    if (this.active) {
+      return;
+    }
+    this.active = true;
+    if (this.auxiliaries) {
+      for (const a of this.auxiliaries) {
+        a.activate?.();
       }
     }
-    return () => {
-      deactivates.forEach((d) => d());
-    };
   }
   deactivate() {
-    for (const a of this.auxiliaries) {
-      a.deactivate?.();
+    if (!this.active) {
+      return;
+    }
+    this.active = false;
+    if (this.auxiliaries) {
+      for (const a of this.auxiliaries) {
+        a.deactivate?.();
+      }
+      this.removeAllAuxiliaries();
     }
   }
-  refresh(updatePayload) {
+  _refresh(updatePayload) {
     for (const r of this.refreshes) {
-      r.refresh(updatePayload);
+      r.refresh?.(updatePayload);
     }
   }
-  trackCell(cell) {
+  _trackCell(cell) {
     for (const v of this.cellTracks) {
       v.trackCell(cell);
     }
   }
-  untrackCell(cellTag) {
+  _untrackCell(cellTag) {
     for (const v of this.cellTracks) {
       v.untrackCell(cellTag);
     }
   }
   addAuxiliary(...aux) {
-    this.auxiliaries.push(...aux);
+    if (!this.auxiliaries) {
+      this.auxiliaries = [];
+    }
+    aux.forEach((a) => {
+      a.holder = this;
+      this.auxiliaries?.push(a);
+      if (this.active) {
+        a.activate?.();
+      }
+    });
     this.onAuxiliariesChange();
-    return () => {
-      this.removeAllAuxiliaries();
-    };
   }
   removeAllAuxiliaries() {
-    this.removeAuxiliary(...this.auxiliaries);
+    this.removeAuxiliary(...this.auxiliaries ?? []);
   }
   removeAuxiliary(...aux) {
-    const removeSet = new Set(aux);
-    let j = 0;
-    for (let i = 0;i < this.auxiliaries.length; i++) {
-      if (!removeSet.has(this.auxiliaries[i])) {
-        this.auxiliaries[j] = this.auxiliaries[i];
-        j++;
+    if (this.auxiliaries) {
+      const removeSet = new Set(aux);
+      let j = 0;
+      for (let i = 0;i < this.auxiliaries.length; i++) {
+        const a = this.auxiliaries[i];
+        if (!removeSet.has(a)) {
+          this.auxiliaries[j] = a;
+          j++;
+        } else {
+          a.deactivate?.();
+          a.holder = undefined;
+        }
+      }
+      this.auxiliaries.length = j;
+      if (!this.auxiliaries.length) {
+        this.auxiliaries = undefined;
       }
     }
-    this.auxiliaries.length = j;
     this.onAuxiliariesChange();
   }
   onAuxiliariesChange() {
-    this.refreshes = this.auxiliaries.filter((a) => !!a.refresh).sort((a, b) => (a.refreshOrder ?? 0) - (b.refreshOrder ?? 0));
-    this.cellTracks = this.auxiliaries.filter((a) => !!a.trackCell || !!a.untrackCell);
+    this.refreshes = this.auxiliaries?.filter((a) => !!a.refresh).sort((a, b) => (a.refreshOrder ?? 0) - (b.refreshOrder ?? 0)) ?? undefined;
+    this.cellTracks = this.auxiliaries?.filter((a) => !!a.trackCell || !!a.untrackCell) ?? undefined;
+    this.refresh = this.refreshes ? this._refresh.bind(this) : undefined;
+    this.trackCell = this.cellTracks ? this._trackCell.bind(this) : undefined;
+    this.untrackCell = this.cellTracks ? this._untrackCell.bind(this) : undefined;
   }
 }
 
@@ -263,11 +263,14 @@ class World extends AuxiliaryHolder {
     this.spritesAccumulator = new SpritesAccumulator(props);
   }
   refreshOrder;
-  activate(world) {
-    const deActivate = super.activate(world);
+  activate() {
+    super.activate();
     this.engine.setMaxSpriteCount(this.sprites.length);
     console.log("Sprite limit:", this.sprites.length);
-    return () => deActivate?.();
+  }
+  deactivate() {
+    super.deactivate();
+    this.engine.setMaxSpriteCount(0);
   }
   get sprites() {
     return this.spritesAccumulator;
@@ -281,6 +284,28 @@ class World extends AuxiliaryHolder {
     sprites.forEach((spriteList) => {
       this.spritesAccumulator.add(spriteList);
     });
+  }
+}
+
+// src/lifecycle/Disposable.ts
+class Disposable {
+  disposables;
+  own(disposable) {
+    if (!this.disposables) {
+      this.disposables = new Set;
+    }
+    this.disposables.add(disposable);
+    return disposable;
+  }
+  addOnDestroy(callback) {
+    if (callback) {
+      this.disposables?.add({
+        destroy: callback
+      });
+    }
+  }
+  destroy() {
+    this.disposables?.forEach((disposable) => disposable.destroy());
   }
 }
 
@@ -1590,6 +1615,7 @@ uniform float curvature;
 out vec2 vTex;
 out float vTextureIndex;
 out vec3 vInstanceColor;
+out float dist;
 
 void main() {
   vec2 tex = position.xy * vec2(0.49, -0.49) + 0.5;
@@ -1607,6 +1633,8 @@ void main() {
   vec4 relativePosition = camTilt * camTurn * camPos * elemPosition;
   relativePosition.z -= camDist;
   relativePosition.y -= curvature * ((relativePosition.z * relativePosition.z) + (relativePosition.x * relativePosition.x) / 4.) / 10.;
+  relativePosition.x /= (1. + curvature * 1.4);
+  dist = abs(relativePosition.z);
   // relativePosition => gl_Position
   gl_Position = projection * relativePosition;
 
@@ -1638,6 +1666,7 @@ in float vTextureIndex;
 in vec2 vTex;
 in float opacity;
 in vec3 vInstanceColor;
+in float dist;
 
 //  OUT
 out vec4 fragColor;
@@ -1645,12 +1674,23 @@ out vec4 fragColor;
 //  FUNCTIONS
 vec4 getTextureColor(float textureSlot, vec2 vTexturePoint);
 
+float rand(vec2 co){
+    return fract(sin(dot(co, vec2(12.9898, 78.233))) * 43758.5453) - .5;
+}
+
 void main() {
-  vec4 color = getTextureColor(vTextureIndex, vTex);
+  vec2 vFragment = vTex;
+  float blur = pow(dist, 1.6) / 20000.;
+  vFragment += rand(vTex + dist) * blur;
+
+  vec4 color = getTextureColor(vTextureIndex, vFragment);
   if (color.a <= .0001) {
     discard;
   };
-  fragColor = color;
+  vec3 bgColor = vec3(0.);
+  float colorFactor = 1.3 / pow(dist, .3);
+  color.rgb = (color.rgb * colorFactor) + (bgColor * (1. - colorFactor));
+  fragColor = color;// * (1000. / dist);
 //  fragColor = vec4(vInstanceColor.rgb, 1.0);
 }
 
@@ -4411,8 +4451,9 @@ var DEG_TO_RADIANT = Math.PI / 90;
 
 class Matrix {
   m4 = Float32Array.from(exports_mat4.create());
-  static HIDDEN = Matrix.create().identity().scale(0, 0, 0);
-  static IDENTITY = Matrix.create().identity();
+  static HIDDEN = Matrix.create().scale(0, 0, 0);
+  static IDENTITY = Matrix.create();
+  static tempVec = exports_vec3.create();
   constructor() {
     this.identity();
   }
@@ -4445,12 +4486,15 @@ class Matrix {
     return this;
   }
   translate(x, y, z) {
-    exports_mat4.translate(this.m4, this.m4, [x, y, z]);
-    return this;
+    const v = Matrix.tempVec;
+    v[0] = x;
+    v[1] = y;
+    v[2] = z;
+    return this.move(v);
   }
-  translateToMatrix(matrix) {
-    const m4 = matrix.getMatrix();
-    return this.translate(-m4[12], -m4[13], -m4[14]);
+  move(vector) {
+    exports_mat4.translate(this.m4, this.m4, vector);
+    return this;
   }
   rotateX(angle2) {
     exports_mat4.rotateX(this.m4, this.m4, angle2);
@@ -4493,8 +4537,7 @@ class Matrix {
     return this;
   }
   static tempQuat = exports_quat.create();
-  static tempVec = exports_vec3.create();
-  moveMatrix(x, y, z, turnMatrix) {
+  getMoveVector(x, y, z, turnMatrix) {
     const v = Matrix.tempVec;
     v[0] = x;
     v[1] = y;
@@ -4504,8 +4547,7 @@ class Matrix {
       exports_quat.invert(Matrix.tempQuat, Matrix.tempQuat);
       exports_vec3.transformQuat(v, v, Matrix.tempQuat);
     }
-    exports_mat4.translate(this.m4, this.m4, v);
-    return this;
+    return v;
   }
   setPosition(x, y, z) {
     this.m4[12] = x;
@@ -4692,6 +4734,12 @@ class CameraFloatUpdate {
 }
 
 // src/world/grid/Position.ts
+function toPos(x, y, z) {
+  _position[0] = x;
+  _position[1] = y;
+  _position[2] = z;
+  return _position;
+}
 function transformToPosition(transform, pos = _position) {
   const m = transform.getMatrix();
   pos[0] = m[12];
@@ -4703,46 +4751,58 @@ var _position = [0, 0, 0];
 var _matrix = Matrix_default.create();
 
 // src/gl/transform/PositionMatrix.ts
-class PositionMatrix {
+class PositionMatrix extends AuxiliaryHolder {
   onChange;
   matrix = Matrix_default.create().setPosition(0, 0, 0);
-  prePosition = [0, 0, 0];
-  position = [0, 0, 0];
+  _position = [0, 0, 0];
+  static _cellPos = [0, 0, 0, 0];
+  moveBlocker;
   constructor(onChange) {
+    super();
     this.onChange = onChange;
   }
   changedPosition() {
-    this.prePosition[0] = this.position[0];
-    this.prePosition[1] = this.position[1];
-    this.prePosition[2] = this.position[2];
-    transformToPosition(this.matrix, this.position);
-    this.onChange?.(this.prePosition);
+    transformToPosition(this.matrix, this._position);
+    this.onChange?.();
   }
-  moveMatrix(x, y, z, turnMatrix) {
-    this.matrix.moveMatrix(x, y, z, turnMatrix);
-    this.changedPosition();
+  moveBy(x, y, z, turnMatrix) {
+    const vector = this.matrix.getMoveVector(x, y, z, turnMatrix);
+    if (!this.moveBlocker?.isBlocked(toPos(this.position[0] + vector[0], this.position[1] + vector[1], this.position[2] + vector[2]), this.position)) {
+      this.matrix.move(vector);
+      this.changedPosition();
+    }
   }
-  setPosition(x, y, z) {
-    this.matrix.setPosition(x, y, z);
-    this.changedPosition();
+  moveTo(x, y, z) {
+    if (!this.moveBlocker?.isBlocked(toPos(x, y, z))) {
+      this.matrix.setPosition(x, y, z);
+      this.changedPosition();
+    }
   }
-  getPosition() {
-    return this.position;
+  get position() {
+    return this._position;
   }
-  static _cellPos = [0, 0, 0, 0];
   getCellPosition(cellSize) {
-    return PositionMatrix.getCellPos(this.getPosition(), cellSize);
+    return PositionMatrix.getCellPos(this.position, cellSize);
   }
   static getCellPos(pos, cellSize) {
-    this._cellPos[0] = Math.floor(pos[0] / cellSize);
-    this._cellPos[1] = Math.floor(pos[1] / cellSize);
-    this._cellPos[2] = Math.floor(pos[2] / cellSize);
+    this._cellPos[0] = Math.round(pos[0] / cellSize);
+    this._cellPos[1] = Math.round(pos[1] / cellSize);
+    this._cellPos[2] = Math.round(pos[2] / cellSize);
     this._cellPos[3] = cellSize;
     return this._cellPos;
   }
-  translate(x, y, z) {
-    this.matrix.translate(x, y, z);
-    this.changedPosition();
+  gotoPos(x, y, z, speed = 0.1) {
+    const curPos = this.position;
+    const dx = x - curPos[0];
+    const dy = y - curPos[1];
+    const dz = z - curPos[2];
+    const dist2 = Math.sqrt(dx * dx + dy * dy + dz * dz);
+    if (dist2 > 0.01) {
+      const sp = Math.min(dist2, speed);
+      this.moveBy(dx / dist2 * sp, dy / dist2 * sp, dz / dist2 * sp);
+    } else {
+      this.moveTo(x, y, z);
+    }
   }
   getMatrix() {
     return this.matrix.getMatrix();
@@ -4763,23 +4823,26 @@ var CameraFloatType;
   CameraFloatType2[CameraFloatType2["DISTANCE"] = 1] = "DISTANCE";
 })(CameraFloatType || (CameraFloatType = {}));
 
-class Camera {
+class Camera extends AuxiliaryHolder {
   camMatrix = Matrix_default.create();
   projectionMatrix = new ProjectionMatrix;
   posMatrix = new PositionMatrix(() => this.updateInformer.informUpdate(CameraMatrixType.POS));
   tiltMatrix = new TiltMatrix(() => this.updateInformer.informUpdate(CameraMatrixType.TILT));
   turnMatrix = new TurnMatrix(() => this.updateInformer.informUpdate(CameraMatrixType.TURN));
-  pespectiveLevel = 1;
-  curvature = 0;
-  distance = 0;
+  _pespectiveLevel = 1;
+  _curvature = 0;
+  _distance = 0;
   updateInformer;
   updateInformerFloat;
   constructor({ engine, motor }) {
+    super();
     this.updateInformer = new CameraUpdate(this.getCameraMatrix.bind(this), engine, motor);
     this.updateInformerFloat = new CameraFloatUpdate(this.getCameraFloat.bind(this), engine, motor);
+    this.addAuxiliary(this.posMatrix);
   }
   activate() {
-    this.updatePerspective();
+    super.activate();
+    this.updateInformer.informUpdate(CameraMatrixType.PROJECTION);
     this.updateInformer.informUpdate(CameraMatrixType.POS);
     this.updateInformer.informUpdate(CameraMatrixType.TURN);
     this.updateInformer.informUpdate(CameraMatrixType.TILT);
@@ -4796,16 +4859,16 @@ class Camera {
     this.projectionMatrix.configure(width, height2);
     this.updateInformer.informUpdate(CameraMatrixType.PROJECTION);
   }
-  updatePerspective(level) {
-    this.projectionMatrix.setPerspective(level ?? this.pespectiveLevel);
+  set perspective(level) {
+    this.projectionMatrix.setPerspective(level ?? this._pespectiveLevel);
     this.updateInformer.informUpdate(CameraMatrixType.PROJECTION);
   }
-  updateCurvature(value) {
-    this.curvature = value;
+  set curvature(value) {
+    this._curvature = value;
     this.updateInformerFloat.informUpdate(CameraFloatType.CURVATURE);
   }
-  updateDistance(value) {
-    this.distance = value;
+  set distance(value) {
+    this._distance = value;
     this.updateInformerFloat.informUpdate(CameraFloatType.DISTANCE);
   }
   getCameraMatrix(cameraMatrixType) {
@@ -4817,38 +4880,13 @@ class Camera {
   getCameraFloat(cameraFloatType) {
     switch (cameraFloatType) {
       case CameraFloatType.CURVATURE:
-        return this.curvature;
+        return this._curvature;
       case CameraFloatType.DISTANCE:
-        return this.distance;
-    }
-  }
-  gotoPos(x, y, z, speed = 0.1) {
-    const curPos = this.getPosition();
-    const dx = x - curPos[0];
-    const dy = y - curPos[1];
-    const dz = z - curPos[2];
-    const dist2 = Math.sqrt(dx * dx + dy * dy + dz * dz);
-    if (dist2 > 0.01) {
-      const sp = Math.min(dist2, speed);
-      this.posMatrix.translate(dx / dist2 * sp, dy / dist2 * sp, dz / dist2 * sp);
-    } else {
-      this.posMatrix.setPosition(x, y, z);
+        return this._distance;
     }
   }
   moveCam(x, y, z) {
-    this.posMatrix.moveMatrix(x, y, z, this.turnMatrix);
-  }
-  turn(angle3) {
-    this.turnMatrix.turn += angle3;
-  }
-  tilt(angle3) {
-    this.tiltMatrix.tilt += angle3;
-  }
-  getPosition() {
-    return this.posMatrix.getPosition();
-  }
-  setPosition(x, y, z) {
-    this.posMatrix.setPosition(x, y, z);
+    this.posMatrix.moveBy(x, y, z, this.turnMatrix);
   }
 }
 
@@ -4970,7 +5008,8 @@ class GraphicsEngine extends Disposable {
     this.gl.enable(GL.BLEND);
     this.gl.blendFunc(GL.SRC_ALPHA, GL.ONE_MINUS_SRC_ALPHA);
     this.gl.viewport(0, 0, this.gl.drawingBufferWidth, this.gl.drawingBufferHeight);
-    this.gl.disable(this.gl.CULL_FACE);
+    this.gl.enable(GL.CULL_FACE);
+    this.gl.cullFace(GL.BACK);
     this.gl.clearColor(0, 0, 0, 1);
     this.textureManager.initialize();
     this.checkCanvasSize();
@@ -5226,17 +5265,20 @@ class Motor {
           this.updateSchedule.delete(update);
         }
       });
-      updateList.forEach((updates) => updates.forEach((update) => update.refresh(updatePayload)));
+      updateList.forEach((updates) => updates.forEach((update) => update.refresh?.(updatePayload)));
     };
     requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(handle);
+    this.deactivate = () => {
+      cancelAnimationFrame(handle);
+      this.deactivate = undefined;
+    };
   }
 }
 
 // src/controls/Keyboard.ts
 var QUICK_TAP_TIME = 200;
 
-class Keyboard {
+class Keyboard extends AuxiliaryHolder {
   timeProvider;
   keys = {};
   keysUp = {};
@@ -5245,6 +5287,7 @@ class Keyboard {
   quickTapListener = new Set;
   isActive = false;
   constructor(timeProvider) {
+    super();
     this.timeProvider = timeProvider;
     this.keyDown = this.keyDown.bind(this);
     this.keyUp = this.keyUp.bind(this);
@@ -5267,8 +5310,12 @@ class Keyboard {
     }
   }
   activate() {
+    super.activate();
     this.setActive(true);
-    return () => this.setActive(false);
+  }
+  deactivate() {
+    super.deactivate();
+    this.setActive(false);
   }
   setActive(value) {
     if (this.isActive !== value) {
@@ -5306,19 +5353,25 @@ class Keyboard {
 class ResizeAux {
   engine;
   camera;
-  constructor({ engine, camera }) {
+  constructor({ engine }) {
     this.engine = engine;
-    this.camera = camera;
+  }
+  set holder(value) {
+    this.camera = value;
   }
   activate() {
-    return this.handleResize();
+    this.handleResize();
+  }
+  deactivate() {
+    this.removeListener?.();
+    this.removeListener = undefined;
   }
   handleResize() {
     const { engine } = this;
     const onResize = (width, height2) => {
-      this.camera.configProjectionMatrix(width, height2);
+      this.camera?.configProjectionMatrix(width, height2);
     };
-    return engine.addResizeListener(onResize);
+    this.removeListener = engine.addResizeListener(onResize);
   }
 }
 
@@ -5338,12 +5391,11 @@ class Core extends AuxiliaryHolder {
   start(world) {
     const { motor, engine, keyboard, camera } = this;
     const deregisterLoop = motor.loop(this);
-    const onRemoveAux = this.addAuxiliary(world, motor, engine, keyboard, camera, new ResizeAux(this));
-    const clearActivate = this.activate(world);
+    this.addAuxiliary(world, motor, engine, keyboard, camera);
+    camera.addAuxiliary(new ResizeAux({ engine }));
+    this.activate();
     return () => {
       deregisterLoop();
-      onRemoveAux();
-      clearActivate?.();
       this.deactivate();
     };
   }
@@ -5361,21 +5413,28 @@ class CellChangeAuxiliary {
   cell;
   visitCellObj;
   refreshOrder = RefreshOrder.FIRST;
-  constructor({ matrix, visitCell }, config) {
-    this.matrix = matrix;
+  constructor({ visitCell }, config) {
     this.cellSize = config?.cellSize ?? 1;
     this.visitCellObj = visitCell;
     this.cell = { pos: [0, 0, 0, this.cellSize], tag: "" };
-    const cellPos = matrix.getCellPosition(this.cellSize);
-    this.cell.pos[0] = cellPos[0];
-    this.cell.pos[1] = cellPos[1];
-    this.cell.pos[2] = cellPos[2];
-    this.cell.tag = cellTag(...this.cell.pos);
+  }
+  set holder(value) {
+    this.matrix = value;
+    if (this.matrix) {
+      const cellPos = this.matrix.getCellPosition(this.cellSize);
+      this.cell.pos[0] = cellPos[0];
+      this.cell.pos[1] = cellPos[1];
+      this.cell.pos[2] = cellPos[2];
+      this.cell.tag = cellTag(...this.cell.pos);
+    }
   }
   activate() {
     this.visitCellObj.visitCell(this.cell);
   }
   refresh(updatePayload) {
+    if (!this.matrix) {
+      return;
+    }
     const [x, y, z] = this.matrix.getCellPosition(this.cellSize);
     if (this.cell.pos[0] !== x || this.cell.pos[1] !== y || this.cell.pos[2] !== z) {
       this.cell.pos[0] = x;
@@ -5404,19 +5463,18 @@ class Auxiliaries {
     return this.auxiliaries.at(index);
   }
   refresh(updatePayload) {
-    forEach(this.auxiliaries, (aux) => aux.refresh?.(updatePayload));
+    forEach(this.auxiliaries, (aux) => aux?.refresh?.(updatePayload));
   }
   activate() {
     if (!this.active) {
       this.active = true;
-      const onDeactivates = map(this.auxiliaries, (aux) => aux.activate?.());
-      return () => onDeactivates.forEach((d) => d?.());
+      forEach(this.auxiliaries, (aux) => aux?.activate?.());
     }
   }
   deactivate() {
     if (this.active) {
       this.active = false;
-      forEach(this.auxiliaries, (aux) => aux.deactivate?.());
+      forEach(this.auxiliaries, (aux) => aux?.deactivate?.());
     }
   }
 }
@@ -5451,16 +5509,16 @@ class CamMoveAuxiliary {
       this.camera.moveCam(speed, 0, 0);
     }
     if (keys.KeyQ || keys.ArrowLeft && keys.ShiftRight) {
-      this.camera.turn(-turnspeed);
+      this.camera.turnMatrix.turn -= turnspeed;
     }
     if (keys.KeyE || keys.ArrowRight && keys.ShiftRight) {
-      this.camera.turn(turnspeed);
+      this.camera.turnMatrix.turn += turnspeed;
     }
     if (keys.ArrowUp && keys.ShiftRight) {
-      this.camera.tilt(-turnspeed);
+      this.camera.tiltMatrix.tilt -= turnspeed;
     }
     if (keys.ArrowDown && keys.ShiftRight) {
-      this.camera.tilt(turnspeed);
+      this.camera.tiltMatrix.tilt += turnspeed;
     }
   }
 }
@@ -5477,7 +5535,7 @@ class CamStepAuxiliary {
   constructor({ keyboard, camera }, config = {}) {
     this.keyboard = keyboard;
     this.camera = camera;
-    const camPos = this.camera.getPosition();
+    const camPos = this.camera.posMatrix.position;
     this.goalPos = [...camPos];
     this.config = {
       step: config.step ?? 2,
@@ -5490,7 +5548,7 @@ class CamStepAuxiliary {
   refresh(update) {
     const { keys } = this.keyboard;
     const { deltaTime } = update;
-    const pos = this.camera.getPosition();
+    const pos = this.camera.posMatrix.position;
     const { step, turnStep, tiltStep } = this.config;
     this.prePos[0] = Math.round(pos[0] / step) * step;
     this.prePos[1] = Math.round(pos[1] / step) * step;
@@ -5521,8 +5579,8 @@ class CamStepAuxiliary {
       this.stepCount = 0;
     }
     const speed = (dx || dz ? deltaTime / 150 : deltaTime / 100) * this.config.speed;
-    this.camera.gotoPos(this.goalPos[0], pos[1], this.goalPos[2], speed);
-    const newPos = this.camera.getPosition();
+    this.camera.posMatrix.gotoPos(this.goalPos[0], pos[1], this.goalPos[2], speed);
+    const newPos = this.camera.posMatrix.position;
     if (Math.round(newPos[0] / step) * step !== this.prePos[0] || Math.round(newPos[1] / step) * step !== this.prePos[1] || Math.round(newPos[2] / step) * step !== this.prePos[2]) {
       this.stepCount++;
     }
@@ -5589,7 +5647,10 @@ class CamTiltResetAuxiliary {
         }
       }
     });
-    return () => removeListener();
+    this.deactivate = () => {
+      removeListener();
+      this.deactivate = undefined;
+    };
   }
   refresh(update) {
     if (this.resetting) {
@@ -5620,7 +5681,10 @@ class RiseAuxiliary {
         }
       }
     });
-    return () => removeListener();
+    this.deactivate = () => {
+      removeListener();
+      this.deactivate = undefined;
+    };
   }
   refresh(update) {
     const { deltaTime } = update;
@@ -5633,9 +5697,9 @@ class RiseAuxiliary {
       this.camera.moveCam(0, speed, 0);
     } else if (this.dropping) {
       this.camera.moveCam(0, -speed, 0);
-      const [x, y, z] = this.camera.getPosition();
+      const [x, y, z] = this.camera.posMatrix.position;
       if (y < 0) {
-        this.camera.setPosition(x, 0, z);
+        this.camera.posMatrix.moveTo(x, 0, z);
         this.dropping = false;
       }
     }
@@ -5650,10 +5714,10 @@ class ToggleAuxiliary {
   pendingDeactivate;
   keys;
   auxiliaries;
-  constructor({ keyboard }, config) {
-    this.keyboard = keyboard;
+  keyListener;
+  constructor(config) {
     this.keys = map(config.auxiliariesMapping, ({ key }) => key);
-    this.keyboard.addListener({
+    this.keyListener = {
       onKeyDown: (keyCode) => {
         if (this.keys.indexOf(keyCode) >= 0) {
           const wasActive = this.active;
@@ -5664,8 +5728,11 @@ class ToggleAuxiliary {
           }
         }
       }
-    });
+    };
     this.auxiliaries = map(config.auxiliariesMapping, ({ aux }) => aux);
+  }
+  set holder(keyboard) {
+    this.keyboard = keyboard;
   }
   get auxiliary() {
     return this.auxiliaries.at(this.toggleIndex);
@@ -5685,12 +5752,14 @@ class ToggleAuxiliary {
   }
   activate() {
     if (!this.active) {
+      this.keyboard?.addListener(this.keyListener);
       this.active = true;
       this.pendingDeactivate = this.auxiliary?.activate?.();
     }
   }
   deactivate() {
     if (this.active) {
+      this.keyboard?.removeListener(this.keyListener);
       this.active = false;
       this.pendingDeactivate?.();
       this.auxiliary?.deactivate?.();
@@ -5787,7 +5856,7 @@ class SpriteGroup {
     imageId: 0,
     transform: Matrix_default.create()
   };
-  constructor(children, transform = Matrix_default.create().identity()) {
+  constructor(children, transform = Matrix_default.create()) {
     this.children = children;
     this.transform = transform;
   }
@@ -5801,7 +5870,7 @@ class SpriteGroup {
     }
     this.spriteModel.name = `s${index}`;
     this.spriteModel.imageId = s.imageId;
-    this.spriteModel.transform.identity().multiply2(this.transform, s.transform);
+    this.spriteModel.transform.multiply2(this.transform, s.transform);
     return this.spriteModel;
   }
   informUpdate(id, type) {
@@ -5824,10 +5893,11 @@ class SpriteGrid {
   slots = [];
   spriteLimit;
   ranges;
+  holder;
   informUpdate(_id, _type) {
   }
-  activate(world) {
-    world.addSprites(this);
+  activate() {
+    this.holder?.addSprites(this);
   }
   constructor(config, spriteFactory = {}) {
     this.spriteFactory = spriteFactory;
@@ -5890,8 +5960,8 @@ class FixedSpriteGrid extends SpriteGrid {
     this.cellSize = config.cellSize ?? 1;
     this.spritesList = spritesList;
   }
-  activate(world) {
-    super.activate(world);
+  activate() {
+    super.activate();
     this.spritesList.forEach((sprites) => {
       forEach(sprites, (sprite) => {
         if (sprite) {
@@ -5909,6 +5979,7 @@ class FixedSpriteGrid extends SpriteGrid {
 // src/world/sprite/aux/StaticSprites.ts
 class StaticSprites {
   sprites;
+  holder;
   constructor(sprites) {
     this.sprites = sprites;
     this.informUpdate = sprites.informUpdate?.bind(sprites);
@@ -5919,8 +5990,8 @@ class StaticSprites {
   at(index) {
     return this.sprites.at(index);
   }
-  activate(world) {
-    world.addSprites(this);
+  activate() {
+    this.holder?.addSprites(this);
   }
 }
 
@@ -5980,7 +6051,6 @@ class DemoWorld extends World {
         const { canvas } = ctx;
         canvas.width = LOGO_SIZE;
         canvas.height = LOGO_SIZE;
-        ctx.imageSmoothingEnabled = true;
         ctx.fillStyle = "#ddd";
         ctx.lineWidth = canvas.width / 50;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -6006,7 +6076,6 @@ class DemoWorld extends World {
         const { canvas } = ctx;
         canvas.width = LOGO_SIZE;
         canvas.height = LOGO_SIZE;
-        ctx.imageSmoothingEnabled = true;
         ctx.lineWidth = 5;
         ctx.setLineDash([5, 2]);
         ctx.strokeStyle = "blue";
@@ -6021,7 +6090,6 @@ class DemoWorld extends World {
         const { canvas } = ctx;
         canvas.width = LOGO_SIZE;
         canvas.height = LOGO_SIZE;
-        ctx.imageSmoothingEnabled = true;
         ctx.fillStyle = "green";
         ctx.lineWidth = canvas.width / 50;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -6036,7 +6104,9 @@ class DemoWorld extends World {
     this.addAuxiliary(new FixedSpriteGrid({ cellSize: CELLSIZE }, new SpriteGroup([
       ...[
         Matrix_default.create().translate(-1, 0, 0).rotateY(Math.PI / 2).scale(1),
-        Matrix_default.create().translate(1, 0, 0).rotateY(-Math.PI / 2).scale(1)
+        Matrix_default.create().translate(-1, 0, 0).rotateY(-Math.PI / 2).scale(1),
+        Matrix_default.create().translate(1, 0, 0).rotateY(-Math.PI / 2).scale(1),
+        Matrix_default.create().translate(1, 0, 0).rotateY(Math.PI / 2).scale(1)
       ].map((transform) => ({ imageId: LOGO, transform })),
       ...[
         Matrix_default.create().translate(0, -1, 0).rotateX(-Math.PI / 2),
@@ -6044,18 +6114,22 @@ class DemoWorld extends World {
         Matrix_default.create().translate(-2, -1, 2).rotateX(-Math.PI / 2),
         Matrix_default.create().translate(2, -1, 2).rotateX(-Math.PI / 2)
       ].map((transform) => ({ imageId: GROUND, transform }))
-    ], Matrix_default.create().identity()), new SpriteGroup([
+    ], Matrix_default.create()), new SpriteGroup([
       ...[
-        Matrix_default.create().translate(-1, 0, 0).rotateY(Math.PI / 2),
-        Matrix_default.create().translate(1, 0, 0).rotateY(-Math.PI / 2),
-        Matrix_default.create().translate(0, 0, -1).rotateY(0),
-        Matrix_default.create().translate(0, 0, 1).rotateY(Math.PI)
+        Matrix_default.create().translate(-1, 0, 0).rotateY(-Math.PI / 2),
+        Matrix_default.create().translate(1, 0, 0).rotateY(Math.PI / 2),
+        Matrix_default.create().translate(0, 0, 1).rotateY(0),
+        Matrix_default.create().translate(0, 0, -1).rotateY(Math.PI)
       ].map((transform) => ({ imageId: GROUND, transform }))
-    ], Matrix_default.create().translate(0, 0, -6))));
+    ], Matrix_default.create().setPosition(0, 0, -6))));
     this.addAuxiliary(new FixedSpriteGrid({ cellSize: CELLSIZE }, [
       {
         imageId: DOBUKI,
         transform: Matrix_default.create().translate(0, 0, -1)
+      },
+      {
+        imageId: DOBUKI,
+        transform: Matrix_default.create().translate(0, 0, -1).rotateY(Math.PI)
       }
     ]));
     this.addAuxiliary(new SpriteGrid({ spriteLimit: SPRITE_LIMIT, yRange: [0, 0] }, {
@@ -6067,11 +6141,7 @@ class DemoWorld extends World {
         },
         {
           imageId: WIREFRAME,
-          transform: Matrix_default.create().translate(cell.pos[0] * cell.pos[3], 1, cell.pos[2] * cell.pos[3]).rotateX(-Math.PI / 2).scale(1)
-        },
-        {
-          imageId: WIREFRAME,
-          transform: Matrix_default.create().translate(cell.pos[0] * cell.pos[3], 0, cell.pos[2] * cell.pos[3] - 1).scale(1)
+          transform: Matrix_default.create().translate(cell.pos[0] * cell.pos[3], 1, cell.pos[2] * cell.pos[3]).rotateX(Math.PI / 2).scale(1)
         }
       ]
     }));
@@ -6079,9 +6149,7 @@ class DemoWorld extends World {
       imageId: VIDEO,
       transform: Matrix_default.create().translate(0, 1e4, -50000).scale(9600, 5400, 1)
     }]));
-  }
-  activate(world) {
-    const cleanAuxiliary = this.addAuxiliary(new ToggleAuxiliary(this.core, {
+    this.core.keyboard.addAuxiliary(new ToggleAuxiliary({
       auxiliariesMapping: [
         {
           key: "Tab",
@@ -6092,21 +6160,16 @@ class DemoWorld extends World {
           aux: Auxiliaries.from(new CamMoveAuxiliary(this.core), new RiseAuxiliary(this.core), new CamTiltResetAuxiliary(this.core, { key: "ShiftRight" }))
         }
       ]
-    }), new CellChangeAuxiliary({
-      matrix: this.core.camera.posMatrix,
+    }));
+    this.core.camera.posMatrix.addAuxiliary(new CellChangeAuxiliary({
       visitCell: new CellTracker(this, {
-        cellLimit: 1000,
-        range: [5, 3, 5],
+        cellLimit: 1e4,
+        range: [10, 3, 10],
         cellSize: CELLSIZE
       })
     }, {
       cellSize: CELLSIZE
     }));
-    const onDeactivate = super.activate(world);
-    return () => {
-      onDeactivate?.();
-      cleanAuxiliary();
-    };
   }
 }
 
@@ -6148,4 +6211,4 @@ export {
   World
 };
 
-//# debugId=2219FDCA7F2130E164756e2164756e21
+//# debugId=8890CA014FFAF59664756e2164756e21

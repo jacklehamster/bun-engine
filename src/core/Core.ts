@@ -19,7 +19,7 @@ export interface Props {
   camera?: ICamera;
 }
 
-export class Core extends AuxiliaryHolder {
+export class Core extends AuxiliaryHolder<Core> {
   readonly motor: IMotor;
   readonly engine: IGraphicsEngine;
   readonly keyboard: IKeyboard;
@@ -37,20 +37,18 @@ export class Core extends AuxiliaryHolder {
     const { motor, engine, keyboard, camera } = this;
     const deregisterLoop = motor.loop(this);
 
-    const onRemoveAux = this.addAuxiliary(
+    this.addAuxiliary(
       world,
       motor,
       engine,
       keyboard,
       camera,
-      new ResizeAux(this),
     );
-    const clearActivate = this.activate(world);
+    camera.addAuxiliary(new ResizeAux({ engine }));
+    this.activate();
 
     return () => {
       deregisterLoop();
-      onRemoveAux();
-      clearActivate?.();
       this.deactivate();
     };
   }

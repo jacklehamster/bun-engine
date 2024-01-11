@@ -14,7 +14,7 @@ interface Props {
   motor: IMotor;
 }
 
-export abstract class World extends AuxiliaryHolder implements IWorld, Auxiliary {
+export abstract class World extends AuxiliaryHolder<IWorld> implements IWorld, Auxiliary {
   public readonly medias: UpdatableMedias;
   private readonly spritesAccumulator;
   protected engine: IGraphicsEngine;
@@ -30,11 +30,15 @@ export abstract class World extends AuxiliaryHolder implements IWorld, Auxiliary
   }
   refreshOrder?: RefreshOrder | undefined;
 
-  activate(world: IWorld): void | (() => void) {
-    const deActivate = super.activate(world);
+  activate(): void {
+    super.activate();
     this.engine.setMaxSpriteCount(this.sprites.length);
     console.log("Sprite limit:", this.sprites.length);
-    return () => deActivate?.();
+  }
+
+  deactivate(): void {
+    super.deactivate();
+    this.engine.setMaxSpriteCount(0);
   }
 
   get sprites(): Sprites {

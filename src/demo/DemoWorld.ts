@@ -2,7 +2,6 @@ import { Core } from "core/Core";
 import Matrix from "gl/transform/Matrix";
 import { CellChangeAuxiliary } from "gl/transform/aux/CellChangeAuxiliary";
 import { World } from "index";
-import IWorld from "world/IWorld";
 import { Auxiliaries } from "world/aux/Auxiliaries";
 import { CamMoveAuxiliary } from "world/aux/CamMoveAuxiliary";
 import { CamStepAuxiliary } from "world/aux/CamStepAuxiliary";
@@ -74,7 +73,6 @@ export class DemoWorld extends World {
           const { canvas } = ctx;
           canvas.width = LOGO_SIZE;
           canvas.height = LOGO_SIZE;
-          ctx.imageSmoothingEnabled = true;
           ctx.fillStyle = '#ddd';
           ctx.lineWidth = canvas.width / 50;
           ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -104,7 +102,6 @@ export class DemoWorld extends World {
           const { canvas } = ctx;
           canvas.width = LOGO_SIZE;
           canvas.height = LOGO_SIZE;
-          ctx.imageSmoothingEnabled = true;
           ctx.lineWidth = 5;
           ctx.setLineDash([5, 2]);
 
@@ -122,7 +119,6 @@ export class DemoWorld extends World {
           const { canvas } = ctx;
           canvas.width = LOGO_SIZE;
           canvas.height = LOGO_SIZE;
-          ctx.imageSmoothingEnabled = true;
           ctx.fillStyle = 'green';
           ctx.lineWidth = canvas.width / 50;
           ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -144,7 +140,9 @@ export class DemoWorld extends World {
         //  side walls
         ...[
           Matrix.create().translate(-1, 0, 0).rotateY(Math.PI / 2).scale(1),
+          Matrix.create().translate(-1, 0, 0).rotateY(-Math.PI / 2).scale(1),
           Matrix.create().translate(1, 0, 0).rotateY(-Math.PI / 2).scale(1),
+          Matrix.create().translate(1, 0, 0).rotateY(Math.PI / 2).scale(1),
         ].map(transform => ({ imageId: LOGO, transform })),
         //  floor
         ...[
@@ -153,16 +151,16 @@ export class DemoWorld extends World {
           Matrix.create().translate(-2, -1, 2).rotateX(-Math.PI / 2),
           Matrix.create().translate(2, -1, 2).rotateX(-Math.PI / 2),
         ].map(transform => ({ imageId: GROUND, transform })),
-      ], Matrix.create().identity()),
+      ], Matrix.create()),
       new SpriteGroup([
-        //  side walls
+        //  block
         ...[
-          Matrix.create().translate(-1, 0, 0).rotateY(Math.PI / 2),
-          Matrix.create().translate(1, 0, 0).rotateY(-Math.PI / 2),
-          Matrix.create().translate(0, 0, -1).rotateY(0),
-          Matrix.create().translate(0, 0, 1).rotateY(Math.PI),
+          Matrix.create().translate(-1, 0, 0).rotateY(-Math.PI / 2),
+          Matrix.create().translate(1, 0, 0).rotateY(Math.PI / 2),
+          Matrix.create().translate(0, 0, 1).rotateY(0),  //  front
+          Matrix.create().translate(0, 0, -1).rotateY(Math.PI), //  back
         ].map(transform => ({ imageId: GROUND, transform })),
-      ], Matrix.create().translate(0, 0, -6)),
+      ], Matrix.create().setPosition(0, 0, -6)),
     ));
 
     this.addAuxiliary(new FixedSpriteGrid(
@@ -172,18 +170,10 @@ export class DemoWorld extends World {
           imageId: DOBUKI,
           transform: Matrix.create().translate(0, 0, -1),
         },
-        // //  side walls
-        // ...[
-        //   Matrix.create().translate(-1, 0, 0).rotateY(Math.PI / 2).scale(1),
-        //   Matrix.create().translate(1, 0, 0).rotateY(-Math.PI / 2).scale(1),
-        // ].map(transform => ({ imageId: LOGO, transform })),
-        // //  floor
-        // ...[
-        //   Matrix.create().translate(0, -1, 0).rotateX(-Math.PI / 2).scale(1),
-        //   Matrix.create().translate(0, -1, 2).rotateX(-Math.PI / 2).scale(1),
-        //   Matrix.create().translate(-2, -1, 2).rotateX(-Math.PI / 2).scale(1),
-        //   Matrix.create().translate(2, -1, 2).rotateX(-Math.PI / 2).scale(1),
-        // ].map(transform => ({ imageId: GROUND, transform })),
+        {
+          imageId: DOBUKI,
+          transform: Matrix.create().translate(0, 0, -1).rotateY(Math.PI),
+        },
       ]));
 
     this.addAuxiliary(new SpriteGrid(
@@ -196,12 +186,8 @@ export class DemoWorld extends World {
         },
         { //  ceiling
           imageId: WIREFRAME,
-          transform: Matrix.create().translate(cell.pos[0] * cell.pos[3], 1, cell.pos[2] * cell.pos[3]).rotateX(-Math.PI / 2).scale(1)
+          transform: Matrix.create().translate(cell.pos[0] * cell.pos[3], 1, cell.pos[2] * cell.pos[3]).rotateX(Math.PI / 2).scale(1)
         },
-        { //  front
-          imageId: WIREFRAME,
-          transform: Matrix.create().translate(cell.pos[0] * cell.pos[3], 0, cell.pos[2] * cell.pos[3] - 1).scale(1)
-        }
       ]
     }));
 
@@ -211,11 +197,9 @@ export class DemoWorld extends World {
         .translate(0, 10000, -50000)
         .scale(480 * 20, 270 * 20, 1),
     }]));
-  }
 
-  activate(world: IWorld): () => void {
-    const cleanAuxiliary = this.addAuxiliary(
-      new ToggleAuxiliary(this.core, {
+    this.core.keyboard.addAuxiliary(
+      new ToggleAuxiliary({
         auxiliariesMapping: [
           {
             key: "Tab", aux: Auxiliaries.from(
@@ -232,24 +216,17 @@ export class DemoWorld extends World {
           },
         ],
       }),
+    );
 
+    this.core.camera.posMatrix.addAuxiliary(
       new CellChangeAuxiliary({
-        matrix: this.core.camera.posMatrix,
         visitCell: new CellTracker(this, {
-          cellLimit: 1000,
-          range: [5, 3, 5],
+          cellLimit: 10000,
+          range: [10, 3, 10],
           cellSize: CELLSIZE,
         })
       }, {
         cellSize: CELLSIZE,
-      }),
-    );
-
-    const onDeactivate = super.activate(world);
-
-    return () => {
-      onDeactivate?.();
-      cleanAuxiliary();
-    };
+      }));
   }
 }

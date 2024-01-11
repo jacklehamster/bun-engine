@@ -1,4 +1,4 @@
-import { IKeyboard } from "controls/IKeyboard";
+import { IKeyboard, KeyListener } from "controls/IKeyboard";
 import { Auxiliary } from "./Auxiliary";
 import { UpdatePayload } from "updates/Refresh";
 import { List, map } from "world/sprite/List";
@@ -9,22 +9,18 @@ interface Config {
   auxiliariesMapping: List<KeyMap>;
 }
 
-interface Props {
-  keyboard: IKeyboard;
-}
-
-export class ToggleAuxiliary implements Auxiliary {
-  private keyboard: IKeyboard;
+export class ToggleAuxiliary implements Auxiliary<IKeyboard> {
+  private keyboard?: IKeyboard;
   private active: boolean = false;
   private toggleIndex: number = 0;
   private pendingDeactivate?: (() => void) | void;
   private keys: (string | undefined)[];
   private auxiliaries: List<Auxiliary>;
+  private keyListener: KeyListener;
 
-  constructor({ keyboard }: Props, config: Config) {
-    this.keyboard = keyboard;
+  constructor(config: Config) {
     this.keys = map(config.auxiliariesMapping, (({ key }) => key));
-    this.keyboard.addListener({
+    this.keyListener = {
       onKeyDown: (keyCode: string) => {
         if (this.keys.indexOf(keyCode) >= 0) {
           const wasActive = this.active;
@@ -35,8 +31,12 @@ export class ToggleAuxiliary implements Auxiliary {
           }
         }
       },
-    });
+    };
     this.auxiliaries = map(config.auxiliariesMapping, (({ aux }) => aux));
+  }
+
+  set holder(keyboard: IKeyboard | undefined) {
+    this.keyboard = keyboard;
   }
 
   private get auxiliary(): Auxiliary | undefined {
@@ -58,8 +58,9 @@ export class ToggleAuxiliary implements Auxiliary {
     this.auxiliary?.refresh?.(updatePayload);
   }
 
-  activate(): (() => void) | void {
+  activate(): void {
     if (!this.active) {
+      this.keyboard?.addListener(this.keyListener);
       this.active = true;
       this.pendingDeactivate = this.auxiliary?.activate?.();
     }
@@ -67,6 +68,7 @@ export class ToggleAuxiliary implements Auxiliary {
 
   deactivate(): void {
     if (this.active) {
+      this.keyboard?.removeListener(this.keyListener);
       this.active = false;
       this.pendingDeactivate?.();
       this.auxiliary?.deactivate?.();

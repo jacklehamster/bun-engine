@@ -1,4 +1,4 @@
-import { List, forEach, map } from "world/sprite/List";
+import { List, forEach } from "world/sprite/List";
 import { Auxiliary } from "./Auxiliary";
 import { UpdatePayload } from "updates/Refresh";
 
@@ -20,21 +20,20 @@ export class Auxiliaries implements List<Auxiliary>, Auxiliary {
   }
 
   refresh?(updatePayload: UpdatePayload): void {
-    forEach(this.auxiliaries, aux => aux.refresh?.(updatePayload));
+    forEach(this.auxiliaries, aux => aux?.refresh?.(updatePayload));
   }
 
-  activate?(): void | (() => void) {
+  activate?(): void {
     if (!this.active) {
       this.active = true;
-      const onDeactivates = map(this.auxiliaries, aux => aux.activate?.());
-      return () => onDeactivates.forEach(d => d?.());
+      forEach(this.auxiliaries, aux => aux?.activate?.());
     }
   }
 
   deactivate?(): void {
     if (this.active) {
       this.active = false;
-      forEach(this.auxiliaries, aux => aux.deactivate?.());
+      forEach(this.auxiliaries, aux => aux?.deactivate?.());
     }
   }
 }

@@ -1,9 +1,10 @@
 import { ITimeProvider, Time } from "core/Time";
 import { IKeyboard, KeyListener } from "./IKeyboard";
+import { AuxiliaryHolder } from "world/aux/AuxiliaryHolder";
 
 const QUICK_TAP_TIME = 200;
 
-export class Keyboard implements IKeyboard {
+export class Keyboard extends AuxiliaryHolder<IKeyboard> implements IKeyboard {
   readonly keys: Record<string, Time> = {};
   readonly keysUp: Record<string, Time> = {};
 
@@ -14,6 +15,7 @@ export class Keyboard implements IKeyboard {
   private isActive: boolean = false;
 
   constructor(private timeProvider: ITimeProvider) {
+    super();
     this.keyDown = this.keyDown.bind(this);
     this.keyUp = this.keyUp.bind(this);
   }
@@ -37,9 +39,14 @@ export class Keyboard implements IKeyboard {
     }
   }
 
-  activate(): () => void {
+  activate(): void {
+    super.activate();
     this.setActive(true);
-    return () => this.setActive(false);
+  }
+
+  deactivate(): void {
+    super.deactivate();
+    this.setActive(false);
   }
 
   private setActive(value: boolean) {

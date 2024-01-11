@@ -5,7 +5,6 @@ import { forEach } from "../List";
 import { transformToPosition } from "world/grid/Position";
 import { PositionMatrix } from "gl/transform/PositionMatrix";
 import { cellTag } from "world/grid/CellPos";
-import IWorld from "world/IWorld";
 
 interface Config {
   cellSize?: number;
@@ -29,8 +28,8 @@ export class FixedSpriteGrid extends SpriteGrid {
     this.spritesList = spritesList;
   }
 
-  activate(world: IWorld): void | (() => void) {
-    super.activate(world);
+  activate(): void {
+    super.activate();
     this.spritesList.forEach(sprites => {
       forEach(sprites, (sprite) => {
         if (sprite) {

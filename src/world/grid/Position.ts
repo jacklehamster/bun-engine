@@ -12,6 +12,13 @@ export function transformsToPosition(transforms: List<Matrix>) {
   return transformToPosition(_matrix);
 }
 
+export function toPos(x: number, y: number, z: number): Position {
+  _position[0] = x;
+  _position[1] = y;
+  _position[2] = z;
+  return _position;
+}
+
 export function transformToPosition(transform: IMatrix, pos: Position = _position) {
   const m = transform.getMatrix();
   pos[0] = m[12]; // Value in the 4th column, 1st row (indices start from 0)

@@ -41,6 +41,8 @@ export class Motor implements IMotor {
     this.updateSchedule.delete(update);
   }
 
+  deactivate?(): void;
+
   activate() {
     let handle = 0;
     const updatePayload: UpdatePayload = {
@@ -70,9 +72,12 @@ export class Motor implements IMotor {
           this.updateSchedule.delete(update);
         }
       });
-      updateList.forEach((updates) => updates.forEach((update) => update.refresh(updatePayload)));
+      updateList.forEach((updates) => updates.forEach((update) => update.refresh?.(updatePayload)));
     };
     requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(handle);
+    this.deactivate = () => {
+      cancelAnimationFrame(handle);
+      this.deactivate = undefined;
+    };
   }
 }

@@ -9,6 +9,7 @@ import { CameraFloatUpdate } from "updates/CameraFloatUpdate";
 import { IGraphicsEngine } from "core/graphics/IGraphicsEngine";
 import { IMotor } from "core/motor/IMotor";
 import { PositionMatrix } from "gl/transform/PositionMatrix";
+import { AuxiliaryHolder } from "world/aux/AuxiliaryHolder";
 
 export enum CameraMatrixType {
   PROJECTION = 0,
@@ -27,25 +28,28 @@ interface Props {
   motor: IMotor;
 }
 
-export class Camera implements ICamera {
+export class Camera extends AuxiliaryHolder<ICamera> implements ICamera {
   private readonly camMatrix = Matrix.create();
   private readonly projectionMatrix = new ProjectionMatrix();
   readonly posMatrix = new PositionMatrix(() => this.updateInformer.informUpdate(CameraMatrixType.POS));
   readonly tiltMatrix = new TiltMatrix(() => this.updateInformer.informUpdate(CameraMatrixType.TILT));
   readonly turnMatrix = new TurnMatrix(() => this.updateInformer.informUpdate(CameraMatrixType.TURN));
-  private pespectiveLevel = 1;
-  private curvature = 0;
-  private distance = 0;
+  private _pespectiveLevel = 1;
+  private _curvature = 0;
+  private _distance = 0;
   private readonly updateInformer;
   private readonly updateInformerFloat;
 
   constructor({ engine, motor }: Props) {
+    super();
     this.updateInformer = new CameraUpdate(this.getCameraMatrix.bind(this), engine, motor);
     this.updateInformerFloat = new CameraFloatUpdate(this.getCameraFloat.bind(this), engine, motor);
+    this.addAuxiliary(this.posMatrix);
   }
 
   activate() {
-    this.updatePerspective();
+    super.activate();
+    this.updateInformer.informUpdate(CameraMatrixType.PROJECTION);
     this.updateInformer.informUpdate(CameraMatrixType.POS);
     this.updateInformer.informUpdate(CameraMatrixType.TURN);
     this.updateInformer.informUpdate(CameraMatrixType.TILT);
@@ -65,74 +69,38 @@ export class Camera implements ICamera {
     this.updateInformer.informUpdate(CameraMatrixType.PROJECTION);
   }
 
-  updatePerspective(level?: number) {
-    this.projectionMatrix.setPerspective(level ?? this.pespectiveLevel);
+  set perspective(level: number) {
+    this.projectionMatrix.setPerspective(level ?? this._pespectiveLevel);
     this.updateInformer.informUpdate(CameraMatrixType.PROJECTION);
   }
 
-  updateCurvature(value: number) {
-    this.curvature = value;
+  set curvature(value: number) {
+    this._curvature = value;
     this.updateInformerFloat.informUpdate(CameraFloatType.CURVATURE);
   }
 
-  updateDistance(value: number) {
-    this.distance = value;
+  set distance(value: number) {
+    this._distance = value;
     this.updateInformerFloat.informUpdate(CameraFloatType.DISTANCE);
   }
 
-  getCameraMatrix(cameraMatrixType: CameraMatrixType): Float32Array {
+  private getCameraMatrix(cameraMatrixType: CameraMatrixType): Float32Array {
     if (cameraMatrixType === CameraMatrixType.POS) {
       this.camMatrix.invert(this.posMatrix);
     }
     return this.cameraMatrices[cameraMatrixType].getMatrix();
   }
 
-  getCameraFloat(cameraFloatType: CameraFloatType): number {
+  private getCameraFloat(cameraFloatType: CameraFloatType): number {
     switch (cameraFloatType) {
       case CameraFloatType.CURVATURE:
-        return this.curvature;
+        return this._curvature;
       case CameraFloatType.DISTANCE:
-        return this.distance;
-    }
-  }
-
-  gotoPos(x: number, y: number, z: number, speed: number = .1) {
-    const curPos = this.getPosition();
-    const dx = x - curPos[0];
-    const dy = y - curPos[1];
-    const dz = z - curPos[2];
-    const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
-    if (dist > .01) {
-      const sp = Math.min(dist, speed);
-      this.posMatrix.translate(
-        dx / dist * sp,
-        dy / dist * sp,
-        dz / dist * sp,
-      );
-    } else {
-      this.posMatrix.setPosition(x, y, z);
+        return this._distance;
     }
   }
 
   moveCam(x: number, y: number, z: number) {
-    this.posMatrix.moveMatrix(x, y, z, this.turnMatrix);
-  }
-
-  //  Turn
-  turn(angle: number) {
-    this.turnMatrix.turn += angle;
-  }
-
-  //  Tilt
-  tilt(angle: number) {
-    this.tiltMatrix.tilt += angle;
-  }
-
-  getPosition() {
-    return this.posMatrix.getPosition();
-  }
-
-  setPosition(x: number, y: number, z: number) {
-    this.posMatrix.setPosition(x, y, z);
+    this.posMatrix.moveBy(x, y, z, this.turnMatrix);
   }
 }

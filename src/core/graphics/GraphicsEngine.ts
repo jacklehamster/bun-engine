@@ -175,7 +175,8 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
     this.gl.viewport(0, 0, this.gl.drawingBufferWidth, this.gl.drawingBufferHeight);
 
     // disable face culling
-    this.gl.disable(this.gl.CULL_FACE);
+    this.gl.enable(GL.CULL_FACE);
+    this.gl.cullFace(GL.BACK);
 
     // clear background color
     this.gl.clearColor(0.0, 0.0, 0.0, 1.0);

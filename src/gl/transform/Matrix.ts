@@ -1,13 +1,14 @@
 import { mat4, quat, vec3 } from 'gl-matrix';
-import { IMatrix } from './IMatrix';
+import { IMatrix, vector } from './IMatrix';
 import { Angle } from 'gl/utils/angleUtils';
 
 const DEG_TO_RADIANT = Math.PI / 90;
 
 class Matrix implements IMatrix {
   private m4 = Float32Array.from(mat4.create());
-  static readonly HIDDEN = Matrix.create().identity().scale(0, 0, 0);
-  static readonly IDENTITY = Matrix.create().identity();
+  static readonly HIDDEN = Matrix.create().scale(0, 0, 0);
+  static readonly IDENTITY = Matrix.create();
+  private static tempVec = vec3.create();
 
   constructor() {
     this.identity();
@@ -49,13 +50,16 @@ class Matrix implements IMatrix {
   }
 
   translate(x: number, y: number, z: number): Matrix {
-    mat4.translate(this.m4, this.m4, [x, y, z]);
-    return this;
+    const v = Matrix.tempVec;
+    v[0] = x;
+    v[1] = y;
+    v[2] = z;
+    return this.move(v);
   }
 
-  translateToMatrix(matrix: Matrix): Matrix {
-    const m4 = matrix.getMatrix();
-    return this.translate(-m4[12], -m4[13], -m4[14]);
+  move(vector: vector): Matrix {
+    mat4.translate(this.m4, this.m4, vector);
+    return this;
   }
 
   rotateX(angle: Angle): Matrix {
@@ -114,8 +118,7 @@ class Matrix implements IMatrix {
   }
 
   private static tempQuat = quat.create();
-  private static tempVec = vec3.create();
-  moveMatrix(x: number, y: number, z: number, turnMatrix?: IMatrix) {
+  getMoveVector(x: number, y: number, z: number, turnMatrix?: IMatrix): vec3 {
     const v = Matrix.tempVec;
     v[0] = x;
     v[1] = y;
@@ -125,8 +128,7 @@ class Matrix implements IMatrix {
       quat.invert(Matrix.tempQuat, Matrix.tempQuat);
       vec3.transformQuat(v, v, Matrix.tempQuat);
     }
-    mat4.translate(this.m4, this.m4, v);
-    return this;
+    return v;
   }
 
   setPosition(x: number, y: number, z: number) {

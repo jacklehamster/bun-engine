@@ -35,8 +35,13 @@ export class CamTiltResetAuxiliary implements Auxiliary {
         }
       },
     });
-    return () => removeListener();
+    this.deactivate = () => {
+      removeListener();
+      this.deactivate = undefined;
+    };
   }
+
+  deactivate?(): void;
 
   refresh(update: UpdatePayload): void {
     if (this.resetting) {

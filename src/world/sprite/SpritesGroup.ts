@@ -8,7 +8,7 @@ export class SpriteGroup implements Sprites {
     transform: Matrix.create(),
   };
 
-  constructor(private children: Sprites, public transform: Matrix = Matrix.create().identity()) {
+  constructor(private children: Sprites, public transform: Matrix = Matrix.create()) {
   }
 
   get length(): number {
@@ -22,7 +22,7 @@ export class SpriteGroup implements Sprites {
     }
     this.spriteModel.name = `s${index}`;
     this.spriteModel.imageId = s.imageId;
-    this.spriteModel.transform.identity().multiply2(this.transform, s.transform);
+    this.spriteModel.transform.multiply2(this.transform, s.transform);
     return this.spriteModel;
   }
 

@@ -1,9 +1,9 @@
 import { Medias } from "./sprite/Medias";
 import { Sprites } from "./sprite/Sprites";
-import { Auxiliary } from "./aux/Auxiliary";
 import { CellTrack } from "./grid/CellTracker";
+import { Holder as Holder } from "./aux/Holder";
 
-interface IWorld extends Auxiliary, CellTrack {
+interface IWorld extends Holder, CellTrack {
   readonly sprites: Sprites;
   readonly medias: Medias;
   addSprites(...sprites: Sprites[]): void;

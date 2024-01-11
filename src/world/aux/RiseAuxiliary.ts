@@ -24,7 +24,7 @@ export class RiseAuxiliary implements Auxiliary {
     this.key = config.key;
   }
 
-  activate(): void | (() => void) {
+  activate(): void {
     const removeListener = this.keyboard.addListener({
       onQuickTap: (keyCode) => {
         if (keyCode === this.key) {
@@ -32,8 +32,13 @@ export class RiseAuxiliary implements Auxiliary {
         }
       },
     });
-    return () => removeListener();
+    this.deactivate = () => {
+      removeListener();
+      this.deactivate = undefined;
+    };
   }
+
+  deactivate?(): void;
 
   refresh(update: UpdatePayload): void {
     const { deltaTime } = update;
@@ -48,9 +53,9 @@ export class RiseAuxiliary implements Auxiliary {
       this.camera.moveCam(0, speed, 0);
     } else if (this.dropping) {
       this.camera.moveCam(0, -speed, 0);
-      const [x, y, z] = this.camera.getPosition();
+      const [x, y, z] = this.camera.posMatrix.position;
       if (y < 0) {
-        this.camera.setPosition(x, 0, z);
+        this.camera.posMatrix.moveTo(x, 0, z);
         this.dropping = false;
       }
     }

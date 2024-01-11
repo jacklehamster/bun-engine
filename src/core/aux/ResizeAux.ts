@@ -4,26 +4,34 @@ import { Auxiliary } from "world/aux/Auxiliary";
 
 interface Props {
   engine: IGraphicsEngine;
-  camera: ICamera;
 }
 
-export class ResizeAux implements Auxiliary {
+export class ResizeAux implements Auxiliary<ICamera> {
   private engine: IGraphicsEngine;
-  private camera: ICamera;
-  constructor({ engine, camera }: Props) {
+  private camera?: ICamera;
+  constructor({ engine }: Props) {
     this.engine = engine;
-    this.camera = camera;
   }
 
-  activate(): void | (() => void) {
-    return this.handleResize();
+  set holder(value: ICamera | undefined) {
+    this.camera = value;
   }
 
+  activate(): void {
+    this.handleResize();
+  }
+
+  deactivate(): void {
+    this.removeListener?.();
+    this.removeListener = undefined;
+  }
+
+  private removeListener?(): void;
   private handleResize() {
     const { engine } = this;
     const onResize = (width: number, height: number) => {
-      this.camera.configProjectionMatrix(width, height);
+      this.camera?.configProjectionMatrix(width, height);
     };
-    return engine.addResizeListener(onResize);
+    this.removeListener = engine.addResizeListener(onResize);
   }
 }
