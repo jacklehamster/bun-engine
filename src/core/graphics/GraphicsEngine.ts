@@ -21,6 +21,7 @@ import {
   CAM_CURVATURE_LOC,
   CAM_DISTANCE_LOC,
   BG_COLOR_LOC,
+  BG_BLUR_LOC,
 } from '../../gl/attributes/Constants';
 import { TEXTURE_INDEX_FOR_VIDEO, TextureId, TextureManager } from '../../gl/texture/TextureManager';
 import { MediaId, ImageManager } from 'gl/texture/ImageManager';
@@ -139,6 +140,7 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
     this.floatUniforms = {
       [FloatUniform.CURVATURE]: this.uniforms.getUniformLocation(CAM_CURVATURE_LOC, PROGRAM_NAME),
       [FloatUniform.CAM_DISTANCE]: this.uniforms.getUniformLocation(CAM_DISTANCE_LOC, PROGRAM_NAME),
+      [FloatUniform.BG_BLUR]: this.uniforms.getUniformLocation(BG_BLUR_LOC, PROGRAM_NAME),
     };
     this.vec3Uniforms = {
       [VectorUniform.BG_COLOR]: this.uniforms.getUniformLocation(BG_COLOR_LOC, PROGRAM_NAME),

@@ -13,7 +13,6 @@ export class ToggleAuxiliary implements Auxiliary<IKeyboard> {
   private keyboard?: IKeyboard;
   private active: boolean = false;
   private toggleIndex: number = 0;
-  private pendingDeactivate?: (() => void) | void;
   private keys: (string | undefined)[];
   private auxiliaries: List<Auxiliary>;
   private keyListener: KeyListener;
@@ -24,10 +23,10 @@ export class ToggleAuxiliary implements Auxiliary<IKeyboard> {
       onKeyDown: (keyCode: string) => {
         if (this.keys.indexOf(keyCode) >= 0) {
           const wasActive = this.active;
-          this.deactivate();
+          this.auxiliary?.deactivate?.();
           this.toggle(keyCode);
           if (wasActive) {
-            this.activate();
+            this.auxiliary?.activate?.();
           }
         }
       },
@@ -62,7 +61,7 @@ export class ToggleAuxiliary implements Auxiliary<IKeyboard> {
     if (!this.active) {
       this.keyboard?.addListener(this.keyListener);
       this.active = true;
-      this.pendingDeactivate = this.auxiliary?.activate?.();
+      this.auxiliary?.activate?.();
     }
   }
 
@@ -70,7 +69,6 @@ export class ToggleAuxiliary implements Auxiliary<IKeyboard> {
     if (this.active) {
       this.keyboard?.removeListener(this.keyListener);
       this.active = false;
-      this.pendingDeactivate?.();
       this.auxiliary?.deactivate?.();
     }
   }

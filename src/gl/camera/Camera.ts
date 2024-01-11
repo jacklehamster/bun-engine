@@ -26,9 +26,10 @@ export class Camera extends AuxiliaryHolder<ICamera> implements ICamera {
   readonly tiltMatrix = new TiltMatrix(() => this.updateInformer.informUpdate(MatrixUniform.CAM_TILT));
   readonly turnMatrix = new TurnMatrix(() => this.updateInformer.informUpdate(MatrixUniform.CAM_TURN));
   private _pespectiveLevel = 1;
-  private _curvature = 0;
-  private _distance = 0;
+  private _curvature = 0.05;
+  private _distance = .5;
   private _bgColor: vector = [0, 0, 0];
+  private _blur = 1;
   private readonly updateInformer;
   private readonly updateInformerFloat;
   private readonly updateInformerVector;
@@ -81,6 +82,11 @@ export class Camera extends AuxiliaryHolder<ICamera> implements ICamera {
     this.updateInformerFloat.informUpdate(FloatUniform.CAM_DISTANCE);
   }
 
+  set blur(value: number) {
+    this._blur = value;
+    this.updateInformerFloat.informUpdate(FloatUniform.BG_BLUR);
+  }
+
   set bgColor(rgb: number) {
     const red = (rgb >> 16) & 0xFF;
     const green = (rgb >> 8) & 0xFF;
@@ -105,6 +111,8 @@ export class Camera extends AuxiliaryHolder<ICamera> implements ICamera {
         return this._curvature;
       case FloatUniform.CAM_DISTANCE:
         return this._distance;
+      case FloatUniform.BG_BLUR:
+        return this._blur;
     }
   }
 

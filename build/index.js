@@ -321,6 +321,7 @@ var CAM_TURN_LOC = "camTurn";
 var CAM_DISTANCE_LOC = "camDist";
 var CAM_PROJECTION_LOC = "projection";
 var CAM_CURVATURE_LOC = "curvature";
+var BG_BLUR_LOC = "bgBlur";
 var BG_COLOR_LOC = "bgColor";
 var MAX_TEXTURE_SIZE_LOC = "maxTextureSize";
 var TEXTURE_UNIFORM_LOC = "uTextures";
@@ -1670,6 +1671,7 @@ out vec4 fragColor;
 // UNIFORMS
 uniform sampler2D uTextures[NUM_TEXTURES];
 uniform vec3 bgColor;
+uniform float bgBlur;
 
 //  FUNCTIONS
 vec4 getTextureColor(float textureSlot, vec2 vTexturePoint);
@@ -1680,14 +1682,19 @@ float rand(vec2 co){
 
 void main() {
   vec2 vFragment = vTex;
-  float blur = pow(dist, 1.6) / 20000.;
-  vFragment += rand(vTex + dist) * blur;
+  float blur = bgBlur * pow(dist, 1.6) / 20000.;
+  vec4 color;
+  for (int i = 0; i < 5; i++) {
+    vFragment = vTex + blur * rand(vTex + dist * float(i));
+    color += getTextureColor(vTextureIndex, vFragment);
+  }
+  color /= float(5);
 
-  vec4 color = getTextureColor(vTextureIndex, vFragment);
+  // vec4 color = getTextureColor(vTextureIndex, vFragment);
   if (color.a <= .0001) {
     discard;
   };
-  float colorFactor = 1.3 / pow(dist, .3);
+  float colorFactor = 1.1 / pow(dist, .15);
   color.rgb = (color.rgb * colorFactor) + (bgColor * (1. - colorFactor));
   fragColor = color;
 //  fragColor = vec4(vInstanceColor.rgb, 1.0);
@@ -4565,6 +4572,7 @@ var FloatUniform;
 (function(FloatUniform2) {
   FloatUniform2[FloatUniform2["CURVATURE"] = 0] = "CURVATURE";
   FloatUniform2[FloatUniform2["CAM_DISTANCE"] = 1] = "CAM_DISTANCE";
+  FloatUniform2[FloatUniform2["BG_BLUR"] = 2] = "BG_BLUR";
 })(FloatUniform || (FloatUniform = {}));
 var MatrixUniform;
 (function(MatrixUniform2) {
@@ -4660,7 +4668,8 @@ class GraphicsEngine extends Disposable {
     };
     this.floatUniforms = {
       [FloatUniform.CURVATURE]: this.uniforms.getUniformLocation(CAM_CURVATURE_LOC, PROGRAM_NAME),
-      [FloatUniform.CAM_DISTANCE]: this.uniforms.getUniformLocation(CAM_DISTANCE_LOC, PROGRAM_NAME)
+      [FloatUniform.CAM_DISTANCE]: this.uniforms.getUniformLocation(CAM_DISTANCE_LOC, PROGRAM_NAME),
+      [FloatUniform.BG_BLUR]: this.uniforms.getUniformLocation(BG_BLUR_LOC, PROGRAM_NAME)
     };
     this.vec3Uniforms = {
       [VectorUniform.BG_COLOR]: this.uniforms.getUniformLocation(BG_COLOR_LOC, PROGRAM_NAME)
@@ -5233,9 +5242,10 @@ class Camera extends AuxiliaryHolder {
   tiltMatrix = new TiltMatrix(() => this.updateInformer.informUpdate(MatrixUniform.CAM_TILT));
   turnMatrix = new TurnMatrix(() => this.updateInformer.informUpdate(MatrixUniform.CAM_TURN));
   _pespectiveLevel = 1;
-  _curvature = 0;
-  _distance = 0;
+  _curvature = 0.05;
+  _distance = 0.5;
   _bgColor = [0, 0, 0];
+  _blur = 1;
   updateInformer;
   updateInformerFloat;
   updateInformerVector;
@@ -5280,6 +5290,10 @@ class Camera extends AuxiliaryHolder {
     this._distance = value;
     this.updateInformerFloat.informUpdate(FloatUniform.CAM_DISTANCE);
   }
+  set blur(value) {
+    this._blur = value;
+    this.updateInformerFloat.informUpdate(FloatUniform.BG_BLUR);
+  }
   set bgColor(rgb) {
     const red = rgb >> 16 & 255;
     const green = rgb >> 8 & 255;
@@ -5302,6 +5316,8 @@ class Camera extends AuxiliaryHolder {
         return this._curvature;
       case FloatUniform.CAM_DISTANCE:
         return this._distance;
+      case FloatUniform.BG_BLUR:
+        return this._blur;
     }
   }
   getCameraVector(uniform) {
@@ -5750,7 +5766,6 @@ class ToggleAuxiliary {
   keyboard;
   active = false;
   toggleIndex = 0;
-  pendingDeactivate;
   keys;
   auxiliaries;
   keyListener;
@@ -5760,10 +5775,10 @@ class ToggleAuxiliary {
       onKeyDown: (keyCode) => {
         if (this.keys.indexOf(keyCode) >= 0) {
           const wasActive = this.active;
-          this.deactivate();
+          this.auxiliary?.deactivate?.();
           this.toggle(keyCode);
           if (wasActive) {
-            this.activate();
+            this.auxiliary?.activate?.();
           }
         }
       }
@@ -5793,14 +5808,13 @@ class ToggleAuxiliary {
     if (!this.active) {
       this.keyboard?.addListener(this.keyListener);
       this.active = true;
-      this.pendingDeactivate = this.auxiliary?.activate?.();
+      this.auxiliary?.activate?.();
     }
   }
   deactivate() {
     if (this.active) {
       this.keyboard?.removeListener(this.keyListener);
       this.active = false;
-      this.pendingDeactivate?.();
       this.auxiliary?.deactivate?.();
     }
   }
@@ -6275,8 +6289,8 @@ class DemoWorld extends World {
     }));
     this.core.camera.posMatrix.addAuxiliary(new CellChangeAuxiliary({
       visitCell: new CellTracker(this, {
-        cellLimit: 100,
-        range: [5, 3, 5],
+        cellLimit: 500,
+        range: [10, 3, 10],
         cellSize: CELLSIZE
       })
     }, {
@@ -6330,4 +6344,4 @@ export {
   World
 };
 
-//# debugId=3CED406335686EE164756e2164756e21
+//# debugId=7097A2CD5BFB7DDB64756e2164756e21
