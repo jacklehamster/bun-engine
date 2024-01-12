@@ -4804,10 +4804,10 @@ class ProjectionMatrix extends AuxiliaryHolder {
   baseMatrix = Matrix_default.create();
   perspectiveMatrix = Matrix_default.create();
   orthoMatrix = Matrix_default.create();
-  perspectiveLevel = 1;
-  zoom = 1;
-  width = 0;
-  height = 0;
+  _perspectiveLevel = 1;
+  _zoom = 1;
+  _width = 0;
+  _height = 0;
   constructor(onChange) {
     super();
     this.onChange = onChange;
@@ -4819,26 +4819,26 @@ class ProjectionMatrix extends AuxiliaryHolder {
     this.orthoMatrix.ortho(-width / 2, width / 2, -height2 / 2, height2 / 2, near, far);
   }
   configure(width, height2, zoom = 1, near = 0.5, far = 1000) {
-    if (this.width !== width || this.height !== height2 || this.zoom !== zoom) {
-      this.width = width;
-      this.height = height2;
-      this.zoom = zoom;
+    if (this._width !== width || this._height !== height2 || this._zoom !== zoom) {
+      this._width = width;
+      this._height = height2;
+      this._zoom = zoom;
       const ratio = width / height2;
-      const angle2 = 45 / Math.sqrt(this.zoom);
+      const angle2 = 45 / Math.sqrt(this._zoom);
       this.configPerspectiveMatrix(angle2, ratio, Math.max(near, 0.00001), far);
-      this.configOrthoMatrix(ratio / this.zoom / this.zoom, 1 / this.zoom / this.zoom, -far, far);
+      this.configOrthoMatrix(ratio / this._zoom / this._zoom, 1 / this._zoom / this._zoom, -far, far);
       this.onChange?.();
     }
   }
   setPerspective(level) {
-    this.perspectiveLevel = level;
+    this._perspectiveLevel = level;
     this.onChange?.();
   }
   setZoom(zoom) {
-    this.configure(this.width, this.height, zoom);
+    this.configure(this._width, this._height, zoom);
   }
   getMatrix() {
-    this.baseMatrix.combine(this.orthoMatrix, this.perspectiveMatrix, this.perspectiveLevel);
+    this.baseMatrix.combine(this.orthoMatrix, this.perspectiveMatrix, this._perspectiveLevel);
     return this.baseMatrix.getMatrix();
   }
 }
@@ -5607,45 +5607,47 @@ class CamTiltResetAuxiliary {
   }
 }
 
-// src/world/aux/RiseAuxiliary.ts
-class RiseAuxiliary {
+// src/world/aux/JumpAuxiliary.ts
+class JumpAuxiliary {
   keyboard;
   camera;
   key;
-  dropping = false;
-  constructor({ keyboard, camera }, config = { key: "Space" }) {
+  gravity;
+  dy;
+  jumpStrength = 0;
+  plane = 1;
+  constructor({ keyboard, camera }, config = {}) {
     this.keyboard = keyboard;
     this.camera = camera;
-    this.key = config.key;
-  }
-  activate() {
-    const removeListener = this.keyboard.addListener({
-      onQuickTap: (keyCode) => {
-        if (keyCode === this.key) {
-          this.dropping = true;
-        }
-      }
-    });
-    this.deactivate = () => {
-      removeListener();
-      this.deactivate = undefined;
-    };
+    this.key = config.key ?? "Space";
+    this.gravity = config.gravity ?? -1;
+    this.jumpStrength = config.jump ?? 2;
+    this.plane = config.plane ?? 10;
+    this.dy = 0;
   }
   refresh(update) {
     const { deltaTime } = update;
-    this.riseAndDrop(deltaTime, this.keyboard);
+    this.jump(deltaTime, this.keyboard);
   }
-  riseAndDrop(deltaTime, keyboard) {
+  jump(deltaTime, keyboard) {
     const speed = deltaTime / 80;
+    const acceleration = deltaTime / 80;
     const { keys } = keyboard;
-    if (keys[this.key]) {
-      this.camera.moveCam(0, speed, 0);
-    } else if (this.dropping) {
-      this.camera.moveCam(0, -speed, 0);
-      const [x, y, z] = this.camera.posMatrix.position;
-      if (y < 0) {
+    const [_x, y, _z] = this.camera.posMatrix.position;
+    if (y === 0) {
+      if (keys[this.key]) {
+        this.dy = this.jumpStrength;
+        this.camera.moveCam(0, speed * this.dy, 0);
+      }
+    } else {
+      this.camera.moveCam(0, speed * this.dy, 0);
+      const [x, y2, z] = this.camera.posMatrix.position;
+      if (y2 > 0) {
+        const mul4 = this.dy < 0 ? 1 / this.plane : 1;
+        this.dy += this.gravity * acceleration * mul4;
+      } else {
         this.camera.posMatrix.moveTo(x, 0, z);
-        this.dropping = false;
+        this.dy = 0;
       }
     }
   }
@@ -6348,7 +6350,7 @@ class DemoWorld extends World {
         },
         {
           key: "Tab",
-          aux: Auxiliaries.from(new CamMoveAuxiliary(this.core), new RiseAuxiliary(this.core), new CamTiltResetAuxiliary(this.core, { key: "ShiftRight" }))
+          aux: Auxiliaries.from(new CamMoveAuxiliary(this.core), new JumpAuxiliary(this.core), new CamTiltResetAuxiliary(this.core, { key: "ShiftRight" }))
         }
       ]
     }));
@@ -6412,4 +6414,4 @@ export {
   World
 };
 
-//# debugId=8BB6181E78EF592164756e2164756e21
+//# debugId=2A379DB7A2F054C864756e2164756e21

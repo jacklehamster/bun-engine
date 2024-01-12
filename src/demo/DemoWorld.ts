@@ -7,7 +7,7 @@ import { Auxiliaries } from "world/aux/Auxiliaries";
 import { CamMoveAuxiliary } from "world/aux/CamMoveAuxiliary";
 import { CamStepAuxiliary } from "world/aux/CamStepAuxiliary";
 import { CamTiltResetAuxiliary } from "world/aux/CamTiltResetAuxiliary";
-import { RiseAuxiliary } from "world/aux/RiseAuxiliary";
+import { JumpAuxiliary } from "world/aux/JumpAuxiliary";
 import { ToggleAuxiliary } from "world/aux/ToggleAuxiliary";
 import { CellTracker } from "world/grid/CellTracker";
 import { UpdatableMedias } from "world/sprite/Medias";
@@ -27,10 +27,15 @@ export class DemoWorld extends World {
   constructor(private core: Core) {
     super(core);
 
+    //  Add a sprite accumulator.
+    //  * Sprite accumulators are used to collect sprite definitions, so that the engine can display them.
     const spritesAccumulator = new SpritesAccumulator();
     spritesAccumulator.addAuxiliary(new SpriteUpdater(core));
     this.addAuxiliary(spritesAccumulator);
 
+    //  Add medias
+    //  * Each media is a texture that can be shown on a sprite.
+    //  * You can show videos, images, or you can have instructions to draw on a canvas.
     const medias = new UpdatableMedias(core);
     medias.set(DOBUKI, {
       type: "image", src: "dobuki.png",
@@ -145,6 +150,9 @@ export class DemoWorld extends World {
       },
     });
 
+    //  Adding a FixedSpriteGrid to the sprite accumulator.
+    //  * You add sprite collections as "SpriteGrid". That way, the engine
+    //  * will hide sprites if you're too far, and show them again if you're close.
     spritesAccumulator.addAuxiliary(new FixedSpriteGrid(
       { cellSize: CELLSIZE },
       new SpriteGroup([
@@ -184,6 +192,8 @@ export class DemoWorld extends World {
       ], Matrix.create().setPosition(...PositionMatrix.positionFromCell([0, 0, -3, CELLSIZE]))),
     ));
 
+    //  * A move blocker just determines where you can or cannot move.
+    //  Currently, there is just one block at [0, 0, -3]
     this.core.camera.posMatrix.moveBlocker = {
       isBlocked(pos): boolean {
         const [cx, cy, cz] = PositionMatrix.getCellPos(pos, 2);
@@ -191,6 +201,7 @@ export class DemoWorld extends World {
       },
     };
 
+    //  * Adding more Sprites. This one is the DOBUKI logo
     spritesAccumulator.addAuxiliary(new FixedSpriteGrid(
       { cellSize: CELLSIZE },
       [
@@ -204,6 +215,9 @@ export class DemoWorld extends World {
         },
       ]));
 
+    //  Dynamic SpriteGrid
+    //  * This SpriteGrid is dynamic, meaning that the cell gets generated on the
+    //  * fly. This allows us to produce an infinite amounts of cells.
     spritesAccumulator.addAuxiliary(new SpriteGrid(
       { spriteLimit: SPRITE_LIMIT, yRange: [0, 0] }, {
       getSpritesAtCell: cell => [
@@ -219,6 +233,11 @@ export class DemoWorld extends World {
       ]
     }));
 
+    //  Static Sprites
+    //  * This is just one sprite, which will appear regardless of where
+    //  * you are in the scene.
+    //  TODO: Currently, I think this is not visible because it's affected by distance fade.
+    //  Will update to have each sprite allow different levels of fade.
     spritesAccumulator.addAuxiliary(new StaticSprites([{
       imageId: VIDEO,
       transform: Matrix.create()
@@ -226,6 +245,12 @@ export class DemoWorld extends World {
         .scale(480 * 20, 270 * 20, 1),
     }]));
 
+    //  Toggle auxiliary
+    //  * Pressing the "Tab" button switches between two modes of movement below
+    //  * The CamStepAuxiliary is "dungeon" crawling mode, where you move cell by cell.
+    //  * CamTiltReset is just for restoring the view from looking up or down
+    //  * CamMoveAuxiliary is a more free-form way to move.
+    //  * JumpAuxiliary lets you jump
     this.core.keyboard.addAuxiliary(
       new ToggleAuxiliary({
         auxiliariesMapping: [
@@ -238,7 +263,7 @@ export class DemoWorld extends World {
           {
             key: "Tab", aux: Auxiliaries.from(
               new CamMoveAuxiliary(this.core),
-              new RiseAuxiliary(this.core),
+              new JumpAuxiliary(this.core),
               new CamTiltResetAuxiliary(this.core, { key: "ShiftRight" }),
             )
           },
@@ -246,6 +271,10 @@ export class DemoWorld extends World {
       }),
     );
 
+    //  CellChangeAuxiliary
+    //  * This is needed to indicate when the player is changing cell
+    //  * as they move. Every cell change, a new set of surrounding cells
+    //  * is evaluated, and some are created as needed.
     this.core.camera.posMatrix.addAuxiliary(
       new CellChangeAuxiliary({
         visitCell: new CellTracker(this, {
