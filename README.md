@@ -26,9 +26,17 @@ curl -fsSL https://bun.sh/install | bash
 
 [https://jacklehamster.github.io/bun-engine/example/](https://jacklehamster.github.io/bun-engine/example/)
 
+
+# Demo
+
+To create a project, for now the best way would be to heck out the DemoWorld example:
+[https://github.com/jacklehamster/bun-engine/blob/main/src/demo/DemoWorld.ts](https://github.com/jacklehamster/bun-engine/blob/main/src/demo/DemoWorld.ts)
+
+
 ## Github Source
 
-[https://github.com/jacklehamster/bun-engine/](https://github.com/jacklehamster/bun-engine/)
+[https://github.com/jacklehamster/bun-engine/]
+(https://github.com/jacklehamster/bun-engine/)
 
 ## Dev log
 
