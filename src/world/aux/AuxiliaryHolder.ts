@@ -4,15 +4,11 @@ import { Cell } from "world/grid/CellPos";
 import { CellTrack } from "world/grid/CellTracker";
 import { Holder } from "./Holder";
 
-export class AuxiliaryHolder<H extends Holder = any> implements Holder<AuxiliaryHolder<H>> {
+export class AuxiliaryHolder<H extends Holder = any> implements Holder<AuxiliaryHolder<H>>, Auxiliary<H> {
   private auxiliaries?: Auxiliary[] = [];
   private refreshes?: Refresh[] = [];
   private cellTracks?: CellTrack[] = [];
   active: boolean = false;
-
-  refresh?(updatePayload: UpdatePayload): void;
-  trackCell?(cell: Cell): void;
-  untrackCell?(cellTag: string): void;
 
   activate(): void {
     if (this.active) {
@@ -39,19 +35,19 @@ export class AuxiliaryHolder<H extends Holder = any> implements Holder<Auxiliary
     }
   }
 
-  private _refresh(updatePayload: UpdatePayload): void {
+  refresh(updatePayload: UpdatePayload): void {
     for (const r of this.refreshes!) {
       r.refresh?.(updatePayload);
     }
   }
 
-  private _trackCell(cell: Cell): void {
+  trackCell(cell: Cell): void {
     for (const v of this.cellTracks!) {
       v.trackCell!(cell);
     }
   }
 
-  private _untrackCell(cellTag: string): void {
+  untrackCell(cellTag: string): void {
     for (const v of this.cellTracks!) {
       v.untrackCell!(cellTag);
     }
@@ -100,8 +96,5 @@ export class AuxiliaryHolder<H extends Holder = any> implements Holder<Auxiliary
   private onAuxiliariesChange() {
     this.refreshes = this.auxiliaries?.filter((a): a is Refresh => !!a.refresh) ?? undefined;
     this.cellTracks = this.auxiliaries?.filter((a): a is CellTrack => !!a.trackCell || !!a.untrackCell) ?? undefined;
-    this.refresh = this.refreshes ? this._refresh.bind(this) : undefined;
-    this.trackCell = this.cellTracks ? this._trackCell.bind(this) : undefined;
-    this.untrackCell = this.cellTracks ? this._untrackCell.bind(this) : undefined;
   }
 }

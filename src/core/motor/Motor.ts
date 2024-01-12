@@ -18,6 +18,10 @@ export class Motor implements IMotor {
   private readonly updateSchedule: Map<Refresh, Schedule> = new Map();
   time: Time = 0;
 
+  set holder(refresh: Refresh) {
+    this.loop(refresh);
+  }
+
   loop(update: Refresh, frameRate?: number, expirationTime?: Time) {
     this.registerUpdate(update, { period: frameRate ? 1000 / frameRate : 1, expirationTime });
   }

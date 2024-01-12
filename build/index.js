@@ -4607,6 +4607,9 @@ var MAX_DELTA_TIME = 50;
 class Motor {
   updateSchedule = new Map;
   time = 0;
+  set holder(refresh) {
+    this.loop(refresh);
+  }
   loop(update, frameRate, expirationTime) {
     this.registerUpdate(update, { period: frameRate ? 1000 / frameRate : 1, expirationTime });
   }
@@ -4682,17 +4685,17 @@ class AuxiliaryHolder {
       this.removeAllAuxiliaries();
     }
   }
-  _refresh(updatePayload) {
+  refresh(updatePayload) {
     for (const r of this.refreshes) {
       r.refresh?.(updatePayload);
     }
   }
-  _trackCell(cell) {
+  trackCell(cell) {
     for (const v of this.cellTracks) {
       v.trackCell(cell);
     }
   }
-  _untrackCell(cellTag) {
+  untrackCell(cellTag) {
     for (const v of this.cellTracks) {
       v.untrackCell(cellTag);
     }
@@ -4737,9 +4740,126 @@ class AuxiliaryHolder {
   onAuxiliariesChange() {
     this.refreshes = this.auxiliaries?.filter((a) => !!a.refresh) ?? undefined;
     this.cellTracks = this.auxiliaries?.filter((a) => !!a.trackCell || !!a.untrackCell) ?? undefined;
-    this.refresh = this.refreshes ? this._refresh.bind(this) : undefined;
-    this.trackCell = this.cellTracks ? this._trackCell.bind(this) : undefined;
-    this.untrackCell = this.cellTracks ? this._untrackCell.bind(this) : undefined;
+  }
+}
+
+// src/core/Core.ts
+class Core extends AuxiliaryHolder {
+  motor;
+  engine;
+  constructor({ motor, canvas, engine, size }) {
+    super();
+    this.motor = motor ?? new Motor;
+    this.engine = engine ?? new GraphicsEngine(canvas ?? new OffscreenCanvas(size[0], size[1]));
+  }
+  start(world) {
+    const { motor, engine } = this;
+    this.addAuxiliary(world, motor, engine);
+    this.activate();
+  }
+  stop() {
+    this.motor.deregisterUpdate(this);
+    this.deactivate();
+  }
+}
+
+// src/controls/Keyboard.ts
+var QUICK_TAP_TIME = 200;
+
+class Keyboard extends AuxiliaryHolder {
+  keys = {};
+  keysUp = {};
+  keyDownListener = new Set;
+  keyUpListener = new Set;
+  quickTapListener = new Set;
+  isActive = false;
+  timeProvider;
+  constructor({ motor }) {
+    super();
+    this.keyDown = this.keyDown.bind(this);
+    this.keyUp = this.keyUp.bind(this);
+    this.timeProvider = motor;
+  }
+  keyDown(e) {
+    if (!this.keys[e.code]) {
+      const time = this.timeProvider.time;
+      this.keys[e.code] = time;
+      this.keyDownListener.forEach((listener) => listener.onKeyDown?.(e.code, time));
+    }
+    e.preventDefault();
+  }
+  keyUp(e) {
+    const quickTap = this.timeProvider.time - this.keys[e.code] < QUICK_TAP_TIME;
+    this.keysUp[e.code] = this.timeProvider.time;
+    this.keys[e.code] = 0;
+    this.keyUpListener.forEach((listener) => listener.onKeyUp?.(e.code, this.timeProvider.time));
+    if (quickTap) {
+      this.quickTapListener.forEach((listener) => listener.onQuickTap?.(e.code, this.timeProvider.time));
+    }
+  }
+  activate() {
+    super.activate();
+    this.setActive(true);
+  }
+  deactivate() {
+    super.deactivate();
+    this.setActive(false);
+  }
+  setActive(value) {
+    if (this.isActive !== value) {
+      this.isActive = value;
+      document.removeEventListener("keydown", this.keyDown);
+      document.removeEventListener("keyup", this.keyUp);
+      if (this.isActive) {
+        document.addEventListener("keydown", this.keyDown);
+        document.addEventListener("keyup", this.keyUp);
+      }
+    }
+  }
+  addListener(listener) {
+    if (listener.onKeyDown) {
+      this.keyDownListener.add(listener);
+    }
+    if (listener.onKeyUp) {
+      this.keyUpListener.add(listener);
+    }
+    if (listener.onQuickTap) {
+      this.quickTapListener.add(listener);
+    }
+    return () => {
+      this.removeListener(listener);
+    };
+  }
+  removeListener(listener) {
+    this.keyDownListener.delete(listener);
+    this.keyUpListener.delete(listener);
+    this.quickTapListener.delete(listener);
+  }
+}
+
+// src/core/aux/ResizeAux.ts
+class ResizeAux {
+  engine;
+  camera;
+  constructor({ engine }) {
+    this.engine = engine;
+  }
+  set holder(value) {
+    this.camera = value;
+  }
+  activate() {
+    this.handleResize();
+  }
+  deactivate() {
+    this.removeListener?.();
+    this.removeListener = undefined;
+  }
+  handleResize() {
+    const { engine } = this;
+    const onResize = (width, height2) => {
+      this.camera?.resizeViewport(width, height2);
+    };
+    this.removeListener = engine.addResizeListener(onResize);
   }
 }
 
@@ -5158,132 +5278,6 @@ class Camera extends AuxiliaryHolder {
   }
   moveCam(x, y, z) {
     this.posMatrix.moveBy(x, y, z, this.turnMatrix);
-  }
-}
-
-// src/controls/Keyboard.ts
-var QUICK_TAP_TIME = 200;
-
-class Keyboard extends AuxiliaryHolder {
-  timeProvider;
-  keys = {};
-  keysUp = {};
-  keyDownListener = new Set;
-  keyUpListener = new Set;
-  quickTapListener = new Set;
-  isActive = false;
-  constructor(timeProvider) {
-    super();
-    this.timeProvider = timeProvider;
-    this.keyDown = this.keyDown.bind(this);
-    this.keyUp = this.keyUp.bind(this);
-  }
-  keyDown(e) {
-    if (!this.keys[e.code]) {
-      const time = this.timeProvider.time;
-      this.keys[e.code] = time;
-      this.keyDownListener.forEach((listener) => listener.onKeyDown?.(e.code, time));
-    }
-    e.preventDefault();
-  }
-  keyUp(e) {
-    const quickTap = this.timeProvider.time - this.keys[e.code] < QUICK_TAP_TIME;
-    this.keysUp[e.code] = this.timeProvider.time;
-    this.keys[e.code] = 0;
-    this.keyUpListener.forEach((listener) => listener.onKeyUp?.(e.code, this.timeProvider.time));
-    if (quickTap) {
-      this.quickTapListener.forEach((listener) => listener.onQuickTap?.(e.code, this.timeProvider.time));
-    }
-  }
-  activate() {
-    super.activate();
-    this.setActive(true);
-  }
-  deactivate() {
-    super.deactivate();
-    this.setActive(false);
-  }
-  setActive(value) {
-    if (this.isActive !== value) {
-      this.isActive = value;
-      document.removeEventListener("keydown", this.keyDown);
-      document.removeEventListener("keyup", this.keyUp);
-      if (this.isActive) {
-        document.addEventListener("keydown", this.keyDown);
-        document.addEventListener("keyup", this.keyUp);
-      }
-    }
-  }
-  addListener(listener) {
-    if (listener.onKeyDown) {
-      this.keyDownListener.add(listener);
-    }
-    if (listener.onKeyUp) {
-      this.keyUpListener.add(listener);
-    }
-    if (listener.onQuickTap) {
-      this.quickTapListener.add(listener);
-    }
-    return () => {
-      this.removeListener(listener);
-    };
-  }
-  removeListener(listener) {
-    this.keyDownListener.delete(listener);
-    this.keyUpListener.delete(listener);
-    this.quickTapListener.delete(listener);
-  }
-}
-
-// src/core/aux/ResizeAux.ts
-class ResizeAux {
-  engine;
-  camera;
-  constructor({ engine }) {
-    this.engine = engine;
-  }
-  set holder(value) {
-    this.camera = value;
-  }
-  activate() {
-    this.handleResize();
-  }
-  deactivate() {
-    this.removeListener?.();
-    this.removeListener = undefined;
-  }
-  handleResize() {
-    const { engine } = this;
-    const onResize = (width, height2) => {
-      this.camera?.resizeViewport(width, height2);
-    };
-    this.removeListener = engine.addResizeListener(onResize);
-  }
-}
-
-// src/core/Core.ts
-class Core extends AuxiliaryHolder {
-  motor;
-  engine;
-  keyboard;
-  camera;
-  constructor({ motor, canvas, engine, keyboard, size, camera }) {
-    super();
-    this.motor = motor ?? new Motor;
-    this.engine = engine ?? new GraphicsEngine(canvas ?? new OffscreenCanvas(size[0], size[1]));
-    this.keyboard = keyboard ?? new Keyboard(this.motor);
-    this.camera = camera ?? new Camera(this);
-  }
-  start(world) {
-    const { motor, engine, keyboard, camera } = this;
-    motor.loop(this);
-    this.addAuxiliary(world, motor, keyboard, camera, engine);
-    camera.addAuxiliary(new ResizeAux({ engine }));
-    this.activate();
-  }
-  stop() {
-    this.motor.deregisterUpdate(this);
-    this.deactivate();
   }
 }
 
@@ -6172,15 +6166,13 @@ var LOGO_SIZE = 512;
 var CELLSIZE = 2;
 
 class DemoWorld extends AuxiliaryHolder {
-  core;
-  constructor(core) {
+  constructor({ engine, motor }) {
     super();
-    this.core = core;
     const spritesAccumulator = new SpritesAccumulator;
-    spritesAccumulator.addAuxiliary(new SpriteUpdater(core));
-    spritesAccumulator.addAuxiliary(new MaxSpriteCountAuxiliary(core));
+    spritesAccumulator.addAuxiliary(new SpriteUpdater({ engine, motor }));
+    spritesAccumulator.addAuxiliary(new MaxSpriteCountAuxiliary({ engine }));
     this.addAuxiliary(spritesAccumulator);
-    const medias = new UpdatableMedias(core);
+    const medias = new UpdatableMedias({ engine, motor });
     medias.set(DOBUKI, {
       type: "image",
       src: "dobuki.png"
@@ -6312,7 +6304,10 @@ class DemoWorld extends AuxiliaryHolder {
         Matrix_default.create().translate(0, 0, -1).rotateY(0)
       ].map((transform) => ({ imageId: BRICK, transform }))
     ], Matrix_default.create().setPosition(...PositionMatrix.positionFromCell([0, 0, -3, CELLSIZE])))));
-    this.core.camera.posMatrix.moveBlocker = {
+    const camera = new Camera({ engine, motor });
+    camera.addAuxiliary(new ResizeAux({ engine }));
+    this.addAuxiliary(camera);
+    camera.posMatrix.moveBlocker = {
       isBlocked(pos) {
         const [cx, cy, cz] = PositionMatrix.getCellPos(pos, 2);
         return cx === 0 && cy === 0 && cz === -3;
@@ -6345,19 +6340,21 @@ class DemoWorld extends AuxiliaryHolder {
       imageId: VIDEO,
       transform: Matrix_default.create().translate(0, 1e4, -50000).scale(9600, 5400, 1)
     }]));
-    this.core.keyboard.addAuxiliary(new ToggleAuxiliary({
+    const keyboard = new Keyboard({ motor });
+    keyboard.addAuxiliary(new ToggleAuxiliary({
       auxiliariesMapping: [
         {
           key: "Tab",
-          aux: Auxiliaries.from(new CamStepAuxiliary(this.core, { step: 2, turnStep: Math.PI / 2, tiltStep: Math.PI / 4 }), new CamTiltResetAuxiliary(this.core, { key: "ShiftRight" }))
+          aux: Auxiliaries.from(new CamStepAuxiliary({ keyboard, camera }, { step: 2, turnStep: Math.PI / 2, tiltStep: Math.PI / 4 }), new CamTiltResetAuxiliary({ keyboard, camera }, { key: "ShiftRight" }))
         },
         {
           key: "Tab",
-          aux: Auxiliaries.from(new CamMoveAuxiliary(this.core), new JumpAuxiliary(this.core), new CamTiltResetAuxiliary(this.core, { key: "ShiftRight" }))
+          aux: Auxiliaries.from(new CamMoveAuxiliary({ keyboard, camera }), new JumpAuxiliary({ keyboard, camera }), new CamTiltResetAuxiliary({ keyboard, camera }, { key: "ShiftRight" }))
         }
       ]
     }));
-    this.core.camera.posMatrix.addAuxiliary(new CellChangeAuxiliary({
+    this.addAuxiliary(keyboard);
+    camera.posMatrix.addAuxiliary(new CellChangeAuxiliary({
       visitCell: new CellTracker(this, {
         cellLimit: 5000,
         range: [25, 3, 25],
@@ -6416,4 +6413,4 @@ export {
   hello
 };
 
-//# debugId=13FE14DE97A2348464756e2164756e21
+//# debugId=8CE89278C83C444C64756e2164756e21

@@ -1,4 +1,8 @@
-import { Core } from "core/Core";
+import { Keyboard } from "controls/Keyboard";
+import { ResizeAux } from "core/aux/ResizeAux";
+import { IGraphicsEngine } from "core/graphics/IGraphicsEngine";
+import { IMotor } from "core/motor/IMotor";
+import { Camera } from "gl/camera/Camera";
 import Matrix from "gl/transform/Matrix";
 import { PositionMatrix } from "gl/transform/PositionMatrix";
 import { CellChangeAuxiliary } from "gl/transform/aux/CellChangeAuxiliary";
@@ -24,21 +28,26 @@ const DOBUKI = 0, LOGO = 1, GROUND = 2, VIDEO = 3, WIREFRAME = 4, GRASS = 5, BRI
 const LOGO_SIZE = 512;
 const CELLSIZE = 2;
 
-export class DemoWorld extends AuxiliaryHolder<IWorld> {
-  constructor(private core: Core) {
+interface Props {
+  engine: IGraphicsEngine;
+  motor: IMotor;
+}
+
+export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
+  constructor({ engine, motor }: Props) {
     super();
 
     //  Add a sprite accumulator.
     //  * Sprite accumulators are used to collect sprite definitions, so that the engine can display them.
     const spritesAccumulator = new SpritesAccumulator();
-    spritesAccumulator.addAuxiliary(new SpriteUpdater(core));
-    spritesAccumulator.addAuxiliary(new MaxSpriteCountAuxiliary(core));
+    spritesAccumulator.addAuxiliary(new SpriteUpdater({ engine, motor }));
+    spritesAccumulator.addAuxiliary(new MaxSpriteCountAuxiliary({ engine }));
     this.addAuxiliary(spritesAccumulator);
 
     //  Add medias
     //  * Each media is a texture that can be shown on a sprite.
     //  * You can show videos, images, or you can have instructions to draw on a canvas.
-    const medias = new UpdatableMedias(core);
+    const medias = new UpdatableMedias({ engine, motor });
     medias.set(DOBUKI, {
       type: "image", src: "dobuki.png",
     });
@@ -194,9 +203,13 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> {
       ], Matrix.create().setPosition(...PositionMatrix.positionFromCell([0, 0, -3, CELLSIZE]))),
     ));
 
+    const camera = new Camera({ engine, motor });
+    camera.addAuxiliary(new ResizeAux({ engine }));
+    this.addAuxiliary(camera);
+
     //  * A move blocker just determines where you can or cannot move.
     //  Currently, there is just one block at [0, 0, -3]
-    this.core.camera.posMatrix.moveBlocker = {
+    camera.posMatrix.moveBlocker = {
       isBlocked(pos): boolean {
         const [cx, cy, cz] = PositionMatrix.getCellPos(pos, 2);
         return cx === 0 && cy === 0 && cz === -3;
@@ -253,32 +266,34 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> {
     //  * CamTiltReset is just for restoring the view from looking up or down
     //  * CamMoveAuxiliary is a more free-form way to move.
     //  * JumpAuxiliary lets you jump
-    this.core.keyboard.addAuxiliary(
+    const keyboard = new Keyboard({ motor });
+    keyboard.addAuxiliary(
       new ToggleAuxiliary({
         auxiliariesMapping: [
           {
             key: "Tab", aux: Auxiliaries.from(
-              new CamStepAuxiliary(this.core, { step: 2, turnStep: Math.PI / 2, tiltStep: Math.PI / 4 }),
-              new CamTiltResetAuxiliary(this.core, { key: "ShiftRight" }),
+              new CamStepAuxiliary({ keyboard, camera }, { step: 2, turnStep: Math.PI / 2, tiltStep: Math.PI / 4 }),
+              new CamTiltResetAuxiliary({ keyboard, camera }, { key: "ShiftRight" }),
             )
           },
           {
             key: "Tab", aux: Auxiliaries.from(
-              new CamMoveAuxiliary(this.core),
-              new JumpAuxiliary(this.core),
-              new CamTiltResetAuxiliary(this.core, { key: "ShiftRight" }),
+              new CamMoveAuxiliary({ keyboard, camera }),
+              new JumpAuxiliary({ keyboard, camera }),
+              new CamTiltResetAuxiliary({ keyboard, camera }, { key: "ShiftRight" }),
             )
           },
         ],
       }),
     );
+    this.addAuxiliary(keyboard);
 
 
     //  CellChangeAuxiliary
     //  * This is needed to indicate when the player is changing cell
     //  * as they move. Every cell change, a new set of surrounding cells
     //  * is evaluated, and some are created as needed.
-    this.core.camera.posMatrix.addAuxiliary(
+    camera.posMatrix.addAuxiliary(
       new CellChangeAuxiliary({
         visitCell: new CellTracker(this, {
           cellLimit: 5000,

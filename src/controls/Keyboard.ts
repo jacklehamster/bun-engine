@@ -1,8 +1,13 @@
 import { ITimeProvider, Time } from "core/Time";
 import { IKeyboard, KeyListener } from "./IKeyboard";
 import { AuxiliaryHolder } from "world/aux/AuxiliaryHolder";
+import { IMotor } from "core/motor/IMotor";
 
 const QUICK_TAP_TIME = 200;
+
+interface Props {
+  motor: IMotor;
+}
 
 export class Keyboard extends AuxiliaryHolder<IKeyboard> implements IKeyboard {
   readonly keys: Record<string, Time> = {};
@@ -13,11 +18,13 @@ export class Keyboard extends AuxiliaryHolder<IKeyboard> implements IKeyboard {
   private readonly quickTapListener = new Set<KeyListener>();
 
   private isActive: boolean = false;
+  private timeProvider: ITimeProvider;
 
-  constructor(private timeProvider: ITimeProvider) {
+  constructor({ motor }: Props) {
     super();
     this.keyDown = this.keyDown.bind(this);
     this.keyUp = this.keyUp.bind(this);
+    this.timeProvider = motor;
   }
 
   private keyDown(e: KeyboardEvent): void {
