@@ -2,8 +2,9 @@ import { Core } from "core/Core";
 import Matrix from "gl/transform/Matrix";
 import { PositionMatrix } from "gl/transform/PositionMatrix";
 import { CellChangeAuxiliary } from "gl/transform/aux/CellChangeAuxiliary";
-import { World } from "index";
+import IWorld from "world/IWorld";
 import { Auxiliaries } from "world/aux/Auxiliaries";
+import { AuxiliaryHolder } from "world/aux/AuxiliaryHolder";
 import { CamMoveAuxiliary } from "world/aux/CamMoveAuxiliary";
 import { CamStepAuxiliary } from "world/aux/CamStepAuxiliary";
 import { CamTiltResetAuxiliary } from "world/aux/CamTiltResetAuxiliary";
@@ -11,9 +12,10 @@ import { JumpAuxiliary } from "world/aux/JumpAuxiliary";
 import { ToggleAuxiliary } from "world/aux/ToggleAuxiliary";
 import { CellTracker } from "world/grid/CellTracker";
 import { UpdatableMedias } from "world/sprite/Medias";
-import { SpritesAccumulator } from "world/sprite/SpriteAccumulator";
+import { SpritesAccumulator } from "world/sprite/SpritesAccumulator";
 import { SpriteGroup } from "world/sprite/SpritesGroup";
 import { FixedSpriteGrid } from "world/sprite/aux/FixedSpriteGrid";
+import { MaxSpriteCountAuxiliary } from "world/sprite/aux/MaxSpriteCountAuxiliary";
 import { SpriteGrid } from "world/sprite/aux/SpriteGrid";
 import { StaticSprites } from "world/sprite/aux/StaticSprites";
 import { SpriteUpdater } from "world/sprite/update/SpriteUpdater";
@@ -23,14 +25,15 @@ const LOGO_SIZE = 512;
 const CELLSIZE = 2;
 const SPRITE_LIMIT = 10000;
 
-export class DemoWorld extends World {
+export class DemoWorld extends AuxiliaryHolder<IWorld> {
   constructor(private core: Core) {
-    super(core);
+    super();
 
     //  Add a sprite accumulator.
     //  * Sprite accumulators are used to collect sprite definitions, so that the engine can display them.
     const spritesAccumulator = new SpritesAccumulator();
     spritesAccumulator.addAuxiliary(new SpriteUpdater(core));
+    spritesAccumulator.addAuxiliary(new MaxSpriteCountAuxiliary(core));
     this.addAuxiliary(spritesAccumulator);
 
     //  Add medias
@@ -270,6 +273,7 @@ export class DemoWorld extends World {
         ],
       }),
     );
+
 
     //  CellChangeAuxiliary
     //  * This is needed to indicate when the player is changing cell

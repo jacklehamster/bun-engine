@@ -99,6 +99,7 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
   private onResize: Set<(w: number, h: number) => void> = new Set();
   private pixelListener?: { x: number; y: number; setPixel(value: number): void };
   private spriteCount = 0;
+  private maxSpriteCount = 0;
   private matrixUniforms: Record<MatrixUniform, WebGLUniformLocation>;
   private floatUniforms: Record<FloatUniform, WebGLUniformLocation>;
   private vec3Uniforms: Record<VectorUniform, WebGLUniformLocation>;
@@ -202,9 +203,12 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
     this.clearTextureSlots();
   }
 
-  setMaxSpriteCount(spriteCount: number): void {
-    this.initializeBuffers(spriteCount);
-    console.log("Sprite limit", spriteCount);
+  setMaxSpriteCount(count: number): void {
+    if (count > this.maxSpriteCount) {
+      this.maxSpriteCount = 1 << Math.ceil(Math.log2(count));
+      this.initializeBuffers(this.maxSpriteCount);
+      console.log("Sprite limit", this.maxSpriteCount);
+    }
   }
 
   setBgColor(rgb: vector): void {

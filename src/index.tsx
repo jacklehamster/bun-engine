@@ -1,4 +1,3 @@
-import { World } from 'world/World';
 import { Core } from 'core/Core';
 import { DemoWorld } from 'demo/DemoWorld';
 
@@ -49,4 +48,4 @@ export function stop(): void {
   onStop();
 }
 
-export { World };
+export {};

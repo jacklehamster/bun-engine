@@ -12,12 +12,13 @@ interface Slot {
 
 export class SpritesAccumulator extends AuxiliaryHolder<IWorld> implements SpritesHolder {
   private readonly spritesIndices: Slot[] = [];
-
-  set holder(world: IWorld) {
-    world.sprites = this;
-  }
+  private readonly newSpritesListener: Set<(accumulator: SpritesHolder) => void> = new Set();
 
   informUpdate?(id: number, type?: number): void;
+
+  addNewSpritesListener(listener: (holder: SpritesHolder) => void): void {
+    this.newSpritesListener.add(listener);
+  }
 
   at(spriteId: SpriteId): Sprite | undefined {
     const slot = this.spritesIndices[spriteId];
@@ -41,6 +42,7 @@ export class SpritesAccumulator extends AuxiliaryHolder<IWorld> implements Sprit
         this.spritesIndices.push(slot);
         this.informUpdate?.(slot.baseIndex + index);
       });
-    })
+    });
+    this.newSpritesListener.forEach(listener => listener(this));
   }
 }

@@ -1,9 +1,7 @@
 import { CellTrack } from "./grid/CellTracker";
-import { Holder as Holder } from "./aux/Holder";
-import { Sprites } from "./sprite/Sprites";
+import { Holder } from "./aux/Holder";
 
-interface IWorld extends Holder, CellTrack {
-  set sprites(value: Sprites);
+interface IWorld extends Holder<IWorld>, CellTrack {
 }
 
 export default IWorld;

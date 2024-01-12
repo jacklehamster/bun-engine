@@ -9,118 +9,6 @@ var __export = (target, all) => {
     });
 };
 
-// src/world/aux/AuxiliaryHolder.ts
-class AuxiliaryHolder {
-  auxiliaries = [];
-  refreshes = [];
-  cellTracks = [];
-  active = false;
-  activate() {
-    if (this.active) {
-      return;
-    }
-    this.active = true;
-    if (this.auxiliaries) {
-      for (const a of this.auxiliaries) {
-        a.activate?.();
-      }
-    }
-  }
-  deactivate() {
-    if (!this.active) {
-      return;
-    }
-    this.active = false;
-    if (this.auxiliaries) {
-      for (const a of this.auxiliaries) {
-        a.deactivate?.();
-      }
-      this.removeAllAuxiliaries();
-    }
-  }
-  _refresh(updatePayload) {
-    for (const r of this.refreshes) {
-      r.refresh?.(updatePayload);
-    }
-  }
-  _trackCell(cell) {
-    for (const v of this.cellTracks) {
-      v.trackCell(cell);
-    }
-  }
-  _untrackCell(cellTag) {
-    for (const v of this.cellTracks) {
-      v.untrackCell(cellTag);
-    }
-  }
-  addAuxiliary(...aux) {
-    if (!this.auxiliaries) {
-      this.auxiliaries = [];
-    }
-    aux.forEach((a) => {
-      a.holder = this;
-      this.auxiliaries?.push(a);
-      if (this.active) {
-        a.activate?.();
-      }
-    });
-    this.onAuxiliariesChange();
-  }
-  removeAllAuxiliaries() {
-    this.removeAuxiliary(...this.auxiliaries ?? []);
-  }
-  removeAuxiliary(...aux) {
-    if (this.auxiliaries) {
-      const removeSet = new Set(aux);
-      let j = 0;
-      for (let i = 0;i < this.auxiliaries.length; i++) {
-        const a = this.auxiliaries[i];
-        if (!removeSet.has(a)) {
-          this.auxiliaries[j] = a;
-          j++;
-        } else {
-          a.deactivate?.();
-          a.holder = undefined;
-        }
-      }
-      this.auxiliaries.length = j;
-      if (!this.auxiliaries.length) {
-        this.auxiliaries = undefined;
-      }
-    }
-    this.onAuxiliariesChange();
-  }
-  onAuxiliariesChange() {
-    this.refreshes = this.auxiliaries?.filter((a) => !!a.refresh) ?? undefined;
-    this.cellTracks = this.auxiliaries?.filter((a) => !!a.trackCell || !!a.untrackCell) ?? undefined;
-    this.refresh = this.refreshes ? this._refresh.bind(this) : undefined;
-    this.trackCell = this.cellTracks ? this._trackCell.bind(this) : undefined;
-    this.untrackCell = this.cellTracks ? this._untrackCell.bind(this) : undefined;
-  }
-}
-
-// src/world/World.ts
-class World extends AuxiliaryHolder {
-  engine;
-  _sprites;
-  constructor(props) {
-    super();
-    const { engine } = props;
-    this.engine = engine;
-  }
-  set sprites(value) {
-    this._sprites = value;
-  }
-  activate() {
-    super.activate();
-    this.engine.setMaxSpriteCount(this._sprites?.length ?? 0);
-  }
-  deactivate() {
-    super.deactivate();
-    this.engine.setMaxSpriteCount(0);
-  }
-}
-
 // src/gl/lifecycle/Disposable.ts
 class Disposable {
   disposables;
@@ -4472,6 +4360,7 @@ class GraphicsEngine extends Disposable {
   onResize = new Set;
   pixelListener;
   spriteCount = 0;
+  maxSpriteCount = 0;
   matrixUniforms;
   floatUniforms;
   vec3Uniforms;
@@ -4549,9 +4438,12 @@ class GraphicsEngine extends Disposable {
   activate() {
     this.clearTextureSlots();
   }
-  setMaxSpriteCount(spriteCount) {
-    this.initializeBuffers(spriteCount);
-    console.log("Sprite limit", spriteCount);
+  setMaxSpriteCount(count) {
+    if (count > this.maxSpriteCount) {
+      this.maxSpriteCount = 1 << Math.ceil(Math.log2(count));
+      this.initializeBuffers(this.maxSpriteCount);
+      console.log("Sprite limit", this.maxSpriteCount);
+    }
   }
   setBgColor(rgb) {
     this.gl.clearColor(rgb[0], rgb[1], rgb[2], 1);
@@ -4795,6 +4687,96 @@ class Motor {
       cancelAnimationFrame(handle);
       this.deactivate = undefined;
     };
+  }
+}
+
+// src/world/aux/AuxiliaryHolder.ts
+class AuxiliaryHolder {
+  auxiliaries = [];
+  refreshes = [];
+  cellTracks = [];
+  active = false;
+  activate() {
+    if (this.active) {
+      return;
+    }
+    this.active = true;
+    if (this.auxiliaries) {
+      for (const a of this.auxiliaries) {
+        a.activate?.();
+      }
+    }
+  }
+  deactivate() {
+    if (!this.active) {
+      return;
+    }
+    this.active = false;
+    if (this.auxiliaries) {
+      for (const a of this.auxiliaries) {
+        a.deactivate?.();
+      }
+      this.removeAllAuxiliaries();
+    }
+  }
+  _refresh(updatePayload) {
+    for (const r of this.refreshes) {
+      r.refresh?.(updatePayload);
+    }
+  }
+  _trackCell(cell) {
+    for (const v of this.cellTracks) {
+      v.trackCell(cell);
+    }
+  }
+  _untrackCell(cellTag) {
+    for (const v of this.cellTracks) {
+      v.untrackCell(cellTag);
+    }
+  }
+  addAuxiliary(...aux) {
+    if (!this.auxiliaries) {
+      this.auxiliaries = [];
+    }
+    aux.forEach((a) => {
+      a.holder = this;
+      this.auxiliaries?.push(a);
+      if (this.active) {
+        a.activate?.();
+      }
+    });
+    this.onAuxiliariesChange();
+  }
+  removeAllAuxiliaries() {
+    this.removeAuxiliary(...this.auxiliaries ?? []);
+  }
+  removeAuxiliary(...aux) {
+    if (this.auxiliaries) {
+      const removeSet = new Set(aux);
+      let j = 0;
+      for (let i = 0;i < this.auxiliaries.length; i++) {
+        const a = this.auxiliaries[i];
+        if (!removeSet.has(a)) {
+          this.auxiliaries[j] = a;
+          j++;
+        } else {
+          a.deactivate?.();
+          a.holder = undefined;
+        }
+      }
+      this.auxiliaries.length = j;
+      if (!this.auxiliaries.length) {
+        this.auxiliaries = undefined;
+      }
+    }
+    this.onAuxiliariesChange();
+  }
+  onAuxiliariesChange() {
+    this.refreshes = this.auxiliaries?.filter((a) => !!a.refresh) ?? undefined;
+    this.cellTracks = this.auxiliaries?.filter((a) => !!a.trackCell || !!a.untrackCell) ?? undefined;
+    this.refresh = this.refreshes ? this._refresh.bind(this) : undefined;
+    this.trackCell = this.cellTracks ? this._trackCell.bind(this) : undefined;
+    this.untrackCell = this.cellTracks ? this._untrackCell.bind(this) : undefined;
   }
 }
 
@@ -5938,14 +5920,15 @@ class UpdatableMedias extends UpdatableList {
   }
 }
 
-// src/world/sprite/SpriteAccumulator.ts
+// src/world/sprite/SpritesAccumulator.ts
 class SpritesAccumulator extends AuxiliaryHolder {
   constructor() {
     super(...arguments);
   }
   spritesIndices = [];
-  set holder(world) {
-    world.sprites = this;
+  newSpritesListener = new Set;
+  addNewSpritesListener(listener) {
+    this.newSpritesListener.add(listener);
   }
   at(spriteId) {
     const slot = this.spritesIndices[spriteId];
@@ -5967,6 +5950,7 @@ class SpritesAccumulator extends AuxiliaryHolder {
         this.informUpdate?.(slot.baseIndex + index);
       });
     });
+    this.newSpritesListener.forEach((listener) => listener(this));
   }
 }
 
@@ -6113,6 +6097,31 @@ class FixedSpriteGrid extends SpriteGrid {
   }
 }
 
+// src/world/sprite/aux/MaxSpriteCountAuxiliary.ts
+class MaxSpriteCountAuxiliary {
+  engine;
+  sprites;
+  constructor({ engine }) {
+    this.engine = engine;
+  }
+  set holder(value) {
+    this.sprites = value;
+    value.addNewSpritesListener(this.onNewSprites.bind(this));
+  }
+  onNewSprites() {
+    this.updateCount();
+  }
+  updateCount() {
+    this.engine.setMaxSpriteCount(this.sprites?.length ?? 0);
+  }
+  activate() {
+    this.updateCount();
+  }
+  deactivate() {
+    this.engine.setMaxSpriteCount(0);
+  }
+}
+
 // src/world/sprite/aux/StaticSprites.ts
 class StaticSprites {
   sprites;
@@ -6169,13 +6178,14 @@ var LOGO_SIZE = 512;
 var CELLSIZE = 2;
 var SPRITE_LIMIT = 1e4;
 
-class DemoWorld extends World {
+class DemoWorld extends AuxiliaryHolder {
   core;
   constructor(core) {
-    super(core);
+    super();
     this.core = core;
     const spritesAccumulator = new SpritesAccumulator;
     spritesAccumulator.addAuxiliary(new SpriteUpdater(core));
+    spritesAccumulator.addAuxiliary(new MaxSpriteCountAuxiliary(core));
     this.addAuxiliary(spritesAccumulator);
     const medias = new UpdatableMedias(core);
     medias.set(DOBUKI, {
@@ -6410,8 +6420,7 @@ var onStop;
 export {
   testCanvas,
   stop,
-  hello,
-  World
+  hello
 };
 
-//# debugId=2A379DB7A2F054C864756e2164756e21
+//# debugId=E15DBBF827CBC69364756e2164756e21
