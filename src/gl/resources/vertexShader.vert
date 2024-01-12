@@ -12,6 +12,7 @@ layout(location = 1) in mat4 transform;
 layout(location = 5) in vec2 slotSize_and_number;
 //  instance
 layout(location = 6) in float instance;
+layout(location = 7) in float spriteFlag;
 
 //  UNIFORM
 uniform float maxTextureSize;
@@ -57,4 +58,7 @@ void main() {
   float g = fract(instance / (256.0 * 255.0));
   float b = fract(instance / 255.0);
   vInstanceColor = vec3(r, g, b);
+
+  // DUMMY
+  vInstanceColor.x += spriteFlag;
 }

@@ -4,7 +4,7 @@ import { Cell } from "world/grid/CellPos";
 import { CellTrack } from "world/grid/CellTracker";
 import { Holder } from "./Holder";
 
-export class AuxiliaryHolder<H extends Holder> implements Holder<AuxiliaryHolder<H>> {
+export class AuxiliaryHolder<H extends Holder = any> implements Holder<AuxiliaryHolder<H>> {
   private auxiliaries?: Auxiliary[] = [];
   private refreshes?: Refresh[] = [];
   private cellTracks?: CellTrack[] = [];

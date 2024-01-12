@@ -3,10 +3,7 @@ import { GL } from './Constants';
 
 export interface BufferInfo {
   buffer: WebGLBuffer;
-  // target?: GLenum;
   location: number;
-  // bufferSize?: number;
-  // usage?: GLenum;
 }
 
 export type LocationName = string;

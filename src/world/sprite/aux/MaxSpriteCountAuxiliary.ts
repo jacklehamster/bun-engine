@@ -16,11 +16,7 @@ export class MaxSpriteCountAuxiliary implements Auxiliary<SpritesHolder> {
 
   set holder(value: SpritesHolder) {
     this.sprites = value;
-    value.addNewSpritesListener(this.onNewSprites.bind(this));
-  }
-
-  private onNewSprites() {
-    this.updateCount();
+    value.addNewSpritesListener(this.updateCount.bind(this));
   }
 
   private updateCount() {
@@ -29,9 +25,5 @@ export class MaxSpriteCountAuxiliary implements Auxiliary<SpritesHolder> {
 
   activate(): void {
     this.updateCount();
-  }
-
-  deactivate(): void {
-    this.engine.setMaxSpriteCount(0);
   }
 }

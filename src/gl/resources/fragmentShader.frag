@@ -32,19 +32,19 @@ float rand(vec2 co){
 void main() {
   vec2 vFragment = vTex;
   float blur = bgBlur * pow(dist, .9) / 20000.;
-  vec4 color;
+  vec4 color = getTextureColor(vTextureIndex, vTex);
+  if (color.a <= .2) {
+    discard;
+  };
   int blurPass = 3;
   for (int i = 0; i < blurPass; i++) {
     vFragment = vTex + blur * rand(vTex + dist * float(i));
     color += getTextureColor(vTextureIndex, vFragment);
   }
-  color /= float(blurPass);
+  color /= float(blurPass + 1);
 
-  // vec4 color = getTextureColor(vTextureIndex, vFragment);
-  if (color.a <= .0001) {
-    discard;
-  };
-  float colorFactor = 1.2 * pow(dist, -.12);
+  color.a = 1.;
+  float colorFactor = 1.25 * pow(dist, -.12);
   color.rgb = (color.rgb * colorFactor) + (bgColor * (1. - colorFactor));
   fragColor = color;
 //  fragColor = vec4(vInstanceColor.rgb, 1.0);

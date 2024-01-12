@@ -22,6 +22,7 @@ import {
   CAM_DISTANCE_LOC,
   BG_COLOR_LOC,
   BG_BLUR_LOC,
+  SPRITE_FLAGS_LOC,
 } from '../../gl/attributes/Constants';
 import { TEXTURE_INDEX_FOR_VIDEO, TextureId, TextureManager } from '../../gl/texture/TextureManager';
 import { MediaId, ImageManager } from 'gl/texture/ImageManager';
@@ -42,7 +43,6 @@ const DEFAULT_ATTRIBUTES: WebGLContextAttributes = {
   alpha: true,
   antialias: false,
   depth: true,
-  desynchronized: true,
   failIfMajorPerformanceCaveat: undefined,
   powerPreference: 'default',
   premultipliedAlpha: true,
@@ -215,6 +215,7 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
     this.gl.clearColor(rgb[0], rgb[1], rgb[2], 1.0);
     this.gl.clear(this.gl.COLOR_BUFFER_BIT);
   }
+
   private onCleanupBuffers: Set<() => void> = new Set();
   initializeBuffers(maxSpriteCount: number) {
     this.onCleanupBuffers.forEach(cleanup => cleanup());
@@ -223,10 +224,10 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
       const cleanups = [
         this.initializeIndexBuffer(INDEX_LOC),
         this.initializePositionBuffer(POSITION_LOC),
-        this.initializeTransformBuffer(TRANSFORM_LOC, maxSpriteCount),
-        this.initializeSlotSizeBuffer(SLOT_SIZE_LOC, maxSpriteCount),
-        this.initializeInstanceBuffer(INSTANCE_LOC, maxSpriteCount),
-        this.initializeFlagBuffer(INSTANCE_LOC, maxSpriteCount),
+        this.initializeBuffer(TRANSFORM_LOC, maxSpriteCount, 4, 4, 1, GL.DYNAMIC_DRAW),
+        this.initializeBuffer(SLOT_SIZE_LOC, maxSpriteCount, 2, 1, 1, GL.DYNAMIC_DRAW),
+        this.initializeBuffer(INSTANCE_LOC, maxSpriteCount, 1, 1, 1, GL.STATIC_DRAW, index => index),
+        this.initializeBuffer(SPRITE_FLAGS_LOC, maxSpriteCount, 1, 1, 1, GL.STATIC_DRAW),
       ];
       cleanups.forEach(cleanup => this.onCleanupBuffers.add(cleanup));
     }
@@ -251,12 +252,7 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
     const bufferInfo = this.attributeBuffers.createBuffer(location);
     this.gl.bindBuffer(GL.ARRAY_BUFFER, bufferInfo.buffer);
     this.gl.vertexAttribPointer(
-      bufferInfo.location,
-      2,
-      GL.FLOAT,
-      false,
-      0,
-      0,
+      bufferInfo.location, 2, GL.FLOAT, false, 0, 0,
     );
     this.gl.enableVertexAttribArray(bufferInfo.location);
     this.gl.bufferData(GL.ARRAY_BUFFER,
@@ -268,13 +264,19 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
     };
   }
 
-  private initializeTransformBuffer(location: LocationName, spriteCount: number) {
+  private initializeBuffer(
+    location: LocationName,
+    instanceCount: number,
+    elemCount: number,
+    dataRows: number = 1,
+    divisor: number = 0,
+    usage: GLenum = GL.DYNAMIC_DRAW,
+    callback?: (index: number) => number) {
     const bufferInfo = this.attributeBuffers.createBuffer(location);
     this.gl.bindBuffer(GL.ARRAY_BUFFER, bufferInfo.buffer);
-    const elemCount = 4;
     const bytesPerRow = elemCount * Float32Array.BYTES_PER_ELEMENT;
-    const bytesPerInstance = 4 * bytesPerRow;
-    for (let i = 0; i < 4; i++) {
+    const bytesPerInstance = dataRows * bytesPerRow;
+    for (let i = 0; i < dataRows; i++) {
       const loc = bufferInfo.location + i;
       this.gl.vertexAttribPointer(
         loc,
@@ -282,86 +284,18 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
         GL.FLOAT,
         false,
         bytesPerInstance,
-        i * bytesPerRow,
-      );
+        i * bytesPerRow);
       this.gl.enableVertexAttribArray(loc);
-      this.gl.vertexAttribDivisor(loc, 1);
+      this.gl.vertexAttribDivisor(loc, divisor);
     }
-    this.gl.bufferData(GL.ARRAY_BUFFER, spriteCount * bytesPerInstance, GL.DYNAMIC_DRAW);
-    return () => {
-      this.gl.disableVertexAttribArray(bufferInfo.location);
-      this.attributeBuffers.deleteBuffer(location);
-    };
-  }
-
-  private initializeSlotSizeBuffer(location: LocationName, spriteCount: number) {
-    const bufferInfo = this.attributeBuffers.createBuffer(location);
-    this.gl.bindBuffer(GL.ARRAY_BUFFER, bufferInfo.buffer);
-    const loc = bufferInfo.location;
-    const elemCount = 2;
-    const bytesPerInstance = elemCount * Float32Array.BYTES_PER_ELEMENT;
-    this.gl.vertexAttribPointer(
-      loc,
-      elemCount,
-      GL.FLOAT,
-      false,
-      bytesPerInstance,
-      0,
-    );
-    this.gl.enableVertexAttribArray(loc);
-    this.gl.vertexAttribDivisor(loc, 1);
-    this.gl.bufferData(GL.ARRAY_BUFFER, spriteCount * bytesPerInstance, GL.DYNAMIC_DRAW);
-    return () => {
-      this.gl.disableVertexAttribArray(bufferInfo.location);
-      this.attributeBuffers.deleteBuffer(location);
-    };
-  }
-
-  private initializeInstanceBuffer(location: LocationName, instanceCount: number) {
-    const bufferInfo = this.attributeBuffers.createBuffer(location);
-    this.gl.bindBuffer(GL.ARRAY_BUFFER, bufferInfo.buffer);
-    const loc = bufferInfo.location;
-    const elemCount = 1;
-    this.gl.vertexAttribPointer(
-      loc,
-      elemCount,
-      GL.FLOAT,
-      false,
-      elemCount * Float32Array.BYTES_PER_ELEMENT,
-      0,
-    );
-    this.gl.enableVertexAttribArray(loc);
-    this.gl.vertexAttribDivisor(loc, 1);
-    this.gl.bufferData(GL.ARRAY_BUFFER,
-      Float32Array.from(new Array(instanceCount).fill(null).map((_, index) => index)),
-      GL.STATIC_DRAW);
-
-    return () => {
-      this.gl.disableVertexAttribArray(bufferInfo.location);
-      this.attributeBuffers.deleteBuffer(location);
-    };
-  }
-
-  private initializeFlagBuffer(location: LocationName, instanceCount: number) {
-    const bufferInfo = this.attributeBuffers.createBuffer(location);
-    this.gl.bindBuffer(GL.ARRAY_BUFFER, bufferInfo.buffer);
-    const loc = bufferInfo.location;
-    const elemCount = 1;
-    const bytesPerInstance = elemCount * Float32Array.BYTES_PER_ELEMENT;
-    this.gl.vertexAttribPointer(
-      loc,
-      elemCount,
-      GL.FLOAT,
-      false,
-      bytesPerInstance,
-      0,
-    );
-    this.gl.enableVertexAttribArray(loc);
-    this.gl.vertexAttribDivisor(loc, 1);
-    this.gl.bufferData(GL.ARRAY_BUFFER,
-      instanceCount * bytesPerInstance,
-      GL.STATIC_DRAW);
-
+    if (callback) {
+      this.gl.bufferData(GL.ARRAY_BUFFER,
+        Float32Array.from(new Array(instanceCount).fill(0)
+          .map((_, index) => callback(index))),
+        usage);
+    } else {
+      this.gl.bufferData(GL.ARRAY_BUFFER, instanceCount * bytesPerInstance, usage);
+    }
     return () => {
       this.gl.disableVertexAttribArray(bufferInfo.location);
       this.attributeBuffers.deleteBuffer(location);
@@ -405,8 +339,7 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
       vertexCount,
       GL.UNSIGNED_SHORT,
       0,
-      instances,
-    );
+      instances);
   }
 
   updateSpriteTransforms(spriteIds: Set<SpriteId>, sprites: Sprites) {
@@ -471,7 +404,6 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
 
   private static clearBit = GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT;
   refresh(): void {
-    // clear background
     this.gl.clear(GraphicsEngine.clearBit);
     this.drawElementsInstanced(VERTEX_COUNT, this.spriteCount);
     this.pixelListener?.setPixel(this.getPixel(this.pixelListener.x, this.pixelListener.y));
