@@ -4607,9 +4607,7 @@ var MAX_DELTA_TIME = 50;
 class Motor {
   updateSchedule = new Map;
   time = 0;
-  set holder(refresh) {
-    this.loop(refresh);
-  }
+  holder;
   loop(update, frameRate, expirationTime) {
     this.registerUpdate(update, { period: frameRate ? 1000 / frameRate : 1, expirationTime });
   }
@@ -4622,7 +4620,16 @@ class Motor {
   deregisterUpdate(update) {
     this.updateSchedule.delete(update);
   }
+  deactivate() {
+    if (this.holder) {
+      this.deregisterUpdate(this.holder);
+    }
+    this.stopLoop?.();
+  }
   activate() {
+    if (!this.holder) {
+      return;
+    }
     let handle = 0;
     const updatePayload = {
       time: 0,
@@ -4649,10 +4656,11 @@ class Motor {
       updates.forEach((update) => update.refresh?.(updatePayload));
     };
     requestAnimationFrame(loop);
-    this.deactivate = () => {
+    this.stopLoop = () => {
       cancelAnimationFrame(handle);
-      this.deactivate = undefined;
+      this.stopLoop = undefined;
     };
+    this.loop(this.holder);
   }
 }
 
@@ -4740,26 +4748,6 @@ class AuxiliaryHolder {
   onAuxiliariesChange() {
     this.refreshes = this.auxiliaries?.filter((a) => !!a.refresh) ?? undefined;
     this.cellTracks = this.auxiliaries?.filter((a) => !!a.trackCell || !!a.untrackCell) ?? undefined;
-  }
-}
-
-// src/core/Core.ts
-class Core extends AuxiliaryHolder {
-  motor;
-  engine;
-  constructor({ motor, canvas, engine, size }) {
-    super();
-    this.motor = motor ?? new Motor;
-    this.engine = engine ?? new GraphicsEngine(canvas ?? new OffscreenCanvas(size[0], size[1]));
-  }
-  start(world) {
-    const { motor, engine } = this;
-    this.addAuxiliary(world, motor, engine);
-    this.activate();
-  }
-  stop() {
-    this.motor.deregisterUpdate(this);
-    this.deactivate();
   }
 }
 
@@ -6392,16 +6380,17 @@ async function testCanvas(canvas) {
     pixelListener.x = x;
     pixelListener.y = y;
   });
-  const core = new Core({
-    canvas
-  });
-  core.engine.setPixelListener(pixelListener);
-  const world = new DemoWorld(core);
-  core.start(world);
-  onStop = () => {
-    core.stop();
-  };
-  return { core, world };
+  const engine = new GraphicsEngine(canvas);
+  engine.setPixelListener(pixelListener);
+  const motor = new Motor;
+  const core = new AuxiliaryHolder;
+  const world = new DemoWorld({ engine, motor });
+  core.addAuxiliary(motor);
+  core.addAuxiliary(engine);
+  core.addAuxiliary(world);
+  core.activate();
+  onStop = () => core.deactivate();
+  return { engine, motor, world };
 }
 function stop() {
   onStop();
@@ -6413,4 +6402,4 @@ export {
   hello
 };
 
-//# debugId=8CE89278C83C444C64756e2164756e21
+//# debugId=AE13FA0626E8661E64756e2164756e21

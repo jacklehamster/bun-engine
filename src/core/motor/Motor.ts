@@ -17,10 +17,7 @@ export interface Schedule {
 export class Motor implements IMotor {
   private readonly updateSchedule: Map<Refresh, Schedule> = new Map();
   time: Time = 0;
-
-  set holder(refresh: Refresh) {
-    this.loop(refresh);
-  }
+  holder?: Refresh;
 
   loop(update: Refresh, frameRate?: number, expirationTime?: Time) {
     this.registerUpdate(update, { period: frameRate ? 1000 / frameRate : 1, expirationTime });
@@ -37,9 +34,17 @@ export class Motor implements IMotor {
     this.updateSchedule.delete(update);
   }
 
-  deactivate?(): void;
+  deactivate(): void {
+    if (this.holder) {
+      this.deregisterUpdate(this.holder);
+    }
+    this.stopLoop?.();
+  }
 
   activate() {
+    if (!this.holder) {
+      return;
+    }
     let handle = 0;
     const updatePayload: UpdatePayload = {
       time: 0,
@@ -68,9 +73,12 @@ export class Motor implements IMotor {
       updates.forEach(update => update.refresh?.(updatePayload));
     };
     requestAnimationFrame(loop);
-    this.deactivate = () => {
+    this.stopLoop = () => {
       cancelAnimationFrame(handle);
-      this.deactivate = undefined;
+      this.stopLoop = undefined;
     };
+    this.loop(this.holder);
   }
+
+  stopLoop?(): void;
 }

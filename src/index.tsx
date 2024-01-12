@@ -1,5 +1,7 @@
-import { Core } from 'core/Core';
+import { GraphicsEngine } from 'core/graphics/GraphicsEngine';
+import { Motor } from 'core/motor/Motor';
 import { DemoWorld } from 'demo/DemoWorld';
+import { AuxiliaryHolder } from 'world/aux/AuxiliaryHolder';
 
 export async function hello() {
   console.log('Hello World!');
@@ -32,16 +34,17 @@ export async function testCanvas(canvas: HTMLCanvasElement) {
   });
   //  canvas.style.pointerEvents = 'none';
 
-  const core = new Core({
-    canvas,
-  });
-  core.engine.setPixelListener(pixelListener);
-  const world = new DemoWorld(core);
-  core.start(world);
-  onStop = () => {
-    core.stop();
-  };
-  return { core, world };
+  const engine = new GraphicsEngine(canvas);
+  engine.setPixelListener(pixelListener);
+  const motor = new Motor();
+  const core = new AuxiliaryHolder();
+  const world = new DemoWorld({ engine, motor });
+  core.addAuxiliary(motor);
+  core.addAuxiliary(engine);
+  core.addAuxiliary(world);
+  core.activate();
+  onStop = () => core.deactivate();
+  return { engine, motor, world };
 }
 
 export function stop(): void {
