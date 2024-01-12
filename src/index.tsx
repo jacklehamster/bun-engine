@@ -38,7 +38,10 @@ export async function testCanvas(canvas: HTMLCanvasElement) {
   });
   core.engine.setPixelListener(pixelListener);
   const world = new DemoWorld(core);
-  onStop = core.start(world);
+  core.start(world);
+  onStop = () => {
+    core.stop();
+  };
   return { core, world };
 }
 

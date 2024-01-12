@@ -21,15 +21,16 @@ interface Props {
 
 export class Camera extends AuxiliaryHolder<ICamera> implements ICamera {
   private readonly camMatrix = Matrix.create();
-  private readonly projectionMatrix = new ProjectionMatrix();
+  readonly projectionMatrix = new ProjectionMatrix(() => this.updateInformer.informUpdate(MatrixUniform.PROJECTION));
   readonly posMatrix = new PositionMatrix(() => this.updateInformer.informUpdate(MatrixUniform.CAM_POS));
   readonly tiltMatrix = new TiltMatrix(() => this.updateInformer.informUpdate(MatrixUniform.CAM_TILT));
   readonly turnMatrix = new TurnMatrix(() => this.updateInformer.informUpdate(MatrixUniform.CAM_TURN));
-  private _pespectiveLevel = 1;
   private _curvature = 0.05;
   private _distance = .5;
   private _bgColor: vector = [0, 0, 0];
   private _blur = 1;
+  private _viewportWidth = 0;
+  private _viewportHeight = 0;
   private readonly updateInformer;
   private readonly updateInformerFloat;
   private readonly updateInformerVector;
@@ -53,6 +54,7 @@ export class Camera extends AuxiliaryHolder<ICamera> implements ICamera {
     this.updateInformerFloat.informUpdate(FloatUniform.CURVATURE);
     this.updateInformerFloat.informUpdate(FloatUniform.CAM_DISTANCE);
     this.updateInformerVector.informUpdate(VectorUniform.BG_COLOR);
+    this.updateInformerFloat.informUpdate(FloatUniform.BG_BLUR);
   }
 
   private readonly cameraMatrices: Record<MatrixUniform, IMatrix> = {
@@ -62,14 +64,12 @@ export class Camera extends AuxiliaryHolder<ICamera> implements ICamera {
     [MatrixUniform.CAM_TILT]: this.tiltMatrix,
   };
 
-  configProjectionMatrix(width: number, height: number) {
-    this.projectionMatrix.configure(width, height);
-    this.updateInformer.informUpdate(MatrixUniform.PROJECTION);
-  }
-
-  set perspective(level: number) {
-    this.projectionMatrix.setPerspective(level ?? this._pespectiveLevel);
-    this.updateInformer.informUpdate(MatrixUniform.PROJECTION);
+  resizeViewport(width: number, height: number) {
+    if (this._viewportWidth !== width || this._viewportHeight !== height) {
+      this._viewportWidth = width;
+      this._viewportHeight = height;
+      this.projectionMatrix.configure(this._viewportWidth, this._viewportHeight);
+    }
   }
 
   set curvature(value: number) {

@@ -19,15 +19,14 @@ export class Motor implements IMotor {
   time: Time = 0;
 
   loop(update: Refresh, frameRate?: number, expirationTime?: Time) {
-    return this.registerUpdate(update, { period: frameRate ? 1000 / frameRate : 1, expirationTime });
+    this.registerUpdate(update, { period: frameRate ? 1000 / frameRate : 1, expirationTime });
   }
 
-  registerUpdate(update: Refresh, schedule: Partial<Schedule> = {}): () => void {
+  registerUpdate(update: Refresh, schedule: Partial<Schedule> = {}) {
     schedule.triggerTime = schedule.triggerTime ?? this.time;
     schedule.expirationTime = schedule.expirationTime ?? Infinity;
     schedule.period = schedule.period;
     this.updateSchedule.set(update, schedule as Schedule);
-    return () => this.deregisterUpdate(update);
   }
 
   deregisterUpdate(update: Refresh) {

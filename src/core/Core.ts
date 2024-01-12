@@ -35,7 +35,7 @@ export class Core extends AuxiliaryHolder<Core> {
 
   start(world: IWorld) {
     const { motor, engine, keyboard, camera } = this;
-    const deregisterLoop = motor.loop(this);
+    motor.loop(this);
 
     this.addAuxiliary(
       world,
@@ -46,10 +46,10 @@ export class Core extends AuxiliaryHolder<Core> {
     );
     camera.addAuxiliary(new ResizeAux({ engine }));
     this.activate();
+  }
 
-    return () => {
-      deregisterLoop();
-      this.deactivate();
-    };
+  stop() {
+    this.motor.deregisterUpdate(this);
+    this.deactivate();
   }
 }

@@ -12,14 +12,14 @@ export class DoubleLinkList<T> implements FreeStack<T> {
   private readonly start: DoubleLinkListNode<T>;
   private readonly end: DoubleLinkListNode<T>;
   private readonly nodeMap: Map<T, DoubleLinkListNode<T>> = new Map();
-  private readonly pool: ObjectPool<DoubleLinkListNode<T>, T>;
+  private readonly pool: ObjectPool<DoubleLinkListNode<T>>;
 
   constructor(edgeValue: T) {
     this.start = { value: edgeValue };
     this.end = { value: edgeValue };
     this.start.next = this.end;
     this.end.prev = this.start;
-    this.pool = new ObjectPool<DoubleLinkListNode<T>, T>((value: T, elem) => {
+    this.pool = new ObjectPool<DoubleLinkListNode<T>>((elem, value: T) => {
       if (!elem) {
         return { value };
       }

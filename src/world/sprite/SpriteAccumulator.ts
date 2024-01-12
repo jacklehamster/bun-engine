@@ -1,26 +1,23 @@
-import { IGraphicsEngine } from "core/graphics/IGraphicsEngine";
 import { Sprite, SpriteId } from "./Sprite";
-import { IMotor } from "core/motor/IMotor";
 import { forEach } from "./List";
 import { Sprites } from "./Sprites";
-import { SpriteUpdater } from "./update/SpriteUpdater";
-
-interface Props {
-  engine: IGraphicsEngine;
-  motor: IMotor;
-}
+import { AuxiliaryHolder } from "world/aux/AuxiliaryHolder";
+import { SpritesHolder } from "./aux/SpritesHolder";
+import IWorld from "world/IWorld";
 
 interface Slot {
   sprites: Sprites;
   baseIndex: number;
 }
 
-export class SpritesAccumulator extends SpriteUpdater {
+export class SpritesAccumulator extends AuxiliaryHolder<IWorld> implements SpritesHolder {
   private readonly spritesIndices: Slot[] = [];
 
-  constructor({ engine, motor }: Props) {
-    super({ engine, motor });
+  set holder(world: IWorld) {
+    world.sprites = this;
   }
+
+  informUpdate?(id: number, type?: number): void;
 
   at(spriteId: SpriteId): Sprite | undefined {
     const slot = this.spritesIndices[spriteId];
@@ -31,20 +28,19 @@ export class SpritesAccumulator extends SpriteUpdater {
     return this.spritesIndices.length;
   }
 
-  add(sprites: Sprites): void {
-    const slot = {
-      sprites,
-      baseIndex: this.spritesIndices.length,
-    };
-    if (sprites.informUpdate) {
-      //  overwrite
-      sprites.informUpdate = (index, type) => {
-        this.informUpdate(slot.baseIndex + index, type);
-      };
-    }
-    forEach(sprites, (_, index) => {
-      this.spritesIndices.push(slot);
-      this.informUpdate(slot.baseIndex + index);
-    });
+  addSprites(...spritesList: Sprites[]): void {
+    spritesList.forEach(sprites => {
+      const slot = { sprites, baseIndex: this.spritesIndices.length };
+      if (sprites.informUpdate) {
+        //  overwrite
+        sprites.informUpdate = (index, type) => {
+          this.informUpdate?.(slot.baseIndex + index, type);
+        };
+      }
+      forEach(sprites, (_, index) => {
+        this.spritesIndices.push(slot);
+        this.informUpdate?.(slot.baseIndex + index);
+      });
+    })
   }
 }

@@ -5,7 +5,8 @@ import { Auxiliary } from "world/aux/Auxiliary";
 import { forEach } from "../List";
 import { UpdateNotifier } from "updates/UpdateNotifier";
 import { SpriteFactory } from "./SpriteFactory";
-import IWorld from "world/IWorld";
+import { ObjectPool } from "utils/ObjectPool";
+import { SpritesHolder } from "./SpritesHolder";
 
 interface Config {
   spriteLimit?: number;
@@ -19,11 +20,19 @@ interface Slot {
   tag: string;
 }
 
-export class SpriteGrid implements Auxiliary<IWorld>, UpdateNotifier {
+export class SpriteGrid implements Auxiliary<SpritesHolder>, UpdateNotifier {
   private slots: Slot[] = [];
   private spriteLimit: number;
   private ranges: [[number, number], [number, number], [number, number]];
-  holder?: IWorld;
+  private slotPool: ObjectPool<Slot, [Sprite, string]> = new ObjectPool<Slot>((slot, sprite: Sprite, tag: string) => {
+    if (!slot) {
+      return { sprite, tag };
+    }
+    slot.sprite = sprite;
+    slot.tag = tag;
+    return slot;
+  });
+  holder?: SpritesHolder;
 
   informUpdate(_id: number, _type?: number | undefined): void {
   }
@@ -59,9 +68,8 @@ export class SpriteGrid implements Auxiliary<IWorld>, UpdateNotifier {
     forEach(this.spriteFactory.getSpritesAtCell?.(cell), sprite => {
       if (sprite) {
         this.informUpdate(this.slots.length);
-        this.slots.push({
-          sprite: copySprite(sprite), tag,
-        });
+        const slot = this.slotPool.create(copySprite(sprite), tag);
+        this.slots.push(slot);
       }
     });
   }
@@ -74,6 +82,7 @@ export class SpriteGrid implements Auxiliary<IWorld>, UpdateNotifier {
         this.informUpdate(this.slots.length - 1, SpriteUpdateType.TRANSFORM);
         this.slots[i] = this.slots[this.slots.length - 1];
         this.slots.pop();
+        this.slotPool.recycle(slot);
       }
     }
   }

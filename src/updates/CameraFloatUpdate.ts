@@ -19,6 +19,6 @@ export class CameraFloatUpdate implements Refresh, UpdateNotifier {
   }
 
   refresh(): void {
-    this.updatedTypes.forEach(type => this.engine.updateCameraFloat(type, this.getCameraFloat(type)));
+    this.updatedTypes.forEach(type => this.engine.updateUniformFloat(type, this.getCameraFloat(type)));
   }
 }

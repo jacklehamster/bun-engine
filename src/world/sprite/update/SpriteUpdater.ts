@@ -1,30 +1,34 @@
 import { UpdateNotifier } from "updates/UpdateNotifier";
 import { Sprites } from "../Sprites";
-import { Sprite } from "../Sprite";
 import { IGraphicsEngine } from "core/graphics/IGraphicsEngine";
 import { IMotor } from "core/motor/IMotor";
 import { UpdateRegistry } from "updates/UpdateRegistry";
 import { SpriteUpdateType } from "./SpriteUpdateType";
+import { Auxiliary } from "world/aux/Auxiliary";
+import { SpritesHolder } from "../aux/SpritesHolder";
 
 interface Props {
   engine: IGraphicsEngine;
   motor: IMotor;
 }
 
-export abstract class SpriteUpdater implements Sprites, UpdateNotifier {
+export class SpriteUpdater implements UpdateNotifier, Auxiliary<SpritesHolder> {
   private readonly spriteTransformUpdate;
   private readonly spriteAnimUpdate;
+  private sprites?: Sprites;
 
-  constructor({ engine, motor }: Props) {
-    this.spriteTransformUpdate = new UpdateRegistry((ids) => engine.updateSpriteTransforms(ids, this), motor);
-    this.spriteAnimUpdate = new UpdateRegistry((ids) => engine.updateSpriteAnims(ids, this), motor);
+  set holder(value: SpritesHolder) {
+    this.sprites = value;
+    value.informUpdate = this.informUpdate.bind(this);
   }
 
-  abstract get length(): number;
-  abstract at(index: number): Sprite | undefined;
+  constructor({ engine, motor }: Props) {
+    this.spriteTransformUpdate = new UpdateRegistry((ids) => engine.updateSpriteTransforms(ids, this.sprites!), motor);
+    this.spriteAnimUpdate = new UpdateRegistry((ids) => engine.updateSpriteAnims(ids, this.sprites!), motor);
+  }
 
   informUpdate(id: number, type: number = SpriteUpdateType.ALL): void {
-    if (id < this.length) {
+    if (this.sprites && id < this.sprites.length) {
       if (type & SpriteUpdateType.TRANSFORM) {
         this.spriteTransformUpdate.informUpdate(id);
       }

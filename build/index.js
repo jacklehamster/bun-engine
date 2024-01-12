@@ -9,78 +9,6 @@ var __export = (target, all) => {
     });
 };
 
-// src/updates/UpdatableList.ts
-class UpdatableList {
-  array;
-  updateValue;
-  notifier;
-  constructor(array, updateValue, notifier) {
-    this.array = array;
-    this.updateValue = updateValue;
-    this.notifier = notifier;
-  }
-  at(index) {
-    return this.array.at(index);
-  }
-  get length() {
-    return this.array.length;
-  }
-  set(index, value) {
-    this.updateValue(index, value);
-    this.notifier?.informUpdate(index);
-  }
-  remove(index) {
-    this.updateValue(index, undefined);
-    this.notifier?.informUpdate(index);
-  }
-}
-
-// src/updates/UpdateRegistry.ts
-class UpdateRegistry {
-  applyUpdate;
-  motor;
-  updatedIds = new Set;
-  constructor(applyUpdate, motor) {
-    this.applyUpdate = applyUpdate;
-    this.motor = motor;
-  }
-  informUpdate(id) {
-    this.addId(id);
-    this.motor.registerUpdate(this);
-  }
-  addId(id) {
-    this.updatedIds.add(id);
-  }
-  refresh() {
-    this.applyUpdate(this.updatedIds);
-    if (this.updatedIds.size) {
-      this.motor.registerUpdate(this);
-    }
-  }
-}
-
-// src/world/sprite/Medias.ts
-class UpdatableMedias extends UpdatableList {
-  constructor({ motor, engine }, medias = []) {
-    super(medias, (index, value) => {
-      medias[index] = value;
-      while (!medias[medias.length - 1]) {
-        medias.length--;
-      }
-    }, new UpdateRegistry((ids) => {
-      const imageIds = Array.from(ids);
-      ids.clear();
-      engine.updateTextures(imageIds, medias.at.bind(medias)).then((mediaInfos) => {
-        mediaInfos.forEach((mediaInfo) => {
-          if (mediaInfo.isVideo) {
-            motor.registerUpdate(mediaInfo, mediaInfo.schedule);
-          }
-        });
-      });
-    }, motor));
-  }
-}
-
 // src/world/aux/AuxiliaryHolder.ts
 class AuxiliaryHolder {
   auxiliaries = [];
@@ -171,118 +99,25 @@ class AuxiliaryHolder {
   }
 }
 
-// src/world/sprite/List.ts
-function forEach(list, callback) {
-  if (list) {
-    for (let i = 0;i < list.length; i++) {
-      const elem = list.at(i);
-      callback(elem, i);
-    }
-  }
-}
-function map(list, callback) {
-  const r = [];
-  for (let i = 0;i < list.length; i++) {
-    const elem = list.at(i);
-    r.push(elem ? callback(elem, i) : undefined);
-  }
-  return r;
-}
-
-// src/world/sprite/update/SpriteUpdateType.ts
-var SpriteUpdateType;
-(function(SpriteUpdateType2) {
-  SpriteUpdateType2[SpriteUpdateType2["NONE"] = 0] = "NONE";
-  SpriteUpdateType2[SpriteUpdateType2["TRANSFORM"] = 1] = "TRANSFORM";
-  SpriteUpdateType2[SpriteUpdateType2["ANIM"] = 2] = "ANIM";
-  SpriteUpdateType2[SpriteUpdateType2["ALL"] = 3] = "ALL";
-})(SpriteUpdateType || (SpriteUpdateType = {}));
-
-// src/world/sprite/update/SpriteUpdater.ts
-class SpriteUpdater {
-  spriteTransformUpdate;
-  spriteAnimUpdate;
-  constructor({ engine, motor }) {
-    this.spriteTransformUpdate = new UpdateRegistry((ids) => engine.updateSpriteTransforms(ids, this), motor);
-    this.spriteAnimUpdate = new UpdateRegistry((ids) => engine.updateSpriteAnims(ids, this), motor);
-  }
-  informUpdate(id, type = SpriteUpdateType.ALL) {
-    if (id < this.length) {
-      if (type & SpriteUpdateType.TRANSFORM) {
-        this.spriteTransformUpdate.informUpdate(id);
-      }
-      if (type & SpriteUpdateType.ANIM) {
-        this.spriteAnimUpdate.informUpdate(id);
-      }
-    }
-  }
-}
-
-// src/world/sprite/SpriteAccumulator.ts
-class SpritesAccumulator extends SpriteUpdater {
-  spritesIndices = [];
-  constructor({ engine, motor }) {
-    super({ engine, motor });
-  }
-  at(spriteId) {
-    const slot = this.spritesIndices[spriteId];
-    return slot?.sprites.at(spriteId - slot.baseIndex);
-  }
-  get length() {
-    return this.spritesIndices.length;
-  }
-  add(sprites) {
-    const slot = {
-      sprites,
-      baseIndex: this.spritesIndices.length
-    };
-    if (sprites.informUpdate) {
-      sprites.informUpdate = (index, type) => {
-        this.informUpdate(slot.baseIndex + index, type);
-      };
-    }
-    forEach(sprites, (_, index) => {
-      this.spritesIndices.push(slot);
-      this.informUpdate(slot.baseIndex + index);
-    });
-  }
-}
-
 // src/world/World.ts
 class World extends AuxiliaryHolder {
-  medias;
-  spritesAccumulator;
   engine;
-  motor;
+  _sprites;
   constructor(props) {
     super();
-    const { engine, motor } = props;
+    const { engine } = props;
     this.engine = engine;
-    this.motor = motor;
-    this.medias = new UpdatableMedias(props);
-    this.spritesAccumulator = new SpritesAccumulator(props);
+  }
+  set sprites(value) {
+    this._sprites = value;
   }
   activate() {
     super.activate();
-    this.engine.setMaxSpriteCount(this.sprites.length);
-    console.log("Sprite limit:", this.sprites.length);
+    this.engine.setMaxSpriteCount(this._sprites?.length ?? 0);
   }
   deactivate() {
     super.deactivate();
     this.engine.setMaxSpriteCount(0);
-  }
-  get sprites() {
-    return this.spritesAccumulator;
-  }
-  addMedia(...medias) {
-    medias.forEach((media) => {
-      this.medias.set(media.id, media);
-    });
-  }
-  addSprites(...sprites) {
-    sprites.forEach((spriteList) => {
-      this.spritesAccumulator.add(spriteList);
-    });
   }
 }
 
@@ -1632,10 +1467,9 @@ void main() {
   relativePosition.z -= camDist;
   relativePosition.y -= curvature * ((relativePosition.z * relativePosition.z) + (relativePosition.x * relativePosition.x) / 4.) / 10.;
   relativePosition.x /= (1. + curvature * 1.4);
-  dist = abs(relativePosition.z);
+  dist = (relativePosition.z*relativePosition.z + relativePosition.x*relativePosition.x);
   // relativePosition => gl_Position
   gl_Position = projection * relativePosition;
-
 
   vTex = (vec2(slotX, slotY) + tex) * slotSize / maxTextureSize;
   vTextureIndex = floor(slotNumber / (maxCols * maxRows));
@@ -1682,19 +1516,20 @@ float rand(vec2 co){
 
 void main() {
   vec2 vFragment = vTex;
-  float blur = bgBlur * pow(dist, 1.6) / 20000.;
+  float blur = bgBlur * pow(dist, .9) / 20000.;
   vec4 color;
-  for (int i = 0; i < 5; i++) {
+  int blurPass = 3;
+  for (int i = 0; i < blurPass; i++) {
     vFragment = vTex + blur * rand(vTex + dist * float(i));
     color += getTextureColor(vTextureIndex, vFragment);
   }
-  color /= float(5);
+  color /= float(blurPass);
 
   // vec4 color = getTextureColor(vTextureIndex, vFragment);
   if (color.a <= .0001) {
     discard;
   };
-  float colorFactor = 1.1 / pow(dist, .15);
+  float colorFactor = 1.2 * pow(dist, -.12);
   color.rgb = (color.rgb * colorFactor) + (bgColor * (1. - colorFactor));
   fragColor = color;
 //  fragColor = vec4(vInstanceColor.rgb, 1.0);
@@ -3607,7 +3442,7 @@ __export(exports_vec3, {
   },
   forEach: () => {
     {
-      return forEach2;
+      return forEach;
     }
   },
   floor: () => {
@@ -3995,7 +3830,7 @@ var dist = distance;
 var sqrDist = squaredDistance;
 var len = length;
 var sqrLen = squaredLength;
-var forEach2 = function() {
+var forEach = function() {
   var vec = create3();
   return function(a, stride, offset, count, fn, arg) {
     var i, l;
@@ -4129,7 +3964,7 @@ function equals3(a, b) {
   var b0 = b[0], b1 = b[1], b2 = b[2], b3 = b[3];
   return Math.abs(a0 - b0) <= EPSILON * Math.max(1, Math.abs(a0), Math.abs(b0)) && Math.abs(a1 - b1) <= EPSILON * Math.max(1, Math.abs(a1), Math.abs(b1)) && Math.abs(a2 - b2) <= EPSILON * Math.max(1, Math.abs(a2), Math.abs(b2)) && Math.abs(a3 - b3) <= EPSILON * Math.max(1, Math.abs(a3), Math.abs(b3));
 }
-var forEach3 = function() {
+var forEach2 = function() {
   var vec = create4();
   return function(a, stride, offset, count, fn, arg) {
     var i, l;
@@ -4716,6 +4551,7 @@ class GraphicsEngine extends Disposable {
   }
   setMaxSpriteCount(spriteCount) {
     this.initializeBuffers(spriteCount);
+    console.log("Sprite limit", spriteCount);
   }
   setBgColor(rgb) {
     this.gl.clearColor(rgb[0], rgb[1], rgb[2], 1);
@@ -4881,13 +4717,13 @@ class GraphicsEngine extends Disposable {
       }
     });
   }
-  updateCameraMatrix(type, matrix) {
+  updateUniformMatrix(type, matrix) {
     this.gl.uniformMatrix4fv(this.matrixUniforms[type], false, matrix);
   }
-  updateCameraFloat(type, value) {
+  updateUniformFloat(type, value) {
     this.gl.uniform1f(this.floatUniforms[type], value);
   }
-  updateCameraVector(type, vector) {
+  updateUniformVector(type, vector) {
     this.gl.uniform3fv(this.vec3Uniforms[type], vector);
   }
   bindVertexArray() {
@@ -4917,14 +4753,13 @@ class Motor {
   updateSchedule = new Map;
   time = 0;
   loop(update, frameRate, expirationTime) {
-    return this.registerUpdate(update, { period: frameRate ? 1000 / frameRate : 1, expirationTime });
+    this.registerUpdate(update, { period: frameRate ? 1000 / frameRate : 1, expirationTime });
   }
   registerUpdate(update, schedule = {}) {
     schedule.triggerTime = schedule.triggerTime ?? this.time;
     schedule.expirationTime = schedule.expirationTime ?? Infinity;
     schedule.period = schedule.period;
     this.updateSchedule.set(update, schedule);
-    return () => this.deregisterUpdate(update);
   }
   deregisterUpdate(update) {
     this.updateSchedule.delete(update);
@@ -4964,24 +4799,43 @@ class Motor {
 }
 
 // src/gl/transform/ProjectionMatrix.ts
-class ProjectionMatrix {
+class ProjectionMatrix extends AuxiliaryHolder {
+  onChange;
   baseMatrix = Matrix_default.create();
   perspectiveMatrix = Matrix_default.create();
   orthoMatrix = Matrix_default.create();
   perspectiveLevel = 1;
-  configPerspectiveMatrix(ratio) {
-    this.perspectiveMatrix.perspective(45, ratio, 0.01, 1e5);
+  zoom = 1;
+  width = 0;
+  height = 0;
+  constructor(onChange) {
+    super();
+    this.onChange = onChange;
   }
-  configOrthoMatrix(ratio) {
-    this.orthoMatrix.ortho(-ratio, ratio, -1, 1, -1e5, 1e5);
+  configPerspectiveMatrix(angle2, ratio, near, far) {
+    this.perspectiveMatrix.perspective(angle2, ratio, near, far);
   }
-  configure(width, height2) {
-    const ratio = width / height2;
-    this.configPerspectiveMatrix(ratio);
-    this.configOrthoMatrix(ratio);
+  configOrthoMatrix(width, height2, near, far) {
+    this.orthoMatrix.ortho(-width / 2, width / 2, -height2 / 2, height2 / 2, near, far);
+  }
+  configure(width, height2, zoom = 1, near = 0.5, far = 1000) {
+    if (this.width !== width || this.height !== height2 || this.zoom !== zoom) {
+      this.width = width;
+      this.height = height2;
+      this.zoom = zoom;
+      const ratio = width / height2;
+      const angle2 = 45 / Math.sqrt(this.zoom);
+      this.configPerspectiveMatrix(angle2, ratio, Math.max(near, 0.00001), far);
+      this.configOrthoMatrix(ratio / this.zoom / this.zoom, 1 / this.zoom / this.zoom, -far, far);
+      this.onChange?.();
+    }
   }
   setPerspective(level) {
     this.perspectiveLevel = level;
+    this.onChange?.();
+  }
+  setZoom(zoom) {
+    this.configure(this.width, this.height, zoom);
   }
   getMatrix() {
     this.baseMatrix.combine(this.orthoMatrix, this.perspectiveMatrix, this.perspectiveLevel);
@@ -5108,7 +4962,7 @@ class CameraUpdate {
     return this;
   }
   refresh() {
-    this.updatedTypes.forEach((type) => this.engine.updateCameraMatrix(type, this.getCameraMatrix(type)));
+    this.updatedTypes.forEach((type) => this.engine.updateUniformMatrix(type, this.getCameraMatrix(type)));
   }
 }
 
@@ -5131,8 +4985,26 @@ class CameraFloatUpdate {
     return this;
   }
   refresh() {
-    this.updatedTypes.forEach((type) => this.engine.updateCameraFloat(type, this.getCameraFloat(type)));
+    this.updatedTypes.forEach((type) => this.engine.updateUniformFloat(type, this.getCameraFloat(type)));
   }
+}
+
+// src/world/sprite/List.ts
+function forEach3(list, callback) {
+  if (list) {
+    for (let i = 0;i < list.length; i++) {
+      const elem = list.at(i);
+      callback(elem, i);
+    }
+  }
+}
+function map(list, callback) {
+  const r = [];
+  for (let i = 0;i < list.length; i++) {
+    const elem = list.at(i);
+    r.push(elem ? callback(elem, i) : undefined);
+  }
+  return r;
 }
 
 // src/world/grid/Position.ts
@@ -5158,6 +5030,7 @@ class PositionMatrix extends AuxiliaryHolder {
   matrix = Matrix_default.create().setPosition(0, 0, 0);
   _position = [0, 0, 0];
   static _cellPos = [0, 0, 0, 0];
+  static _tempPos = [0, 0, 0];
   moveBlocker;
   constructor(onChange) {
     super();
@@ -5169,16 +5042,20 @@ class PositionMatrix extends AuxiliaryHolder {
   }
   moveBy(x, y, z, turnMatrix) {
     const vector = this.matrix.getMoveVector(x, y, z, turnMatrix);
-    if (!this.moveBlocker?.isBlocked(toPos(this.position[0] + vector[0], this.position[1] + vector[1], this.position[2] + vector[2]), this.position)) {
+    const blocked = this.moveBlocker?.isBlocked(toPos(this.position[0] + vector[0], this.position[1] + vector[1], this.position[2] + vector[2]), this.position);
+    if (!blocked) {
       this.matrix.move(vector);
       this.changedPosition();
     }
+    return !blocked;
   }
   moveTo(x, y, z) {
-    if (!this.moveBlocker?.isBlocked(toPos(x, y, z))) {
+    const blocked = this.moveBlocker?.isBlocked(toPos(x, y, z));
+    if (!blocked) {
       this.matrix.setPosition(x, y, z);
       this.changedPosition();
     }
+    return !blocked;
   }
   get position() {
     return this._position;
@@ -5193,6 +5070,13 @@ class PositionMatrix extends AuxiliaryHolder {
     this._cellPos[3] = cellSize;
     return this._cellPos;
   }
+  static positionFromCell(cellPos) {
+    const [cx, cy, cz, cellSize] = cellPos;
+    this._tempPos[0] = cx * cellSize;
+    this._tempPos[1] = cy * cellSize;
+    this._tempPos[2] = cz * cellSize;
+    return this._tempPos;
+  }
   gotoPos(x, y, z, speed = 0.1) {
     const curPos = this.position;
     const dx = x - curPos[0];
@@ -5201,9 +5085,9 @@ class PositionMatrix extends AuxiliaryHolder {
     const dist2 = Math.sqrt(dx * dx + dy * dy + dz * dz);
     if (dist2 > 0.01) {
       const sp = Math.min(dist2, speed);
-      this.moveBy(dx / dist2 * sp, dy / dist2 * sp, dz / dist2 * sp);
+      return this.moveBy(dx / dist2 * sp, dy / dist2 * sp, dz / dist2 * sp);
     } else {
-      this.moveTo(x, y, z);
+      return this.moveTo(x, y, z);
     }
   }
   getMatrix() {
@@ -5230,22 +5114,23 @@ class CameraVectorUpdate {
     return this;
   }
   refresh() {
-    this.updatedTypes.forEach((type) => this.engine.updateCameraVector(type, this.getCameraVector(type)));
+    this.updatedTypes.forEach((type) => this.engine.updateUniformVector(type, this.getCameraVector(type)));
   }
 }
 
 // src/gl/camera/Camera.ts
 class Camera extends AuxiliaryHolder {
   camMatrix = Matrix_default.create();
-  projectionMatrix = new ProjectionMatrix;
+  projectionMatrix = new ProjectionMatrix(() => this.updateInformer.informUpdate(MatrixUniform.PROJECTION));
   posMatrix = new PositionMatrix(() => this.updateInformer.informUpdate(MatrixUniform.CAM_POS));
   tiltMatrix = new TiltMatrix(() => this.updateInformer.informUpdate(MatrixUniform.CAM_TILT));
   turnMatrix = new TurnMatrix(() => this.updateInformer.informUpdate(MatrixUniform.CAM_TURN));
-  _pespectiveLevel = 1;
   _curvature = 0.05;
   _distance = 0.5;
   _bgColor = [0, 0, 0];
   _blur = 1;
+  _viewportWidth = 0;
+  _viewportHeight = 0;
   updateInformer;
   updateInformerFloat;
   updateInformerVector;
@@ -5267,6 +5152,7 @@ class Camera extends AuxiliaryHolder {
     this.updateInformerFloat.informUpdate(FloatUniform.CURVATURE);
     this.updateInformerFloat.informUpdate(FloatUniform.CAM_DISTANCE);
     this.updateInformerVector.informUpdate(VectorUniform.BG_COLOR);
+    this.updateInformerFloat.informUpdate(FloatUniform.BG_BLUR);
   }
   cameraMatrices = {
     [MatrixUniform.PROJECTION]: this.projectionMatrix,
@@ -5274,13 +5160,12 @@ class Camera extends AuxiliaryHolder {
     [MatrixUniform.CAM_TURN]: this.turnMatrix,
     [MatrixUniform.CAM_TILT]: this.tiltMatrix
   };
-  configProjectionMatrix(width, height2) {
-    this.projectionMatrix.configure(width, height2);
-    this.updateInformer.informUpdate(MatrixUniform.PROJECTION);
-  }
-  set perspective(level) {
-    this.projectionMatrix.setPerspective(level ?? this._pespectiveLevel);
-    this.updateInformer.informUpdate(MatrixUniform.PROJECTION);
+  resizeViewport(width, height2) {
+    if (this._viewportWidth !== width || this._viewportHeight !== height2) {
+      this._viewportWidth = width;
+      this._viewportHeight = height2;
+      this.projectionMatrix.configure(this._viewportWidth, this._viewportHeight);
+    }
   }
   set curvature(value) {
     this._curvature = value;
@@ -5425,7 +5310,7 @@ class ResizeAux {
   handleResize() {
     const { engine } = this;
     const onResize = (width, height2) => {
-      this.camera?.configProjectionMatrix(width, height2);
+      this.camera?.resizeViewport(width, height2);
     };
     this.removeListener = engine.addResizeListener(onResize);
   }
@@ -5446,14 +5331,14 @@ class Core extends AuxiliaryHolder {
   }
   start(world) {
     const { motor, engine, keyboard, camera } = this;
-    const deregisterLoop = motor.loop(this);
+    motor.loop(this);
     this.addAuxiliary(world, motor, keyboard, camera, engine);
     camera.addAuxiliary(new ResizeAux({ engine }));
     this.activate();
-    return () => {
-      deregisterLoop();
-      this.deactivate();
-    };
+  }
+  stop() {
+    this.motor.deregisterUpdate(this);
+    this.deactivate();
   }
 }
 
@@ -5518,18 +5403,18 @@ class Auxiliaries {
     return this.auxiliaries.at(index);
   }
   refresh(updatePayload) {
-    forEach(this.auxiliaries, (aux) => aux?.refresh?.(updatePayload));
+    forEach3(this.auxiliaries, (aux) => aux?.refresh?.(updatePayload));
   }
   activate() {
     if (!this.active) {
       this.active = true;
-      forEach(this.auxiliaries, (aux) => aux?.activate?.());
+      forEach3(this.auxiliaries, (aux) => aux?.activate?.());
     }
   }
   deactivate() {
     if (this.active) {
       this.active = false;
-      forEach(this.auxiliaries, (aux) => aux?.deactivate?.());
+      forEach3(this.auxiliaries, (aux) => aux?.deactivate?.());
     }
   }
 }
@@ -5634,7 +5519,13 @@ class CamStepAuxiliary {
       this.stepCount = 0;
     }
     const speed = (dx || dz ? deltaTime / 150 : deltaTime / 100) * this.config.speed;
-    this.camera.posMatrix.gotoPos(this.goalPos[0], pos[1], this.goalPos[2], speed);
+    const didMove = this.camera.posMatrix.gotoPos(this.goalPos[0], pos[1], this.goalPos[2], speed);
+    if (!didMove) {
+      const gx = Math.round(pos[0] / step) * step;
+      const gz = Math.round(pos[2] / step) * step;
+      this.goalPos[0] = gx;
+      this.goalPos[2] = gz;
+    }
     const newPos = this.camera.posMatrix.position;
     if (Math.round(newPos[0] / step) * step !== this.prePos[0] || Math.round(newPos[1] / step) * step !== this.prePos[1] || Math.round(newPos[2] / step) * step !== this.prePos[2]) {
       this.stepCount++;
@@ -5687,17 +5578,17 @@ class CamTiltResetAuxiliary {
   keyboard;
   camera;
   key;
-  resetting = false;
   constructor(props, config) {
     this.keyboard = props.keyboard;
     this.camera = props.camera;
     this.key = config.key;
+    this._refresh = this._refresh.bind(this);
   }
   activate() {
     const removeListener = this.keyboard.addListener({
       onQuickTap: (keyCode) => {
         if (keyCode === this.key) {
-          this.resetting = true;
+          this.refresh = this._refresh;
           this.camera.tiltMatrix.progressive.setGoal(0, 0.0033333333333333335, this);
         }
       }
@@ -5707,12 +5598,11 @@ class CamTiltResetAuxiliary {
       this.deactivate = undefined;
     };
   }
-  refresh(update) {
-    if (this.resetting) {
-      const { deltaTime } = update;
-      if (!this.camera.tiltMatrix.progressive.update(deltaTime)) {
-        this.resetting = false;
-      }
+  refresh;
+  _refresh(update) {
+    const { deltaTime } = update;
+    if (!this.camera.tiltMatrix.progressive.update(deltaTime)) {
+      this.refresh = undefined;
     }
   }
 }
@@ -5831,12 +5721,12 @@ class ObjectPool {
   recycle(element) {
     this.recycler.push(element);
   }
-  create(value) {
+  create(...params) {
     const recycledElem = this.recycler.pop();
     if (recycledElem) {
-      return this.initCall(value, recycledElem);
+      return this.initCall(recycledElem, ...params);
     }
-    const elem = this.initCall(value);
+    const elem = this.initCall(undefined, ...params);
     this.allObjectsCreated.push(elem);
     return elem;
   }
@@ -5857,7 +5747,7 @@ class DoubleLinkList {
     this.end = { value: edgeValue };
     this.start.next = this.end;
     this.end.prev = this.start;
-    this.pool = new ObjectPool((value, elem) => {
+    this.pool = new ObjectPool((elem, value) => {
       if (!elem) {
         return { value };
       }
@@ -5974,6 +5864,110 @@ class CellTracker {
   }
 }
 
+// src/updates/UpdatableList.ts
+class UpdatableList {
+  array;
+  updateValue;
+  notifier;
+  constructor(array, updateValue, notifier) {
+    this.array = array;
+    this.updateValue = updateValue;
+    this.notifier = notifier;
+  }
+  at(index) {
+    return this.array.at(index);
+  }
+  get length() {
+    return this.array.length;
+  }
+  set(index, value) {
+    this.updateValue(index, value);
+    this.notifier?.informUpdate(index);
+  }
+  remove(index) {
+    this.updateValue(index, undefined);
+    this.notifier?.informUpdate(index);
+  }
+}
+
+// src/updates/UpdateRegistry.ts
+class UpdateRegistry {
+  applyUpdate;
+  motor;
+  updatedIds = new Set;
+  constructor(applyUpdate, motor) {
+    this.applyUpdate = applyUpdate;
+    this.motor = motor;
+  }
+  informUpdate(id) {
+    this.addId(id);
+    this.motor.registerUpdate(this);
+  }
+  addId(id) {
+    this.updatedIds.add(id);
+  }
+  refresh() {
+    this.applyUpdate(this.updatedIds);
+    if (this.updatedIds.size) {
+      this.motor.registerUpdate(this);
+    }
+  }
+}
+
+// src/world/sprite/Medias.ts
+class UpdatableMedias extends UpdatableList {
+  constructor({ motor, engine }, medias = []) {
+    super(medias, (index, value) => {
+      medias[index] = value;
+      while (!medias[medias.length - 1]) {
+        medias.length--;
+      }
+    }, new UpdateRegistry((ids) => {
+      const imageIds = Array.from(ids);
+      ids.clear();
+      engine.updateTextures(imageIds, medias.at.bind(medias)).then((mediaInfos) => {
+        mediaInfos.forEach((mediaInfo) => {
+          if (mediaInfo.isVideo) {
+            motor.registerUpdate(mediaInfo, mediaInfo.schedule);
+          }
+        });
+      });
+    }, motor));
+  }
+}
+
+// src/world/sprite/SpriteAccumulator.ts
+class SpritesAccumulator extends AuxiliaryHolder {
+  constructor() {
+    super(...arguments);
+  }
+  spritesIndices = [];
+  set holder(world) {
+    world.sprites = this;
+  }
+  at(spriteId) {
+    const slot = this.spritesIndices[spriteId];
+    return slot?.sprites.at(spriteId - slot.baseIndex);
+  }
+  get length() {
+    return this.spritesIndices.length;
+  }
+  addSprites(...spritesList) {
+    spritesList.forEach((sprites) => {
+      const slot = { sprites, baseIndex: this.spritesIndices.length };
+      if (sprites.informUpdate) {
+        sprites.informUpdate = (index, type) => {
+          this.informUpdate?.(slot.baseIndex + index, type);
+        };
+      }
+      forEach3(sprites, (_, index) => {
+        this.spritesIndices.push(slot);
+        this.informUpdate?.(slot.baseIndex + index);
+      });
+    });
+  }
+}
+
 // src/world/sprite/SpritesGroup.ts
 class SpriteGroup {
   children;
@@ -5994,7 +5988,6 @@ class SpriteGroup {
     if (!s) {
       return;
     }
-    this.spriteModel.name = `s${index}`;
     this.spriteModel.imageId = s.imageId;
     this.spriteModel.transform.multiply2(this.transform, s.transform);
     return this.spriteModel;
@@ -6013,12 +6006,29 @@ function copySprite(sprite) {
   };
 }
 
+// src/world/sprite/update/SpriteUpdateType.ts
+var SpriteUpdateType;
+(function(SpriteUpdateType2) {
+  SpriteUpdateType2[SpriteUpdateType2["NONE"] = 0] = "NONE";
+  SpriteUpdateType2[SpriteUpdateType2["TRANSFORM"] = 1] = "TRANSFORM";
+  SpriteUpdateType2[SpriteUpdateType2["ANIM"] = 2] = "ANIM";
+  SpriteUpdateType2[SpriteUpdateType2["ALL"] = 3] = "ALL";
+})(SpriteUpdateType || (SpriteUpdateType = {}));
+
 // src/world/sprite/aux/SpriteGrid.ts
 class SpriteGrid {
   spriteFactory;
   slots = [];
   spriteLimit;
   ranges;
+  slotPool = new ObjectPool((slot, sprite, tag) => {
+    if (!slot) {
+      return { sprite, tag };
+    }
+    slot.sprite = sprite;
+    slot.tag = tag;
+    return slot;
+  });
   holder;
   informUpdate(_id, _type) {
   }
@@ -6047,13 +6057,11 @@ class SpriteGrid {
       return;
     }
     const { tag } = cell;
-    forEach(this.spriteFactory.getSpritesAtCell?.(cell), (sprite) => {
+    forEach3(this.spriteFactory.getSpritesAtCell?.(cell), (sprite) => {
       if (sprite) {
         this.informUpdate(this.slots.length);
-        this.slots.push({
-          sprite: copySprite(sprite),
-          tag
-        });
+        const slot = this.slotPool.create(copySprite(sprite), tag);
+        this.slots.push(slot);
       }
     });
   }
@@ -6065,6 +6073,7 @@ class SpriteGrid {
         this.informUpdate(this.slots.length - 1, SpriteUpdateType.TRANSFORM);
         this.slots[i] = this.slots[this.slots.length - 1];
         this.slots.pop();
+        this.slotPool.recycle(slot);
       }
     }
   }
@@ -6089,7 +6098,7 @@ class FixedSpriteGrid extends SpriteGrid {
   activate() {
     super.activate();
     this.spritesList.forEach((sprites) => {
-      forEach(sprites, (sprite) => {
+      forEach3(sprites, (sprite) => {
         if (sprite) {
           const pos = transformToPosition(sprite.transform);
           const cellPos = PositionMatrix.getCellPos(pos, this.cellSize);
@@ -6121,6 +6130,31 @@ class StaticSprites {
   }
 }
 
+// src/world/sprite/update/SpriteUpdater.ts
+class SpriteUpdater {
+  spriteTransformUpdate;
+  spriteAnimUpdate;
+  sprites;
+  set holder(value) {
+    this.sprites = value;
+    value.informUpdate = this.informUpdate.bind(this);
+  }
+  constructor({ engine, motor }) {
+    this.spriteTransformUpdate = new UpdateRegistry((ids) => engine.updateSpriteTransforms(ids, this.sprites), motor);
+    this.spriteAnimUpdate = new UpdateRegistry((ids) => engine.updateSpriteAnims(ids, this.sprites), motor);
+  }
+  informUpdate(id, type = SpriteUpdateType.ALL) {
+    if (this.sprites && id < this.sprites.length) {
+      if (type & SpriteUpdateType.TRANSFORM) {
+        this.spriteTransformUpdate.informUpdate(id);
+      }
+      if (type & SpriteUpdateType.ANIM) {
+        this.spriteAnimUpdate.informUpdate(id);
+      }
+    }
+  }
+}
+
 // src/demo/DemoWorld.ts
 var DOBUKI = 0;
 var LOGO = 1;
@@ -6128,6 +6162,7 @@ var GROUND = 2;
 var VIDEO = 3;
 var WIREFRAME = 4;
 var GRASS = 5;
+var BRICK = 6;
 var LOGO_SIZE = 512;
 var CELLSIZE = 2;
 var SPRITE_LIMIT = 1e4;
@@ -6137,12 +6172,15 @@ class DemoWorld extends World {
   constructor(core) {
     super(core);
     this.core = core;
-    this.addMedia({
-      id: DOBUKI,
+    const spritesAccumulator = new SpritesAccumulator;
+    spritesAccumulator.addAuxiliary(new SpriteUpdater(core));
+    this.addAuxiliary(spritesAccumulator);
+    const medias = new UpdatableMedias(core);
+    medias.set(DOBUKI, {
       type: "image",
       src: "dobuki.png"
-    }, {
-      id: LOGO,
+    });
+    medias.set(LOGO, {
       type: "draw",
       draw: (ctx) => {
         const { canvas } = ctx;
@@ -6170,8 +6208,8 @@ class DemoWorld extends World {
         ctx.arc(canvas.width / 3 * 2, canvas.height / 3, halfSize * 0.1, 0, Math.PI * 2, true);
         ctx.stroke();
       }
-    }, {
-      id: GROUND,
+    });
+    medias.set(GROUND, {
       type: "draw",
       draw: (ctx) => {
         const { canvas } = ctx;
@@ -6187,16 +6225,27 @@ class DemoWorld extends World {
         ctx.fill();
         ctx.stroke();
       }
-    }, {
-      id: VIDEO,
+    });
+    medias.set(BRICK, {
+      type: "draw",
+      draw: (ctx) => {
+        const { canvas } = ctx;
+        canvas.width = LOGO_SIZE;
+        canvas.height = LOGO_SIZE;
+        ctx.fillStyle = "#ddd";
+        ctx.lineWidth = canvas.width / 50;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
+    });
+    medias.set(VIDEO, {
       type: "video",
       src: "sample.mp4",
       volume: 0,
       fps: 30,
       playSpeed: 0.1,
       maxRefreshRate: 30
-    }, {
-      id: WIREFRAME,
+    });
+    medias.set(WIREFRAME, {
       type: "draw",
       draw: (ctx) => {
         const { canvas } = ctx;
@@ -6209,8 +6258,8 @@ class DemoWorld extends World {
         ctx.rect(10, 10, canvas.width - 20, canvas.height - 20);
         ctx.stroke();
       }
-    }, {
-      id: GRASS,
+    });
+    medias.set(GRASS, {
       type: "draw",
       draw: (ctx) => {
         const { canvas } = ctx;
@@ -6227,12 +6276,12 @@ class DemoWorld extends World {
         ctx.stroke();
       }
     });
-    this.addAuxiliary(new FixedSpriteGrid({ cellSize: CELLSIZE }, new SpriteGroup([
+    spritesAccumulator.addAuxiliary(new FixedSpriteGrid({ cellSize: CELLSIZE }, new SpriteGroup([
       ...[
-        Matrix_default.create().translate(-1, 0, 0).rotateY(Math.PI / 2).scale(1),
-        Matrix_default.create().translate(-1, 0, 0).rotateY(-Math.PI / 2).scale(1),
-        Matrix_default.create().translate(1, 0, 0).rotateY(-Math.PI / 2).scale(1),
-        Matrix_default.create().translate(1, 0, 0).rotateY(Math.PI / 2).scale(1)
+        Matrix_default.create().translate(-1, 0, 0).rotateY(Math.PI / 2),
+        Matrix_default.create().translate(-1, 0, 0).rotateY(-Math.PI / 2),
+        Matrix_default.create().translate(1, 0, 0).rotateY(-Math.PI / 2),
+        Matrix_default.create().translate(1, 0, 0).rotateY(Math.PI / 2)
       ].map((transform) => ({ imageId: LOGO, transform })),
       ...[
         Matrix_default.create().translate(0, -1, 0).rotateX(-Math.PI / 2),
@@ -6242,13 +6291,29 @@ class DemoWorld extends World {
       ].map((transform) => ({ imageId: GROUND, transform }))
     ], Matrix_default.create()), new SpriteGroup([
       ...[
+        Matrix_default.create().translate(0, -1, 0).rotateX(Math.PI / 2),
+        Matrix_default.create().translate(0, 1, 0).rotateX(-Math.PI / 2),
         Matrix_default.create().translate(-1, 0, 0).rotateY(-Math.PI / 2),
         Matrix_default.create().translate(1, 0, 0).rotateY(Math.PI / 2),
         Matrix_default.create().translate(0, 0, 1).rotateY(0),
         Matrix_default.create().translate(0, 0, -1).rotateY(Math.PI)
-      ].map((transform) => ({ imageId: GROUND, transform }))
-    ], Matrix_default.create().setPosition(0, 0, -6))));
-    this.addAuxiliary(new FixedSpriteGrid({ cellSize: CELLSIZE }, [
+      ].map((transform) => ({ imageId: GROUND, transform })),
+      ...[
+        Matrix_default.create().translate(0, -1, 0).rotateX(-Math.PI / 2),
+        Matrix_default.create().translate(0, 1, 0).rotateX(Math.PI / 2),
+        Matrix_default.create().translate(-1, 0, 0).rotateY(Math.PI / 2),
+        Matrix_default.create().translate(1, 0, 0).rotateY(-Math.PI / 2),
+        Matrix_default.create().translate(0, 0, 1).rotateY(Math.PI),
+        Matrix_default.create().translate(0, 0, -1).rotateY(0)
+      ].map((transform) => ({ imageId: BRICK, transform }))
+    ], Matrix_default.create().setPosition(...PositionMatrix.positionFromCell([0, 0, -3, CELLSIZE])))));
+    this.core.camera.posMatrix.moveBlocker = {
+      isBlocked(pos) {
+        const [cx, cy, cz] = PositionMatrix.getCellPos(pos, 2);
+        return cx === 0 && cy === 0 && cz === -3;
+      }
+    };
+    spritesAccumulator.addAuxiliary(new FixedSpriteGrid({ cellSize: CELLSIZE }, [
       {
         imageId: DOBUKI,
         transform: Matrix_default.create().translate(0, 0, -1)
@@ -6258,7 +6323,7 @@ class DemoWorld extends World {
         transform: Matrix_default.create().translate(0, 0, -1).rotateY(Math.PI)
       }
     ]));
-    this.addAuxiliary(new SpriteGrid({ spriteLimit: SPRITE_LIMIT, yRange: [0, 0] }, {
+    spritesAccumulator.addAuxiliary(new SpriteGrid({ spriteLimit: SPRITE_LIMIT, yRange: [0, 0] }, {
       getSpritesAtCell: (cell) => [
         {
           name: `${cell.pos[0]}_${cell.pos[2]}`,
@@ -6271,7 +6336,7 @@ class DemoWorld extends World {
         }
       ]
     }));
-    this.addAuxiliary(new StaticSprites([{
+    spritesAccumulator.addAuxiliary(new StaticSprites([{
       imageId: VIDEO,
       transform: Matrix_default.create().translate(0, 1e4, -50000).scale(9600, 5400, 1)
     }]));
@@ -6330,7 +6395,10 @@ async function testCanvas(canvas) {
   });
   core.engine.setPixelListener(pixelListener);
   const world = new DemoWorld(core);
-  onStop = core.start(world);
+  core.start(world);
+  onStop = () => {
+    core.stop();
+  };
   return { core, world };
 }
 function stop() {
@@ -6344,4 +6412,4 @@ export {
   World
 };
 
-//# debugId=7097A2CD5BFB7DDB64756e2164756e21
+//# debugId=8BB6181E78EF592164756e2164756e21

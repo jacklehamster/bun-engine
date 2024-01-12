@@ -45,10 +45,9 @@ void main() {
   relativePosition.z -= camDist;
   relativePosition.y -= curvature * ((relativePosition.z * relativePosition.z) + (relativePosition.x * relativePosition.x) / 4.) / 10.;
   relativePosition.x /= (1. + curvature * 1.4);
-  dist = abs(relativePosition.z);
+  dist = (relativePosition.z*relativePosition.z + relativePosition.x*relativePosition.x);
   // relativePosition => gl_Position
   gl_Position = projection * relativePosition;
-
 
   vTex = (vec2(slotX, slotY) + tex) * slotSize / maxTextureSize;
   vTextureIndex = floor(slotNumber / (maxCols * maxRows));

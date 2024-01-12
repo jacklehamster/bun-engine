@@ -79,7 +79,13 @@ export class CamStepAuxiliary implements Auxiliary {
     }
     const speed = ((dx || dz) ? deltaTime / 150 : deltaTime / 100) * this.config.speed;
 
-    this.camera.posMatrix.gotoPos(this.goalPos[0], pos[1], this.goalPos[2], speed);
+    const didMove = this.camera.posMatrix.gotoPos(this.goalPos[0], pos[1], this.goalPos[2], speed);
+    if (!didMove) {
+      const gx = Math.round(pos[0] / step) * step;
+      const gz = Math.round(pos[2] / step) * step;
+      this.goalPos[0] = gx;
+      this.goalPos[2] = gz;
+    }
     const newPos = this.camera.posMatrix.position;
     if (Math.round(newPos[0] / step) * step !== this.prePos[0]
       || Math.round(newPos[1] / step) * step !== this.prePos[1]

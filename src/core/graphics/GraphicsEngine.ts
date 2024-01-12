@@ -204,6 +204,7 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
 
   setMaxSpriteCount(spriteCount: number): void {
     this.initializeBuffers(spriteCount);
+    console.log("Sprite limit", spriteCount);
   }
 
   setBgColor(rgb: vector): void {
@@ -437,15 +438,15 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
     });
   }
 
-  updateCameraMatrix(type: MatrixUniform, matrix: Float32Array) {
+  updateUniformMatrix(type: MatrixUniform, matrix: Float32Array) {
     this.gl.uniformMatrix4fv(this.matrixUniforms[type], false, matrix);
   }
 
-  updateCameraFloat(type: FloatUniform, value: number) {
+  updateUniformFloat(type: FloatUniform, value: number) {
     this.gl.uniform1f(this.floatUniforms[type], value);
   }
 
-  updateCameraVector(type: VectorUniform, vector: vector) {
+  updateUniformVector(type: VectorUniform, vector: vector) {
     this.gl.uniform3fv(this.vec3Uniforms[type], vector);
   }
 

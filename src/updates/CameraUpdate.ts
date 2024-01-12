@@ -19,6 +19,6 @@ export class CameraUpdate implements Refresh, UpdateNotifier {
   }
 
   refresh(): void {
-    this.updatedTypes.forEach(type => this.engine.updateCameraMatrix(type, this.getCameraMatrix(type)));
+    this.updatedTypes.forEach(type => this.engine.updateUniformMatrix(type, this.getCameraMatrix(type)));
   }
 }

@@ -30,7 +30,7 @@ export class ResizeAux implements Auxiliary<ICamera> {
   private handleResize() {
     const { engine } = this;
     const onResize = (width: number, height: number) => {
-      this.camera?.configProjectionMatrix(width, height);
+      this.camera?.resizeViewport(width, height);
     };
     this.removeListener = engine.addResizeListener(onResize);
   }

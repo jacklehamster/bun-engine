@@ -1,10 +1,10 @@
 import { Auxiliary } from "world/aux/Auxiliary";
 import { Sprites } from "../Sprites";
 import { Sprite } from "../Sprite";
-import IWorld from "world/IWorld";
+import { SpritesHolder } from "./SpritesHolder";
 
-export class StaticSprites implements Sprites, Auxiliary<IWorld> {
-  holder: IWorld | undefined;
+export class StaticSprites implements Sprites, Auxiliary<SpritesHolder> {
+  holder?: SpritesHolder;
 
   constructor(private sprites: Sprites) {
     this.informUpdate = sprites.informUpdate?.bind(sprites);

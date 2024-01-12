@@ -20,7 +20,6 @@ export class SpriteGroup implements Sprites {
     if (!s) {
       return undefined;
     }
-    this.spriteModel.name = `s${index}`;
     this.spriteModel.imageId = s.imageId;
     this.spriteModel.transform.multiply2(this.transform, s.transform);
     return this.spriteModel;

@@ -1,32 +1,51 @@
+import { AuxiliaryHolder } from "world/aux/AuxiliaryHolder";
 import { IMatrix } from "./IMatrix";
 import Matrix from "./Matrix";
 
-export class ProjectionMatrix implements IMatrix {
+export class ProjectionMatrix extends AuxiliaryHolder<ProjectionMatrix> implements IMatrix {
   private readonly baseMatrix = Matrix.create();
   private readonly perspectiveMatrix = Matrix.create();
   private readonly orthoMatrix = Matrix.create();
-  private perspectiveLevel = 1;
+  private _perspectiveLevel = 1;
+  private _zoom = 1;
+  private _width: number = 0;
+  private _height: number = 0;
 
-  private configPerspectiveMatrix(ratio: number) {
-    this.perspectiveMatrix.perspective(45, ratio, 0.01, 100000);
+  constructor(private onChange?: () => void) {
+    super();
   }
 
-  private configOrthoMatrix(ratio: number) {
-    this.orthoMatrix.ortho(-ratio, ratio, -1, 1, -100000, 100000);
+  private configPerspectiveMatrix(angle: number, ratio: number, near: number, far: number) {
+    this.perspectiveMatrix.perspective(angle, ratio, near, far);
   }
 
-  configure(width: number, height: number) {
-    const ratio: number = width / height;
-    this.configPerspectiveMatrix(ratio);
-    this.configOrthoMatrix(ratio);
+  private configOrthoMatrix(width: number, height: number, near: number, far: number) {
+    this.orthoMatrix.ortho(-width / 2, width / 2, -height / 2, height / 2, near, far);
+  }
+
+  configure(width: number, height: number, zoom: number = 1, near = 0.5, far = 1000) {
+    if (this._width !== width || this._height !== height || this._zoom !== zoom) {
+      this._width = width; this._height = height;
+      this._zoom = zoom;
+      const ratio: number = width / height;
+      const angle = 45 / Math.sqrt(this._zoom);
+      this.configPerspectiveMatrix(angle, ratio, Math.max(near, 0.00001), far);
+      this.configOrthoMatrix(ratio / this._zoom / this._zoom, 1 / this._zoom / this._zoom, -far, far);
+      this.onChange?.();
+    }
   }
 
   setPerspective(level: number) {
-    this.perspectiveLevel = level;
+    this._perspectiveLevel = level;
+    this.onChange?.();
+  }
+
+  setZoom(zoom: number) {
+    this.configure(this._width, this._height, zoom);
   }
 
   getMatrix(): Float32Array {
-    this.baseMatrix.combine(this.orthoMatrix, this.perspectiveMatrix, this.perspectiveLevel);
+    this.baseMatrix.combine(this.orthoMatrix, this.perspectiveMatrix, this._perspectiveLevel);
     return this.baseMatrix.getMatrix();
   }
 }

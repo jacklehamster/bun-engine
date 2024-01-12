@@ -20,6 +20,6 @@ export class CameraVectorUpdate implements Refresh, UpdateNotifier {
   }
 
   refresh(): void {
-    this.updatedTypes.forEach(type => this.engine.updateCameraVector(type, this.getCameraVector(type)));
+    this.updatedTypes.forEach(type => this.engine.updateUniformVector(type, this.getCameraVector(type)));
   }
 }

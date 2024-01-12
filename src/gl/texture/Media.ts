@@ -1,9 +1,6 @@
-import { MediaId } from "./ImageManager";
-
 export type MediaType = "image" | "video" | "canvas" | "draw" | "webcam" | string;
 
 interface BaseMedia {
-  id: MediaId;
 }
 
 export interface ImageMedia extends BaseMedia {

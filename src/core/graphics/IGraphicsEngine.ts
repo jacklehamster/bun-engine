@@ -14,9 +14,9 @@ export interface IGraphicsEngine extends Auxiliary {
   updateTextures(imageIds: MediaId[], getMedia: (imageId: MediaId) => Media | undefined): Promise<MediaData[]>;
   updateSpriteTransforms(spriteIds: Set<SpriteId>, sprites: Sprites): void;
   updateSpriteAnims(spriteIds: Set<SpriteId>, sprites: Sprites): void;
-  updateCameraMatrix(type: MatrixUniform, matrix: Float32Array): void;
-  updateCameraFloat(type: FloatUniform, value: number): void;
-  updateCameraVector(type: VectorUniform, value: vector): void;
+  updateUniformMatrix(type: MatrixUniform, matrix: Float32Array): void;
+  updateUniformFloat(type: FloatUniform, value: number): void;
+  updateUniformVector(type: VectorUniform, value: vector): void;
   setPixelListener(listener: { x: number, y: number, setPixel(value: number): void }): void;
   addResizeListener(listener: (w: number, h: number) => void): () => void;
 }
