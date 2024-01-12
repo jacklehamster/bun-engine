@@ -1,5 +1,4 @@
 import { Sprite, SpriteId } from "./Sprite";
-import { forEach } from "./List";
 import { Sprites } from "./Sprites";
 import { AuxiliaryHolder } from "world/aux/AuxiliaryHolder";
 import { SpritesHolder } from "./aux/SpritesHolder";
@@ -44,8 +43,8 @@ export class SpritesAccumulator extends AuxiliaryHolder implements SpritesHolder
       if (sprites.informUpdate) {
         //  overwrite if it's defined to informUpdate through SpriteAccumulator.
         sprites.informUpdate = (index, type) => {
-          const slot = slots[index];
-          const sprite = slot?.sprites.at(index);
+          const slot = slots[index] ?? (slots[index] = this.pool.create(sprites, index));
+          const sprite = slot.sprites.at(index);
           if (sprite) {
             if (slot.spriteId === undefined) {
               slot.spriteId = this.spritesIndices.length;
@@ -70,10 +69,6 @@ export class SpritesAccumulator extends AuxiliaryHolder implements SpritesHolder
           }
         };
       }
-      forEach(sprites, (_, index) => {
-        const slot = this.pool.create(sprites, index);
-        slots.push(slot);
-      });
     });
     this.onSizeChange();
   }

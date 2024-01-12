@@ -4488,8 +4488,6 @@ class GraphicsEngine extends Disposable {
       this.attributeBuffers.deleteBuffer(location);
     };
   }
-  resizeBuffer(location, instanceCount) {
-  }
   initializeBuffer(location, instanceCount, elemCount, dataRows = 1, divisor = 0, usage = GL.DYNAMIC_DRAW, callback) {
     const bufferInfo = this.attributeBuffers.createBuffer(location);
     this.gl.bindBuffer(GL.ARRAY_BUFFER, bufferInfo.buffer);
@@ -5915,8 +5913,8 @@ class SpritesAccumulator extends AuxiliaryHolder {
       const slots = [];
       if (sprites.informUpdate) {
         sprites.informUpdate = (index, type) => {
-          const slot = slots[index];
-          const sprite = slot?.sprites.at(index);
+          const slot = slots[index] ?? (slots[index] = this.pool.create(sprites, index));
+          const sprite = slot.sprites.at(index);
           if (sprite) {
             if (slot.spriteId === undefined) {
               slot.spriteId = this.spritesIndices.length;
@@ -5941,10 +5939,6 @@ class SpritesAccumulator extends AuxiliaryHolder {
           }
         };
       }
-      forEach3(sprites, (_, index) => {
-        const slot = this.pool.create(sprites, index);
-        slots.push(slot);
-      });
     });
     this.onSizeChange();
   }
@@ -6012,7 +6006,6 @@ var SpriteUpdateType;
 class SpriteGrid {
   spriteFactory;
   slots = [];
-  spriteLimit;
   ranges;
   slotPool = new ObjectPool((slot, sprite, tag) => {
     if (!slot) {
@@ -6030,7 +6023,6 @@ class SpriteGrid {
   }
   constructor(config, spriteFactory = {}) {
     this.spriteFactory = spriteFactory;
-    this.spriteLimit = config?.spriteLimit ?? 100;
     this.ranges = [
       config?.xRange ?? [Number.NEGATIVE_INFINITY, Number.POSITIVE_INFINITY],
       config?.yRange ?? [Number.NEGATIVE_INFINITY, Number.POSITIVE_INFINITY],
@@ -6038,7 +6030,7 @@ class SpriteGrid {
     ];
   }
   get length() {
-    return this.spriteLimit;
+    return this.slots.length;
   }
   at(index) {
     return this.slots[index]?.sprite;
@@ -6178,7 +6170,6 @@ var GRASS = 5;
 var BRICK = 6;
 var LOGO_SIZE = 512;
 var CELLSIZE = 2;
-var SPRITE_LIMIT = 1e4;
 
 class DemoWorld extends AuxiliaryHolder {
   core;
@@ -6337,7 +6328,7 @@ class DemoWorld extends AuxiliaryHolder {
         transform: Matrix_default.create().translate(0, 0, -1).rotateY(Math.PI)
       }
     ]));
-    spritesAccumulator.addAuxiliary(new SpriteGrid({ spriteLimit: SPRITE_LIMIT, yRange: [0, 0] }, {
+    spritesAccumulator.addAuxiliary(new SpriteGrid({ yRange: [0, 0] }, {
       getSpritesAtCell: (cell) => [
         {
           name: `${cell.pos[0]}_${cell.pos[2]}`,
@@ -6425,4 +6416,4 @@ export {
   hello
 };
 
-//# debugId=B2FA5546603AF8A664756e2164756e21
+//# debugId=94699DCBE8329F8564756e2164756e21

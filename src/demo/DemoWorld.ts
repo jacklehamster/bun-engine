@@ -23,7 +23,6 @@ import { SpriteUpdater } from "world/sprite/update/SpriteUpdater";
 const DOBUKI = 0, LOGO = 1, GROUND = 2, VIDEO = 3, WIREFRAME = 4, GRASS = 5, BRICK = 6;
 const LOGO_SIZE = 512;
 const CELLSIZE = 2;
-const SPRITE_LIMIT = 10000;
 
 export class DemoWorld extends AuxiliaryHolder<IWorld> {
   constructor(private core: Core) {
@@ -222,7 +221,7 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> {
     //  * This SpriteGrid is dynamic, meaning that the cell gets generated on the
     //  * fly. This allows us to produce an infinite amounts of cells.
     spritesAccumulator.addAuxiliary(new SpriteGrid(
-      { spriteLimit: SPRITE_LIMIT, yRange: [0, 0] }, {
+      { yRange: [0, 0] }, {
       getSpritesAtCell: cell => [
         { //  ground
           name: `${cell.pos[0]}_${cell.pos[2]}`,

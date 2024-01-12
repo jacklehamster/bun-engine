@@ -9,7 +9,6 @@ import { ObjectPool } from "utils/ObjectPool";
 import { SpritesHolder } from "./SpritesHolder";
 
 interface Config {
-  spriteLimit?: number;
   xRange?: [number, number],
   yRange?: [number, number],
   zRange?: [number, number],
@@ -22,7 +21,6 @@ interface Slot {
 
 export class SpriteGrid implements Auxiliary<SpritesHolder>, UpdateNotifier {
   private slots: Slot[] = [];
-  private spriteLimit: number;
   private ranges: [[number, number], [number, number], [number, number]];
   private slotPool: ObjectPool<Slot, [Sprite, string]> = new ObjectPool<Slot>((slot, sprite: Sprite, tag: string) => {
     if (!slot) {
@@ -42,7 +40,6 @@ export class SpriteGrid implements Auxiliary<SpritesHolder>, UpdateNotifier {
   }
 
   constructor(config?: Config, private spriteFactory: SpriteFactory = {}) {
-    this.spriteLimit = config?.spriteLimit ?? 100;
     this.ranges = [
       config?.xRange ?? [Number.NEGATIVE_INFINITY, Number.POSITIVE_INFINITY],
       config?.yRange ?? [Number.NEGATIVE_INFINITY, Number.POSITIVE_INFINITY],
@@ -51,7 +48,7 @@ export class SpriteGrid implements Auxiliary<SpritesHolder>, UpdateNotifier {
   }
 
   get length(): number {
-    return this.spriteLimit;
+    return this.slots.length;
   }
 
   at(index: number): Sprite | undefined {
