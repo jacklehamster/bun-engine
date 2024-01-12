@@ -4488,6 +4488,8 @@ class GraphicsEngine extends Disposable {
       this.attributeBuffers.deleteBuffer(location);
     };
   }
+  resizeBuffer(location, instanceCount) {
+  }
   initializeBuffer(location, instanceCount, elemCount, dataRows = 1, divisor = 0, usage = GL.DYNAMIC_DRAW, callback) {
     const bufferInfo = this.attributeBuffers.createBuffer(location);
     this.gl.bindBuffer(GL.ARRAY_BUFFER, bufferInfo.buffer);
@@ -5890,12 +5892,11 @@ class SpritesAccumulator extends AuxiliaryHolder {
   }
   spritesIndices = [];
   newSpritesListener = new Set;
-  pool = new ObjectPool((elem, sprites, spriteId, index) => {
+  pool = new ObjectPool((elem, sprites, index) => {
     if (!elem) {
-      return { sprites, spriteId, index };
+      return { sprites, index };
     }
     elem.sprites = sprites;
-    elem.spriteId = spriteId;
     elem.index = index;
     return elem;
   });
@@ -5915,16 +5916,40 @@ class SpritesAccumulator extends AuxiliaryHolder {
       if (sprites.informUpdate) {
         sprites.informUpdate = (index, type) => {
           const slot = slots[index];
-          this.informUpdate?.(slot.spriteId, type);
+          const sprite = slot?.sprites.at(index);
+          if (sprite) {
+            if (slot.spriteId === undefined) {
+              slot.spriteId = this.spritesIndices.length;
+              this.spritesIndices.push(slot);
+              this.onSizeChange();
+            }
+            this.informUpdate?.(slot.spriteId, type);
+          } else {
+            if (slot.spriteId !== undefined) {
+              const spriteId = slot.spriteId;
+              slot.spriteId = undefined;
+              const lastSlotId = this.spritesIndices.length - 1;
+              if (spriteId !== lastSlotId) {
+                this.spritesIndices[spriteId] = this.spritesIndices[lastSlotId];
+                this.spritesIndices[spriteId].spriteId = spriteId;
+              }
+              this.spritesIndices.pop();
+              this.informUpdate?.(spriteId);
+              this.informUpdate?.(lastSlotId);
+              this.onSizeChange();
+            }
+          }
         };
       }
       forEach3(sprites, (_, index) => {
-        const slot = this.pool.create(sprites, this.spritesIndices.length, index);
+        const slot = this.pool.create(sprites, index);
         slots.push(slot);
-        this.spritesIndices.push(slot);
-        this.informUpdate?.(slot.spriteId);
       });
     });
+    this.onSizeChange();
+  }
+  onSizeChange() {
+    this.spritesIndices.forEach((_, spriteId) => this.informUpdate?.(spriteId));
     this.newSpritesListener.forEach((listener) => listener(this));
   }
   deactivate() {
@@ -6027,9 +6052,10 @@ class SpriteGrid {
     const { tag } = cell;
     forEach3(this.spriteFactory.getSpritesAtCell?.(cell), (sprite) => {
       if (sprite) {
-        this.informUpdate(this.slots.length);
+        const spriteId = this.slots.length;
         const slot = this.slotPool.create(copySprite(sprite), tag);
         this.slots.push(slot);
+        this.informUpdate(spriteId);
       }
     });
   }
@@ -6399,4 +6425,4 @@ export {
   hello
 };
 
-//# debugId=1E45615D69975C6364756e2164756e21
+//# debugId=B2FA5546603AF8A664756e2164756e21

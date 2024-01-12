@@ -8,18 +8,17 @@ import { ObjectPool } from "utils/ObjectPool";
 interface Slot {
   sprites: Sprites;
   index: number;
-  spriteId: SpriteId;
+  spriteId?: SpriteId;
 }
 
 export class SpritesAccumulator extends AuxiliaryHolder implements SpritesHolder {
   private readonly spritesIndices: Slot[] = [];
   private readonly newSpritesListener: Set<(accumulator: SpritesHolder) => void> = new Set();
-  private readonly pool: ObjectPool<Slot, [Sprites, SpriteId, number]> = new ObjectPool<Slot, [Sprites, SpriteId, number]>((elem, sprites, spriteId, index) => {
+  private readonly pool: ObjectPool<Slot, [Sprites, number]> = new ObjectPool<Slot, [Sprites, number]>((elem, sprites, index) => {
     if (!elem) {
-      return { sprites, spriteId, index };
+      return { sprites, index };
     }
     elem.sprites = sprites;
-    elem.spriteId = spriteId;
     elem.index = index;
     return elem;
   });
@@ -43,19 +42,44 @@ export class SpritesAccumulator extends AuxiliaryHolder implements SpritesHolder
     spritesList.forEach(sprites => {
       const slots: Slot[] = [];
       if (sprites.informUpdate) {
-        //  overwrite
+        //  overwrite if it's defined to informUpdate through SpriteAccumulator.
         sprites.informUpdate = (index, type) => {
           const slot = slots[index];
-          this.informUpdate?.(slot.spriteId, type);
+          const sprite = slot?.sprites.at(index);
+          if (sprite) {
+            if (slot.spriteId === undefined) {
+              slot.spriteId = this.spritesIndices.length;
+              this.spritesIndices.push(slot);
+              this.onSizeChange();
+            }
+            this.informUpdate?.(slot.spriteId, type);
+          } else {
+            if (slot.spriteId !== undefined) {
+              const spriteId = slot.spriteId;
+              slot.spriteId = undefined;
+              const lastSlotId = this.spritesIndices.length - 1;
+              if (spriteId !== lastSlotId) {
+                this.spritesIndices[spriteId] = this.spritesIndices[lastSlotId];
+                this.spritesIndices[spriteId].spriteId = spriteId;
+              }
+              this.spritesIndices.pop();
+              this.informUpdate?.(spriteId);
+              this.informUpdate?.(lastSlotId);
+              this.onSizeChange();
+            }
+          }
         };
       }
       forEach(sprites, (_, index) => {
-        const slot = this.pool.create(sprites, this.spritesIndices.length, index);
+        const slot = this.pool.create(sprites, index);
         slots.push(slot);
-        this.spritesIndices.push(slot);
-        this.informUpdate?.(slot.spriteId);
       });
     });
+    this.onSizeChange();
+  }
+
+  onSizeChange() {
+    this.spritesIndices.forEach((_, spriteId) => this.informUpdate?.(spriteId));
     this.newSpritesListener.forEach(listener => listener(this));
   }
 

@@ -67,9 +67,10 @@ export class SpriteGrid implements Auxiliary<SpritesHolder>, UpdateNotifier {
     const { tag } = cell;
     forEach(this.spriteFactory.getSpritesAtCell?.(cell), sprite => {
       if (sprite) {
-        this.informUpdate(this.slots.length);
+        const spriteId = this.slots.length;
         const slot = this.slotPool.create(copySprite(sprite), tag);
         this.slots.push(slot);
+        this.informUpdate(spriteId);
       }
     });
   }
