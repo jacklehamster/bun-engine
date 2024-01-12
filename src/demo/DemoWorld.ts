@@ -281,8 +281,8 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> {
     this.core.camera.posMatrix.addAuxiliary(
       new CellChangeAuxiliary({
         visitCell: new CellTracker(this, {
-          cellLimit: 500,
-          range: [10, 3, 10],
+          cellLimit: 5000,
+          range: [25, 3, 25],
           cellSize: CELLSIZE,
         })
       }, {

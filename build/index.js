@@ -6359,8 +6359,8 @@ class DemoWorld extends AuxiliaryHolder {
     }));
     this.core.camera.posMatrix.addAuxiliary(new CellChangeAuxiliary({
       visitCell: new CellTracker(this, {
-        cellLimit: 500,
-        range: [10, 3, 10],
+        cellLimit: 5000,
+        range: [25, 3, 25],
         cellSize: CELLSIZE
       })
     }, {
@@ -6416,4 +6416,4 @@ export {
   hello
 };
 
-//# debugId=94699DCBE8329F8564756e2164756e21
+//# debugId=13FE14DE97A2348464756e2164756e21
