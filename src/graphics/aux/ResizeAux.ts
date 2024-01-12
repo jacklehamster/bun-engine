@@ -1,4 +1,4 @@
-import { IGraphicsEngine } from "core/graphics/IGraphicsEngine";
+import { IGraphicsEngine } from "graphics/IGraphicsEngine";
 import { ICamera } from "gl/camera/ICamera";
 import { Auxiliary } from "world/aux/Auxiliary";
 

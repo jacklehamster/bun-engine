@@ -6,12 +6,12 @@ import { TurnMatrix } from "gl/transform/TurnMatrix";
 import { CameraUpdate } from "updates/CameraUpdate";
 import { ICamera } from "./ICamera";
 import { CameraFloatUpdate } from "updates/CameraFloatUpdate";
-import { IGraphicsEngine } from "core/graphics/IGraphicsEngine";
-import { IMotor } from "core/motor/IMotor";
+import { IGraphicsEngine } from "graphics/IGraphicsEngine";
+import { IMotor } from "motor/IMotor";
 import { PositionMatrix } from "gl/transform/PositionMatrix";
 import { AuxiliaryHolder } from "world/aux/AuxiliaryHolder";
-import { MatrixUniform, VectorUniform } from "core/graphics/Uniforms";
-import { FloatUniform } from "core/graphics/Uniforms";
+import { MatrixUniform, VectorUniform } from "graphics/Uniforms";
+import { FloatUniform } from "graphics/Uniforms";
 import { CameraVectorUpdate } from "updates/CameraVectorUpdate";
 
 interface Props {

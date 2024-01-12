@@ -1,6 +1,6 @@
 import { Refresh } from "./Refresh";
 import { UpdateNotifier } from "./UpdateNotifier";
-import { IMotor } from "core/motor/IMotor";
+import { IMotor } from "motor/IMotor";
 import { IdType } from "core/IdType";
 
 export class UpdateRegistry implements Refresh, UpdateNotifier {

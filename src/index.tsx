@@ -1,5 +1,5 @@
-import { GraphicsEngine } from 'core/graphics/GraphicsEngine';
-import { Motor } from 'core/motor/Motor';
+import { GraphicsEngine } from 'graphics/GraphicsEngine';
+import { Motor } from 'motor/Motor';
 import { DemoWorld } from 'demo/DemoWorld';
 import { AuxiliaryHolder } from 'world/aux/AuxiliaryHolder';
 

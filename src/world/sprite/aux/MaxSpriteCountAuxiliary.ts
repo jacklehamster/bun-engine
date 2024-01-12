@@ -1,6 +1,6 @@
 import { Auxiliary } from "world/aux/Auxiliary";
 import { SpritesHolder } from "./SpritesHolder";
-import { IGraphicsEngine } from "core/graphics/IGraphicsEngine";
+import { IGraphicsEngine } from "graphics/IGraphicsEngine";
 import { Sprites } from "../Sprites";
 
 interface Props {

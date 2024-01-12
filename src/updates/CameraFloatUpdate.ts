@@ -1,8 +1,8 @@
 import { Refresh } from "./Refresh";
-import { FloatUniform } from "core/graphics/Uniforms";
+import { FloatUniform } from "graphics/Uniforms";
 import { UpdateNotifier } from "./UpdateNotifier";
-import { IGraphicsEngine } from "core/graphics/IGraphicsEngine";
-import { IMotor } from "core/motor/IMotor";
+import { IGraphicsEngine } from "graphics/IGraphicsEngine";
+import { IMotor } from "motor/IMotor";
 
 export class CameraFloatUpdate implements Refresh, UpdateNotifier {
   private readonly updatedTypes: Set<FloatUniform> = new Set();

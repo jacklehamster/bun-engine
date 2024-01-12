@@ -1,6 +1,6 @@
 import { Refresh } from 'updates/Refresh';
 import { Disposable } from '../lifecycle/Disposable';
-import { Schedule } from 'core/motor/Motor';
+import { Schedule } from 'motor/Motor';
 
 export class MediaData extends Disposable implements Refresh {
   readonly texImgSrc: TexImageSource;

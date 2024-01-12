@@ -1,8 +1,8 @@
 import { Media } from "gl/texture/Media";
 import { List } from "./List";
 import { UpdatableList } from "updates/UpdatableList";
-import { IGraphicsEngine } from "core/graphics/IGraphicsEngine";
-import { IMotor } from "core/motor/IMotor";
+import { IGraphicsEngine } from "graphics/IGraphicsEngine";
+import { IMotor } from "motor/IMotor";
 import { UpdateRegistry } from "updates/UpdateRegistry";
 
 export type Medias = List<Media>;

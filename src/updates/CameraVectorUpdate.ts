@@ -1,8 +1,8 @@
 import { Refresh } from "./Refresh";
-import { VectorUniform } from "core/graphics/Uniforms";
+import { VectorUniform } from "graphics/Uniforms";
 import { UpdateNotifier } from "./UpdateNotifier";
-import { IGraphicsEngine } from "core/graphics/IGraphicsEngine";
-import { IMotor } from "core/motor/IMotor";
+import { IGraphicsEngine } from "graphics/IGraphicsEngine";
+import { IMotor } from "motor/IMotor";
 import { vector } from "gl/transform/IMatrix";
 
 export class CameraVectorUpdate implements Refresh, UpdateNotifier {

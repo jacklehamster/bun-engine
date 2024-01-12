@@ -1,7 +1,7 @@
 import { UpdateNotifier } from "updates/UpdateNotifier";
 import { Sprites } from "../Sprites";
-import { IGraphicsEngine } from "core/graphics/IGraphicsEngine";
-import { IMotor } from "core/motor/IMotor";
+import { IGraphicsEngine } from "graphics/IGraphicsEngine";
+import { IMotor } from "motor/IMotor";
 import { UpdateRegistry } from "updates/UpdateRegistry";
 import { SpriteUpdateType } from "./SpriteUpdateType";
 import { Auxiliary } from "world/aux/Auxiliary";

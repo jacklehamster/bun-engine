@@ -1,5 +1,5 @@
 import { Time } from "core/Time";
-import { Refresh, UpdatePayload } from "../../updates/Refresh";
+import { Refresh, UpdatePayload } from "../updates/Refresh";
 import { IMotor } from "./IMotor";
 import { Duration } from "core/Time";
 

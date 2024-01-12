@@ -1,8 +1,8 @@
 import { Refresh } from "./Refresh";
-import { MatrixUniform } from "core/graphics/Uniforms";
+import { MatrixUniform } from "graphics/Uniforms";
 import { UpdateNotifier } from "./UpdateNotifier";
-import { IGraphicsEngine } from "core/graphics/IGraphicsEngine";
-import { IMotor } from "core/motor/IMotor";
+import { IGraphicsEngine } from "graphics/IGraphicsEngine";
+import { IMotor } from "motor/IMotor";
 
 export class CameraUpdate implements Refresh, UpdateNotifier {
   private readonly updatedTypes: Set<MatrixUniform> = new Set();

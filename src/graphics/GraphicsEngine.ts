@@ -2,11 +2,11 @@
 /// <reference lib="dom" />
 /// <reference lib="dom.iterable" />
 
-import { GLPrograms } from '../../gl/programs/GLPrograms';
-import { Disposable } from '../../gl/lifecycle/Disposable';
-import { VertexArray } from '../../gl/VertexArray';
-import { GLAttributeBuffers, LocationName } from '../../gl/attributes/GLAttributeBuffers';
-import { GLUniforms } from '../../gl/uniforms/GLUniforms';
+import { GLPrograms } from '../gl/programs/GLPrograms';
+import { Disposable } from '../gl/lifecycle/Disposable';
+import { VertexArray } from '../gl/VertexArray';
+import { GLAttributeBuffers, LocationName } from '../gl/attributes/GLAttributeBuffers';
+import { GLUniforms } from '../gl/uniforms/GLUniforms';
 import {
   GL,
   POSITION_LOC,
@@ -23,8 +23,8 @@ import {
   BG_COLOR_LOC,
   BG_BLUR_LOC,
   SPRITE_FLAGS_LOC,
-} from '../../gl/attributes/Constants';
-import { TEXTURE_INDEX_FOR_VIDEO, TextureId, TextureManager } from '../../gl/texture/TextureManager';
+} from '../gl/attributes/Constants';
+import { TEXTURE_INDEX_FOR_VIDEO, TextureId, TextureManager } from '../gl/texture/TextureManager';
 import { MediaId, ImageManager } from 'gl/texture/ImageManager';
 import vertexShader from 'generated/src/gl/resources/vertexShader.txt';
 import fragmentShader from 'generated/src/gl/resources/fragmentShader.txt';

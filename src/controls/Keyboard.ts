@@ -1,7 +1,7 @@
 import { ITimeProvider, Time } from "core/Time";
 import { IKeyboard, KeyListener } from "./IKeyboard";
 import { AuxiliaryHolder } from "world/aux/AuxiliaryHolder";
-import { IMotor } from "core/motor/IMotor";
+import { IMotor } from "motor/IMotor";
 
 const QUICK_TAP_TIME = 200;
 

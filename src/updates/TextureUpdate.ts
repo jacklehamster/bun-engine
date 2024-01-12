@@ -2,8 +2,8 @@ import { Refresh } from "./Refresh";
 import { MediaId } from "gl/texture/ImageManager";
 import { Media } from "gl/texture/Media";
 import { UpdateNotifier } from "./UpdateNotifier";
-import { IGraphicsEngine } from "core/graphics/IGraphicsEngine";
-import { IMotor } from "core/motor/IMotor";
+import { IGraphicsEngine } from "graphics/IGraphicsEngine";
+import { IMotor } from "motor/IMotor";
 
 export class TextureUpdate implements Refresh, UpdateNotifier {
   private readonly updatedImageIds: Set<MediaId> = new Set();

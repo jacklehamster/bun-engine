@@ -1,7 +1,7 @@
 import { Keyboard } from "controls/Keyboard";
-import { ResizeAux } from "core/aux/ResizeAux";
-import { IGraphicsEngine } from "core/graphics/IGraphicsEngine";
-import { IMotor } from "core/motor/IMotor";
+import { ResizeAux } from "graphics/aux/ResizeAux";
+import { IGraphicsEngine } from "graphics/IGraphicsEngine";
+import { IMotor } from "motor/IMotor";
 import { Camera } from "gl/camera/Camera";
 import Matrix from "gl/transform/Matrix";
 import { PositionMatrix } from "gl/transform/PositionMatrix";
