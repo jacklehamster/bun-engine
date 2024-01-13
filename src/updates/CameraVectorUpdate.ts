@@ -11,15 +11,14 @@ export class CameraVectorUpdate implements Refresh, UpdateNotifier {
   }
 
   informUpdate(type: VectorUniform): void {
-    this.motor.registerUpdate(this.withCameraType(type));
-  }
-
-  withCameraType(type: VectorUniform): CameraVectorUpdate {
-    this.updatedTypes.add(type);
-    return this;
+    if (!this.updatedTypes.has(type)) {
+      this.updatedTypes.add(type);
+      this.motor.registerUpdate(this);
+    }
   }
 
   refresh(): void {
     this.updatedTypes.forEach(type => this.engine.updateUniformVector(type, this.getCameraVector(type)));
+    this.updatedTypes.clear();
   }
 }

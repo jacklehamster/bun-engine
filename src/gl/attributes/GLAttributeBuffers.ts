@@ -6,8 +6,24 @@ import { VertexArray } from 'gl/attributes/VertexArray';
 export interface BufferInfo {
   location: number;
   target: GLenum,
+  usage: GLenum;
   buffer: WebGLBuffer;
   enabledVertexAttribArray: (boolean | undefined)[];
+  bytesPerInstance: GLsizei;
+  instanceCount: number;
+  callback?: (index: number) => number;
+}
+
+interface BufferInfoProps {
+  location: LocationName;
+  target: GLenum;
+  usage: GLenum;
+  vertexAttribPointerRows: 0 | 1 | 4;
+  elemCount?: GLint;
+  divisor?: GLuint & (0 | 1);
+  data?: BufferSource;
+  instanceCount?: number;
+  callback?: (index: number) => number;
 }
 
 export type LocationName = string;
@@ -51,26 +67,80 @@ export class GLAttributeBuffers implements Destroyable {
     });
   }
 
-  createBuffer(location: LocationName, target: GLenum): BufferInfo {
+  createBuffer({ location, target, usage, vertexAttribPointerRows, elemCount = 0, divisor = 0, callback, instanceCount = 1, data }: BufferInfoProps): BufferInfo {
     this.deleteBuffer(location);
-    const bufferBuffer = this.gl?.createBuffer();
+    const bufferBuffer = this.gl.createBuffer();
     if (!bufferBuffer) {
       throw new Error(`Unable to create buffer "${location}"`);
     }
-    const record = {
+    const bytesPerRow = elemCount * Float32Array.BYTES_PER_ELEMENT;
+    const bytesPerInstance = vertexAttribPointerRows * bytesPerRow;
+    const bufferInfo = this.bufferRecord[location] = {
       location: this.getAttributeLocation(location),
       target,
+      usage,
       buffer: bufferBuffer,
       enabledVertexAttribArray: [],
+      bytesPerInstance,
+      instanceCount,
+      callback,
     };
-    this.bufferRecord[location] = record;
-    return record;
+
+    this.vertexArray.bind();
+    this.gl.bindBuffer(bufferInfo.target, bufferInfo.buffer);
+
+    for (let row = 0; row < vertexAttribPointerRows; row++) {
+      const loc = bufferInfo.location + row;
+      this.gl.vertexAttribPointer(
+        loc,
+        elemCount,
+        GL.FLOAT,
+        false,
+        bytesPerInstance,
+        row * bytesPerRow);
+      this.enableVertexAttribArray(location, row);
+      this.gl.vertexAttribDivisor(loc, divisor);
+    }
+
+    if (data) {
+      this.gl.bufferData(target, data, bufferInfo.usage);
+    } else if (callback) {
+      this.gl.bufferData(target,
+        Float32Array.from(new Array(instanceCount).fill(0)
+          .map((_, index) => callback(index))),
+        bufferInfo.usage);
+    } else if (instanceCount) {
+      this.gl.bufferData(target, instanceCount * bytesPerInstance, bufferInfo.usage);
+    }
+
+    return bufferInfo;
+  }
+
+  ensureSize(location: LocationName, newCount: number) {
+    const bufferInfo = this.bufferRecord[location];
+    if (bufferInfo && bufferInfo.instanceCount < newCount) {
+      this.bindBuffer(location);
+      const bufferSize = this.gl.getBufferParameter(GL.ARRAY_BUFFER, GL.BUFFER_SIZE);
+      const oldBufferData = new Float32Array(bufferSize / Float32Array.BYTES_PER_ELEMENT);
+      this.gl.getBufferSubData(GL.ARRAY_BUFFER, 0, oldBufferData);
+
+      if (bufferInfo.callback) {
+        const callback = bufferInfo.callback;
+        this.gl.bufferData(bufferInfo.target,
+          Float32Array.from(new Array(newCount).fill(0).map((_, index) => callback(index))),
+          bufferInfo.usage);
+      } else if (newCount) {
+        this.gl.bufferData(bufferInfo.target, newCount * bufferInfo.bytesPerInstance, bufferInfo.usage);
+      }
+      this.gl.bufferSubData(bufferInfo.target, 0, oldBufferData);
+      bufferInfo.instanceCount = newCount;
+    }
   }
 
   bindBuffer(location: LocationName) {
     const bufferInfo = this.bufferRecord[location];
     if (bufferInfo) {
-      this.bindVertexArray();
+      this.vertexArray.bind();
       this.gl.bindBuffer(bufferInfo.target, bufferInfo.buffer);
     }
   }

@@ -8,11 +8,12 @@ interface DoubleLinkListNode<T> {
   next?: DoubleLinkListNode<T>;
 }
 
-export class DoubleLinkList<T> implements FreeStack<T> {
+export class DoubleLinkList<T extends string | number | symbol> implements FreeStack<T> {
   private readonly start: DoubleLinkListNode<T>;
   private readonly end: DoubleLinkListNode<T>;
-  private readonly nodeMap: Map<T, DoubleLinkListNode<T>> = new Map();
+  private readonly nodeMap: Record<T, DoubleLinkListNode<T>> = {} as Record<T, DoubleLinkListNode<T>>;
   private readonly pool: ObjectPool<DoubleLinkListNode<T>>;
+  private count: number = 0;
 
   constructor(edgeValue: T) {
     this.start = { value: edgeValue };
@@ -29,7 +30,7 @@ export class DoubleLinkList<T> implements FreeStack<T> {
   }
 
   get size(): number {
-    return this.nodeMap.size;
+    return this.count;
   }
 
   private tags: T[] = [];
@@ -48,11 +49,12 @@ export class DoubleLinkList<T> implements FreeStack<T> {
     newTop.next = this.end;
 
     formerTop.next = this.end.prev = newTop;
-    this.nodeMap.set(value, newTop);
+    this.nodeMap[value] = newTop;
+    this.count++;
   }
 
   remove(value: T): boolean {
-    const entry = this.nodeMap.get(value);
+    const entry = this.nodeMap[value];
     if (entry) {
       //  remove
       if (entry.prev) {
@@ -63,6 +65,8 @@ export class DoubleLinkList<T> implements FreeStack<T> {
       }
       entry.prev = entry.next = undefined;
       this.pool.recycle(entry);
+      delete this.nodeMap[value];
+      this.count--;
       return true;
     } else {
       return false;
@@ -75,7 +79,8 @@ export class DoubleLinkList<T> implements FreeStack<T> {
       const newBottom = entryToRemove.next!;
       this.start.next = newBottom;
       newBottom.prev = this.start;
-      this.nodeMap.delete(entryToRemove.value);
+      delete this.nodeMap[entryToRemove.value];
+      this.count--;
       entryToRemove.prev = entryToRemove.next = undefined;
       this.pool.recycle(entryToRemove);
       return entryToRemove.value;

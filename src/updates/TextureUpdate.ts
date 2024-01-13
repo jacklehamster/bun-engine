@@ -10,13 +10,11 @@ export class TextureUpdate implements Refresh, UpdateNotifier {
   constructor(private motor: IMotor, private getMedia: (imageId: MediaId) => Media | undefined, private engine: IGraphicsEngine) {
   }
 
-  withImageId(imageId: MediaId): TextureUpdate {
-    this.updatedImageIds.add(imageId);
-    return this;
-  }
-
   informUpdate(imageId: MediaId) {
-    this.motor.registerUpdate(this.withImageId(imageId));
+    if (!this.updatedImageIds.has(imageId)) {
+      this.updatedImageIds.add(imageId);
+      this.motor.registerUpdate(this);
+    }
   }
 
   refresh(): void {

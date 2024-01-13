@@ -214,25 +214,62 @@ class GLAttributeBuffers {
       }
     });
   }
-  createBuffer(location, target) {
+  createBuffer({ location, target, usage, vertexAttribPointerRows, elemCount = 0, divisor = 0, callback, instanceCount = 1, data }) {
     this.deleteBuffer(location);
-    const bufferBuffer = this.gl?.createBuffer();
+    const bufferBuffer = this.gl.createBuffer();
     if (!bufferBuffer) {
       throw new Error(`Unable to create buffer "${location}"`);
     }
-    const record = {
+    const bytesPerRow = elemCount * Float32Array.BYTES_PER_ELEMENT;
+    const bytesPerInstance = vertexAttribPointerRows * bytesPerRow;
+    const bufferInfo = this.bufferRecord[location] = {
       location: this.getAttributeLocation(location),
       target,
+      usage,
       buffer: bufferBuffer,
-      enabledVertexAttribArray: []
+      enabledVertexAttribArray: [],
+      bytesPerInstance,
+      instanceCount,
+      callback
     };
-    this.bufferRecord[location] = record;
-    return record;
+    this.vertexArray.bind();
+    this.gl.bindBuffer(bufferInfo.target, bufferInfo.buffer);
+    for (let row = 0;row < vertexAttribPointerRows; row++) {
+      const loc = bufferInfo.location + row;
+      this.gl.vertexAttribPointer(loc, elemCount, GL.FLOAT, false, bytesPerInstance, row * bytesPerRow);
+      this.enableVertexAttribArray(location, row);
+      this.gl.vertexAttribDivisor(loc, divisor);
+    }
+    if (data) {
+      this.gl.bufferData(target, data, bufferInfo.usage);
+    } else if (callback) {
+      this.gl.bufferData(target, Float32Array.from(new Array(instanceCount).fill(0).map((_, index) => callback(index))), bufferInfo.usage);
+    } else if (instanceCount) {
+      this.gl.bufferData(target, instanceCount * bytesPerInstance, bufferInfo.usage);
+    }
+    return bufferInfo;
+  }
+  ensureSize(location, newCount) {
+    const bufferInfo = this.bufferRecord[location];
+    if (bufferInfo && bufferInfo.instanceCount < newCount) {
+      this.bindBuffer(location);
+      const bufferSize = this.gl.getBufferParameter(GL.ARRAY_BUFFER, GL.BUFFER_SIZE);
+      const oldBufferData = new Float32Array(bufferSize / Float32Array.BYTES_PER_ELEMENT);
+      this.gl.getBufferSubData(GL.ARRAY_BUFFER, 0, oldBufferData);
+      if (bufferInfo.callback) {
+        const callback = bufferInfo.callback;
+        this.gl.bufferData(bufferInfo.target, Float32Array.from(new Array(newCount).fill(0).map((_, index) => callback(index))), bufferInfo.usage);
+      } else if (newCount) {
+        this.gl.bufferData(bufferInfo.target, newCount * bufferInfo.bytesPerInstance, bufferInfo.usage);
+      }
+      this.gl.bufferSubData(bufferInfo.target, 0, oldBufferData);
+      bufferInfo.instanceCount = newCount;
+    }
   }
   bindBuffer(location) {
     const bufferInfo = this.bufferRecord[location];
     if (bufferInfo) {
-      this.bindVertexArray();
+      this.vertexArray.bind();
       this.gl.bindBuffer(bufferInfo.target, bufferInfo.buffer);
     }
   }
@@ -4453,6 +4490,7 @@ class GraphicsEngine extends Disposable {
     this.vec3Uniforms = {
       [VectorUniform.BG_COLOR]: this.uniforms.getUniformLocation(BG_COLOR_LOC, PROGRAM_NAME)
     };
+    this.attributeBuffers = this.own(new GLAttributeBuffers(this.gl, this.programs));
     this.initialize(PROGRAM_NAME);
   }
   addResizeListener(listener) {
@@ -4496,59 +4534,88 @@ class GraphicsEngine extends Disposable {
   setMaxSpriteCount(count) {
     if (count > this.maxSpriteCount) {
       this.maxSpriteCount = 1 << Math.ceil(Math.log2(count));
-      this.clearAttributeBuffers();
+      this.ensureBuffers(this.maxSpriteCount);
     }
   }
   setBgColor(rgb) {
     this.gl.clearColor(rgb[0], rgb[1], rgb[2], 1);
     this.gl.clear(this.gl.COLOR_BUFFER_BIT);
   }
-  initializeBuffers(maxSpriteCount) {
-    if (!this.attributeBuffers) {
-      this.attributeBuffers = this.own(new GLAttributeBuffers(this.gl, this.programs));
+  ensureBuffers(instanceCount) {
+    console.log("Sprite limit", instanceCount);
+    if (!this.attributeBuffers.hasBuffer(INDEX_LOC)) {
+      this.attributeBuffers.createBuffer({
+        location: INDEX_LOC,
+        target: GL.ELEMENT_ARRAY_BUFFER,
+        usage: GL.STATIC_DRAW,
+        vertexAttribPointerRows: 0,
+        data: Uint16Array.from([0, 1, 2, 2, 3, 0])
+      });
     }
-    this.attributeBuffers.clear();
-    if (maxSpriteCount) {
-      console.log("Sprite limit", maxSpriteCount);
-      this.attributeBuffers.bindVertexArray();
-      this.initializeBuffer(INDEX_LOC, GL.ELEMENT_ARRAY_BUFFER, 0, undefined, undefined, GL.STATIC_DRAW, Uint16Array.from([0, 1, 2, 2, 3, 0]));
-      this.initializeBuffer(POSITION_LOC, GL.ARRAY_BUFFER, 1, 2, 0, GL.STATIC_DRAW, Float32Array.from([-1, -1, 1, -1, 1, 1, -1, 1]));
-      this.initializeBuffer(TRANSFORM_LOC, GL.ARRAY_BUFFER, 4, 4, 1, GL.DYNAMIC_DRAW, undefined, maxSpriteCount);
-      this.initializeBuffer(SLOT_SIZE_LOC, GL.ARRAY_BUFFER, 1, 2, 1, GL.DYNAMIC_DRAW, undefined, maxSpriteCount);
-      this.initializeBuffer(INSTANCE_LOC, GL.ARRAY_BUFFER, 1, 1, 1, GL.STATIC_DRAW, undefined, maxSpriteCount, (index) => index);
-      this.initializeBuffer(SPRITE_FLAGS_LOC, GL.ARRAY_BUFFER, 1, 1, 1, GL.STATIC_DRAW, undefined, maxSpriteCount);
+    if (!this.attributeBuffers.hasBuffer(POSITION_LOC)) {
+      this.attributeBuffers.createBuffer({
+        location: POSITION_LOC,
+        target: GL.ARRAY_BUFFER,
+        usage: GL.STATIC_DRAW,
+        vertexAttribPointerRows: 1,
+        elemCount: 2,
+        data: Float32Array.from([-1, -1, 1, -1, 1, 1, -1, 1])
+      });
+    }
+    if (!this.attributeBuffers.hasBuffer(TRANSFORM_LOC)) {
+      this.attributeBuffers.createBuffer({
+        location: TRANSFORM_LOC,
+        target: GL.ARRAY_BUFFER,
+        usage: GL.DYNAMIC_DRAW,
+        vertexAttribPointerRows: 4,
+        elemCount: 4,
+        divisor: 1,
+        instanceCount
+      });
+    } else {
+      this.attributeBuffers.ensureSize(TRANSFORM_LOC, instanceCount);
+    }
+    if (!this.attributeBuffers.hasBuffer(SLOT_SIZE_LOC)) {
+      this.attributeBuffers.createBuffer({
+        location: SLOT_SIZE_LOC,
+        target: GL.ARRAY_BUFFER,
+        usage: GL.DYNAMIC_DRAW,
+        vertexAttribPointerRows: 1,
+        elemCount: 2,
+        divisor: 1,
+        instanceCount
+      });
+    } else {
+      this.attributeBuffers.ensureSize(SLOT_SIZE_LOC, instanceCount);
+    }
+    if (!this.attributeBuffers.hasBuffer(INSTANCE_LOC)) {
+      this.attributeBuffers.createBuffer({
+        location: INSTANCE_LOC,
+        target: GL.ARRAY_BUFFER,
+        usage: GL.STATIC_DRAW,
+        vertexAttribPointerRows: 1,
+        elemCount: 1,
+        divisor: 1,
+        instanceCount,
+        callback: (index) => index
+      });
+    } else {
+      this.attributeBuffers.ensureSize(INSTANCE_LOC, instanceCount);
+    }
+    if (!this.attributeBuffers.hasBuffer(SPRITE_FLAGS_LOC)) {
+      this.attributeBuffers.createBuffer({
+        location: SPRITE_FLAGS_LOC,
+        target: GL.ARRAY_BUFFER,
+        usage: GL.STATIC_DRAW,
+        vertexAttribPointerRows: 1,
+        elemCount: 1,
+        divisor: 1,
+        instanceCount
+      });
+    } else {
+      this.attributeBuffers.ensureSize(SPRITE_FLAGS_LOC, instanceCount);
     }
     return this.attributeBuffers;
-  }
-  clearAttributeBuffers() {
-    this.attributeBuffers?.clear();
-    this.attributeBuffers = undefined;
-  }
-  ensureAttributeBuffers() {
-    if (!this.attributeBuffers) {
-      this.attributeBuffers = this.initializeBuffers(this.maxSpriteCount);
-    }
-    return this.attributeBuffers;
-  }
-  initializeBuffer(location, target, vertexAttribPointerRows = 1, elemCount = 0, divisor = 0, usage = GL.DYNAMIC_DRAW, data, instanceCount, callback) {
-    const attributeBuffers = this.ensureAttributeBuffers();
-    const bufferInfo = attributeBuffers.createBuffer(location, target);
-    attributeBuffers.bindBuffer(location);
-    const bytesPerRow = elemCount * Float32Array.BYTES_PER_ELEMENT;
-    const bytesPerInstance = vertexAttribPointerRows * bytesPerRow;
-    for (let i = 0;i < vertexAttribPointerRows; i++) {
-      const loc = bufferInfo.location + i;
-      this.gl.vertexAttribPointer(loc, elemCount, GL.FLOAT, false, bytesPerInstance, i * bytesPerRow);
-      attributeBuffers.enableVertexAttribArray(location, i);
-      this.gl.vertexAttribDivisor(loc, divisor);
-    }
-    if (callback) {
-      this.gl.bufferData(target, Float32Array.from(new Array(instanceCount).fill(0).map((_, index) => callback(index))), usage);
-    } else if (data) {
-      this.gl.bufferData(target, data, usage);
-    } else if (instanceCount) {
-      this.gl.bufferData(target, instanceCount * bytesPerInstance, usage);
-    }
   }
   async updateTextures(imageIds, getMedia) {
     const mediaInfos = (await Promise.all(imageIds.map(async (imageId) => {
@@ -4584,7 +4651,7 @@ class GraphicsEngine extends Disposable {
     this.gl.drawElementsInstanced(GL.TRIANGLES, vertexCount, GL.UNSIGNED_SHORT, 0, instances);
   }
   updateSpriteTransforms(spriteIds, sprites) {
-    const attributeBuffers = this.ensureAttributeBuffers();
+    const attributeBuffers = this.attributeBuffers;
     attributeBuffers.bindVertexArray();
     attributeBuffers.bindBuffer(TRANSFORM_LOC);
     let topVisibleSprite = this.spriteCount - 1;
@@ -4602,7 +4669,7 @@ class GraphicsEngine extends Disposable {
     this.spriteCount = Math.max(this.spriteCount, topVisibleSprite + 1);
   }
   updateSpriteAnims(spriteIds, sprites) {
-    const attributeBuffers = this.ensureAttributeBuffers();
+    const attributeBuffers = this.attributeBuffers;
     attributeBuffers.bindVertexArray();
     attributeBuffers.bindBuffer(SLOT_SIZE_LOC);
     spriteIds.forEach((spriteId) => {
@@ -4636,8 +4703,7 @@ class GraphicsEngine extends Disposable {
   static clearBit = GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT;
   refresh() {
     this.gl.clear(GraphicsEngine.clearBit);
-    const attributeBuffers = this.ensureAttributeBuffers();
-    attributeBuffers.bindVertexArray();
+    this.attributeBuffers.bindVertexArray();
     this.drawElementsInstanced(VERTICES_PER_SPRITE, this.spriteCount);
     this.gl.bindVertexArray(null);
     this.pixelListener?.setPixel(this.getPixel(this.pixelListener.x, this.pixelListener.y));
@@ -5051,14 +5117,14 @@ class CameraUpdate {
     this.motor = motor;
   }
   informUpdate(type) {
-    this.motor.registerUpdate(this.withCameraType(type));
-  }
-  withCameraType(type) {
-    this.updatedTypes.add(type);
-    return this;
+    if (!this.updatedTypes.has(type)) {
+      this.updatedTypes.add(type);
+      this.motor.registerUpdate(this);
+    }
   }
   refresh() {
     this.updatedTypes.forEach((type) => this.engine.updateUniformMatrix(type, this.getCameraMatrix(type)));
+    this.updatedTypes.clear();
   }
 }
 
@@ -5074,14 +5140,14 @@ class CameraFloatUpdate {
     this.motor = motor;
   }
   informUpdate(type) {
-    this.motor.registerUpdate(this.withCameraType(type));
-  }
-  withCameraType(type) {
-    this.updatedTypes.add(type);
-    return this;
+    if (!this.updatedTypes.has(type)) {
+      this.updatedTypes.add(type);
+      this.motor.registerUpdate(this);
+    }
   }
   refresh() {
     this.updatedTypes.forEach((type) => this.engine.updateUniformFloat(type, this.getCameraFloat(type)));
+    this.updatedTypes.clear();
   }
 }
 
@@ -5208,14 +5274,14 @@ class CameraVectorUpdate {
     this.motor = motor;
   }
   informUpdate(type) {
-    this.motor.registerUpdate(this.withCameraType(type));
-  }
-  withCameraType(type) {
-    this.updatedTypes.add(type);
-    return this;
+    if (!this.updatedTypes.has(type)) {
+      this.updatedTypes.add(type);
+      this.motor.registerUpdate(this);
+    }
   }
   refresh() {
     this.updatedTypes.forEach((type) => this.engine.updateUniformVector(type, this.getCameraVector(type)));
+    this.updatedTypes.clear();
   }
 }
 
@@ -5717,8 +5783,9 @@ class ObjectPool {
 class DoubleLinkList {
   start;
   end;
-  nodeMap = new Map;
+  nodeMap = {};
   pool;
+  count = 0;
   constructor(edgeValue) {
     this.start = { value: edgeValue };
     this.end = { value: edgeValue };
@@ -5733,7 +5800,7 @@ class DoubleLinkList {
     });
   }
   get size() {
-    return this.nodeMap.size;
+    return this.count;
   }
   tags = [];
   getList() {
@@ -5749,10 +5816,11 @@ class DoubleLinkList {
     newTop.prev = formerTop;
     newTop.next = this.end;
     formerTop.next = this.end.prev = newTop;
-    this.nodeMap.set(value, newTop);
+    this.nodeMap[value] = newTop;
+    this.count++;
   }
   remove(value) {
-    const entry = this.nodeMap.get(value);
+    const entry = this.nodeMap[value];
     if (entry) {
       if (entry.prev) {
         entry.prev.next = entry.next;
@@ -5762,6 +5830,8 @@ class DoubleLinkList {
       }
       entry.prev = entry.next = undefined;
       this.pool.recycle(entry);
+      delete this.nodeMap[value];
+      this.count--;
       return true;
     } else {
       return false;
@@ -5773,7 +5843,8 @@ class DoubleLinkList {
       const newBottom = entryToRemove.next;
       this.start.next = newBottom;
       newBottom.prev = this.start;
-      this.nodeMap.delete(entryToRemove.value);
+      delete this.nodeMap[entryToRemove.value];
+      this.count--;
       entryToRemove.prev = entryToRemove.next = undefined;
       this.pool.recycle(entryToRemove);
       return entryToRemove.value;
@@ -5877,8 +5948,10 @@ class UpdateRegistry {
     this.motor = motor;
   }
   informUpdate(id) {
-    this.updatedIds.add(id);
-    this.motor.registerUpdate(this);
+    if (!this.updatedIds.has(id)) {
+      this.updatedIds.add(id);
+      this.motor.registerUpdate(this);
+    }
   }
   refresh() {
     this.applyUpdate(this.updatedIds);
@@ -6457,4 +6530,4 @@ export {
   hello
 };
 
-//# debugId=402F77DA4BD70EAE64756e2164756e21
+//# debugId=7A66B1973DC99E6064756e2164756e21
