@@ -3,16 +3,12 @@ import { Cell, cellTag } from "./CellPos";
 import { VisitCell } from "./VisitCell";
 import { DoubleLinkList } from "../../utils/DoubleLinkList";
 import { FreeStack } from "utils/FreeStack";
+import { CellTrack } from "./CellTrack";
 
 interface Config {
   range?: [number, number, number];
   cellLimit?: number;
   cellSize?: number;
-}
-
-export interface CellTrack {
-  trackCell?(cell: Cell): void;
-  untrackCell?(cellTag: string): void;
 }
 
 export class CellTracker implements VisitCell {

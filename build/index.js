@@ -12,12 +12,15 @@ var __export = (target, all) => {
 // src/gl/lifecycle/Disposable.ts
 class Disposable {
   disposables;
-  own(disposable) {
+  own(destroyable) {
     if (!this.disposables) {
       this.disposables = new Set;
     }
-    this.disposables.add(disposable);
-    return disposable;
+    this.disposables.add(destroyable);
+    return destroyable;
+  }
+  disown(destroyable) {
+    this.disposables?.delete(destroyable);
   }
   addOnDestroy(callback) {
     if (callback) {
@@ -28,6 +31,7 @@ class Disposable {
   }
   destroy() {
     this.disposables?.forEach((disposable) => disposable.destroy());
+    this.disposables?.clear();
   }
 }
 
@@ -156,61 +160,102 @@ class GLPrograms extends Disposable {
   }
 }
 
-// src/gl/VertexArray.ts
+// src/gl/attributes/VertexArray.ts
 class VertexArray {
   gl;
   triangleArray;
   constructor(gl) {
     this.gl = gl;
-    this.triangleArray = gl.createVertexArray();
-    gl.bindVertexArray(this.triangleArray);
+    this.triangleArray = this.gl.createVertexArray();
+  }
+  bind() {
+    this.gl.bindVertexArray(this.triangleArray);
   }
   destroy() {
     this.gl.deleteVertexArray(this.triangleArray);
+    this.triangleArray = null;
   }
 }
 
 // src/gl/attributes/GLAttributeBuffers.ts
 class GLAttributeBuffers {
-  bufferRecord = {};
   gl;
   programs;
+  bufferRecord = {};
+  vertexArray;
   constructor(gl, programs) {
     this.gl = gl;
     this.programs = programs;
+    this.vertexArray = new VertexArray(this.gl);
+  }
+  bindVertexArray() {
+    this.vertexArray.bind();
   }
   getAttributeLocation(name, programId) {
     const program = this.programs.getProgram(programId);
     return program ? this.gl.getAttribLocation(program, name) ?? -1 : -1;
   }
-  createBuffer(location) {
+  hasBuffer(location) {
+    return !!this.bufferRecord[location];
+  }
+  enableVertexAttribArray(location, index = 0) {
+    const bufferInfo = this.bufferRecord[location];
+    if (!bufferInfo.enabledVertexAttribArray[index]) {
+      bufferInfo.enabledVertexAttribArray[index] = true;
+      this.gl.enableVertexAttribArray(bufferInfo.location + index);
+    }
+  }
+  disableVertexAttribArray(location) {
+    const bufferInfo = this.bufferRecord[location];
+    bufferInfo.enabledVertexAttribArray.forEach((enabled, index) => {
+      if (enabled) {
+        this.gl.disableVertexAttribArray(bufferInfo.location + index);
+        bufferInfo.enabledVertexAttribArray[index] = false;
+      }
+    });
+  }
+  createBuffer(location, target) {
     this.deleteBuffer(location);
     const bufferBuffer = this.gl?.createBuffer();
     if (!bufferBuffer) {
       throw new Error(`Unable to create buffer "${location}"`);
     }
     const record = {
+      location: this.getAttributeLocation(location),
+      target,
       buffer: bufferBuffer,
-      location: this.getAttributeLocation(location)
+      enabledVertexAttribArray: []
     };
     this.bufferRecord[location] = record;
     return record;
   }
+  bindBuffer(location) {
+    const bufferInfo = this.bufferRecord[location];
+    if (bufferInfo) {
+      this.bindVertexArray();
+      this.gl.bindBuffer(bufferInfo.target, bufferInfo.buffer);
+    }
+  }
   deleteBuffer(location) {
-    if (this.bufferRecord[location]) {
-      this.gl.deleteBuffer(this.bufferRecord[location].buffer);
+    const bufferInfo = this.bufferRecord[location];
+    if (bufferInfo) {
+      this.disableVertexAttribArray(location);
+      this.gl.deleteBuffer(bufferInfo.buffer);
       delete this.bufferRecord[location];
     }
   }
   getAttributeBuffer(location) {
-    const attribute = this.bufferRecord[location];
-    if (!attribute) {
+    const bufferInfo = this.bufferRecord[location];
+    if (!bufferInfo) {
       throw new Error(`Attribute "${location}" not created. Make sure "createBuffer" is called.`);
     }
-    return attribute;
+    return bufferInfo;
+  }
+  clear() {
+    Object.keys(this.bufferRecord).forEach((location) => this.deleteBuffer(location));
   }
   destroy() {
-    Object.keys(this.bufferRecord).forEach((location) => this.deleteBuffer(location));
+    this.clear();
   }
 }
 
@@ -4283,6 +4328,13 @@ class Matrix {
     }
     return v;
   }
+  getPosition() {
+    const v = Matrix.tempVec;
+    v[0] = this.m4[12];
+    v[1] = this.m4[13];
+    v[2] = this.m4[14];
+    return v;
+  }
   setPosition(x, y, z) {
     this.m4[12] = x;
     this.m4[13] = y;
@@ -4295,7 +4347,7 @@ class Matrix {
 }
 var Matrix_default = Matrix;
 
-// src/core/graphics/Uniforms.ts
+// src/graphics/Uniforms.ts
 var FloatUniform;
 (function(FloatUniform2) {
   FloatUniform2[FloatUniform2["CURVATURE"] = 0] = "CURVATURE";
@@ -4314,7 +4366,7 @@ var VectorUniform;
   VectorUniform2[VectorUniform2["BG_COLOR"] = 0] = "BG_COLOR";
 })(VectorUniform || (VectorUniform = {}));
 
-// src/core/graphics/GraphicsEngine.ts
+// src/graphics/GraphicsEngine.ts
 var glProxy = function(gl) {
   if (!LOG_GL) {
     return gl;
@@ -4348,7 +4400,7 @@ var DEFAULT_ATTRIBUTES = {
   preserveDrawingBuffer: false,
   stencil: false
 };
-var VERTEX_COUNT = 6;
+var VERTICES_PER_SPRITE = 6;
 var LOG_GL = false;
 var EMPTY_VEC2 = Float32Array.from([0, 0]);
 
@@ -4377,7 +4429,6 @@ class GraphicsEngine extends Disposable {
     this.canvas = canvas;
     this.programs = this.own(new GLPrograms(this.gl));
     this.uniforms = new GLUniforms(this.gl, this.programs);
-    this.attributeBuffers = this.own(new GLAttributeBuffers(this.gl, this.programs));
     this.textureManager = new TextureManager(this.gl, this.uniforms);
     this.imageManager = new ImageManager;
     const onResize = this.checkCanvasSize.bind(this);
@@ -4445,69 +4496,59 @@ class GraphicsEngine extends Disposable {
   setMaxSpriteCount(count) {
     if (count > this.maxSpriteCount) {
       this.maxSpriteCount = 1 << Math.ceil(Math.log2(count));
-      this.initializeBuffers(this.maxSpriteCount);
-      console.log("Sprite limit", this.maxSpriteCount);
+      this.clearAttributeBuffers();
     }
   }
   setBgColor(rgb) {
     this.gl.clearColor(rgb[0], rgb[1], rgb[2], 1);
     this.gl.clear(this.gl.COLOR_BUFFER_BIT);
   }
-  onCleanupBuffers = new Set;
   initializeBuffers(maxSpriteCount) {
-    this.onCleanupBuffers.forEach((cleanup) => cleanup());
-    this.onCleanupBuffers.clear();
-    if (maxSpriteCount) {
-      const cleanups = [
-        this.initializeIndexBuffer(INDEX_LOC),
-        this.initializePositionBuffer(POSITION_LOC),
-        this.initializeBuffer(TRANSFORM_LOC, maxSpriteCount, 4, 4, 1, GL.DYNAMIC_DRAW),
-        this.initializeBuffer(SLOT_SIZE_LOC, maxSpriteCount, 2, 1, 1, GL.DYNAMIC_DRAW),
-        this.initializeBuffer(INSTANCE_LOC, maxSpriteCount, 1, 1, 1, GL.STATIC_DRAW, (index) => index),
-        this.initializeBuffer(SPRITE_FLAGS_LOC, maxSpriteCount, 1, 1, 1, GL.STATIC_DRAW)
-      ];
-      cleanups.forEach((cleanup) => this.onCleanupBuffers.add(cleanup));
+    if (!this.attributeBuffers) {
+      this.attributeBuffers = this.own(new GLAttributeBuffers(this.gl, this.programs));
     }
+    this.attributeBuffers.clear();
+    if (maxSpriteCount) {
+      console.log("Sprite limit", maxSpriteCount);
+      this.attributeBuffers.bindVertexArray();
+      this.initializeBuffer(INDEX_LOC, GL.ELEMENT_ARRAY_BUFFER, 0, undefined, undefined, GL.STATIC_DRAW, Uint16Array.from([0, 1, 2, 2, 3, 0]));
+      this.initializeBuffer(POSITION_LOC, GL.ARRAY_BUFFER, 1, 2, 0, GL.STATIC_DRAW, Float32Array.from([-1, -1, 1, -1, 1, 1, -1, 1]));
+      this.initializeBuffer(TRANSFORM_LOC, GL.ARRAY_BUFFER, 4, 4, 1, GL.DYNAMIC_DRAW, undefined, maxSpriteCount);
+      this.initializeBuffer(SLOT_SIZE_LOC, GL.ARRAY_BUFFER, 1, 2, 1, GL.DYNAMIC_DRAW, undefined, maxSpriteCount);
+      this.initializeBuffer(INSTANCE_LOC, GL.ARRAY_BUFFER, 1, 1, 1, GL.STATIC_DRAW, undefined, maxSpriteCount, (index) => index);
+      this.initializeBuffer(SPRITE_FLAGS_LOC, GL.ARRAY_BUFFER, 1, 1, 1, GL.STATIC_DRAW, undefined, maxSpriteCount);
+    }
+    return this.attributeBuffers;
   }
-  initializeIndexBuffer(location) {
-    const bufferInfo = this.attributeBuffers.createBuffer(location);
-    this.gl.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, bufferInfo.buffer);
-    this.gl.bufferData(GL.ELEMENT_ARRAY_BUFFER, Uint16Array.from([0, 1, 2, 2, 3, 0]), GL.STATIC_DRAW);
-    return () => {
-      this.attributeBuffers.deleteBuffer(location);
-    };
+  clearAttributeBuffers() {
+    this.attributeBuffers?.clear();
+    this.attributeBuffers = undefined;
   }
-  initializePositionBuffer(location) {
-    const bufferInfo = this.attributeBuffers.createBuffer(location);
-    this.gl.bindBuffer(GL.ARRAY_BUFFER, bufferInfo.buffer);
-    this.gl.vertexAttribPointer(bufferInfo.location, 2, GL.FLOAT, false, 0, 0);
-    this.gl.enableVertexAttribArray(bufferInfo.location);
-    this.gl.bufferData(GL.ARRAY_BUFFER, Float32Array.from([-1, -1, 1, -1, 1, 1, -1, 1]), GL.STATIC_DRAW);
-    return () => {
-      this.gl.disableVertexAttribArray(bufferInfo.location);
-      this.attributeBuffers.deleteBuffer(location);
-    };
+  ensureAttributeBuffers() {
+    if (!this.attributeBuffers) {
+      this.attributeBuffers = this.initializeBuffers(this.maxSpriteCount);
+    }
+    return this.attributeBuffers;
   }
-  initializeBuffer(location, instanceCount, elemCount, dataRows = 1, divisor = 0, usage = GL.DYNAMIC_DRAW, callback) {
-    const bufferInfo = this.attributeBuffers.createBuffer(location);
-    this.gl.bindBuffer(GL.ARRAY_BUFFER, bufferInfo.buffer);
+  initializeBuffer(location, target, vertexAttribPointerRows = 1, elemCount = 0, divisor = 0, usage = GL.DYNAMIC_DRAW, data, instanceCount, callback) {
+    const attributeBuffers = this.ensureAttributeBuffers();
+    const bufferInfo = attributeBuffers.createBuffer(location, target);
+    attributeBuffers.bindBuffer(location);
     const bytesPerRow = elemCount * Float32Array.BYTES_PER_ELEMENT;
-    const bytesPerInstance = dataRows * bytesPerRow;
-    for (let i = 0;i < dataRows; i++) {
+    const bytesPerInstance = vertexAttribPointerRows * bytesPerRow;
+    for (let i = 0;i < vertexAttribPointerRows; i++) {
       const loc = bufferInfo.location + i;
       this.gl.vertexAttribPointer(loc, elemCount, GL.FLOAT, false, bytesPerInstance, i * bytesPerRow);
-      this.gl.enableVertexAttribArray(loc);
+      attributeBuffers.enableVertexAttribArray(location, i);
       this.gl.vertexAttribDivisor(loc, divisor);
     }
     if (callback) {
-      this.gl.bufferData(GL.ARRAY_BUFFER, Float32Array.from(new Array(instanceCount).fill(0).map((_, index) => callback(index))), usage);
-    } else {
-      this.gl.bufferData(GL.ARRAY_BUFFER, instanceCount * bytesPerInstance, usage);
+      this.gl.bufferData(target, Float32Array.from(new Array(instanceCount).fill(0).map((_, index) => callback(index))), usage);
+    } else if (data) {
+      this.gl.bufferData(target, data, usage);
+    } else if (instanceCount) {
+      this.gl.bufferData(target, instanceCount * bytesPerInstance, usage);
     }
-    return () => {
-      this.gl.disableVertexAttribArray(bufferInfo.location);
-      this.attributeBuffers.deleteBuffer(location);
-    };
   }
   async updateTextures(imageIds, getMedia) {
     const mediaInfos = (await Promise.all(imageIds.map(async (imageId) => {
@@ -4543,8 +4584,9 @@ class GraphicsEngine extends Disposable {
     this.gl.drawElementsInstanced(GL.TRIANGLES, vertexCount, GL.UNSIGNED_SHORT, 0, instances);
   }
   updateSpriteTransforms(spriteIds, sprites) {
-    const bufferInfo = this.attributeBuffers.getAttributeBuffer(TRANSFORM_LOC);
-    this.gl.bindBuffer(GL.ARRAY_BUFFER, bufferInfo.buffer);
+    const attributeBuffers = this.ensureAttributeBuffers();
+    attributeBuffers.bindVertexArray();
+    attributeBuffers.bindBuffer(TRANSFORM_LOC);
     let topVisibleSprite = this.spriteCount - 1;
     spriteIds.forEach((spriteId) => {
       const sprite = sprites.at(spriteId);
@@ -4560,8 +4602,9 @@ class GraphicsEngine extends Disposable {
     this.spriteCount = Math.max(this.spriteCount, topVisibleSprite + 1);
   }
   updateSpriteAnims(spriteIds, sprites) {
-    const bufferInfo = this.attributeBuffers.getAttributeBuffer(SLOT_SIZE_LOC);
-    this.gl.bindBuffer(GL.ARRAY_BUFFER, bufferInfo.buffer);
+    const attributeBuffers = this.ensureAttributeBuffers();
+    attributeBuffers.bindVertexArray();
+    attributeBuffers.bindBuffer(SLOT_SIZE_LOC);
     spriteIds.forEach((spriteId) => {
       const sprite = sprites.at(spriteId);
       const slotObj = sprite ? this.textureSlots[sprite.imageId] : undefined;
@@ -4581,9 +4624,6 @@ class GraphicsEngine extends Disposable {
   updateUniformVector(type, vector) {
     this.gl.uniform3fv(this.vec3Uniforms[type], vector);
   }
-  bindVertexArray() {
-    return this.own(new VertexArray(this.gl));
-  }
   setPixelListener(listener) {
     this.pixelListener = listener;
   }
@@ -4596,12 +4636,15 @@ class GraphicsEngine extends Disposable {
   static clearBit = GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT;
   refresh() {
     this.gl.clear(GraphicsEngine.clearBit);
-    this.drawElementsInstanced(VERTEX_COUNT, this.spriteCount);
+    const attributeBuffers = this.ensureAttributeBuffers();
+    attributeBuffers.bindVertexArray();
+    this.drawElementsInstanced(VERTICES_PER_SPRITE, this.spriteCount);
+    this.gl.bindVertexArray(null);
     this.pixelListener?.setPixel(this.getPixel(this.pixelListener.x, this.pixelListener.y));
   }
 }
 
-// src/core/motor/Motor.ts
+// src/motor/Motor.ts
 var MAX_DELTA_TIME = 50;
 
 class Motor {
@@ -4825,7 +4868,7 @@ class Keyboard extends AuxiliaryHolder {
   }
 }
 
-// src/core/aux/ResizeAux.ts
+// src/graphics/aux/ResizeAux.ts
 class ResizeAux {
   engine;
   camera;
@@ -5097,16 +5140,21 @@ class PositionMatrix extends AuxiliaryHolder {
     const vector = this.matrix.getMoveVector(x, y, z, turnMatrix);
     const blocked = this.moveBlocker?.isBlocked(toPos(this.position[0] + vector[0], this.position[1] + vector[1], this.position[2] + vector[2]), this.position);
     if (!blocked) {
-      this.matrix.move(vector);
-      this.changedPosition();
+      if (vector[0] || vector[1] || vector[2]) {
+        this.matrix.move(vector);
+        this.changedPosition();
+      }
     }
     return !blocked;
   }
   moveTo(x, y, z) {
     const blocked = this.moveBlocker?.isBlocked(toPos(x, y, z));
     if (!blocked) {
-      this.matrix.setPosition(x, y, z);
-      this.changedPosition();
+      const [curX, curY, curZ] = this.matrix.getPosition();
+      if (curX !== x || curY !== y || curZ !== z) {
+        this.matrix.setPosition(x, y, z);
+        this.changedPosition();
+      }
     }
     return !blocked;
   }
@@ -5171,7 +5219,7 @@ class CameraVectorUpdate {
   }
 }
 
-// src/gl/camera/Camera.ts
+// src/camera/Camera.ts
 class Camera extends AuxiliaryHolder {
   camMatrix = Matrix_default.create();
   projectionMatrix = new ProjectionMatrix(() => this.updateInformer.informUpdate(MatrixUniform.PROJECTION));
@@ -5204,8 +5252,8 @@ class Camera extends AuxiliaryHolder {
     this.updateInformer.informUpdate(MatrixUniform.CAM_TILT);
     this.updateInformerFloat.informUpdate(FloatUniform.CURVATURE);
     this.updateInformerFloat.informUpdate(FloatUniform.CAM_DISTANCE);
-    this.updateInformerVector.informUpdate(VectorUniform.BG_COLOR);
     this.updateInformerFloat.informUpdate(FloatUniform.BG_BLUR);
+    this.updateInformerVector.informUpdate(VectorUniform.BG_COLOR);
   }
   cameraMatrices = {
     [MatrixUniform.PROJECTION]: this.projectionMatrix,
@@ -5829,11 +5877,8 @@ class UpdateRegistry {
     this.motor = motor;
   }
   informUpdate(id) {
-    this.addId(id);
-    this.motor.registerUpdate(this);
-  }
-  addId(id) {
     this.updatedIds.add(id);
+    this.motor.registerUpdate(this);
   }
   refresh() {
     this.applyUpdate(this.updatedIds);
@@ -6055,7 +6100,7 @@ class FixedSpriteGrid extends SpriteGrid {
   spritesPerCell = {};
   spritesList;
   constructor(config, ...spritesList) {
-    super({ spriteLimit: config.spriteLimit ?? spritesList.reduce((a, s) => a + s.length, 0) }, {
+    super({}, {
       getSpritesAtCell: (cell) => {
         return this.spritesPerCell[cell.tag] ?? EMPTY;
       }
@@ -6261,7 +6306,16 @@ class DemoWorld extends AuxiliaryHolder {
         ctx.stroke();
       }
     });
-    spritesAccumulator.addAuxiliary(new FixedSpriteGrid({ cellSize: CELLSIZE }, new SpriteGroup([
+    spritesAccumulator.addAuxiliary(new FixedSpriteGrid({ cellSize: CELLSIZE }, [
+      {
+        imageId: DOBUKI,
+        transform: Matrix_default.create().translate(0, 0, -1)
+      },
+      {
+        imageId: DOBUKI,
+        transform: Matrix_default.create().translate(0, 0, -1).rotateY(Math.PI)
+      }
+    ], [
       ...[
         Matrix_default.create().translate(-1, 0, 0).rotateY(Math.PI / 2),
         Matrix_default.create().translate(-1, 0, 0).rotateY(-Math.PI / 2),
@@ -6274,7 +6328,7 @@ class DemoWorld extends AuxiliaryHolder {
         Matrix_default.create().translate(-2, -1, 2).rotateX(-Math.PI / 2),
         Matrix_default.create().translate(2, -1, 2).rotateX(-Math.PI / 2)
       ].map((transform) => ({ imageId: GROUND, transform }))
-    ], Matrix_default.create()), new SpriteGroup([
+    ], new SpriteGroup([
       ...[
         Matrix_default.create().translate(0, -1, 0).rotateX(Math.PI / 2),
         Matrix_default.create().translate(0, 1, 0).rotateX(-Math.PI / 2),
@@ -6314,7 +6368,6 @@ class DemoWorld extends AuxiliaryHolder {
     spritesAccumulator.addAuxiliary(new SpriteGrid({ yRange: [0, 0] }, {
       getSpritesAtCell: (cell) => [
         {
-          name: `${cell.pos[0]}_${cell.pos[2]}`,
           imageId: GRASS,
           transform: Matrix_default.create().translate(cell.pos[0] * cell.pos[3], -1, cell.pos[2] * cell.pos[3]).rotateX(-Math.PI / 2).scale(1)
         },
@@ -6356,7 +6409,9 @@ class DemoWorld extends AuxiliaryHolder {
 
 // src/index.tsx
 async function hello() {
-  console.log("Hello World!");
+  console.info(`Welcome!
+You are using dok-engine.
+https://github.com/jacklehamster/bun-engine`);
 }
 async function testCanvas(canvas) {
   canvas.style.border = "2px solid silver";
@@ -6402,4 +6457,4 @@ export {
   hello
 };
 
-//# debugId=AE13FA0626E8661E64756e2164756e21
+//# debugId=402F77DA4BD70EAE64756e2164756e21

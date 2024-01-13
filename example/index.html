@@ -36,9 +36,8 @@
   <script type="module">
     import { testCanvas, hello } from './build/index.js';
 
-    const { core, world } = await testCanvas(document.querySelector('#root'));
-    window.core = core;
-    window.world = world;
+    const game = await testCanvas(document.querySelector('#root'));
+    window.game = game;
     hello();
   </script>
 </html>

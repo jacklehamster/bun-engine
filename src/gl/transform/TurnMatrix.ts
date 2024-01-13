@@ -4,9 +4,9 @@ import Matrix from "./Matrix";
 import { Progressive } from "core/value/Progressive";
 
 export class TurnMatrix implements IMatrix {
-  private matrix: Matrix = Matrix.create();;
+  private matrix: Matrix = Matrix.create();
   private _turn: Angle = 0;
-  progressive: Progressive<TurnMatrix>;
+  readonly progressive: Progressive<TurnMatrix>;
 
   constructor(private onChange?: () => void) {
     this.progressive = new Progressive<TurnMatrix>(this,

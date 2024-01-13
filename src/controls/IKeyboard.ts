@@ -1,8 +1,7 @@
-import { Core } from "core/Core";
 import { Auxiliary } from "world/aux/Auxiliary";
 import { Holder } from "world/aux/Holder";
 
-export interface IKeyboard extends Holder<IKeyboard>, Auxiliary<Core> {
+export interface IKeyboard extends Holder<IKeyboard>, Auxiliary {
   readonly keys: Record<string, number>;
   readonly keysUp: Record<string, number>;
   addListener(listener: KeyListener): () => void;

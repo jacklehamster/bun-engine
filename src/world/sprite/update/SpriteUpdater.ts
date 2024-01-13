@@ -6,6 +6,7 @@ import { UpdateRegistry } from "updates/UpdateRegistry";
 import { SpriteUpdateType } from "./SpriteUpdateType";
 import { Auxiliary } from "world/aux/Auxiliary";
 import { SpritesHolder } from "../aux/SpritesHolder";
+import { SpriteId } from "../Sprite";
 
 interface Props {
   engine: IGraphicsEngine;
@@ -27,7 +28,7 @@ export class SpriteUpdater implements UpdateNotifier, Auxiliary<SpritesHolder> {
     this.spriteAnimUpdate = new UpdateRegistry((ids) => engine.updateSpriteAnims(ids, this.sprites!), motor);
   }
 
-  informUpdate(id: number, type: number = SpriteUpdateType.ALL): void {
+  informUpdate(id: SpriteId, type: SpriteUpdateType = SpriteUpdateType.ALL): void {
     if (this.sprites && id < this.sprites.length) {
       if (type & SpriteUpdateType.TRANSFORM) {
         this.spriteTransformUpdate.informUpdate(id);

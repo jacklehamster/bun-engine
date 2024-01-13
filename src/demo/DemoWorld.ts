@@ -2,7 +2,7 @@ import { Keyboard } from "controls/Keyboard";
 import { ResizeAux } from "graphics/aux/ResizeAux";
 import { IGraphicsEngine } from "graphics/IGraphicsEngine";
 import { IMotor } from "motor/IMotor";
-import { Camera } from "gl/camera/Camera";
+import { Camera } from "camera/Camera";
 import Matrix from "gl/transform/Matrix";
 import { PositionMatrix } from "gl/transform/PositionMatrix";
 import { CellChangeAuxiliary } from "gl/transform/aux/CellChangeAuxiliary";
@@ -166,7 +166,19 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
     //  * will hide sprites if you're too far, and show them again if you're close.
     spritesAccumulator.addAuxiliary(new FixedSpriteGrid(
       { cellSize: CELLSIZE },
-      new SpriteGroup([
+      //  Dobuki logo
+      [
+        {
+          imageId: DOBUKI,
+          transform: Matrix.create().translate(0, 0, -1),
+        },
+        {
+          imageId: DOBUKI,
+          transform: Matrix.create().translate(0, 0, -1).rotateY(Math.PI),
+        },
+      ],
+      //  Side walls with happy face logo
+      [
         //  side walls
         ...[
           Matrix.create().translate(-1, 0, 0).rotateY(Math.PI / 2),
@@ -181,9 +193,10 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
           Matrix.create().translate(-2, -1, 2).rotateX(-Math.PI / 2),
           Matrix.create().translate(2, -1, 2).rotateX(-Math.PI / 2),
         ].map(transform => ({ imageId: GROUND, transform })),
-      ], Matrix.create()),
+      ],
+      //  This is a block, moved 3 spaces back
       new SpriteGroup([
-        //  block
+        //  block outside
         ...[
           Matrix.create().translate(0, -1, 0).rotateX(Math.PI / 2),
           Matrix.create().translate(0, 1, 0).rotateX(-Math.PI / 2),
@@ -192,6 +205,7 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
           Matrix.create().translate(0, 0, 1).rotateY(0),  //  front
           Matrix.create().translate(0, 0, -1).rotateY(Math.PI), //  back
         ].map(transform => ({ imageId: GROUND, transform })),
+        //  Inside
         ...[
           Matrix.create().translate(0, -1, 0).rotateX(-Math.PI / 2),
           Matrix.create().translate(0, 1, 0).rotateX(Math.PI / 2),
@@ -237,7 +251,6 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
       { yRange: [0, 0] }, {
       getSpritesAtCell: cell => [
         { //  ground
-          name: `${cell.pos[0]}_${cell.pos[2]}`,
           imageId: GRASS,
           transform: Matrix.create().translate(cell.pos[0] * cell.pos[3], -1, cell.pos[2] * cell.pos[3]).rotateX(-Math.PI / 2).scale(1)
         },

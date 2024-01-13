@@ -5,12 +5,16 @@ export interface Destroyable {
 export class Disposable {
   disposables?: Set<Destroyable>;
 
-  own<D extends Destroyable>(disposable: D): D {
+  own<D extends Destroyable>(destroyable: D): D {
     if (!this.disposables) {
       this.disposables = new Set();
     }
-    this.disposables.add(disposable);
-    return disposable;
+    this.disposables.add(destroyable);
+    return destroyable;
+  }
+
+  disown<D extends Destroyable>(destroyable: D): void {
+    this.disposables?.delete(destroyable);
   }
 
   addOnDestroy(callback?: () => void) {
@@ -23,5 +27,6 @@ export class Disposable {
 
   destroy() {
     this.disposables?.forEach((disposable) => disposable.destroy());
+    this.disposables?.clear();
   }
 }

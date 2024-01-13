@@ -34,7 +34,7 @@ export class Camera extends AuxiliaryHolder<ICamera> implements ICamera {
   private readonly updateInformer;
   private readonly updateInformerFloat;
   private readonly updateInformerVector;
-  private engine: IGraphicsEngine;
+  private readonly engine: IGraphicsEngine;
 
   constructor({ engine, motor }: Props) {
     super();
@@ -53,8 +53,8 @@ export class Camera extends AuxiliaryHolder<ICamera> implements ICamera {
     this.updateInformer.informUpdate(MatrixUniform.CAM_TILT);
     this.updateInformerFloat.informUpdate(FloatUniform.CURVATURE);
     this.updateInformerFloat.informUpdate(FloatUniform.CAM_DISTANCE);
-    this.updateInformerVector.informUpdate(VectorUniform.BG_COLOR);
     this.updateInformerFloat.informUpdate(FloatUniform.BG_BLUR);
+    this.updateInformerVector.informUpdate(VectorUniform.BG_COLOR);
   }
 
   private readonly cameraMatrices: Record<MatrixUniform, IMatrix> = {

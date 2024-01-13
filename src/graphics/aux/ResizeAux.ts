@@ -1,5 +1,5 @@
 import { IGraphicsEngine } from "graphics/IGraphicsEngine";
-import { ICamera } from "gl/camera/ICamera";
+import { ICamera } from "camera/ICamera";
 import { Auxiliary } from "world/aux/Auxiliary";
 
 interface Props {

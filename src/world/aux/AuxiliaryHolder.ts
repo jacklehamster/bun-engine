@@ -1,7 +1,7 @@
 import { Refresh, UpdatePayload } from "updates/Refresh";
 import { Auxiliary } from "./Auxiliary";
 import { Cell } from "world/grid/CellPos";
-import { CellTrack } from "world/grid/CellTracker";
+import { CellTrack } from "world/grid/CellTrack";
 import { Holder } from "./Holder";
 
 export class AuxiliaryHolder<H extends Holder = any> implements Holder<AuxiliaryHolder<H>>, Auxiliary<H> {

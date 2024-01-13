@@ -29,8 +29,10 @@ export class PositionMatrix extends AuxiliaryHolder<PositionMatrix> implements I
       this.position[2] + vector[2],
     ), this.position);
     if (!blocked) {
-      this.matrix.move(vector);
-      this.changedPosition();
+      if (vector[0] || vector[1] || vector[2]) {
+        this.matrix.move(vector);
+        this.changedPosition();
+      }
     }
     return !blocked;
   }
@@ -38,8 +40,11 @@ export class PositionMatrix extends AuxiliaryHolder<PositionMatrix> implements I
   moveTo(x: number, y: number, z: number) {
     const blocked = this.moveBlocker?.isBlocked(toPos(x, y, z));
     if (!blocked) {
-      this.matrix.setPosition(x, y, z);
-      this.changedPosition();
+      const [curX, curY, curZ] = this.matrix.getPosition();
+      if (curX !== x || curY !== y || curZ !== z) {
+        this.matrix.setPosition(x, y, z);
+        this.changedPosition();
+      }
     }
     return !blocked;
   }

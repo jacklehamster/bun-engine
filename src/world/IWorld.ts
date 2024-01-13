@@ -1,4 +1,4 @@
-import { CellTrack } from "./grid/CellTracker";
+import { CellTrack } from "./grid/CellTrack";
 import { Holder } from "./aux/Holder";
 import { Auxiliary } from "./aux/Auxiliary";
 import { Core } from "core/Core";

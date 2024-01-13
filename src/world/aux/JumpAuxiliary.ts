@@ -1,7 +1,7 @@
 import { UpdatePayload } from "updates/Refresh";
 import { Auxiliary } from "./Auxiliary";
 import { IKeyboard } from "controls/IKeyboard";
-import { ICamera } from "gl/camera/ICamera";
+import { ICamera } from "camera/ICamera";
 
 interface Config {
   key: string;

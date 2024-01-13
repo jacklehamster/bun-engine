@@ -19,7 +19,7 @@ export class FixedSpriteGrid extends SpriteGrid {
   private readonly spritesList: Sprites[];
 
   constructor(config: Config, ...spritesList: Sprites[]) {
-    super({ spriteLimit: config.spriteLimit ?? spritesList.reduce((a, s) => a + s.length, 0) }, {
+    super({}, {
       getSpritesAtCell: cell => {
         return this.spritesPerCell[cell.tag] ?? EMPTY
       }

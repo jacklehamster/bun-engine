@@ -4,7 +4,6 @@
 
 import { GLPrograms } from '../gl/programs/GLPrograms';
 import { Disposable } from '../gl/lifecycle/Disposable';
-import { VertexArray } from '../gl/VertexArray';
 import { GLAttributeBuffers, LocationName } from '../gl/attributes/GLAttributeBuffers';
 import { GLUniforms } from '../gl/uniforms/GLUniforms';
 import {
@@ -50,7 +49,7 @@ const DEFAULT_ATTRIBUTES: WebGLContextAttributes = {
   stencil: false,
 };
 
-const VERTEX_COUNT = 6;
+const VERTICES_PER_SPRITE = 6;
 
 const LOG_GL = false;
 
@@ -87,7 +86,7 @@ export interface Props {
 export class GraphicsEngine extends Disposable implements IGraphicsEngine {
   private gl: GL;
   private programs: GLPrograms;
-  private attributeBuffers: GLAttributeBuffers;
+  private attributeBuffers?: GLAttributeBuffers;
   private uniforms: GLUniforms;
   private canvas: HTMLCanvasElement | OffscreenCanvas;
 
@@ -114,7 +113,6 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
 
     this.programs = this.own(new GLPrograms(this.gl));
     this.uniforms = new GLUniforms(this.gl, this.programs);
-    this.attributeBuffers = this.own(new GLAttributeBuffers(this.gl, this.programs));
 
     this.textureManager = new TextureManager(this.gl, this.uniforms);
     this.imageManager = new ImageManager();
@@ -206,8 +204,7 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
   setMaxSpriteCount(count: number): void {
     if (count > this.maxSpriteCount) {
       this.maxSpriteCount = 1 << Math.ceil(Math.log2(count));
-      this.initializeBuffers(this.maxSpriteCount);
-      console.log("Sprite limit", this.maxSpriteCount);
+      this.clearAttributeBuffers();
     }
   }
 
@@ -216,67 +213,52 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
     this.gl.clear(this.gl.COLOR_BUFFER_BIT);
   }
 
-  private onCleanupBuffers: Set<() => void> = new Set();
-  initializeBuffers(maxSpriteCount: number) {
-    this.onCleanupBuffers.forEach(cleanup => cleanup());
-    this.onCleanupBuffers.clear();
-    if (maxSpriteCount) {
-      const cleanups = [
-        this.initializeIndexBuffer(INDEX_LOC),
-        this.initializePositionBuffer(POSITION_LOC),
-        this.initializeBuffer(TRANSFORM_LOC, maxSpriteCount, 4, 4, 1, GL.DYNAMIC_DRAW),
-        this.initializeBuffer(SLOT_SIZE_LOC, maxSpriteCount, 2, 1, 1, GL.DYNAMIC_DRAW),
-        this.initializeBuffer(INSTANCE_LOC, maxSpriteCount, 1, 1, 1, GL.STATIC_DRAW, index => index),
-        this.initializeBuffer(SPRITE_FLAGS_LOC, maxSpriteCount, 1, 1, 1, GL.STATIC_DRAW),
-      ];
-      cleanups.forEach(cleanup => this.onCleanupBuffers.add(cleanup));
+  private initializeBuffers(maxSpriteCount: number) {
+    if (!this.attributeBuffers) {
+      this.attributeBuffers = this.own(new GLAttributeBuffers(this.gl, this.programs));
     }
+    this.attributeBuffers.clear();
+    if (maxSpriteCount) {
+      console.log("Sprite limit", maxSpriteCount);
+      this.attributeBuffers.bindVertexArray();
+      this.initializeBuffer(INDEX_LOC, GL.ELEMENT_ARRAY_BUFFER, 0, undefined, undefined, GL.STATIC_DRAW, Uint16Array.from([0, 1, 2, 2, 3, 0]));
+      this.initializeBuffer(POSITION_LOC, GL.ARRAY_BUFFER, 1, 2, 0, GL.STATIC_DRAW, Float32Array.from([-1, -1, 1, -1, 1, 1, -1, 1]));
+      this.initializeBuffer(TRANSFORM_LOC, GL.ARRAY_BUFFER, 4, 4, 1, GL.DYNAMIC_DRAW, undefined, maxSpriteCount);
+      this.initializeBuffer(SLOT_SIZE_LOC, GL.ARRAY_BUFFER, 1, 2, 1, GL.DYNAMIC_DRAW, undefined, maxSpriteCount);
+      this.initializeBuffer(INSTANCE_LOC, GL.ARRAY_BUFFER, 1, 1, 1, GL.STATIC_DRAW, undefined, maxSpriteCount, index => index);
+      this.initializeBuffer(SPRITE_FLAGS_LOC, GL.ARRAY_BUFFER, 1, 1, 1, GL.STATIC_DRAW, undefined, maxSpriteCount);
+    }
+    return this.attributeBuffers;
   }
 
-  private initializeIndexBuffer(location: LocationName) {
-    /*
-        0  1
-        3  2
-    */
-    const bufferInfo = this.attributeBuffers.createBuffer(location);
-    this.gl.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, bufferInfo.buffer);
-    this.gl.bufferData(GL.ELEMENT_ARRAY_BUFFER,
-      Uint16Array.from([0, 1, 2, 2, 3, 0]),
-      GL.STATIC_DRAW);
-    return () => {
-      this.attributeBuffers.deleteBuffer(location);
-    };
+  private clearAttributeBuffers() {
+    this.attributeBuffers?.clear();
+    this.attributeBuffers = undefined;
   }
 
-  private initializePositionBuffer(location: LocationName) {
-    const bufferInfo = this.attributeBuffers.createBuffer(location);
-    this.gl.bindBuffer(GL.ARRAY_BUFFER, bufferInfo.buffer);
-    this.gl.vertexAttribPointer(
-      bufferInfo.location, 2, GL.FLOAT, false, 0, 0,
-    );
-    this.gl.enableVertexAttribArray(bufferInfo.location);
-    this.gl.bufferData(GL.ARRAY_BUFFER,
-      Float32Array.from([-1, -1, 1, -1, 1, 1, -1, 1]),
-      GL.STATIC_DRAW);
-    return () => {
-      this.gl.disableVertexAttribArray(bufferInfo.location);
-      this.attributeBuffers.deleteBuffer(location);
-    };
+  private ensureAttributeBuffers() {
+    if (!this.attributeBuffers) {
+      this.attributeBuffers = this.initializeBuffers(this.maxSpriteCount)
+    }
+    return this.attributeBuffers;
   }
 
   private initializeBuffer(
     location: LocationName,
-    instanceCount: number,
-    elemCount: number,
-    dataRows: number = 1,
-    divisor: number = 0,
+    target: GLenum,
+    vertexAttribPointerRows: 0 | 1 | 4 = 1,
+    elemCount: GLint = 0,
+    divisor: GLuint & (0 | 1) = 0,
     usage: GLenum = GL.DYNAMIC_DRAW,
+    data?: BufferSource,
+    instanceCount?: number,
     callback?: (index: number) => number) {
-    const bufferInfo = this.attributeBuffers.createBuffer(location);
-    this.gl.bindBuffer(GL.ARRAY_BUFFER, bufferInfo.buffer);
+    const attributeBuffers = this.ensureAttributeBuffers();
+    const bufferInfo = attributeBuffers.createBuffer(location, target);
+    attributeBuffers.bindBuffer(location);
     const bytesPerRow = elemCount * Float32Array.BYTES_PER_ELEMENT;
-    const bytesPerInstance = dataRows * bytesPerRow;
-    for (let i = 0; i < dataRows; i++) {
+    const bytesPerInstance = vertexAttribPointerRows * bytesPerRow;
+    for (let i = 0; i < vertexAttribPointerRows; i++) {
       const loc = bufferInfo.location + i;
       this.gl.vertexAttribPointer(
         loc,
@@ -285,21 +267,19 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
         false,
         bytesPerInstance,
         i * bytesPerRow);
-      this.gl.enableVertexAttribArray(loc);
+      attributeBuffers.enableVertexAttribArray(location, i);
       this.gl.vertexAttribDivisor(loc, divisor);
     }
     if (callback) {
-      this.gl.bufferData(GL.ARRAY_BUFFER,
+      this.gl.bufferData(target,
         Float32Array.from(new Array(instanceCount).fill(0)
           .map((_, index) => callback(index))),
         usage);
-    } else {
-      this.gl.bufferData(GL.ARRAY_BUFFER, instanceCount * bytesPerInstance, usage);
+    } else if (data) {
+      this.gl.bufferData(target, data, usage);
+    } else if (instanceCount) {
+      this.gl.bufferData(target, instanceCount * bytesPerInstance, usage);
     }
-    return () => {
-      this.gl.disableVertexAttribArray(bufferInfo.location);
-      this.attributeBuffers.deleteBuffer(location);
-    };
   }
 
   async updateTextures(imageIds: MediaId[], getMedia: (imageId: MediaId) => Media | undefined): Promise<MediaData[]> {
@@ -343,8 +323,9 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
   }
 
   updateSpriteTransforms(spriteIds: Set<SpriteId>, sprites: Sprites) {
-    const bufferInfo = this.attributeBuffers.getAttributeBuffer(TRANSFORM_LOC);
-    this.gl.bindBuffer(GL.ARRAY_BUFFER, bufferInfo.buffer);
+    const attributeBuffers = this.ensureAttributeBuffers();
+    attributeBuffers.bindVertexArray();
+    attributeBuffers.bindBuffer(TRANSFORM_LOC);
     let topVisibleSprite = this.spriteCount - 1;
     spriteIds.forEach(spriteId => {
       const sprite = sprites.at(spriteId);
@@ -362,8 +343,9 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
   }
 
   updateSpriteAnims(spriteIds: Set<SpriteId>, sprites: Sprites) {
-    const bufferInfo = this.attributeBuffers.getAttributeBuffer(SLOT_SIZE_LOC);
-    this.gl.bindBuffer(GL.ARRAY_BUFFER, bufferInfo.buffer);
+    const attributeBuffers = this.ensureAttributeBuffers();
+    attributeBuffers.bindVertexArray();
+    attributeBuffers.bindBuffer(SLOT_SIZE_LOC);
     spriteIds.forEach(spriteId => {
       const sprite = sprites.at(spriteId);
       const slotObj = sprite ? this.textureSlots[sprite.imageId] : undefined;
@@ -387,10 +369,6 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
     this.gl.uniform3fv(this.vec3Uniforms[type], vector);
   }
 
-  bindVertexArray() {
-    return this.own(new VertexArray(this.gl));
-  }
-
   setPixelListener(listener?: { x: number, y: number, setPixel(value: number): void }) {
     this.pixelListener = listener;
   }
@@ -405,7 +383,11 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
   private static clearBit = GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT;
   refresh(): void {
     this.gl.clear(GraphicsEngine.clearBit);
-    this.drawElementsInstanced(VERTEX_COUNT, this.spriteCount);
+    const attributeBuffers = this.ensureAttributeBuffers();
+    attributeBuffers.bindVertexArray();
+    this.drawElementsInstanced(VERTICES_PER_SPRITE, this.spriteCount);
+    this.gl.bindVertexArray(null);
+
     this.pixelListener?.setPixel(this.getPixel(this.pixelListener.x, this.pixelListener.y));
   }
 }

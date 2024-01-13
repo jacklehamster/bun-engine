@@ -4,7 +4,9 @@ import { DemoWorld } from 'demo/DemoWorld';
 import { AuxiliaryHolder } from 'world/aux/AuxiliaryHolder';
 
 export async function hello() {
-  console.log('Hello World!');
+  console.info(`Welcome!
+You are using dok-engine.
+https://github.com/jacklehamster/bun-engine`);
 }
 
 let onStop: () => void;

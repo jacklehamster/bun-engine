@@ -3,7 +3,7 @@ import { Auxiliary } from "./Auxiliary";
 import { Position } from "world/grid/Position";
 import { angleStep } from "gl/utils/angleUtils";
 import { IKeyboard } from "controls/IKeyboard";
-import { ICamera } from "gl/camera/ICamera";
+import { ICamera } from "camera/ICamera";
 
 interface Props {
   keyboard: IKeyboard;
