@@ -6487,13 +6487,8 @@ You are using dok-engine.
 https://github.com/jacklehamster/bun-engine`);
 }
 async function testCanvas(canvas) {
-  canvas.style.border = "2px solid silver";
-  canvas.addEventListener("mouseenter", () => {
-    canvas.style.borderColor = "black";
-  });
-  canvas.addEventListener("mouseleave", () => {
-    canvas.style.borderColor = "silver";
-  });
+  canvas.style.border = "2px solid black";
+  canvas.style.pointerEvents = "none";
   const pixelListener = {
     x: 0,
     y: 0,
@@ -6530,4 +6525,4 @@ export {
   hello
 };
 
-//# debugId=7A66B1973DC99E6064756e2164756e21
+//# debugId=026FCEB5FA262A6164756e2164756e21

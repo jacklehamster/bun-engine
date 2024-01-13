@@ -12,14 +12,8 @@ https://github.com/jacklehamster/bun-engine`);
 let onStop: () => void;
 
 export async function testCanvas(canvas: HTMLCanvasElement) {
-  canvas.style.border = '2px solid silver';
-  //  canvas.style.cursor = 'grab';
-  canvas.addEventListener('mouseenter', () => {
-    canvas.style.borderColor = 'black';
-  });
-  canvas.addEventListener('mouseleave', () => {
-    canvas.style.borderColor = 'silver';
-  });
+  canvas.style.border = '2px solid black';
+  canvas.style.pointerEvents = 'none';
   const pixelListener = {
     x: 0,
     y: 0,
