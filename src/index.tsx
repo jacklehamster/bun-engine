@@ -31,7 +31,7 @@ export async function testCanvas(canvas: HTMLCanvasElement) {
   //  canvas.style.pointerEvents = 'none';
 
   const engine = new GraphicsEngine(canvas);
-  engine.setPixelListener(pixelListener);
+  // engine.setPixelListener(pixelListener);
   const motor = new Motor();
   const core = new AuxiliaryHolder();
   const world = new DemoWorld({ engine, motor });

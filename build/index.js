@@ -42,7 +42,7 @@ var INDEX_LOC = "index";
 var TRANSFORM_LOC = "transform";
 var SLOT_SIZE_LOC = "slotSize_and_number";
 var INSTANCE_LOC = "instance";
-var SPRITE_FLAGS_LOC = "spriteFlag";
+var SPRITE_TYPE_LOC = "spriteType";
 var CAM_POS_LOC = "camPos";
 var CAM_TILT_LOC = "camTilt";
 var CAM_TURN_LOC = "camTurn";
@@ -1396,6 +1396,11 @@ var vertexShader_default = `#version 300 es
 
 precision highp float;
 
+//  CONST
+const mat4 identity = mat4(1.0);
+const float SPRITE = 1.0;
+const float threshold = 0.5;
+
 //  IN
 //  shape
 layout(location = 0) in vec2 position;
@@ -1405,7 +1410,7 @@ layout(location = 1) in mat4 transform;
 layout(location = 5) in vec2 slotSize_and_number;
 //  instance
 layout(location = 6) in float instance;
-layout(location = 7) in float spriteFlag;
+layout(location = 7) in float spriteType;
 
 //  UNIFORM
 uniform float maxTextureSize;
@@ -1433,7 +1438,13 @@ void main() {
   float slotX = mod(slotNumber, maxCols);
   float slotY = mod(floor(slotNumber / maxCols), maxRows);
 
-  vec4 elemPosition = transform * vec4(position, 0.0, 1.0);
+  vec4 basePosition = vec4(position, 0.0, 1.0);
+
+  float spriteFlag = max(0., 1. - 2. * abs(spriteType - SPRITE));
+  mat4 billboardMatrix = inverse(camTilt * camTurn);
+  basePosition = (spriteFlag * billboardMatrix + (1. - spriteFlag) * identity) * basePosition;
+
+  vec4 elemPosition = transform * basePosition;
   // elementPosition => relativePosition
   vec4 relativePosition = camTilt * camTurn * camPos * elemPosition;
   relativePosition.z -= camDist;
@@ -1451,9 +1462,6 @@ void main() {
   float g = fract(instance / (256.0 * 255.0));
   float b = fract(instance / 255.0);
   vInstanceColor = vec3(r, g, b);
-
-  // DUMMY
-  vInstanceColor.x += spriteFlag;
 }
 `;
 
@@ -4403,6 +4411,20 @@ var VectorUniform;
   VectorUniform2[VectorUniform2["BG_COLOR"] = 0] = "BG_COLOR";
 })(VectorUniform || (VectorUniform = {}));
 
+// src/world/sprite/Sprite.ts
+function copySprite(sprite) {
+  return {
+    transform: Matrix_default.create().copy(sprite.transform),
+    imageId: sprite.imageId,
+    spriteType: sprite.spriteType
+  };
+}
+var SpriteType;
+(function(SpriteType2) {
+  SpriteType2[SpriteType2["DEFAULT"] = 0] = "DEFAULT";
+  SpriteType2[SpriteType2["SPRITE"] = 1] = "SPRITE";
+})(SpriteType || (SpriteType = {}));
+
 // src/graphics/GraphicsEngine.ts
 var glProxy = function(gl) {
   if (!LOG_GL) {
@@ -4602,9 +4624,9 @@ class GraphicsEngine extends Disposable {
     } else {
       this.attributeBuffers.ensureSize(INSTANCE_LOC, instanceCount);
     }
-    if (!this.attributeBuffers.hasBuffer(SPRITE_FLAGS_LOC)) {
+    if (!this.attributeBuffers.hasBuffer(SPRITE_TYPE_LOC)) {
       this.attributeBuffers.createBuffer({
-        location: SPRITE_FLAGS_LOC,
+        location: SPRITE_TYPE_LOC,
         target: GL.ARRAY_BUFFER,
         usage: GL.STATIC_DRAW,
         vertexAttribPointerRows: 1,
@@ -4613,7 +4635,7 @@ class GraphicsEngine extends Disposable {
         instanceCount
       });
     } else {
-      this.attributeBuffers.ensureSize(SPRITE_FLAGS_LOC, instanceCount);
+      this.attributeBuffers.ensureSize(SPRITE_TYPE_LOC, instanceCount);
     }
     return this.attributeBuffers;
   }
@@ -4682,6 +4704,19 @@ class GraphicsEngine extends Disposable {
       }
     });
   }
+  static tempBuffer = new Float32Array(2);
+  updateSpriteTypes(spriteIds, sprites) {
+    const attributeBuffers = this.attributeBuffers;
+    attributeBuffers.bindVertexArray();
+    attributeBuffers.bindBuffer(SPRITE_TYPE_LOC);
+    spriteIds.forEach((spriteId) => {
+      const sprite = sprites.at(spriteId);
+      const type = sprite?.spriteType ?? SpriteType.DEFAULT;
+      GraphicsEngine.tempBuffer[0] = type;
+      this.gl.bufferSubData(GL.ARRAY_BUFFER, 1 * Float32Array.BYTES_PER_ELEMENT * spriteId, GraphicsEngine.tempBuffer);
+    });
+    spriteIds.clear();
+  }
   updateUniformMatrix(type, matrix) {
     this.gl.uniformMatrix4fv(this.matrixUniforms[type], false, matrix);
   }
@@ -4746,10 +4781,9 @@ class Motor {
     };
     const updates = [];
     const loop = (time) => {
-      updatePayload.deltaTime = Math.min(time - updatePayload.time, MAX_DELTA_TIME);
-      updatePayload.time = time;
       handle = requestAnimationFrame(loop);
-      this.time = time;
+      updatePayload.deltaTime = Math.min(time - updatePayload.time, MAX_DELTA_TIME);
+      this.time = updatePayload.time = time;
       updates.length = 0;
       this.updateSchedule.forEach((schedule, update) => {
         if (time < schedule.triggerTime) {
@@ -4759,6 +4793,7 @@ class Motor {
         if (schedule.period && time < schedule.expirationTime) {
           schedule.triggerTime = Math.max(schedule.triggerTime + schedule.period, time);
         } else {
+          console.log(update);
           this.updateSchedule.delete(update);
         }
       });
@@ -6084,22 +6119,14 @@ class SpriteGroup {
   }
 }
 
-// src/world/sprite/Sprite.ts
-function copySprite(sprite) {
-  return {
-    name: sprite.name,
-    transform: Matrix_default.create().copy(sprite.transform),
-    imageId: sprite.imageId
-  };
-}
-
 // src/world/sprite/update/SpriteUpdateType.ts
 var SpriteUpdateType;
 (function(SpriteUpdateType2) {
   SpriteUpdateType2[SpriteUpdateType2["NONE"] = 0] = "NONE";
   SpriteUpdateType2[SpriteUpdateType2["TRANSFORM"] = 1] = "TRANSFORM";
   SpriteUpdateType2[SpriteUpdateType2["ANIM"] = 2] = "ANIM";
-  SpriteUpdateType2[SpriteUpdateType2["ALL"] = 3] = "ALL";
+  SpriteUpdateType2[SpriteUpdateType2["TYPE"] = 4] = "TYPE";
+  SpriteUpdateType2[SpriteUpdateType2["ALL"] = 7] = "ALL";
 })(SpriteUpdateType || (SpriteUpdateType = {}));
 
 // src/world/sprite/aux/SpriteGrid.ts
@@ -6239,6 +6266,7 @@ class StaticSprites {
 class SpriteUpdater {
   spriteTransformUpdate;
   spriteAnimUpdate;
+  spriteTypeUpdate;
   sprites;
   set holder(value) {
     this.sprites = value;
@@ -6247,6 +6275,7 @@ class SpriteUpdater {
   constructor({ engine, motor }) {
     this.spriteTransformUpdate = new UpdateRegistry((ids) => engine.updateSpriteTransforms(ids, this.sprites), motor);
     this.spriteAnimUpdate = new UpdateRegistry((ids) => engine.updateSpriteAnims(ids, this.sprites), motor);
+    this.spriteTypeUpdate = new UpdateRegistry((ids) => engine.updateSpriteTypes(ids, this.sprites), motor);
   }
   informUpdate(id, type = SpriteUpdateType.ALL) {
     if (this.sprites && id < this.sprites.length) {
@@ -6255,6 +6284,9 @@ class SpriteUpdater {
       }
       if (type & SpriteUpdateType.ANIM) {
         this.spriteAnimUpdate.informUpdate(id);
+      }
+      if (type & SpriteUpdateType.TYPE) {
+        this.spriteTypeUpdate.informUpdate(id);
       }
     }
   }
@@ -6272,6 +6304,7 @@ var LOGO_SIZE = 512;
 var CELLSIZE = 2;
 
 class DemoWorld extends AuxiliaryHolder {
+  camera;
   constructor({ engine, motor }) {
     super();
     const spritesAccumulator = new SpritesAccumulator;
@@ -6382,11 +6415,8 @@ class DemoWorld extends AuxiliaryHolder {
     spritesAccumulator.addAuxiliary(new FixedSpriteGrid({ cellSize: CELLSIZE }, [
       {
         imageId: DOBUKI,
-        transform: Matrix_default.create().translate(0, 0, -1)
-      },
-      {
-        imageId: DOBUKI,
-        transform: Matrix_default.create().translate(0, 0, -1).rotateY(Math.PI)
+        spriteType: SpriteType.SPRITE,
+        transform: Matrix_default.create().translate(0, 0, 0)
       }
     ], [
       ...[
@@ -6422,22 +6452,13 @@ class DemoWorld extends AuxiliaryHolder {
     const camera = new Camera({ engine, motor });
     camera.addAuxiliary(new ResizeAux({ engine }));
     this.addAuxiliary(camera);
+    this.camera = camera;
     camera.posMatrix.moveBlocker = {
       isBlocked(pos) {
         const [cx, cy, cz] = PositionMatrix.getCellPos(pos, 2);
         return cx === 0 && cy === 0 && cz === -3;
       }
     };
-    spritesAccumulator.addAuxiliary(new FixedSpriteGrid({ cellSize: CELLSIZE }, [
-      {
-        imageId: DOBUKI,
-        transform: Matrix_default.create().translate(0, 0, -1)
-      },
-      {
-        imageId: DOBUKI,
-        transform: Matrix_default.create().translate(0, 0, -1).rotateY(Math.PI)
-      }
-    ]));
     spritesAccumulator.addAuxiliary(new SpriteGrid({ yRange: [0, 0] }, {
       getSpritesAtCell: (cell) => [
         {
@@ -6504,7 +6525,6 @@ async function testCanvas(canvas) {
     pixelListener.y = y;
   });
   const engine = new GraphicsEngine(canvas);
-  engine.setPixelListener(pixelListener);
   const motor = new Motor;
   const core = new AuxiliaryHolder;
   const world = new DemoWorld({ engine, motor });
@@ -6525,4 +6545,4 @@ export {
   hello
 };
 
-//# debugId=026FCEB5FA262A6164756e2164756e21
+//# debugId=A2434C825D92470464756e2164756e21

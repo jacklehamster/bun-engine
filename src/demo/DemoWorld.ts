@@ -23,6 +23,8 @@ import { MaxSpriteCountAuxiliary } from "world/sprite/aux/MaxSpriteCountAuxiliar
 import { SpriteGrid } from "world/sprite/aux/SpriteGrid";
 import { StaticSprites } from "world/sprite/aux/StaticSprites";
 import { SpriteUpdater } from "world/sprite/update/SpriteUpdater";
+import { SpriteType } from "world/sprite/Sprite";
+import { ICamera } from "camera/ICamera";
 
 const DOBUKI = 0, LOGO = 1, GROUND = 2, VIDEO = 3, WIREFRAME = 4, GRASS = 5, BRICK = 6;
 const LOGO_SIZE = 512;
@@ -34,6 +36,7 @@ interface Props {
 }
 
 export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
+  camera: ICamera;
   constructor({ engine, motor }: Props) {
     super();
 
@@ -170,11 +173,8 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
       [
         {
           imageId: DOBUKI,
-          transform: Matrix.create().translate(0, 0, -1),
-        },
-        {
-          imageId: DOBUKI,
-          transform: Matrix.create().translate(0, 0, -1).rotateY(Math.PI),
+          spriteType: SpriteType.SPRITE,
+          transform: Matrix.create().translate(0, 0, 0),
         },
       ],
       //  Side walls with happy face logo
@@ -220,6 +220,7 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
     const camera = new Camera({ engine, motor });
     camera.addAuxiliary(new ResizeAux({ engine }));
     this.addAuxiliary(camera);
+    this.camera = camera;
 
     //  * A move blocker just determines where you can or cannot move.
     //  Currently, there is just one block at [0, 0, -3]
@@ -229,20 +230,6 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
         return cx === 0 && cy === 0 && cz === -3;
       },
     };
-
-    //  * Adding more Sprites. This one is the DOBUKI logo
-    spritesAccumulator.addAuxiliary(new FixedSpriteGrid(
-      { cellSize: CELLSIZE },
-      [
-        {
-          imageId: DOBUKI,
-          transform: Matrix.create().translate(0, 0, -1),
-        },
-        {
-          imageId: DOBUKI,
-          transform: Matrix.create().translate(0, 0, -1).rotateY(Math.PI),
-        },
-      ]));
 
     //  Dynamic SpriteGrid
     //  * This SpriteGrid is dynamic, meaning that the cell gets generated on the

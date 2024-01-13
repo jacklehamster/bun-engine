@@ -18,7 +18,7 @@ export class FixedSpriteGrid extends SpriteGrid {
   private readonly spritesPerCell: Record<string, Sprite[]> = {};
   private readonly spritesList: Sprites[];
 
-  constructor(config: Config, ...spritesList: Sprites[]) {
+  constructor(config: Config, ...spritesList: (Sprites | Sprite[])[]) {
     super({}, {
       getSpritesAtCell: cell => {
         return this.spritesPerCell[cell.tag] ?? EMPTY

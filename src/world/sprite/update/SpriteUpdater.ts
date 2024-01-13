@@ -16,6 +16,7 @@ interface Props {
 export class SpriteUpdater implements UpdateNotifier, Auxiliary<SpritesHolder> {
   private readonly spriteTransformUpdate;
   private readonly spriteAnimUpdate;
+  private readonly spriteTypeUpdate;
   private sprites?: Sprites;
 
   set holder(value: SpritesHolder) {
@@ -26,6 +27,7 @@ export class SpriteUpdater implements UpdateNotifier, Auxiliary<SpritesHolder> {
   constructor({ engine, motor }: Props) {
     this.spriteTransformUpdate = new UpdateRegistry((ids) => engine.updateSpriteTransforms(ids, this.sprites!), motor);
     this.spriteAnimUpdate = new UpdateRegistry((ids) => engine.updateSpriteAnims(ids, this.sprites!), motor);
+    this.spriteTypeUpdate = new UpdateRegistry((ids) => engine.updateSpriteTypes(ids, this.sprites!), motor);
   }
 
   informUpdate(id: SpriteId, type: SpriteUpdateType = SpriteUpdateType.ALL): void {
@@ -35,6 +37,9 @@ export class SpriteUpdater implements UpdateNotifier, Auxiliary<SpritesHolder> {
       }
       if (type & SpriteUpdateType.ANIM) {
         this.spriteAnimUpdate.informUpdate(id);
+      }
+      if (type & SpriteUpdateType.TYPE) {
+        this.spriteTypeUpdate.informUpdate(id);
       }
     }
   }

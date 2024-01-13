@@ -21,7 +21,7 @@ import {
   CAM_DISTANCE_LOC,
   BG_COLOR_LOC,
   BG_BLUR_LOC,
-  SPRITE_FLAGS_LOC,
+  SPRITE_TYPE_LOC,
 } from '../gl/attributes/Constants';
 import { TEXTURE_INDEX_FOR_VIDEO, TextureId, TextureManager } from '../gl/texture/TextureManager';
 import { MediaId, ImageManager } from 'gl/texture/ImageManager';
@@ -33,7 +33,7 @@ import { FloatUniform, VectorUniform } from "./Uniforms";
 import { MatrixUniform } from "./Uniforms";
 import { MediaData } from 'gl/texture/MediaData';
 import { Media } from 'gl/texture/Media';
-import { SpriteId } from 'world/sprite/Sprite';
+import { SpriteId, SpriteType } from 'world/sprite/Sprite';
 import { IGraphicsEngine } from './IGraphicsEngine';
 import { Sprites } from 'world/sprite/Sprites';
 import { vector } from 'gl/transform/IMatrix';
@@ -277,9 +277,9 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
     } else {
       this.attributeBuffers.ensureSize(INSTANCE_LOC, instanceCount);
     }
-    if (!this.attributeBuffers.hasBuffer(SPRITE_FLAGS_LOC)) {
+    if (!this.attributeBuffers.hasBuffer(SPRITE_TYPE_LOC)) {
       this.attributeBuffers.createBuffer({
-        location: SPRITE_FLAGS_LOC,
+        location: SPRITE_TYPE_LOC,
         target: GL.ARRAY_BUFFER,
         usage: GL.STATIC_DRAW,
         vertexAttribPointerRows: 1,
@@ -288,7 +288,7 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
         instanceCount,
       });
     } else {
-      this.attributeBuffers.ensureSize(SPRITE_FLAGS_LOC, instanceCount);
+      this.attributeBuffers.ensureSize(SPRITE_TYPE_LOC, instanceCount);
     }
     return this.attributeBuffers;
   }
@@ -366,6 +366,20 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
         spriteIds.delete(spriteId);
       }
     });
+  }
+
+  private static tempBuffer: Float32Array = new Float32Array(2);
+  updateSpriteTypes(spriteIds: Set<SpriteId>, sprites: Sprites) {
+    const attributeBuffers = this.attributeBuffers;
+    attributeBuffers.bindVertexArray();
+    attributeBuffers.bindBuffer(SPRITE_TYPE_LOC);
+    spriteIds.forEach(spriteId => {
+      const sprite = sprites.at(spriteId);
+      const type = sprite?.spriteType ?? SpriteType.DEFAULT;
+      GraphicsEngine.tempBuffer[0] = type;
+      this.gl.bufferSubData(GL.ARRAY_BUFFER, 1 * Float32Array.BYTES_PER_ELEMENT * spriteId, GraphicsEngine.tempBuffer);
+    });
+    spriteIds.clear();
   }
 
   updateUniformMatrix(type: MatrixUniform, matrix: Float32Array) {

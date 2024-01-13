@@ -3,6 +3,11 @@
 
 precision highp float;
 
+//  CONST
+const mat4 identity = mat4(1.0);
+const float SPRITE = 1.0;
+const float threshold = 0.5;
+
 //  IN
 //  shape
 layout(location = 0) in vec2 position;
@@ -12,7 +17,7 @@ layout(location = 1) in mat4 transform;
 layout(location = 5) in vec2 slotSize_and_number;
 //  instance
 layout(location = 6) in float instance;
-layout(location = 7) in float spriteFlag;
+layout(location = 7) in float spriteType;
 
 //  UNIFORM
 uniform float maxTextureSize;
@@ -40,7 +45,13 @@ void main() {
   float slotX = mod(slotNumber, maxCols);
   float slotY = mod(floor(slotNumber / maxCols), maxRows);
 
-  vec4 elemPosition = transform * vec4(position, 0.0, 1.0);
+  vec4 basePosition = vec4(position, 0.0, 1.0);
+
+  float spriteFlag = max(0., 1. - 2. * abs(spriteType - SPRITE));
+  mat4 billboardMatrix = inverse(camTilt * camTurn);
+  basePosition = (spriteFlag * billboardMatrix + (1. - spriteFlag) * identity) * basePosition;
+
+  vec4 elemPosition = transform * basePosition;
   // elementPosition => relativePosition
   vec4 relativePosition = camTilt * camTurn * camPos * elemPosition;
   relativePosition.z -= camDist;
@@ -58,7 +69,4 @@ void main() {
   float g = fract(instance / (256.0 * 255.0));
   float b = fract(instance / 255.0);
   vInstanceColor = vec3(r, g, b);
-
-  // DUMMY
-  vInstanceColor.x += spriteFlag;
 }

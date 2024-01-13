@@ -53,10 +53,9 @@ export class Motor implements IMotor {
     const updates: Refresh[] = [];
 
     const loop: FrameRequestCallback = (time: Time) => {
-      updatePayload.deltaTime = Math.min(time - updatePayload.time, MAX_DELTA_TIME);
-      updatePayload.time = time;
       handle = requestAnimationFrame(loop);
-      this.time = time;
+      updatePayload.deltaTime = Math.min(time - updatePayload.time, MAX_DELTA_TIME);
+      this.time = updatePayload.time = time;
 
       updates.length = 0;
       this.updateSchedule.forEach((schedule, update) => {
@@ -67,6 +66,7 @@ export class Motor implements IMotor {
         if (schedule.period && time < schedule.expirationTime) {
           schedule.triggerTime = Math.max(schedule.triggerTime + schedule.period, time);
         } else {
+          console.log(update);
           this.updateSchedule.delete(update);
         }
       });
