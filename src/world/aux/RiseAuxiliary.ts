@@ -1,35 +1,27 @@
 import { UpdatePayload } from "updates/Refresh";
 import { Auxiliary } from "./Auxiliary";
-import { IKeyboard } from "controls/IKeyboard";
 import { ICamera } from "camera/ICamera";
+import { IControls } from "controls/IControls";
 
 interface Props {
-  keyboard: IKeyboard;
+  controls: IControls;
   camera: ICamera;
 }
 
-interface Config {
-  key: string;
-}
-
 export class RiseAuxiliary implements Auxiliary {
-  private readonly keyboard: IKeyboard;
+  private readonly controls: IControls;
   private readonly camera: ICamera;
-  private key: string;
   private dropping: boolean = false;
 
-  constructor({ keyboard, camera }: Props, config: Config = { key: "Space" }) {
-    this.keyboard = keyboard;
+  constructor({ controls, camera }: Props) {
+    this.controls = controls;
     this.camera = camera;
-    this.key = config.key;
   }
 
   activate(): void {
-    const removeListener = this.keyboard.addListener({
-      onQuickTap: (keyCode) => {
-        if (keyCode === this.key) {
-          this.dropping = true;
-        }
+    const removeListener = this.controls.addListener({
+      onQuickAction: () => {
+        this.dropping = true;
       },
     });
     this.deactivate = () => {
@@ -43,13 +35,13 @@ export class RiseAuxiliary implements Auxiliary {
   refresh(update: UpdatePayload): void {
     const { deltaTime } = update;
 
-    this.riseAndDrop(deltaTime, this.keyboard);
+    this.riseAndDrop(deltaTime, this.controls);
   }
 
-  riseAndDrop(deltaTime: number, keyboard: IKeyboard): void {
+  riseAndDrop(deltaTime: number, controls: IControls): void {
     const speed = deltaTime / 80;
-    const { keys } = keyboard;
-    if (keys[this.key]) {
+    const { action } = controls;
+    if (action) {
       this.camera.moveCam(0, speed, 0);
     } else if (this.dropping) {
       this.camera.moveCam(0, -speed, 0);

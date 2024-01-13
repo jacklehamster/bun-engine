@@ -1,5 +1,5 @@
-import { IMatrix, vector } from "gl/transform/IMatrix";
 import Matrix from "gl/transform/Matrix";
+import { IMatrix, Vector } from "gl/transform/IMatrix";
 import { ProjectionMatrix } from "gl/transform/ProjectionMatrix";
 import { TiltMatrix } from "gl/transform/TiltMatrix";
 import { TurnMatrix } from "gl/transform/TurnMatrix";
@@ -27,14 +27,14 @@ export class Camera extends AuxiliaryHolder<ICamera> implements ICamera {
   readonly turnMatrix = new TurnMatrix(() => this.updateInformer.informUpdate(MatrixUniform.CAM_TURN));
   private _curvature = 0.05;
   private _distance = .5;
-  private _bgColor: vector = [0, 0, 0];
+  private _bgColor: Vector = [0, 0, 0];
   private _blur = 1;
   private _viewportWidth = 0;
   private _viewportHeight = 0;
   private readonly updateInformer;
   private readonly updateInformerFloat;
   private readonly updateInformerVector;
-  private readonly engine: IGraphicsEngine;
+  private readonly engine;
 
   constructor({ engine, motor }: Props) {
     super();
@@ -63,6 +63,10 @@ export class Camera extends AuxiliaryHolder<ICamera> implements ICamera {
     [MatrixUniform.CAM_TURN]: this.turnMatrix,
     [MatrixUniform.CAM_TILT]: this.tiltMatrix,
   };
+
+  private readonly cameraVectors: Record<VectorUniform, Vector> = {
+    [VectorUniform.BG_COLOR]: this._bgColor,
+  }
 
   resizeViewport(width: number, height: number) {
     if (this._viewportWidth !== width || this._viewportHeight !== height) {
@@ -116,11 +120,8 @@ export class Camera extends AuxiliaryHolder<ICamera> implements ICamera {
     }
   }
 
-  private getCameraVector(uniform: VectorUniform): vector {
-    switch (uniform) {
-      case VectorUniform.BG_COLOR:
-        return this._bgColor;
-    }
+  private getCameraVector(uniform: VectorUniform): Vector {
+    return this.cameraVectors[uniform];
   }
 
   moveCam(x: number, y: number, z: number) {

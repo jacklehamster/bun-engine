@@ -3,24 +3,21 @@ import { PositionMatrix } from "../PositionMatrix";
 import { Cell, cellTag } from "world/grid/CellPos";
 import { VisitCell } from "../../../world/grid/VisitCell";
 import { UpdatePayload } from "updates/Refresh";
-
-interface Props {
-  visitCell: VisitCell;
-}
+import { AuxiliaryHolder } from "world/aux/AuxiliaryHolder";
 
 interface Config {
   cellSize?: number;
 }
 
-export class CellChangeAuxiliary implements Auxiliary<PositionMatrix> {
+export class CellChangeAuxiliary extends AuxiliaryHolder implements Auxiliary<PositionMatrix> {
   private matrix?: PositionMatrix;
   private cellSize: number;
   private cell: Cell;
-  private visitCellObj: VisitCell;
+  visitCell?: VisitCell;
 
-  constructor({ visitCell }: Props, config?: Config) {
+  constructor(config?: Config) {
+    super();
     this.cellSize = config?.cellSize ?? 1;
-    this.visitCellObj = visitCell;
     this.cell = { pos: [0, 0, 0, this.cellSize], tag: "" };
   }
 
@@ -36,7 +33,7 @@ export class CellChangeAuxiliary implements Auxiliary<PositionMatrix> {
   }
 
   activate(): void {
-    this.visitCellObj.visitCell(this.cell);
+    this.visitCell?.visitCell(this.cell);
   }
 
   refresh(updatePayload: UpdatePayload): void {
@@ -49,7 +46,7 @@ export class CellChangeAuxiliary implements Auxiliary<PositionMatrix> {
       this.cell.pos[1] = y;
       this.cell.pos[2] = z;
       this.cell.tag = cellTag(...this.cell.pos);
-      this.visitCellObj.visitCell(this.cell, updatePayload);
+      this.visitCell?.visitCell(this.cell, updatePayload);
     }
   }
 }

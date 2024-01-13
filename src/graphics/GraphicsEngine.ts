@@ -23,12 +23,12 @@ import {
   BG_BLUR_LOC,
   SPRITE_TYPE_LOC,
 } from '../gl/attributes/Constants';
-import { TEXTURE_INDEX_FOR_VIDEO, TextureId, TextureManager } from '../gl/texture/TextureManager';
-import { MediaId, ImageManager } from 'gl/texture/ImageManager';
+import Matrix from 'gl/transform/Matrix';
 import vertexShader from 'generated/src/gl/resources/vertexShader.txt';
 import fragmentShader from 'generated/src/gl/resources/fragmentShader.txt';
+import { TEXTURE_INDEX_FOR_VIDEO, TextureId, TextureManager } from '../gl/texture/TextureManager';
+import { MediaId, ImageManager } from 'gl/texture/ImageManager';
 import { replaceTilda } from 'gl/utils/replaceTilda';
-import Matrix from 'gl/transform/Matrix';
 import { FloatUniform, VectorUniform } from "./Uniforms";
 import { MatrixUniform } from "./Uniforms";
 import { MediaData } from 'gl/texture/MediaData';
@@ -36,7 +36,7 @@ import { Media } from 'gl/texture/Media';
 import { SpriteId, SpriteType } from 'world/sprite/Sprite';
 import { IGraphicsEngine } from './IGraphicsEngine';
 import { Sprites } from 'world/sprite/Sprites';
-import { vector } from 'gl/transform/IMatrix';
+import { Vector } from 'gl/transform/IMatrix';
 
 const DEFAULT_ATTRIBUTES: WebGLContextAttributes = {
   alpha: true,
@@ -88,14 +88,12 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
   private programs: GLPrograms;
   private attributeBuffers: GLAttributeBuffers;
   private uniforms: GLUniforms;
-  private canvas: HTMLCanvasElement | OffscreenCanvas;
 
   private textureManager: TextureManager;
   private imageManager: ImageManager;
 
   private textureSlots: Record<MediaId, { buffer: Float32Array }> = {};
 
-  private onResize: Set<(w: number, h: number) => void> = new Set();
   private pixelListener?: { x: number; y: number; setPixel(value: number): void };
   private spriteCount = 0;
   private maxSpriteCount = 0;
@@ -109,17 +107,12 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
     super();
     const gl: WebGL2RenderingContext = canvas.getContext('webgl2', { ...DEFAULT_ATTRIBUTES, ...attributes })! as WebGL2RenderingContext;
     this.gl = glProxy(gl);
-    this.canvas = canvas;
 
     this.programs = this.own(new GLPrograms(this.gl));
     this.uniforms = new GLUniforms(this.gl, this.programs);
 
     this.textureManager = new TextureManager(this.gl, this.uniforms);
     this.imageManager = new ImageManager();
-
-    const onResize = this.checkCanvasSize.bind(this);
-    window.addEventListener('resize', onResize);
-    this.addOnDestroy(() => window.removeEventListener('resize', onResize));
 
     const PROGRAM_NAME = 'main';
     const replacementMap = {
@@ -150,29 +143,14 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
     this.initialize(PROGRAM_NAME);
   }
 
-  addResizeListener(listener: (w: number, h: number) => void): () => void {
-    listener(this.gl.drawingBufferWidth, this.gl.drawingBufferHeight);
-    this.onResize.add(listener);
-    return () => this.removeResizeListener(listener);
-  }
-
-  removeResizeListener(listener: (w: number, h: number) => void): void {
-    this.onResize.delete(listener);
-  }
-
-  clearTextureSlots(): void {
+  private clearTextureSlots(): void {
     for (let i in this.textureSlots) {
       delete this.textureSlots[i];
     }
   }
 
-  checkCanvasSize(): void {
-    if (this.canvas instanceof HTMLCanvasElement) {
-      this.canvas.width = this.canvas.offsetWidth * 2;
-      this.canvas.height = this.canvas.offsetHeight * 2;
-    }
+  resetViewportSize() {
     this.gl.viewport(0, 0, this.gl.drawingBufferWidth, this.gl.drawingBufferHeight);
-    this.onResize.forEach(callback => callback(this.gl.drawingBufferWidth, this.gl.drawingBufferHeight));
   }
 
   private initialize(programName: string) {
@@ -196,10 +174,9 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
     this.gl.clearColor(0.0, 0.0, 0.0, 1.0);
 
     this.textureManager.initialize();
-    this.checkCanvasSize();
   }
 
-  activate(): void {
+  deactivate(): void {
     this.clearTextureSlots();
   }
 
@@ -210,7 +187,7 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
     }
   }
 
-  setBgColor(rgb: vector): void {
+  setBgColor(rgb: Vector): void {
     this.gl.clearColor(rgb[0], rgb[1], rgb[2], 1.0);
     this.gl.clear(this.gl.COLOR_BUFFER_BIT);
   }
@@ -335,7 +312,6 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
 
   updateSpriteTransforms(spriteIds: Set<SpriteId>, sprites: Sprites) {
     const attributeBuffers = this.attributeBuffers;
-    attributeBuffers.bindVertexArray();
     attributeBuffers.bindBuffer(TRANSFORM_LOC);
     let topVisibleSprite = this.spriteCount - 1;
     spriteIds.forEach(spriteId => {
@@ -355,7 +331,6 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
 
   updateSpriteAnims(spriteIds: Set<SpriteId>, sprites: Sprites) {
     const attributeBuffers = this.attributeBuffers;
-    attributeBuffers.bindVertexArray();
     attributeBuffers.bindBuffer(SLOT_SIZE_LOC);
     spriteIds.forEach(spriteId => {
       const sprite = sprites.at(spriteId);
@@ -368,10 +343,9 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
     });
   }
 
-  private static tempBuffer: Float32Array = new Float32Array(2);
+  private static tempBuffer: Float32Array = new Float32Array(1);
   updateSpriteTypes(spriteIds: Set<SpriteId>, sprites: Sprites) {
     const attributeBuffers = this.attributeBuffers;
-    attributeBuffers.bindVertexArray();
     attributeBuffers.bindBuffer(SPRITE_TYPE_LOC);
     spriteIds.forEach(spriteId => {
       const sprite = sprites.at(spriteId);
@@ -390,7 +364,7 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
     this.gl.uniform1f(this.floatUniforms[type], value);
   }
 
-  updateUniformVector(type: VectorUniform, vector: vector) {
+  updateUniformVector(type: VectorUniform, vector: Vector) {
     this.gl.uniform3fv(this.vec3Uniforms[type], vector);
   }
 
@@ -408,9 +382,7 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
   private static clearBit = GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT;
   refresh(): void {
     this.gl.clear(GraphicsEngine.clearBit);
-    this.attributeBuffers.bindVertexArray();
     this.drawElementsInstanced(VERTICES_PER_SPRITE, this.spriteCount);
-    this.gl.bindVertexArray(null);
 
     this.pixelListener?.setPixel(this.getPixel(this.pixelListener.x, this.pixelListener.y));
   }

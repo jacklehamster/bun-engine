@@ -53,7 +53,7 @@ export class AuxiliaryHolder<H extends Holder = any> implements Holder<Auxiliary
     }
   }
 
-  addAuxiliary(...aux: Auxiliary<any>[]) {
+  addAuxiliary(...aux: Auxiliary<any>[]): this {
     if (!this.auxiliaries) {
       this.auxiliaries = [];
     }
@@ -65,6 +65,7 @@ export class AuxiliaryHolder<H extends Holder = any> implements Holder<Auxiliary
       }
     });
     this.onAuxiliariesChange();
+    return this;
   }
 
   removeAllAuxiliaries() {

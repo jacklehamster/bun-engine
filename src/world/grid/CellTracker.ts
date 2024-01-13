@@ -4,6 +4,8 @@ import { VisitCell } from "./VisitCell";
 import { DoubleLinkList } from "../../utils/DoubleLinkList";
 import { FreeStack } from "utils/FreeStack";
 import { CellTrack } from "./CellTrack";
+import { Auxiliary } from "world/aux/Auxiliary";
+import { CellChangeAuxiliary } from "gl/transform/aux/CellChangeAuxiliary";
 
 interface Config {
   range?: [number, number, number];
@@ -11,12 +13,16 @@ interface Config {
   cellSize?: number;
 }
 
-export class CellTracker implements VisitCell {
+export class CellTracker implements VisitCell, Auxiliary<CellChangeAuxiliary> {
   private range: [number, number, number];
   private base: [number, number, number];
   private cellLimit: number;
   private cellSize: number;
   private tempCell: Cell;
+
+  set holder(aux: CellChangeAuxiliary) {
+    aux.visitCell = this;
+  }
 
   private readonly cellTags: FreeStack<string> = new DoubleLinkList<string>("");
 

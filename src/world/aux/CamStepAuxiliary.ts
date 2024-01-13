@@ -2,11 +2,11 @@ import { UpdatePayload } from "updates/Refresh";
 import { Auxiliary } from "./Auxiliary";
 import { Position } from "world/grid/Position";
 import { angleStep } from "gl/utils/angleUtils";
-import { IKeyboard } from "controls/IKeyboard";
 import { ICamera } from "camera/ICamera";
+import { IControls } from "controls/IControls";
 
 interface Props {
-  keyboard: IKeyboard;
+  controls: IControls;
   camera: ICamera;
 }
 
@@ -18,7 +18,7 @@ interface Config {
 }
 
 export class CamStepAuxiliary implements Auxiliary {
-  private readonly keyboard: IKeyboard;
+  private readonly controls: IControls;
   private readonly camera: ICamera;
   private readonly goalPos: Position;
   private stepCount: number = 0;
@@ -26,11 +26,10 @@ export class CamStepAuxiliary implements Auxiliary {
   private tiltCount: number = 0;
   private config: Config;
 
-  constructor({ keyboard, camera }: Props, config: Partial<Config> = {}) {
-    this.keyboard = keyboard;
+  constructor({ controls, camera }: Props, config: Partial<Config> = {}) {
+    this.controls = controls;
     this.camera = camera;
-    const camPos = this.camera.posMatrix.position;
-    this.goalPos = [...camPos];
+    this.goalPos = [...this.camera.posMatrix.position];
     this.config = {
       step: config.step ?? 2,
       turnStep: config.turnStep ?? Math.PI / 2,
@@ -41,7 +40,7 @@ export class CamStepAuxiliary implements Auxiliary {
 
   private readonly prePos: Position = [0, 0, 0];
   refresh(update: UpdatePayload): void {
-    const { keys } = this.keyboard;
+    const { backward, forward, left, right, up, down, turnLeft, turnRight } = this.controls;
     const { deltaTime } = update;
 
     const pos = this.camera.posMatrix.position;
@@ -51,16 +50,16 @@ export class CamStepAuxiliary implements Auxiliary {
     this.prePos[2] = Math.round(pos[2] / step) * step;
 
     let dx = 0, dz = 0;
-    if (keys.KeyW || keys.ArrowUp && !keys.ShiftRight) {
+    if (forward) {
       dz--;
     }
-    if (keys.KeyS || keys.ArrowDown && !keys.ShiftRight) {
+    if (backward) {
       dz++;
     }
-    if (keys.KeyA || (keys.ArrowLeft && !keys.ShiftRight)) {
+    if (left) {
       dx--;
     }
-    if (keys.KeyD || (keys.ArrowRight && !keys.ShiftRight)) {
+    if (right) {
       dx++;
     }
     const turnGoal = this.camera.turnMatrix.progressive.goal;
@@ -94,10 +93,10 @@ export class CamStepAuxiliary implements Auxiliary {
     }
 
     let dTurn = 0;
-    if (keys.KeyQ || (keys.ArrowLeft && keys.ShiftRight)) {
+    if (turnLeft) {
       dTurn--;
     }
-    if (keys.KeyE || (keys.ArrowRight && keys.ShiftRight)) {
+    if (turnRight) {
       dTurn++;
     }
 
@@ -118,10 +117,10 @@ export class CamStepAuxiliary implements Auxiliary {
     }
 
     let dTilt = 0;
-    if (keys.ArrowUp && keys.ShiftRight) {
+    if (up) {
       dTilt--;
     }
-    if (keys.ArrowDown && keys.ShiftRight) {
+    if (down) {
       dTilt++;
     }
 

@@ -1,33 +1,30 @@
 import { UpdatePayload } from "updates/Refresh";
 import { Auxiliary } from "./Auxiliary";
-import { IKeyboard } from "controls/IKeyboard";
 import { ICamera } from "camera/ICamera";
+import { IControls } from "controls/IControls";
 
 interface Config {
-  key: string;
   gravity: number;
   jump: number;
   plane: number;
 }
 
 interface Props {
-  keyboard: IKeyboard;
+  controls: IControls;
   camera: ICamera;
 }
 
 export class JumpAuxiliary implements Auxiliary {
-  private readonly keyboard: IKeyboard;
+  private readonly controls: IControls;
   private readonly camera: ICamera;
-  private key: string;
   private gravity: number;
   private dy: number;
   private jumpStrength = 0;
   private plane = 1;
 
-  constructor({ keyboard, camera }: Props, config: Partial<Config> = {}) {
-    this.keyboard = keyboard;
+  constructor({ controls, camera }: Props, config: Partial<Config> = {}) {
+    this.controls = controls;
     this.camera = camera;
-    this.key = config.key ?? "Space";
     this.gravity = config.gravity ?? -1;
     this.jumpStrength = config.jump ?? 2;
     this.plane = config.plane ?? 10;
@@ -36,17 +33,16 @@ export class JumpAuxiliary implements Auxiliary {
 
   refresh(update: UpdatePayload): void {
     const { deltaTime } = update;
-
-    this.jump(deltaTime, this.keyboard);
+    this.jump(deltaTime, this.controls);
   }
 
-  jump(deltaTime: number, keyboard: IKeyboard): void {
+  jump(deltaTime: number, controls: IControls): void {
     const speed = deltaTime / 80;
     const acceleration = deltaTime / 80;
-    const { keys } = keyboard;
+    const { action } = controls;
     const [_x, y, _z] = this.camera.posMatrix.position;
     if (y === 0) {
-      if (keys[this.key]) {
+      if (action) {
         this.dy = this.jumpStrength;
         this.camera.moveCam(0, speed * this.dy, 0);
       }

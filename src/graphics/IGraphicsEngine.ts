@@ -3,21 +3,21 @@ import { MatrixUniform } from "./Uniforms";
 import { MediaId } from "gl/texture/ImageManager";
 import { Media } from "gl/texture/Media";
 import { MediaData } from "gl/texture/MediaData";
-import { vector } from "gl/transform/IMatrix";
+import { Vector } from "gl/transform/IMatrix";
 import { Auxiliary } from "world/aux/Auxiliary";
 import { SpriteId } from "world/sprite/Sprite";
 import { Sprites } from "world/sprite/Sprites";
 
 export interface IGraphicsEngine extends Auxiliary {
   setMaxSpriteCount(spriteCount: number): void;
-  setBgColor(rgb: vector): void;
+  setBgColor(rgb: Vector): void;
   updateTextures(imageIds: MediaId[], getMedia: (imageId: MediaId) => Media | undefined): Promise<MediaData[]>;
   updateSpriteTransforms(spriteIds: Set<SpriteId>, sprites: Sprites): void;
   updateSpriteAnims(spriteIds: Set<SpriteId>, sprites: Sprites): void;
   updateSpriteTypes(spriteIds: Set<SpriteId>, sprites: Sprites): void;
   updateUniformMatrix(type: MatrixUniform, matrix: Float32Array): void;
   updateUniformFloat(type: FloatUniform, value: number): void;
-  updateUniformVector(type: VectorUniform, value: vector): void;
+  updateUniformVector(type: VectorUniform, value: Vector): void;
   setPixelListener(listener: { x: number, y: number, setPixel(value: number): void }): void;
-  addResizeListener(listener: (w: number, h: number) => void): () => void;
+  resetViewportSize(): void;
 }

@@ -4,34 +4,40 @@ import { Auxiliary } from "world/aux/Auxiliary";
 
 interface Props {
   engine: IGraphicsEngine;
+  camera: ICamera;
+  canvas: HTMLCanvasElement;
 }
 
-export class ResizeAux implements Auxiliary<ICamera> {
+export class ResizeAux implements Auxiliary<HTMLCanvasElement> {
   private engine: IGraphicsEngine;
-  private camera?: ICamera;
-  constructor({ engine }: Props) {
+  private camera: ICamera;
+  private canvas: HTMLCanvasElement;
+  constructor({ engine, camera, canvas }: Props) {
     this.engine = engine;
-  }
-
-  set holder(value: ICamera | undefined) {
-    this.camera = value;
+    this.camera = camera;
+    this.canvas = canvas;
+    this.onResize = this.onResize.bind(this);
   }
 
   activate(): void {
-    this.handleResize();
+    window.addEventListener('resize', this.onResize);
+    this.onResize();
   }
 
   deactivate(): void {
-    this.removeListener?.();
-    this.removeListener = undefined;
+    window.removeEventListener('resize', this.onResize);
   }
 
-  private removeListener?(): void;
-  private handleResize() {
-    const { engine } = this;
-    const onResize = (width: number, height: number) => {
-      this.camera?.resizeViewport(width, height);
-    };
-    this.removeListener = engine.addResizeListener(onResize);
+  onResize() {
+    this.checkCanvasSize();
+  }
+
+  checkCanvasSize(): void {
+    if (this.canvas instanceof HTMLCanvasElement) {
+      this.canvas.width = this.canvas.offsetWidth * 2;
+      this.canvas.height = this.canvas.offsetHeight * 2;
+    }
+    this.camera?.resizeViewport(this.canvas.width, this.canvas.height);
+    this.engine.resetViewportSize();
   }
 }

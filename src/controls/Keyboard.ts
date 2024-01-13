@@ -17,7 +17,6 @@ export class Keyboard extends AuxiliaryHolder<IKeyboard> implements IKeyboard {
   private readonly keyUpListener = new Set<KeyListener>();
   private readonly quickTapListener = new Set<KeyListener>();
 
-  private isActive: boolean = false;
   private timeProvider: ITimeProvider;
 
   constructor({ motor }: Props) {
@@ -48,24 +47,14 @@ export class Keyboard extends AuxiliaryHolder<IKeyboard> implements IKeyboard {
 
   activate(): void {
     super.activate();
-    this.setActive(true);
+    document.addEventListener('keydown', this.keyDown);
+    document.addEventListener('keyup', this.keyUp);
   }
 
   deactivate(): void {
     super.deactivate();
-    this.setActive(false);
-  }
-
-  private setActive(value: boolean) {
-    if (this.isActive !== value) {
-      this.isActive = value;
-      document.removeEventListener('keydown', this.keyDown);
-      document.removeEventListener('keyup', this.keyUp);
-      if (this.isActive) {
-        document.addEventListener('keydown', this.keyDown);
-        document.addEventListener('keyup', this.keyUp);
-      }
-    }
+    document.removeEventListener('keydown', this.keyDown);
+    document.removeEventListener('keyup', this.keyUp);
   }
 
   addListener(listener: KeyListener): () => void {

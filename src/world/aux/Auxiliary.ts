@@ -3,7 +3,7 @@ import { Refresh } from "updates/Refresh";
 import { CellTrack } from "world/grid/CellTrack";
 import { Holder } from "./Holder";
 
-interface Held<H = Holder<any>> {
+interface Held<H> {
   set holder(value: H | undefined);
 }
 

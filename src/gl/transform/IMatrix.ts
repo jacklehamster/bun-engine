@@ -4,4 +4,4 @@ export interface IMatrix {
   getMatrix(): Float32Array;
 }
 
-export type vector = [number, number, number] & vec3;
+export type Vector = [number, number, number] & vec3;

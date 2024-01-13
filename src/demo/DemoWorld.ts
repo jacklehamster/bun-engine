@@ -1,5 +1,4 @@
 import { Keyboard } from "controls/Keyboard";
-import { ResizeAux } from "graphics/aux/ResizeAux";
 import { IGraphicsEngine } from "graphics/IGraphicsEngine";
 import { IMotor } from "motor/IMotor";
 import { Camera } from "camera/Camera";
@@ -25,6 +24,7 @@ import { StaticSprites } from "world/sprite/aux/StaticSprites";
 import { SpriteUpdater } from "world/sprite/update/SpriteUpdater";
 import { SpriteType } from "world/sprite/Sprite";
 import { ICamera } from "camera/ICamera";
+import { KeyboardControls } from "controls/KeyboardControls";
 
 const DOBUKI = 0, LOGO = 1, GROUND = 2, VIDEO = 3, WIREFRAME = 4, GRASS = 5, BRICK = 6;
 const LOGO_SIZE = 512;
@@ -42,9 +42,9 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
 
     //  Add a sprite accumulator.
     //  * Sprite accumulators are used to collect sprite definitions, so that the engine can display them.
-    const spritesAccumulator = new SpritesAccumulator();
-    spritesAccumulator.addAuxiliary(new SpriteUpdater({ engine, motor }));
-    spritesAccumulator.addAuxiliary(new MaxSpriteCountAuxiliary({ engine }));
+    const spritesAccumulator = new SpritesAccumulator().addAuxiliary(
+      new SpriteUpdater({ engine, motor }),
+      new MaxSpriteCountAuxiliary({ engine }));
     this.addAuxiliary(spritesAccumulator);
 
     //  Add medias
@@ -174,7 +174,7 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
         {
           imageId: DOBUKI,
           spriteType: SpriteType.SPRITE,
-          transform: Matrix.create().translate(0, 0, 0),
+          transform: Matrix.create().translate(0, 0, -1),
         },
       ],
       //  Side walls with happy face logo
@@ -218,7 +218,6 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
     ));
 
     const camera = new Camera({ engine, motor });
-    camera.addAuxiliary(new ResizeAux({ engine }));
     this.addAuxiliary(camera);
     this.camera = camera;
 
@@ -243,7 +242,7 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
         },
         { //  ceiling
           imageId: WIREFRAME,
-          transform: Matrix.create().translate(cell.pos[0] * cell.pos[3], 1, cell.pos[2] * cell.pos[3]).rotateX(Math.PI / 2).scale(1)
+          transform: Matrix.create().translate(cell.pos[0] * cell.pos[3], 2, cell.pos[2] * cell.pos[3]).rotateX(Math.PI / 2).scale(1)
         },
       ]
     }));
@@ -267,20 +266,21 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
     //  * CamMoveAuxiliary is a more free-form way to move.
     //  * JumpAuxiliary lets you jump
     const keyboard = new Keyboard({ motor });
+    const controls = new KeyboardControls(keyboard);
     keyboard.addAuxiliary(
       new ToggleAuxiliary({
         auxiliariesMapping: [
           {
             key: "Tab", aux: Auxiliaries.from(
-              new CamStepAuxiliary({ keyboard, camera }, { step: 2, turnStep: Math.PI / 2, tiltStep: Math.PI / 4 }),
-              new CamTiltResetAuxiliary({ keyboard, camera }, { key: "ShiftRight" }),
+              new CamStepAuxiliary({ controls, camera }, { step: 2, turnStep: Math.PI / 2, tiltStep: Math.PI / 4 }),
+              new CamTiltResetAuxiliary({ controls, camera }),
             )
           },
           {
             key: "Tab", aux: Auxiliaries.from(
-              new CamMoveAuxiliary({ keyboard, camera }),
-              new JumpAuxiliary({ keyboard, camera }),
-              new CamTiltResetAuxiliary({ keyboard, camera }, { key: "ShiftRight" }),
+              new CamMoveAuxiliary({ controls, camera }),
+              new JumpAuxiliary({ controls, camera }),
+              new CamTiltResetAuxiliary({ controls, camera }),
             )
           },
         ],
@@ -295,13 +295,11 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
     //  * is evaluated, and some are created as needed.
     camera.posMatrix.addAuxiliary(
       new CellChangeAuxiliary({
-        visitCell: new CellTracker(this, {
-          cellLimit: 5000,
-          range: [25, 3, 25],
-          cellSize: CELLSIZE,
-        })
-      }, {
         cellSize: CELLSIZE,
-      }));
+      }).addAuxiliary(new CellTracker(this, {
+        cellLimit: 5000,
+        range: [25, 3, 25],
+        cellSize: CELLSIZE,
+      })));
   }
 }

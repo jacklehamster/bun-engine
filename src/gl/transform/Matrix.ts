@@ -1,5 +1,5 @@
 import { mat4, quat, vec3 } from 'gl-matrix';
-import { IMatrix, vector } from './IMatrix';
+import { IMatrix, Vector } from './IMatrix';
 import { Angle } from 'gl/utils/angleUtils';
 import { Position } from 'world/grid/Position';
 
@@ -9,7 +9,7 @@ class Matrix implements IMatrix {
   private m4 = Float32Array.from(mat4.create());
   static readonly HIDDEN = Matrix.create().scale(0, 0, 0);
   static readonly IDENTITY = Matrix.create();
-  private static tempVec: vector = [0, 0, 0];
+  private static tempVec: Vector = [0, 0, 0];
 
   constructor() {
     this.identity();
@@ -58,7 +58,7 @@ class Matrix implements IMatrix {
     return this.move(v);
   }
 
-  move(vector: vector): Matrix {
+  move(vector: Vector): Matrix {
     mat4.translate(this.m4, this.m4, vector);
     return this;
   }
@@ -119,7 +119,7 @@ class Matrix implements IMatrix {
   }
 
   private static tempQuat = quat.create();
-  getMoveVector(x: number, y: number, z: number, turnMatrix?: IMatrix): vector {
+  getMoveVector(x: number, y: number, z: number, turnMatrix?: IMatrix): Vector {
     const v = Matrix.tempVec;
     v[0] = x;
     v[1] = y;

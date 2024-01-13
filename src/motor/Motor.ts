@@ -66,7 +66,6 @@ export class Motor implements IMotor {
         if (schedule.period && time < schedule.expirationTime) {
           schedule.triggerTime = Math.max(schedule.triggerTime + schedule.period, time);
         } else {
-          console.log(update);
           this.updateSchedule.delete(update);
         }
       });

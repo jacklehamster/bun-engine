@@ -1,38 +1,30 @@
 import { UpdatePayload } from "updates/Refresh";
 import { Auxiliary } from "./Auxiliary";
-import { IKeyboard } from "controls/IKeyboard";
 import { ICamera } from "camera/ICamera";
+import { IControls } from "controls/IControls";
 
 interface Props {
-  keyboard: IKeyboard;
+  controls: IControls;
   camera: ICamera;
 }
 
-interface Config {
-  key: string;
-}
-
 export class CamTiltResetAuxiliary implements Auxiliary {
-  private readonly keyboard: IKeyboard;
+  private readonly controls: IControls;
   private readonly camera: ICamera;
-  private key: string;
 
-  constructor(props: Props, config: Config) {
-    this.keyboard = props.keyboard;
+  constructor(props: Props) {
+    this.controls = props.controls;
     this.camera = props.camera;
-    this.key = config.key;
     this._refresh = this._refresh.bind(this);
   }
 
   activate(): void | (() => void) {
-    const removeListener = this.keyboard.addListener({
-      onQuickTap: (keyCode) => {
-        if (keyCode === this.key) {
-          this.refresh = this._refresh;
-          this.camera.tiltMatrix.progressive.setGoal(
-            0, 1 / 300, this
-          );
-        }
+    const removeListener = this.controls.addListener({
+      onQuickTiltReset: () => {
+        this.refresh = this._refresh;
+        this.camera.tiltMatrix.progressive.setGoal(
+          0, 1 / 300, this
+        );
       },
     });
     this.deactivate = () => {

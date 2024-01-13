@@ -1,10 +1,10 @@
 import { UpdatePayload } from "updates/Refresh";
 import { Auxiliary } from "./Auxiliary";
-import { IKeyboard } from "controls/IKeyboard";
 import { ICamera } from "camera/ICamera";
+import { IControls } from "controls/IControls";
 
 interface Props {
-  keyboard: IKeyboard;
+  controls: IControls;
   camera: ICamera;
 }
 
@@ -13,12 +13,12 @@ interface Config {
 }
 
 export class CamMoveAuxiliary implements Auxiliary {
-  private readonly keyboard: IKeyboard;
+  private readonly controls: IControls;
   private readonly camera: ICamera;
   private config: Config;
 
   constructor(props: Props, config?: Partial<Config>) {
-    this.keyboard = props.keyboard;
+    this.controls = props.controls;
     this.camera = props.camera;
     this.config = {
       speed: config?.speed ?? 1,
@@ -26,32 +26,32 @@ export class CamMoveAuxiliary implements Auxiliary {
   }
 
   refresh(update: UpdatePayload): void {
-    const { keys } = this.keyboard;
+    const { forward, backward, left, right, up, down, turnLeft, turnRight } = this.controls;
     const { deltaTime } = update;
     const speed = deltaTime / 80 * this.config.speed;
     const turnspeed = deltaTime / 400;
-    if (keys.KeyW || keys.ArrowUp && !keys.ShiftRight) {
+    if (forward) {
       this.camera.moveCam(0, 0, -speed);
     }
-    if (keys.KeyS || keys.ArrowDown && !keys.ShiftRight) {
+    if (backward) {
       this.camera.moveCam(0, 0, speed);
     }
-    if (keys.KeyA || (keys.ArrowLeft && !keys.ShiftRight)) {
+    if (left) {
       this.camera.moveCam(-speed, 0, 0);
     }
-    if (keys.KeyD || (keys.ArrowRight && !keys.ShiftRight)) {
+    if (right) {
       this.camera.moveCam(speed, 0, 0);
     }
-    if (keys.KeyQ || (keys.ArrowLeft && keys.ShiftRight)) {
+    if (turnLeft) {
       this.camera.turnMatrix.turn -= turnspeed;
     }
-    if (keys.KeyE || (keys.ArrowRight && keys.ShiftRight)) {
+    if (turnRight) {
       this.camera.turnMatrix.turn += turnspeed;
     }
-    if (keys.ArrowUp && keys.ShiftRight) {
+    if (up) {
       this.camera.tiltMatrix.tilt -= turnspeed;
     }
-    if (keys.ArrowDown && keys.ShiftRight) {
+    if (down) {
       this.camera.tiltMatrix.tilt += turnspeed;
     }
   }
