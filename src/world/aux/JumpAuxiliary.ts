@@ -40,7 +40,7 @@ export class JumpAuxiliary implements Auxiliary {
     const speed = deltaTime / 80;
     const acceleration = deltaTime / 80;
     const { action } = controls;
-    const [_x, y, _z] = this.camera.posMatrix.position;
+    const [_x, y, _z] = this.camera.position.position;
     if (y === 0) {
       if (action) {
         this.dy = this.jumpStrength;
@@ -48,12 +48,12 @@ export class JumpAuxiliary implements Auxiliary {
       }
     } else {
       this.camera.moveCam(0, speed * this.dy, 0);
-      const [x, y, z] = this.camera.posMatrix.position;
+      const [x, y, z] = this.camera.position.position;
       if (y > 0) {
         const mul = this.dy < 0 ? 1 / this.plane : 1;
         this.dy += this.gravity * acceleration * mul;
       } else {
-        this.camera.posMatrix.moveTo(x, 0, z);
+        this.camera.position.moveTo(x, 0, z);
         this.dy = 0;
       }
     }

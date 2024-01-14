@@ -45,9 +45,9 @@ export class RiseAuxiliary implements Auxiliary {
       this.camera.moveCam(0, speed, 0);
     } else if (this.dropping) {
       this.camera.moveCam(0, -speed, 0);
-      const [x, y, z] = this.camera.posMatrix.position;
+      const [x, y, z] = this.camera.position.position;
       if (y < 0) {
-        this.camera.posMatrix.moveTo(x, 0, z);
+        this.camera.position.moveTo(x, 0, z);
         this.dropping = false;
       }
     }

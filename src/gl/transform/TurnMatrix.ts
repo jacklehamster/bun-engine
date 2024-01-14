@@ -1,28 +1,16 @@
-import { Angle, angle } from "gl/utils/angleUtils";
 import { IMatrix } from "./IMatrix";
 import Matrix from "./Matrix";
-import { Progressive } from "core/value/Progressive";
+import { NumVal } from "core/value/NumVal";
 
 export class TurnMatrix implements IMatrix {
   private matrix: Matrix = Matrix.create();
-  private _turn: Angle = 0;
-  readonly progressive: Progressive<TurnMatrix>;
+  readonly angle: NumVal;
 
-  constructor(private onChange?: () => void) {
-    this.progressive = new Progressive<TurnMatrix>(this,
-      (matrix) => matrix.turn,
-      (matrix, value) => matrix.turn = value,
-    );
-  }
-
-  get turn(): Angle {
-    return this._turn;
-  }
-
-  set turn(value: number) {
-    this._turn = angle(value);
-    this.matrix.setYRotation(this._turn);
-    this.onChange?.();
+  constructor(onChange?: () => void) {
+    this.angle = new NumVal(0, tilt => {
+      this.matrix.setYRotation(tilt);
+      onChange?.();
+    });
   }
 
   getMatrix(): Float32Array {

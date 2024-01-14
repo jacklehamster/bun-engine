@@ -38,53 +38,15 @@ import { IGraphicsEngine } from './IGraphicsEngine';
 import { Sprites } from 'world/sprite/Sprites';
 import { Vector } from 'gl/transform/IMatrix';
 
-const DEFAULT_ATTRIBUTES: WebGLContextAttributes = {
-  alpha: true,
-  antialias: false,
-  depth: true,
-  failIfMajorPerformanceCaveat: undefined,
-  powerPreference: 'default',
-  premultipliedAlpha: true,
-  preserveDrawingBuffer: false,
-  stencil: false,
-};
-
 const VERTICES_PER_SPRITE = 6;
 
-const LOG_GL = false;
-
 const EMPTY_VEC2 = Float32Array.from([0, 0]);
-
-function glProxy(gl: GL) {
-  if (!LOG_GL) {
-    return gl;
-  }
-  const proxy = new Proxy<GL>(gl, {
-    get(target, prop) {
-      const t = target as any;
-      const result = t[prop];
-      if (typeof result === 'function') {
-        const f = (...params: any[]) => {
-          const returnValue = result.apply(t, params);
-          console.log(`gl.${String(prop)}(`, params, ') = ', returnValue);
-          return returnValue;
-        };
-        return f;
-      } else {
-        console.log(`gl.${String(prop)} = `, result);
-        return result;
-      }
-    },
-  });
-  return proxy;
-}
 
 export interface Props {
   attributes?: WebGLContextAttributes;
 }
 
 export class GraphicsEngine extends Disposable implements IGraphicsEngine {
-  private gl: GL;
   private programs: GLPrograms;
   private attributeBuffers: GLAttributeBuffers;
   private uniforms: GLUniforms;
@@ -101,13 +63,8 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
   private floatUniforms: Record<FloatUniform, WebGLUniformLocation>;
   private vec3Uniforms: Record<VectorUniform, WebGLUniformLocation>;
 
-  constructor(canvas: HTMLCanvasElement | OffscreenCanvas, {
-    attributes,
-  }: Props = {}) {
+  constructor(private gl: GL) {
     super();
-    const gl: WebGL2RenderingContext = canvas.getContext('webgl2', { ...DEFAULT_ATTRIBUTES, ...attributes })! as WebGL2RenderingContext;
-    this.gl = glProxy(gl);
-
     this.programs = this.own(new GLPrograms(this.gl));
     this.uniforms = new GLUniforms(this.gl, this.programs);
 

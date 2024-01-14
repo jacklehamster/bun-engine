@@ -22,7 +22,7 @@ export class CamTiltResetAuxiliary implements Auxiliary {
     const removeListener = this.controls.addListener({
       onQuickTiltReset: () => {
         this.refresh = this._refresh;
-        this.camera.tiltMatrix.progressive.setGoal(
+        this.camera.tilt.angle.progressTowards(
           0, 1 / 300, this
         );
       },
@@ -39,7 +39,7 @@ export class CamTiltResetAuxiliary implements Auxiliary {
 
   _refresh(update: UpdatePayload): void {
     const { deltaTime } = update;
-    if (!this.camera.tiltMatrix.progressive.update(deltaTime)) {
+    if (!this.camera.tilt.angle.update(deltaTime)) {
       this.refresh = undefined;
     }
   }

@@ -27035,41 +27035,7 @@ var SpriteType;
 })(SpriteType || (SpriteType = {}));
 
 // src/graphics/GraphicsEngine.ts
-var glProxy = function(gl) {
-  if (!LOG_GL) {
-    return gl;
-  }
-  const proxy = new Proxy(gl, {
-    get(target, prop) {
-      const t = target;
-      const result = t[prop];
-      if (typeof result === "function") {
-        const f = (...params) => {
-          const returnValue = result.apply(t, params);
-          console.log(`gl.${String(prop)}(`, params, ") = ", returnValue);
-          return returnValue;
-        };
-        return f;
-      } else {
-        console.log(`gl.${String(prop)} = `, result);
-        return result;
-      }
-    }
-  });
-  return proxy;
-};
-var DEFAULT_ATTRIBUTES = {
-  alpha: true,
-  antialias: false,
-  depth: true,
-  failIfMajorPerformanceCaveat: undefined,
-  powerPreference: "default",
-  premultipliedAlpha: true,
-  preserveDrawingBuffer: false,
-  stencil: false
-};
 var VERTICES_PER_SPRITE = 6;
-var LOG_GL = false;
 var EMPTY_VEC2 = Float32Array.from([0, 0]);
 
 class GraphicsEngine extends Disposable {
@@ -27086,12 +27052,9 @@ class GraphicsEngine extends Disposable {
   matrixUniforms;
   floatUniforms;
   vec3Uniforms;
-  constructor(canvas, {
-    attributes
-  } = {}) {
+  constructor(gl) {
     super();
-    const gl = canvas.getContext("webgl2", { ...DEFAULT_ATTRIBUTES, ...attributes });
-    this.gl = glProxy(gl);
+    this.gl = gl;
     this.programs = this.own(new GLPrograms(this.gl));
     this.uniforms = new GLUniforms(this.gl, this.programs);
     this.textureManager = new TextureManager(this.gl, this.uniforms);
@@ -27543,57 +27506,30 @@ class Keyboard extends AuxiliaryHolder {
   }
 }
 
-// src/gl/transform/ProjectionMatrix.ts
-class ProjectionMatrix extends AuxiliaryHolder {
-  onChange;
-  baseMatrix = Matrix_default.create();
-  perspectiveMatrix = Matrix_default.create();
-  orthoMatrix = Matrix_default.create();
-  _perspectiveLevel = 1;
-  _zoom = 1;
-  _width = 0;
-  _height = 0;
-  constructor(onChange) {
-    super();
-    this.onChange = onChange;
+// src/utils/ObjectPool.ts
+class ObjectPool {
+  initCall;
+  allObjectsCreated = [];
+  recycler = [];
+  constructor(initCall) {
+    this.initCall = initCall;
   }
-  configPerspectiveMatrix(angle2, ratio, near, far) {
-    this.perspectiveMatrix.perspective(angle2, ratio, near, far);
+  recycle(element) {
+    this.recycler.push(element);
   }
-  configOrthoMatrix(width, height2, near, far) {
-    this.orthoMatrix.ortho(-width / 2, width / 2, -height2 / 2, height2 / 2, near, far);
-  }
-  configure(width, height2, zoom = 1, near = 0.5, far = 1000) {
-    if (this._width !== width || this._height !== height2 || this._zoom !== zoom) {
-      this._width = width;
-      this._height = height2;
-      this._zoom = zoom;
-      const ratio = width / height2;
-      const angle2 = 45 / Math.sqrt(this._zoom);
-      this.configPerspectiveMatrix(angle2, ratio, Math.max(near, 0.00001), far);
-      this.configOrthoMatrix(ratio / this._zoom / this._zoom, 1 / this._zoom / this._zoom, -far, far);
-      this.onChange?.();
+  create(...params) {
+    const recycledElem = this.recycler.pop();
+    if (recycledElem) {
+      return this.initCall(recycledElem, ...params);
     }
+    const elem = this.initCall(undefined, ...params);
+    this.allObjectsCreated.push(elem);
+    return elem;
   }
-  setPerspective(level) {
-    this._perspectiveLevel = level;
-    this.onChange?.();
+  reset() {
+    this.recycler.length = 0;
+    this.recycler.push(...this.allObjectsCreated);
   }
-  setZoom(zoom) {
-    this.configure(this._width, this._height, zoom);
-  }
-  getMatrix() {
-    this.baseMatrix.combine(this.orthoMatrix, this.perspectiveMatrix, this._perspectiveLevel);
-    return this.baseMatrix.getMatrix();
-  }
-}
-
-// src/gl/utils/angleUtils.ts
-function angle2(value) {
-  return (value + Math.PI) % (2 * Math.PI) - Math.PI;
-}
-function angleStep(angle3, step) {
-  return Math.round(angle3 / step) * step;
 }
 
 // src/core/value/Progressive.ts
@@ -27642,23 +27578,102 @@ class Progressive {
   }
 }
 
+// src/core/value/NumVal.ts
+var progressivePool = new ObjectPool((progressive, val) => {
+  if (!progressive) {
+    return new Progressive(val, (elem) => elem.valueOf(), (elem, value) => elem.setValue(value));
+  }
+  progressive.element = val;
+  return progressive;
+});
+
+class NumVal {
+  onChange;
+  _value = 0;
+  progressive;
+  constructor(value = 0, onChange) {
+    this.onChange = onChange;
+    this._value = value;
+  }
+  valueOf() {
+    return this._value;
+  }
+  setValue(value) {
+    if (value !== this._value) {
+      this._value = value;
+      this.onChange?.(this._value);
+    }
+    return this;
+  }
+  update(deltaTime) {
+    return !!this.progressive?.update(deltaTime);
+  }
+  progressTowards(goal, speed, locker) {
+    if (!this.progressive) {
+      this.progressive = progressivePool.create(this);
+    }
+    this.progressive.setGoal(goal, speed, locker);
+  }
+  get goal() {
+    return this.progressive?.goal ?? this.valueOf();
+  }
+}
+
+// src/gl/transform/ProjectionMatrix.ts
+var DEFAULT_PERSPECTIVE_LEVEL = 1;
+var DEFAULT_ZOOM = 1;
+
+class ProjectionMatrix extends AuxiliaryHolder {
+  onChange;
+  baseMatrix = Matrix_default.create();
+  perspectiveMatrix = Matrix_default.create();
+  orthoMatrix = Matrix_default.create();
+  perspectiveLevel;
+  zoom;
+  _width = 0;
+  _height = 0;
+  constructor(onChange) {
+    super();
+    this.onChange = onChange;
+    this.perspectiveLevel = new NumVal(DEFAULT_PERSPECTIVE_LEVEL, onChange);
+    this.zoom = new NumVal(DEFAULT_ZOOM, onChange);
+  }
+  configPerspectiveMatrix(angle2, ratio, near, far) {
+    this.perspectiveMatrix.perspective(angle2, ratio, near, far);
+  }
+  configOrthoMatrix(width, height2, near, far) {
+    this.orthoMatrix.ortho(-width / 2, width / 2, -height2 / 2, height2 / 2, near, far);
+  }
+  configure(width, height2, zoom = 1, near = 0.5, far = 1000) {
+    if (this._width !== width || this._height !== height2 || this.zoom.valueOf() !== zoom) {
+      this._width = width;
+      this._height = height2;
+      this.zoom.setValue?.(zoom);
+      const ratio = width / height2;
+      const angle2 = 45 / Math.sqrt(zoom);
+      this.configPerspectiveMatrix(angle2, ratio, Math.max(near, 0.00001), far);
+      this.configOrthoMatrix(ratio / zoom / zoom, 1 / zoom / zoom, -far, far);
+      this.onChange?.();
+    }
+  }
+  setZoom(zoom) {
+    this.configure(this._width, this._height, zoom);
+  }
+  getMatrix() {
+    this.baseMatrix.combine(this.orthoMatrix, this.perspectiveMatrix, this.perspectiveLevel.valueOf());
+    return this.baseMatrix.getMatrix();
+  }
+}
+
 // src/gl/transform/TiltMatrix.ts
 class TiltMatrix {
-  onChange;
   matrix = Matrix_default.create();
-  _tilt = 0;
-  progressive;
+  angle;
   constructor(onChange) {
-    this.onChange = onChange;
-    this.progressive = new Progressive(this, (matrix) => matrix.tilt, (matrix, value) => matrix.tilt = value);
-  }
-  get tilt() {
-    return this._tilt;
-  }
-  set tilt(value) {
-    this._tilt = angle2(value);
-    this.matrix.setXRotation(this._tilt);
-    this.onChange?.();
+    this.angle = new NumVal(0, (tilt) => {
+      this.matrix.setXRotation(tilt);
+      onChange?.();
+    });
   }
   getMatrix() {
     return this.matrix.getMatrix();
@@ -27667,21 +27682,13 @@ class TiltMatrix {
 
 // src/gl/transform/TurnMatrix.ts
 class TurnMatrix {
-  onChange;
   matrix = Matrix_default.create();
-  _turn = 0;
-  progressive;
+  angle;
   constructor(onChange) {
-    this.onChange = onChange;
-    this.progressive = new Progressive(this, (matrix) => matrix.turn, (matrix, value) => matrix.turn = value);
-  }
-  get turn() {
-    return this._turn;
-  }
-  set turn(value) {
-    this._turn = angle2(value);
-    this.matrix.setYRotation(this._turn);
-    this.onChange?.();
+    this.angle = new NumVal(0, (tilt) => {
+      this.matrix.setYRotation(tilt);
+      onChange?.();
+    });
   }
   getMatrix() {
     return this.matrix.getMatrix();
@@ -27871,10 +27878,10 @@ class CameraVectorUpdate {
 // src/camera/Camera.ts
 class Camera extends AuxiliaryHolder {
   camMatrix = Matrix_default.create();
-  projectionMatrix = new ProjectionMatrix(() => this.updateInformer.informUpdate(MatrixUniform.PROJECTION));
-  posMatrix = new PositionMatrix(() => this.updateInformer.informUpdate(MatrixUniform.CAM_POS));
-  tiltMatrix = new TiltMatrix(() => this.updateInformer.informUpdate(MatrixUniform.CAM_TILT));
-  turnMatrix = new TurnMatrix(() => this.updateInformer.informUpdate(MatrixUniform.CAM_TURN));
+  projection = new ProjectionMatrix(() => this.updateInformer.informUpdate(MatrixUniform.PROJECTION));
+  position = new PositionMatrix(() => this.updateInformer.informUpdate(MatrixUniform.CAM_POS));
+  tilt = new TiltMatrix(() => this.updateInformer.informUpdate(MatrixUniform.CAM_TILT));
+  turn = new TurnMatrix(() => this.updateInformer.informUpdate(MatrixUniform.CAM_TURN));
   _curvature = 0.05;
   _distance = 0.5;
   _bgColor = [0, 0, 0];
@@ -27891,7 +27898,7 @@ class Camera extends AuxiliaryHolder {
     this.updateInformer = new CameraUpdate(this.getCameraMatrix.bind(this), engine, motor);
     this.updateInformerFloat = new CameraFloatUpdate(this.getCameraFloat.bind(this), engine, motor);
     this.updateInformerVector = new CameraVectorUpdate(this.getCameraVector.bind(this), engine, motor);
-    this.addAuxiliary(this.posMatrix);
+    this.addAuxiliary(this.position);
   }
   activate() {
     super.activate();
@@ -27905,10 +27912,10 @@ class Camera extends AuxiliaryHolder {
     this.updateInformerVector.informUpdate(VectorUniform.BG_COLOR);
   }
   cameraMatrices = {
-    [MatrixUniform.PROJECTION]: this.projectionMatrix,
+    [MatrixUniform.PROJECTION]: this.projection,
     [MatrixUniform.CAM_POS]: this.camMatrix,
-    [MatrixUniform.CAM_TURN]: this.turnMatrix,
-    [MatrixUniform.CAM_TILT]: this.tiltMatrix
+    [MatrixUniform.CAM_TURN]: this.turn,
+    [MatrixUniform.CAM_TILT]: this.tilt
   };
   cameraVectors = {
     [VectorUniform.BG_COLOR]: this._bgColor
@@ -27917,7 +27924,7 @@ class Camera extends AuxiliaryHolder {
     if (this._viewportWidth !== width || this._viewportHeight !== height2) {
       this._viewportWidth = width;
       this._viewportHeight = height2;
-      this.projectionMatrix.configure(this._viewportWidth, this._viewportHeight);
+      this.projection.configure(this._viewportWidth, this._viewportHeight);
     }
   }
   set curvature(value) {
@@ -27944,7 +27951,7 @@ class Camera extends AuxiliaryHolder {
   }
   getCameraMatrix(uniform) {
     if (uniform === MatrixUniform.CAM_POS) {
-      this.camMatrix.invert(this.posMatrix);
+      this.camMatrix.invert(this.position);
     }
     return this.cameraMatrices[uniform].getMatrix();
   }
@@ -27962,7 +27969,7 @@ class Camera extends AuxiliaryHolder {
     return this.cameraVectors[uniform];
   }
   moveCam(x, y, z) {
-    this.posMatrix.moveBy(x, y, z, this.turnMatrix);
+    this.position.moveBy(x, y, z, this.turn);
   }
 }
 
@@ -28073,18 +28080,23 @@ class CamMoveAuxiliary {
       this.camera.moveCam(speed, 0, 0);
     }
     if (turnLeft) {
-      this.camera.turnMatrix.turn -= turnspeed;
+      this.camera.turn.turn -= turnspeed;
     }
     if (turnRight) {
-      this.camera.turnMatrix.turn += turnspeed;
+      this.camera.turn.turn += turnspeed;
     }
     if (up) {
-      this.camera.tiltMatrix.tilt -= turnspeed;
+      this.camera.tilt.angle -= turnspeed;
     }
     if (down) {
-      this.camera.tiltMatrix.tilt += turnspeed;
+      this.camera.tilt.angle += turnspeed;
     }
   }
+}
+
+// src/gl/utils/angleUtils.ts
+function angleStep(angle2, step) {
+  return Math.round(angle2 / step) * step;
 }
 
 // src/world/aux/CamStepAuxiliary.ts
@@ -28099,7 +28111,7 @@ class CamStepAuxiliary {
   constructor({ controls, camera }, config = {}) {
     this.controls = controls;
     this.camera = camera;
-    this.goalPos = [...this.camera.posMatrix.position];
+    this.goalPos = [...this.camera.position.position];
     this.config = {
       step: config.step ?? 2,
       turnStep: config.turnStep ?? Math.PI / 2,
@@ -28111,7 +28123,7 @@ class CamStepAuxiliary {
   refresh(update) {
     const { backward, forward, left, right, up, down, turnLeft, turnRight } = this.controls;
     const { deltaTime } = update;
-    const pos = this.camera.posMatrix.position;
+    const pos = this.camera.position.position;
     const { step, turnStep, tiltStep } = this.config;
     this.prePos[0] = Math.round(pos[0] / step) * step;
     this.prePos[1] = Math.round(pos[1] / step) * step;
@@ -28129,7 +28141,7 @@ class CamStepAuxiliary {
     if (right) {
       dx++;
     }
-    const turnGoal = this.camera.turnMatrix.progressive.goal;
+    const turnGoal = this.camera.turn.angle.goal;
     if (dx || dz || this.stepCount > 0) {
       const relativeDx = dx * Math.cos(turnGoal) - dz * Math.sin(turnGoal);
       const relativeDz = dx * Math.sin(turnGoal) + dz * Math.cos(turnGoal);
@@ -28142,14 +28154,14 @@ class CamStepAuxiliary {
       this.stepCount = 0;
     }
     const speed = (dx || dz ? deltaTime / 150 : deltaTime / 100) * this.config.speed;
-    const didMove = this.camera.posMatrix.gotoPos(this.goalPos[0], pos[1], this.goalPos[2], speed);
+    const didMove = this.camera.position.gotoPos(this.goalPos[0], pos[1], this.goalPos[2], speed);
     if (!didMove) {
       const gx = Math.round(pos[0] / step) * step;
       const gz = Math.round(pos[2] / step) * step;
       this.goalPos[0] = gx;
       this.goalPos[2] = gz;
     }
-    const newPos = this.camera.posMatrix.position;
+    const newPos = this.camera.position.position;
     if (Math.round(newPos[0] / step) * step !== this.prePos[0] || Math.round(newPos[1] / step) * step !== this.prePos[1] || Math.round(newPos[2] / step) * step !== this.prePos[2]) {
       this.stepCount++;
     }
@@ -28160,15 +28172,15 @@ class CamStepAuxiliary {
     if (turnRight) {
       dTurn++;
     }
-    const turn = angleStep(this.camera.turnMatrix.turn, turnStep);
+    const turn = angleStep(this.camera.turn.angle.valueOf(), turnStep);
     if (dTurn || this.turnCount > 0) {
-      this.camera.turnMatrix.progressive.setGoal(angleStep(turn + turnStep * dTurn, turnStep), dTurn ? 0.005 : 0.01, this);
+      this.camera.turn.angle.progressTowards(angleStep(turn + turnStep * dTurn, turnStep), dTurn ? 0.005 : 0.01, this);
     }
     if (!dTurn) {
       this.turnCount = 0;
     }
-    if (this.camera.turnMatrix.progressive.update(deltaTime)) {
-      const newTurn = angleStep(this.camera.turnMatrix.turn, turnStep);
+    if (this.camera.turn.angle.update(deltaTime)) {
+      const newTurn = angleStep(this.camera.turn.angle.valueOf(), turnStep);
       if (newTurn !== turn) {
         this.turnCount++;
       }
@@ -28180,15 +28192,15 @@ class CamStepAuxiliary {
     if (down) {
       dTilt++;
     }
-    const tilt = angleStep(this.camera.tiltMatrix.tilt, tiltStep);
+    const tilt = angleStep(this.camera.tilt.angle.valueOf(), tiltStep);
     if (dTilt || this.tiltCount > 0) {
-      this.camera.tiltMatrix.progressive.setGoal(angleStep(tilt + tiltStep * dTilt, tiltStep), dTilt ? 0.0025 : 0.005, this);
+      this.camera.tilt.angle.progressTowards(angleStep(tilt + tiltStep * dTilt, tiltStep), dTilt ? 0.0025 : 0.005, this);
     }
     if (!dTilt) {
       this.tiltCount = 0;
     }
-    if (this.camera.tiltMatrix.progressive.update(deltaTime)) {
-      const newTilt = angleStep(this.camera.tiltMatrix.tilt, tiltStep);
+    if (this.camera.tilt.angle.update(deltaTime)) {
+      const newTilt = angleStep(this.camera.tilt.angle.valueOf(), tiltStep);
       if (newTilt !== tilt) {
         this.tiltCount++;
       }
@@ -28209,7 +28221,7 @@ class CamTiltResetAuxiliary {
     const removeListener = this.controls.addListener({
       onQuickTiltReset: () => {
         this.refresh = this._refresh;
-        this.camera.tiltMatrix.progressive.setGoal(0, 0.0033333333333333335, this);
+        this.camera.tilt.angle.progressTowards(0, 0.0033333333333333335, this);
       }
     });
     this.deactivate = () => {
@@ -28220,7 +28232,7 @@ class CamTiltResetAuxiliary {
   refresh;
   _refresh(update) {
     const { deltaTime } = update;
-    if (!this.camera.tiltMatrix.progressive.update(deltaTime)) {
+    if (!this.camera.tilt.angle.update(deltaTime)) {
       this.refresh = undefined;
     }
   }
@@ -28250,7 +28262,7 @@ class JumpAuxiliary {
     const speed = deltaTime / 80;
     const acceleration = deltaTime / 80;
     const { action } = controls;
-    const [_x, y, _z] = this.camera.posMatrix.position;
+    const [_x, y, _z] = this.camera.position.position;
     if (y === 0) {
       if (action) {
         this.dy = this.jumpStrength;
@@ -28258,12 +28270,12 @@ class JumpAuxiliary {
       }
     } else {
       this.camera.moveCam(0, speed * this.dy, 0);
-      const [x, y2, z] = this.camera.posMatrix.position;
+      const [x, y2, z] = this.camera.position.position;
       if (y2 > 0) {
         const mul4 = this.dy < 0 ? 1 / this.plane : 1;
         this.dy += this.gravity * acceleration * mul4;
       } else {
-        this.camera.posMatrix.moveTo(x, 0, z);
+        this.camera.position.moveTo(x, 0, z);
         this.dy = 0;
       }
     }
@@ -28326,32 +28338,6 @@ class ToggleAuxiliary {
       this.active = false;
       this.auxiliary?.deactivate?.();
     }
-  }
-}
-
-// src/utils/ObjectPool.ts
-class ObjectPool {
-  initCall;
-  allObjectsCreated = [];
-  recycler = [];
-  constructor(initCall) {
-    this.initCall = initCall;
-  }
-  recycle(element) {
-    this.recycler.push(element);
-  }
-  create(...params) {
-    const recycledElem = this.recycler.pop();
-    if (recycledElem) {
-      return this.initCall(recycledElem, ...params);
-    }
-    const elem = this.initCall(undefined, ...params);
-    this.allObjectsCreated.push(elem);
-    return elem;
-  }
-  reset() {
-    this.recycler.length = 0;
-    this.recycler.push(...this.allObjectsCreated);
   }
 }
 
@@ -29052,7 +29038,7 @@ class DemoWorld extends AuxiliaryHolder {
     const camera = new Camera({ engine, motor });
     this.addAuxiliary(camera);
     this.camera = camera;
-    camera.posMatrix.moveBlocker = {
+    camera.position.moveBlocker = {
       isBlocked(pos) {
         const [cx, cy, cz] = PositionMatrix.getCellPos(pos, 2);
         return cx === 0 && cy === 0 && cz === -3;
@@ -29089,9 +29075,7 @@ class DemoWorld extends AuxiliaryHolder {
       ]
     }));
     this.addAuxiliary(keyboard);
-    camera.posMatrix.addAuxiliary(new CellChangeAuxiliary({
-      cellSize: CELLSIZE
-    }).addAuxiliary(new CellTracker(this, {
+    camera.position.addAuxiliary(new CellChangeAuxiliary({ cellSize: CELLSIZE }).addAuxiliary(new CellTracker(this, {
       cellLimit: 5000,
       range: [25, 3, 25],
       cellSize: CELLSIZE
@@ -29108,15 +29092,17 @@ class ResizeAux {
   engine;
   camera;
   canvas;
-  constructor({ engine, camera, canvas }) {
+  constructor({ engine, camera }) {
     this.engine = engine;
     this.camera = camera;
-    this.canvas = canvas;
     this.onResize = this.onResize.bind(this);
+  }
+  set holder(value) {
+    this.canvas = value.elem;
   }
   activate() {
     window.addEventListener("resize", this.onResize);
-    this.onResize();
+    this.checkCanvasSize();
   }
   deactivate() {
     window.removeEventListener("resize", this.onResize);
@@ -29125,12 +29111,69 @@ class ResizeAux {
     this.checkCanvasSize();
   }
   checkCanvasSize() {
-    if (this.canvas instanceof HTMLCanvasElement) {
-      this.canvas.width = this.canvas.offsetWidth * 2;
-      this.canvas.height = this.canvas.offsetHeight * 2;
+    if (this.canvas) {
+      if (this.canvas instanceof HTMLCanvasElement) {
+        this.canvas.width = this.canvas.offsetWidth * 2;
+        this.canvas.height = this.canvas.offsetHeight * 2;
+      }
+      this.camera?.resizeViewport(this.canvas.width, this.canvas.height);
+      this.engine.resetViewportSize();
     }
-    this.camera?.resizeViewport(this.canvas.width, this.canvas.height);
-    this.engine.resetViewportSize();
+  }
+}
+
+// src/ui/DOMWrap.ts
+class DOMWrap extends AuxiliaryHolder {
+  elem;
+  constructor(elem) {
+    super();
+    this.elem = elem;
+  }
+}
+
+// src/utils/LogProxy.ts
+function logProxy(gl) {
+  const proxy = new Proxy(gl, {
+    get(target, prop) {
+      const t = target;
+      const result = t[prop];
+      if (typeof result === "function") {
+        const f = (...params) => {
+          const returnValue = result.apply(t, params);
+          console.log(`gl.${String(prop)}(`, params, ") = ", returnValue);
+          return returnValue;
+        };
+        return f;
+      } else {
+        console.log(`gl.${String(prop)} = `, result);
+        return result;
+      }
+    }
+  });
+  return proxy;
+}
+
+// src/graphics/WebGlCanvas.ts
+var LOG_GL = false;
+var DEFAULT_ATTRIBUTES = {
+  alpha: true,
+  antialias: false,
+  depth: true,
+  failIfMajorPerformanceCaveat: undefined,
+  powerPreference: "default",
+  premultipliedAlpha: true,
+  preserveDrawingBuffer: false,
+  stencil: false
+};
+
+class WebGlCanvas extends DOMWrap {
+  gl;
+  constructor(canvas, {
+    attributes
+  } = {}) {
+    super(canvas);
+    const gl = canvas.getContext("webgl2", { ...DEFAULT_ATTRIBUTES, ...attributes });
+    this.gl = LOG_GL ? logProxy(gl) : gl;
   }
 }
 
@@ -29141,6 +29184,7 @@ You are using dok-engine.
 https://github.com/jacklehamster/bun-engine`);
 }
 async function testCanvas(canvas) {
+  const webGlCanvas = new WebGlCanvas(canvas);
   const root = client.default.createRoot(document.body.appendChild(document.createElement("div")));
   const element = import_react.default.createElement("h1", null, "Hello, world!");
   root.render(element);
@@ -29160,14 +29204,15 @@ async function testCanvas(canvas) {
     pixelListener.x = x;
     pixelListener.y = y;
   });
-  const engine = new GraphicsEngine(canvas);
+  const engine = new GraphicsEngine(webGlCanvas.gl);
   const motor = new Motor;
   const core = new AuxiliaryHolder;
   const world = new DemoWorld({ engine, motor });
   core.addAuxiliary(motor);
   core.addAuxiliary(engine);
   core.addAuxiliary(world);
-  core.addAuxiliary(new ResizeAux({ engine, camera: world.camera, canvas }));
+  core.addAuxiliary(webGlCanvas);
+  webGlCanvas.addAuxiliary(new ResizeAux({ engine, camera: world.camera }));
   core.activate();
   onStop = () => core.deactivate();
   return { engine, motor, world };
@@ -29182,4 +29227,4 @@ export {
   hello
 };
 
-//# debugId=A6E597BF6A11EF4264756e2164756e21
+//# debugId=4741CFF52A840FEC64756e2164756e21

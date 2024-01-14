@@ -43,16 +43,16 @@ export class CamMoveAuxiliary implements Auxiliary {
       this.camera.moveCam(speed, 0, 0);
     }
     if (turnLeft) {
-      this.camera.turnMatrix.turn -= turnspeed;
+      this.camera.turn.turn -= turnspeed;
     }
     if (turnRight) {
-      this.camera.turnMatrix.turn += turnspeed;
+      this.camera.turn.turn += turnspeed;
     }
     if (up) {
-      this.camera.tiltMatrix.tilt -= turnspeed;
+      this.camera.tilt.angle -= turnspeed;
     }
     if (down) {
-      this.camera.tiltMatrix.tilt += turnspeed;
+      this.camera.tilt.angle += turnspeed;
     }
   }
 }

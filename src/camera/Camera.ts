@@ -21,10 +21,10 @@ interface Props {
 
 export class Camera extends AuxiliaryHolder<ICamera> implements ICamera {
   private readonly camMatrix = Matrix.create();
-  readonly projectionMatrix = new ProjectionMatrix(() => this.updateInformer.informUpdate(MatrixUniform.PROJECTION));
-  readonly posMatrix = new PositionMatrix(() => this.updateInformer.informUpdate(MatrixUniform.CAM_POS));
-  readonly tiltMatrix = new TiltMatrix(() => this.updateInformer.informUpdate(MatrixUniform.CAM_TILT));
-  readonly turnMatrix = new TurnMatrix(() => this.updateInformer.informUpdate(MatrixUniform.CAM_TURN));
+  readonly projection = new ProjectionMatrix(() => this.updateInformer.informUpdate(MatrixUniform.PROJECTION));
+  readonly position = new PositionMatrix(() => this.updateInformer.informUpdate(MatrixUniform.CAM_POS));
+  readonly tilt = new TiltMatrix(() => this.updateInformer.informUpdate(MatrixUniform.CAM_TILT));
+  readonly turn = new TurnMatrix(() => this.updateInformer.informUpdate(MatrixUniform.CAM_TURN));
   private _curvature = 0.05;
   private _distance = .5;
   private _bgColor: Vector = [0, 0, 0];
@@ -42,7 +42,7 @@ export class Camera extends AuxiliaryHolder<ICamera> implements ICamera {
     this.updateInformer = new CameraUpdate(this.getCameraMatrix.bind(this), engine, motor);
     this.updateInformerFloat = new CameraFloatUpdate(this.getCameraFloat.bind(this), engine, motor);
     this.updateInformerVector = new CameraVectorUpdate(this.getCameraVector.bind(this), engine, motor);
-    this.addAuxiliary(this.posMatrix);
+    this.addAuxiliary(this.position);
   }
 
   activate() {
@@ -58,10 +58,10 @@ export class Camera extends AuxiliaryHolder<ICamera> implements ICamera {
   }
 
   private readonly cameraMatrices: Record<MatrixUniform, IMatrix> = {
-    [MatrixUniform.PROJECTION]: this.projectionMatrix,
+    [MatrixUniform.PROJECTION]: this.projection,
     [MatrixUniform.CAM_POS]: this.camMatrix,
-    [MatrixUniform.CAM_TURN]: this.turnMatrix,
-    [MatrixUniform.CAM_TILT]: this.tiltMatrix,
+    [MatrixUniform.CAM_TURN]: this.turn,
+    [MatrixUniform.CAM_TILT]: this.tilt,
   };
 
   private readonly cameraVectors: Record<VectorUniform, Vector> = {
@@ -72,7 +72,7 @@ export class Camera extends AuxiliaryHolder<ICamera> implements ICamera {
     if (this._viewportWidth !== width || this._viewportHeight !== height) {
       this._viewportWidth = width;
       this._viewportHeight = height;
-      this.projectionMatrix.configure(this._viewportWidth, this._viewportHeight);
+      this.projection.configure(this._viewportWidth, this._viewportHeight);
     }
   }
 
@@ -104,7 +104,7 @@ export class Camera extends AuxiliaryHolder<ICamera> implements ICamera {
 
   private getCameraMatrix(uniform: MatrixUniform): Float32Array {
     if (uniform === MatrixUniform.CAM_POS) {
-      this.camMatrix.invert(this.posMatrix);
+      this.camMatrix.invert(this.position);
     }
     return this.cameraMatrices[uniform].getMatrix();
   }
@@ -125,6 +125,6 @@ export class Camera extends AuxiliaryHolder<ICamera> implements ICamera {
   }
 
   moveCam(x: number, y: number, z: number) {
-    this.posMatrix.moveBy(x, y, z, this.turnMatrix);
+    this.position.moveBy(x, y, z, this.turn);
   }
 }

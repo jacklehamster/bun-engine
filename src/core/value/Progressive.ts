@@ -3,7 +3,8 @@ export class Progressive<T> {
   private active: boolean = false;
   private speed: number = 0;
   private locker?: any;
-  constructor(private element: T, private getValue: (element: T) => number, private apply: (element: T, value: number) => void) {
+
+  constructor(public element: T, private getValue: (element: T) => number, private apply: (element: T, value: number) => void) {
     this._goal = this.getValue(element);
   }
 

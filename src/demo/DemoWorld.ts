@@ -223,7 +223,7 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
 
     //  * A move blocker just determines where you can or cannot move.
     //  Currently, there is just one block at [0, 0, -3]
-    camera.posMatrix.moveBlocker = {
+    camera.position.moveBlocker = {
       isBlocked(pos): boolean {
         const [cx, cy, cz] = PositionMatrix.getCellPos(pos, 2);
         return cx === 0 && cy === 0 && cz === -3;
@@ -293,13 +293,12 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
     //  * This is needed to indicate when the player is changing cell
     //  * as they move. Every cell change, a new set of surrounding cells
     //  * is evaluated, and some are created as needed.
-    camera.posMatrix.addAuxiliary(
-      new CellChangeAuxiliary({
-        cellSize: CELLSIZE,
-      }).addAuxiliary(new CellTracker(this, {
-        cellLimit: 5000,
-        range: [25, 3, 25],
-        cellSize: CELLSIZE,
-      })));
+    camera.position.addAuxiliary(
+      new CellChangeAuxiliary({ cellSize: CELLSIZE })
+        .addAuxiliary(new CellTracker(this, {
+          cellLimit: 5000,
+          range: [25, 3, 25],
+          cellSize: CELLSIZE,
+        })));
   }
 }

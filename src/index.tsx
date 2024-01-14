@@ -5,6 +5,7 @@ import { AuxiliaryHolder } from 'world/aux/AuxiliaryHolder';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { ResizeAux } from 'graphics/aux/ResizeAux';
+import { WebGlCanvas } from 'graphics/WebGlCanvas';
 
 export async function hello() {
   console.info(`Welcome!
@@ -15,6 +16,7 @@ https://github.com/jacklehamster/bun-engine`);
 let onStop: () => void;
 
 export async function testCanvas(canvas: HTMLCanvasElement) {
+  const webGlCanvas = new WebGlCanvas(canvas);
   const root = ReactDOM.createRoot(
     document.body.appendChild(document.createElement('div')),
   );
@@ -39,7 +41,7 @@ export async function testCanvas(canvas: HTMLCanvasElement) {
   });
   //  canvas.style.pointerEvents = 'none';
 
-  const engine = new GraphicsEngine(canvas);
+  const engine = new GraphicsEngine(webGlCanvas.gl);
   // engine.setPixelListener(pixelListener);
   const motor = new Motor();
   const core = new AuxiliaryHolder();
@@ -47,7 +49,8 @@ export async function testCanvas(canvas: HTMLCanvasElement) {
   core.addAuxiliary(motor);
   core.addAuxiliary(engine);
   core.addAuxiliary(world);
-  core.addAuxiliary(new ResizeAux({ engine, camera: world.camera, canvas }));
+  core.addAuxiliary(webGlCanvas);
+  webGlCanvas.addAuxiliary(new ResizeAux({ engine, camera: world.camera }));
   core.activate();
   onStop = () => core.deactivate();
   return { engine, motor, world };

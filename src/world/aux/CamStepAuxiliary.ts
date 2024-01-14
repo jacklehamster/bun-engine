@@ -29,7 +29,7 @@ export class CamStepAuxiliary implements Auxiliary {
   constructor({ controls, camera }: Props, config: Partial<Config> = {}) {
     this.controls = controls;
     this.camera = camera;
-    this.goalPos = [...this.camera.posMatrix.position];
+    this.goalPos = [...this.camera.position.position];
     this.config = {
       step: config.step ?? 2,
       turnStep: config.turnStep ?? Math.PI / 2,
@@ -43,7 +43,7 @@ export class CamStepAuxiliary implements Auxiliary {
     const { backward, forward, left, right, up, down, turnLeft, turnRight } = this.controls;
     const { deltaTime } = update;
 
-    const pos = this.camera.posMatrix.position;
+    const pos = this.camera.position.position;
     const { step, turnStep, tiltStep } = this.config;
     this.prePos[0] = Math.round(pos[0] / step) * step;
     this.prePos[1] = Math.round(pos[1] / step) * step;
@@ -62,7 +62,7 @@ export class CamStepAuxiliary implements Auxiliary {
     if (right) {
       dx++;
     }
-    const turnGoal = this.camera.turnMatrix.progressive.goal;
+    const turnGoal = this.camera.turn.angle.goal;
     if (dx || dz || this.stepCount > 0) {
       const relativeDx = dx * Math.cos(turnGoal) - dz * Math.sin(turnGoal);
       const relativeDz = dx * Math.sin(turnGoal) + dz * Math.cos(turnGoal);
@@ -78,14 +78,14 @@ export class CamStepAuxiliary implements Auxiliary {
     }
     const speed = ((dx || dz) ? deltaTime / 150 : deltaTime / 100) * this.config.speed;
 
-    const didMove = this.camera.posMatrix.gotoPos(this.goalPos[0], pos[1], this.goalPos[2], speed);
+    const didMove = this.camera.position.gotoPos(this.goalPos[0], pos[1], this.goalPos[2], speed);
     if (!didMove) {
       const gx = Math.round(pos[0] / step) * step;
       const gz = Math.round(pos[2] / step) * step;
       this.goalPos[0] = gx;
       this.goalPos[2] = gz;
     }
-    const newPos = this.camera.posMatrix.position;
+    const newPos = this.camera.position.position;
     if (Math.round(newPos[0] / step) * step !== this.prePos[0]
       || Math.round(newPos[1] / step) * step !== this.prePos[1]
       || Math.round(newPos[2] / step) * step !== this.prePos[2]) {
@@ -100,17 +100,17 @@ export class CamStepAuxiliary implements Auxiliary {
       dTurn++;
     }
 
-    const turn = angleStep(this.camera.turnMatrix.turn, turnStep);
+    const turn = angleStep(this.camera.turn.angle.valueOf(), turnStep);
     if (dTurn || this.turnCount > 0) {
-      this.camera.turnMatrix.progressive.setGoal(
+      this.camera.turn.angle.progressTowards(
         angleStep(turn + turnStep * dTurn, turnStep),
         dTurn ? 1 / 200 : 1 / 100, this);
     }
     if (!dTurn) {
       this.turnCount = 0;
     }
-    if (this.camera.turnMatrix.progressive.update(deltaTime)) {
-      const newTurn = angleStep(this.camera.turnMatrix.turn, turnStep);
+    if (this.camera.turn.angle.update(deltaTime)) {
+      const newTurn = angleStep(this.camera.turn.angle.valueOf(), turnStep);
       if (newTurn !== turn) {
         this.turnCount++;
       }
@@ -124,9 +124,9 @@ export class CamStepAuxiliary implements Auxiliary {
       dTilt++;
     }
 
-    const tilt = angleStep(this.camera.tiltMatrix.tilt, tiltStep);
+    const tilt = angleStep(this.camera.tilt.angle.valueOf(), tiltStep);
     if (dTilt || this.tiltCount > 0) {
-      this.camera.tiltMatrix.progressive.setGoal(
+      this.camera.tilt.angle.progressTowards(
         angleStep(tilt + tiltStep * dTilt, tiltStep),
         dTilt ? 1 / 400 : 1 / 200,
         this,
@@ -135,8 +135,8 @@ export class CamStepAuxiliary implements Auxiliary {
     if (!dTilt) {
       this.tiltCount = 0;
     }
-    if (this.camera.tiltMatrix.progressive.update(deltaTime)) {
-      const newTilt = angleStep(this.camera.tiltMatrix.tilt, tiltStep);
+    if (this.camera.tilt.angle.update(deltaTime)) {
+      const newTilt = angleStep(this.camera.tilt.angle.valueOf(), tiltStep);
       if (newTilt !== tilt) {
         this.tiltCount++;
       }

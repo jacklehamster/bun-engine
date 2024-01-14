@@ -1,28 +1,16 @@
-import { Angle, angle } from "gl/utils/angleUtils";
 import { IMatrix } from "./IMatrix";
 import Matrix from "./Matrix";
-import { Progressive } from "core/value/Progressive";
+import { NumVal } from "core/value/NumVal";
 
 export class TiltMatrix implements IMatrix {
   private matrix: Matrix = Matrix.create();
-  private _tilt: Angle = 0;
-  readonly progressive: Progressive<TiltMatrix>;
+  readonly angle: NumVal;
 
-  constructor(private onChange?: () => void) {
-    this.progressive = new Progressive<TiltMatrix>(this,
-      (matrix) => matrix.tilt,
-      (matrix, value) => matrix.tilt = value,
-    );
-  }
-
-  get tilt(): Angle {
-    return this._tilt;
-  }
-
-  set tilt(value: number) {
-    this._tilt = angle(value);
-    this.matrix.setXRotation(this._tilt);
-    this.onChange?.();
+  constructor(onChange?: () => void) {
+    this.angle = new NumVal(0, tilt => {
+      this.matrix.setXRotation(tilt);
+      onChange?.();
+    });
   }
 
   getMatrix(): Float32Array {
