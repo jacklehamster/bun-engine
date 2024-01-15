@@ -136,9 +136,11 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
         canvas.width = LOGO_SIZE;
         canvas.height = LOGO_SIZE;
         ctx.lineWidth = 5;
+        ctx.fillStyle = "black";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.setLineDash([5, 2]);
 
-        ctx.strokeStyle = 'blue';
+        ctx.strokeStyle = 'green';
 
         ctx.beginPath();
         ctx.rect(10, 10, canvas.width - 20, canvas.height - 20);
@@ -237,11 +239,12 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
     spritesAccumulator.addAuxiliary(new SpriteGrid(
       { yRange: [0, 0] }, new SpriteFactory({
         fillSpriteBag({ pos }, _, bag) {
-          const ground = bag.createSprite(GRASS);
+          const ground = bag.createSprite(WIREFRAME);
           ground.transform.translate(pos[0] * pos[3], -1, pos[2] * pos[3]).rotateX(-Math.PI / 2);
-          const ceiling = bag.createSprite(WIREFRAME);
-          ceiling.transform.translate(pos[0] * pos[3], 2, pos[2] * pos[3]).rotateX(Math.PI / 2);
-          bag.addSprite(ground, ceiling);
+          // const ceiling = bag.createSprite(WIREFRAME);
+          // ceiling.transform.translate(pos[0] * pos[3], 2, pos[2] * pos[3]).rotateX(Math.PI / 2);
+          // bag.addSprite(ground, ceiling);
+          bag.addSprite(ground);
         },
       })));
 
@@ -282,14 +285,14 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
         auxiliariesMapping: [
           {
             key: "Tab", aux: Auxiliaries.from(
-              new CamStepAuxiliary({ controls, camera }, { step: 2, turnStep: Math.PI / 2, tiltStep: Math.PI / 4 }),
+              new CamMoveAuxiliary({ controls, camera }),
+              new JumpAuxiliary({ controls, camera }),
               new CamTiltResetAuxiliary({ controls, camera }),
             )
           },
           {
             key: "Tab", aux: Auxiliaries.from(
-              new CamMoveAuxiliary({ controls, camera }),
-              new JumpAuxiliary({ controls, camera }),
+              new CamStepAuxiliary({ controls, camera }, { step: 2, turnStep: Math.PI / 2, tiltStep: Math.PI / 4 }),
               new CamTiltResetAuxiliary({ controls, camera }),
             )
           },
@@ -306,9 +309,14 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
     camera.position.addAuxiliary(
       new CellChangeAuxiliary({ cellSize: CELLSIZE })
         .addAuxiliary(new CellTracker(this, {
-          cellLimit: 10000,
-          range: [25, 3, 25],
+          cellLimit: 100000,
+          range: [40, 3, 40],
           cellSize: CELLSIZE,
         })));
+
+
+    //  Hack some base settings
+    camera.distance.setValue(5)
+    camera.tilt.angle.setValue(.5);
   }
 }

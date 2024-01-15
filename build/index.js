@@ -25881,7 +25881,7 @@ void main() {
   color /= float(blurPass + 1);
 
   color.a = 1.;
-  float colorFactor = 1.25 * pow(dist, -.12);
+  float colorFactor = 1.25 * pow(dist, -.2);
   color.rgb = (color.rgb * colorFactor) + (bgColor * (1. - colorFactor));
   fragColor = color;
   fragColor.rgb += vInstanceColor / 10.;
@@ -27561,7 +27561,7 @@ class ObjectPool {
     }
     const elem = this.initCall(undefined, ...params);
     this.allObjectsCreated.push(elem);
-    if (this.allObjectsCreated.length === 1e4) {
+    if (this.allObjectsCreated.length === 1e5) {
       console.warn("ObjectPool already created", this.allObjectsCreated.length);
     }
     return elem;
@@ -27643,6 +27643,10 @@ class NumVal {
       this._value = value;
       this.onChange?.(this._value);
     }
+    return this;
+  }
+  addValue(value) {
+    this.setValue(this._value + value);
     return this;
   }
   update(deltaTime) {
@@ -28096,16 +28100,16 @@ class CamMoveAuxiliary {
       this.camera.moveCam(speed, 0, 0);
     }
     if (turnLeft) {
-      this.camera.turn.turn -= turnspeed;
+      this.camera.turn.angle.addValue(-turnspeed);
     }
     if (turnRight) {
-      this.camera.turn.turn += turnspeed;
+      this.camera.turn.angle.addValue(turnspeed);
     }
     if (up) {
-      this.camera.tilt.angle -= turnspeed;
+      this.camera.tilt.angle.addValue(-turnspeed);
     }
     if (down) {
-      this.camera.tilt.angle += turnspeed;
+      this.camera.tilt.angle.addValue(turnspeed);
     }
   }
 }
@@ -29049,8 +29053,10 @@ class DemoWorld extends AuxiliaryHolder {
         canvas.width = LOGO_SIZE;
         canvas.height = LOGO_SIZE;
         ctx.lineWidth = 5;
+        ctx.fillStyle = "black";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.setLineDash([5, 2]);
-        ctx.strokeStyle = "blue";
+        ctx.strokeStyle = "green";
         ctx.beginPath();
         ctx.rect(10, 10, canvas.width - 20, canvas.height - 20);
         ctx.stroke();
@@ -29121,11 +29127,9 @@ class DemoWorld extends AuxiliaryHolder {
     };
     spritesAccumulator.addAuxiliary(new SpriteGrid({ yRange: [0, 0] }, new SpriteFactory({
       fillSpriteBag({ pos }, _, bag) {
-        const ground = bag.createSprite(GRASS);
+        const ground = bag.createSprite(WIREFRAME);
         ground.transform.translate(pos[0] * pos[3], -1, pos[2] * pos[3]).rotateX(-Math.PI / 2);
-        const ceiling = bag.createSprite(WIREFRAME);
-        ceiling.transform.translate(pos[0] * pos[3], 2, pos[2] * pos[3]).rotateX(Math.PI / 2);
-        bag.addSprite(ground, ceiling);
+        bag.addSprite(ground);
       }
     })));
     spritesAccumulator.addAuxiliary(new StaticSprites([
@@ -29148,20 +29152,22 @@ class DemoWorld extends AuxiliaryHolder {
       auxiliariesMapping: [
         {
           key: "Tab",
-          aux: Auxiliaries.from(new CamStepAuxiliary({ controls, camera }, { step: 2, turnStep: Math.PI / 2, tiltStep: Math.PI / 4 }), new CamTiltResetAuxiliary({ controls, camera }))
+          aux: Auxiliaries.from(new CamMoveAuxiliary({ controls, camera }), new JumpAuxiliary({ controls, camera }), new CamTiltResetAuxiliary({ controls, camera }))
         },
         {
           key: "Tab",
-          aux: Auxiliaries.from(new CamMoveAuxiliary({ controls, camera }), new JumpAuxiliary({ controls, camera }), new CamTiltResetAuxiliary({ controls, camera }))
+          aux: Auxiliaries.from(new CamStepAuxiliary({ controls, camera }, { step: 2, turnStep: Math.PI / 2, tiltStep: Math.PI / 4 }), new CamTiltResetAuxiliary({ controls, camera }))
         }
       ]
     }));
     this.addAuxiliary(keyboard);
     camera.position.addAuxiliary(new CellChangeAuxiliary({ cellSize: CELLSIZE }).addAuxiliary(new CellTracker(this, {
-      cellLimit: 1e4,
-      range: [25, 3, 25],
+      cellLimit: 1e5,
+      range: [40, 3, 40],
       cellSize: CELLSIZE
     })));
+    camera.distance.setValue(5);
+    camera.tilt.angle.setValue(0.5);
   }
 }
 
@@ -29309,4 +29315,4 @@ export {
   hello
 };
 
-//# debugId=EF59A7BD1F9D564564756e2164756e21
+//# debugId=B1263B25CD7A86D564756e2164756e21

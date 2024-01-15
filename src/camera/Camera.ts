@@ -28,9 +28,9 @@ export class Camera extends AuxiliaryHolder<ICamera> implements ICamera {
   readonly tilt = new TiltMatrix(() => this.updateInformer.informUpdate(MatrixUniform.CAM_TILT));
   readonly turn = new TurnMatrix(() => this.updateInformer.informUpdate(MatrixUniform.CAM_TURN));
   private readonly _bgColor: Vector = [0, 0, 0];
-  private readonly curvature;
-  private readonly distance;
-  private readonly blur;
+  readonly curvature;
+  readonly distance;
+  readonly blur;
   private _viewportWidth = 0;
   private _viewportHeight = 0;
   private readonly updateInformer;

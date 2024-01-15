@@ -30,6 +30,11 @@ export class NumVal implements Val<number> {
     return this;
   }
 
+  addValue(value: number): this {
+    this.setValue(this._value + value);
+    return this;
+  }
+
   update(deltaTime: number): boolean {
     return !!this.progressive?.update(deltaTime);
   }

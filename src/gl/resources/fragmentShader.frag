@@ -43,7 +43,7 @@ void main() {
   color /= float(blurPass + 1);
 
   color.a = 1.;
-  float colorFactor = 1.25 * pow(dist, -.12);
+  float colorFactor = 1.25 * pow(dist, -.2);
   color.rgb = (color.rgb * colorFactor) + (bgColor * (1. - colorFactor));
   fragColor = color;
   fragColor.rgb += vInstanceColor / 10.;

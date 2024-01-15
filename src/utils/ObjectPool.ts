@@ -16,7 +16,7 @@ export class ObjectPool<T, A extends any[] = []> {
 
     const elem = this.initCall(undefined, ...params);
     this.allObjectsCreated.push(elem);
-    if (this.allObjectsCreated.length === 10000) {
+    if (this.allObjectsCreated.length === 100000) {
       console.warn("ObjectPool already created", this.allObjectsCreated.length);
     }
     return elem;
