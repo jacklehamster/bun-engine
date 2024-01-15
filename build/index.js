@@ -27882,10 +27882,10 @@ class Camera extends AuxiliaryHolder {
   position = new PositionMatrix(() => this.updateInformer.informUpdate(MatrixUniform.CAM_POS));
   tilt = new TiltMatrix(() => this.updateInformer.informUpdate(MatrixUniform.CAM_TILT));
   turn = new TurnMatrix(() => this.updateInformer.informUpdate(MatrixUniform.CAM_TURN));
-  _curvature = 0.05;
-  _distance = 0.5;
   _bgColor = [0, 0, 0];
-  _blur = 1;
+  curvature;
+  distance;
+  blur;
   _viewportWidth = 0;
   _viewportHeight = 0;
   updateInformer;
@@ -27896,9 +27896,17 @@ class Camera extends AuxiliaryHolder {
     super();
     this.engine = engine;
     this.updateInformer = new CameraUpdate(this.getCameraMatrix.bind(this), engine, motor);
-    this.updateInformerFloat = new CameraFloatUpdate(this.getCameraFloat.bind(this), engine, motor);
     this.updateInformerVector = new CameraVectorUpdate(this.getCameraVector.bind(this), engine, motor);
     this.addAuxiliary(this.position);
+    this.curvature = new NumVal(0.05, () => this.updateInformerFloat.informUpdate(FloatUniform.CURVATURE));
+    this.distance = new NumVal(0.5, () => this.updateInformerFloat.informUpdate(FloatUniform.CAM_DISTANCE));
+    this.blur = new NumVal(1, () => this.updateInformerFloat.informUpdate(FloatUniform.BG_BLUR));
+    const cameraVal = {
+      [FloatUniform.BG_BLUR]: this.blur,
+      [FloatUniform.CAM_DISTANCE]: this.distance,
+      [FloatUniform.CURVATURE]: this.curvature
+    };
+    this.updateInformerFloat = new CameraFloatUpdate((uniform) => cameraVal[uniform].valueOf(), engine, motor);
   }
   activate() {
     super.activate();
@@ -27927,18 +27935,6 @@ class Camera extends AuxiliaryHolder {
       this.projection.configure(this._viewportWidth, this._viewportHeight);
     }
   }
-  set curvature(value) {
-    this._curvature = value;
-    this.updateInformerFloat.informUpdate(FloatUniform.CURVATURE);
-  }
-  set distance(value) {
-    this._distance = value;
-    this.updateInformerFloat.informUpdate(FloatUniform.CAM_DISTANCE);
-  }
-  set blur(value) {
-    this._blur = value;
-    this.updateInformerFloat.informUpdate(FloatUniform.BG_BLUR);
-  }
   set bgColor(rgb) {
     const red = rgb >> 16 & 255;
     const green = rgb >> 8 & 255;
@@ -27954,16 +27950,6 @@ class Camera extends AuxiliaryHolder {
       this.camMatrix.invert(this.position);
     }
     return this.cameraMatrices[uniform].getMatrix();
-  }
-  getCameraFloat(uniform) {
-    switch (uniform) {
-      case FloatUniform.CURVATURE:
-        return this._curvature;
-      case FloatUniform.CAM_DISTANCE:
-        return this._distance;
-      case FloatUniform.BG_BLUR:
-        return this._blur;
-    }
   }
   getCameraVector(uniform) {
     return this.cameraVectors[uniform];
@@ -29227,4 +29213,4 @@ export {
   hello
 };
 
-//# debugId=4741CFF52A840FEC64756e2164756e21
+//# debugId=6B8D66F0E9CB986764756e2164756e21

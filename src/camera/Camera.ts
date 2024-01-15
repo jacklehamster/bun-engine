@@ -13,6 +13,8 @@ import { AuxiliaryHolder } from "world/aux/AuxiliaryHolder";
 import { MatrixUniform, VectorUniform } from "graphics/Uniforms";
 import { FloatUniform } from "graphics/Uniforms";
 import { CameraVectorUpdate } from "updates/CameraVectorUpdate";
+import { Val } from "core/value/Val";
+import { NumVal } from "core/value/NumVal";
 
 interface Props {
   engine: IGraphicsEngine;
@@ -25,10 +27,10 @@ export class Camera extends AuxiliaryHolder<ICamera> implements ICamera {
   readonly position = new PositionMatrix(() => this.updateInformer.informUpdate(MatrixUniform.CAM_POS));
   readonly tilt = new TiltMatrix(() => this.updateInformer.informUpdate(MatrixUniform.CAM_TILT));
   readonly turn = new TurnMatrix(() => this.updateInformer.informUpdate(MatrixUniform.CAM_TURN));
-  private _curvature = 0.05;
-  private _distance = .5;
-  private _bgColor: Vector = [0, 0, 0];
-  private _blur = 1;
+  private readonly _bgColor: Vector = [0, 0, 0];
+  private readonly curvature;
+  private readonly distance;
+  private readonly blur;
   private _viewportWidth = 0;
   private _viewportHeight = 0;
   private readonly updateInformer;
@@ -40,9 +42,18 @@ export class Camera extends AuxiliaryHolder<ICamera> implements ICamera {
     super();
     this.engine = engine;
     this.updateInformer = new CameraUpdate(this.getCameraMatrix.bind(this), engine, motor);
-    this.updateInformerFloat = new CameraFloatUpdate(this.getCameraFloat.bind(this), engine, motor);
     this.updateInformerVector = new CameraVectorUpdate(this.getCameraVector.bind(this), engine, motor);
     this.addAuxiliary(this.position);
+
+    this.curvature = new NumVal(0.05, () => this.updateInformerFloat.informUpdate(FloatUniform.CURVATURE));
+    this.distance = new NumVal(.5, () => this.updateInformerFloat.informUpdate(FloatUniform.CAM_DISTANCE));
+    this.blur = new NumVal(1, () => this.updateInformerFloat.informUpdate(FloatUniform.BG_BLUR));
+    const cameraVal: Record<FloatUniform, Val<number>> = {
+      [FloatUniform.BG_BLUR]: this.blur,
+      [FloatUniform.CAM_DISTANCE]: this.distance,
+      [FloatUniform.CURVATURE]: this.curvature,
+    };
+    this.updateInformerFloat = new CameraFloatUpdate(uniform => cameraVal[uniform], engine, motor);
   }
 
   activate() {
@@ -76,21 +87,6 @@ export class Camera extends AuxiliaryHolder<ICamera> implements ICamera {
     }
   }
 
-  set curvature(value: number) {
-    this._curvature = value;
-    this.updateInformerFloat.informUpdate(FloatUniform.CURVATURE);
-  }
-
-  set distance(value: number) {
-    this._distance = value;
-    this.updateInformerFloat.informUpdate(FloatUniform.CAM_DISTANCE);
-  }
-
-  set blur(value: number) {
-    this._blur = value;
-    this.updateInformerFloat.informUpdate(FloatUniform.BG_BLUR);
-  }
-
   set bgColor(rgb: number) {
     const red = (rgb >> 16) & 0xFF;
     const green = (rgb >> 8) & 0xFF;
@@ -107,17 +103,6 @@ export class Camera extends AuxiliaryHolder<ICamera> implements ICamera {
       this.camMatrix.invert(this.position);
     }
     return this.cameraMatrices[uniform].getMatrix();
-  }
-
-  private getCameraFloat(uniform: FloatUniform): number {
-    switch (uniform) {
-      case FloatUniform.CURVATURE:
-        return this._curvature;
-      case FloatUniform.CAM_DISTANCE:
-        return this._distance;
-      case FloatUniform.BG_BLUR:
-        return this._blur;
-    }
   }
 
   private getCameraVector(uniform: VectorUniform): Vector {
