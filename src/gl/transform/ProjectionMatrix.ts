@@ -30,7 +30,7 @@ export class ProjectionMatrix extends AuxiliaryHolder<ProjectionMatrix> implemen
     this.orthoMatrix.ortho(-width / 2, width / 2, -height / 2, height / 2, near, far);
   }
 
-  configure(width: number, height: number, zoom: number = 1, near = 0.5, far = 1000) {
+  configure(width: number, height: number, zoom: number = 1, near = 0.5, far = 10000) {
     if (this._width !== width || this._height !== height || this.zoom.valueOf() !== zoom) {
       this._width = width; this._height = height;
       this.zoom.setValue?.(zoom);

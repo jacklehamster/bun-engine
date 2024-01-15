@@ -246,16 +246,28 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
       })));
 
     //  Static Sprites
-    //  * This is just one sprite, which will appear regardless of where
+    //  * Those are just sprites, which will appear regardless of where
     //  * you are in the scene.
-    //  TODO: Currently, I think this is not visible because it's affected by distance fade.
-    //  Will update to have each sprite allow different levels of fade.
-    spritesAccumulator.addAuxiliary(new StaticSprites([{
-      imageId: VIDEO,
-      transform: Matrix.create()
-        .translate(0, 10000, -50000)
-        .scale(480 * 20, 270 * 20, 1),
-    }]));
+    spritesAccumulator.addAuxiliary(new StaticSprites([
+      {
+        imageId: VIDEO,
+        spriteType: SpriteType.DISTANT,
+        transform: Matrix.create()
+          .translate(3000, 1000, -5000)
+          .scale(480, 270, 1),
+      },
+    ]));
+
+    //  Note that you don't need a StaticSprites auxiliary for adding simple permanent
+    //  sprites. You can just do this directly.
+    //  That said, StaticSprites is a better use, for its ability to be switched on/off
+    spritesAccumulator.addSprites([
+      {
+        imageId: DOBUKI,
+        spriteType: SpriteType.HUD,
+        transform: Matrix.create().translate(-.45, .45, -.5).scale(.05),
+      },
+    ]);
 
     //  Toggle auxiliary
     //  * Pressing the "Tab" button switches between two modes of movement below
@@ -294,8 +306,8 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
     camera.position.addAuxiliary(
       new CellChangeAuxiliary({ cellSize: CELLSIZE })
         .addAuxiliary(new CellTracker(this, {
-          cellLimit: 100,
-          range: [5, 3, 5],
+          cellLimit: 10000,
+          range: [25, 3, 25],
           cellSize: CELLSIZE,
         })));
   }

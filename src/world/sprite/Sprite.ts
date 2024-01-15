@@ -6,6 +6,8 @@ export type SpriteId = number;
 export enum SpriteType {
   DEFAULT = 0,
   SPRITE = 1,
+  HUD = 2,
+  DISTANT = 3,
 }
 
 export interface Sprite {

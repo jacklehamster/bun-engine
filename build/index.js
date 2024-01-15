@@ -25758,6 +25758,8 @@ precision highp float;
 //  CONST
 const mat4 identity = mat4(1.0);
 const float SPRITE = 1.0;
+const float HUD = 2.0;
+const float DISTANT = 3.0;
 const float threshold = 0.5;
 
 //  IN
@@ -25799,18 +25801,27 @@ void main() {
 
   vec4 basePosition = vec4(position, 0.0, 1.0);
 
-  float spriteFlag = max(0., 1. - 2. * abs(spriteType - SPRITE));
+  float isHud = max(0., 1. - 2. * abs(spriteType - HUD));
+  float isSprite = max(0., 1. - 2. * abs(spriteType - SPRITE));
+  float isDistant = max(0., 1. - 2. * abs(spriteType - DISTANT));
+
   mat4 billboardMatrix = inverse(camTilt * camTurn);
-  basePosition = (spriteFlag * billboardMatrix + (1. - spriteFlag) * identity) * basePosition;
+  float isBillboard = max(isDistant, isSprite);
+  basePosition = (isBillboard * billboardMatrix + (1. - isBillboard) * identity) * basePosition;
 
   vec4 elemPosition = transform * basePosition;
   // elementPosition => relativePosition
   vec4 relativePosition = camTilt * camTurn * camPos * elemPosition;
   relativePosition.z -= camDist;
-  relativePosition.y -= curvature * ((relativePosition.z * relativePosition.z) + (relativePosition.x * relativePosition.x) / 4.) / 10.;
-  relativePosition.x /= (1. + curvature * 1.4);
-  dist = (relativePosition.z*relativePosition.z + relativePosition.x*relativePosition.x);
+
+  float actualCurvature = curvature * (1. - isDistant);
+  relativePosition.y -= actualCurvature * ((relativePosition.z * relativePosition.z) + (relativePosition.x * relativePosition.x) / 4.) / 10.;
+  relativePosition.x /= (1. + actualCurvature * 1.4);
+
+
+  dist = max(isDistant, isHud) + (1. - max(isDistant, isHud)) * (relativePosition.z*relativePosition.z + relativePosition.x*relativePosition.x);
   // relativePosition => gl_Position
+  relativePosition = isHud * elemPosition + (1. - isHud) * relativePosition;
   gl_Position = projection * relativePosition;
 
   vTex = (vec2(slotX, slotY) + tex) * slotSize / maxTextureSize;
@@ -27054,6 +27065,8 @@ var SpriteType;
 (function(SpriteType2) {
   SpriteType2[SpriteType2["DEFAULT"] = 0] = "DEFAULT";
   SpriteType2[SpriteType2["SPRITE"] = 1] = "SPRITE";
+  SpriteType2[SpriteType2["HUD"] = 2] = "HUD";
+  SpriteType2[SpriteType2["DISTANT"] = 3] = "DISTANT";
 })(SpriteType || (SpriteType = {}));
 
 // src/graphics/GraphicsEngine.ts
@@ -27671,7 +27684,7 @@ class ProjectionMatrix extends AuxiliaryHolder {
   configOrthoMatrix(width, height2, near, far) {
     this.orthoMatrix.ortho(-width / 2, width / 2, -height2 / 2, height2 / 2, near, far);
   }
-  configure(width, height2, zoom = 1, near = 0.5, far = 1000) {
+  configure(width, height2, zoom = 1, near = 0.5, far = 1e4) {
     if (this._width !== width || this._height !== height2 || this.zoom.valueOf() !== zoom) {
       this._width = width;
       this._height = height2;
@@ -28587,6 +28600,14 @@ class SpritesAccumulator extends AuxiliaryHolder {
   get length() {
     return this.spritesIndices.length;
   }
+  activate() {
+    super.activate();
+    this.spritesIndices.forEach((slot) => {
+      if (slot.spriteId !== undefined) {
+        this.informUpdate?.(slot.spriteId);
+      }
+    });
+  }
   addSprites(...spritesList) {
     spritesList.forEach((sprites) => {
       const slots = [];
@@ -28617,9 +28638,14 @@ class SpritesAccumulator extends AuxiliaryHolder {
             }
           }
         };
+      } else {
+        forEach3(sprites, (_, index) => {
+          const slot = this.pool.create(sprites, index);
+          slot.spriteId = this.spritesIndices.length;
+          this.spritesIndices.push(slot);
+        });
       }
     });
-    this.onSizeChange();
   }
   onSizeChange() {
     this.newSpritesListener.forEach((listener) => listener(this));
@@ -28793,7 +28819,6 @@ class StaticSprites {
   holder;
   constructor(sprites) {
     this.sprites = sprites;
-    this.informUpdate = sprites.informUpdate?.bind(sprites);
   }
   get length() {
     return this.sprites.length;
@@ -28801,8 +28826,11 @@ class StaticSprites {
   at(index) {
     return this.sprites.at(index);
   }
+  informUpdate(_id, _type) {
+  }
   activate() {
     this.holder?.addSprites(this);
+    forEach3(this.sprites, (_, index) => this.informUpdate(index));
   }
 }
 
@@ -29100,10 +29128,20 @@ class DemoWorld extends AuxiliaryHolder {
         bag.addSprite(ground, ceiling);
       }
     })));
-    spritesAccumulator.addAuxiliary(new StaticSprites([{
-      imageId: VIDEO,
-      transform: Matrix_default.create().translate(0, 1e4, -50000).scale(9600, 5400, 1)
-    }]));
+    spritesAccumulator.addAuxiliary(new StaticSprites([
+      {
+        imageId: VIDEO,
+        spriteType: SpriteType.DISTANT,
+        transform: Matrix_default.create().translate(3000, 1000, -5000).scale(480, 270, 1)
+      }
+    ]));
+    spritesAccumulator.addSprites([
+      {
+        imageId: DOBUKI,
+        spriteType: SpriteType.HUD,
+        transform: Matrix_default.create().translate(-0.45, 0.45, -0.5).scale(0.05)
+      }
+    ]);
     const keyboard = new Keyboard({ motor });
     const controls = new KeyboardControls(keyboard);
     keyboard.addAuxiliary(new ToggleAuxiliary({
@@ -29120,8 +29158,8 @@ class DemoWorld extends AuxiliaryHolder {
     }));
     this.addAuxiliary(keyboard);
     camera.position.addAuxiliary(new CellChangeAuxiliary({ cellSize: CELLSIZE }).addAuxiliary(new CellTracker(this, {
-      cellLimit: 100,
-      range: [5, 3, 5],
+      cellLimit: 1e4,
+      range: [25, 3, 25],
       cellSize: CELLSIZE
     })));
   }
@@ -29271,4 +29309,4 @@ export {
   hello
 };
 
-//# debugId=CDE793F6684140F764756e2164756e21
+//# debugId=EF59A7BD1F9D564564756e2164756e21

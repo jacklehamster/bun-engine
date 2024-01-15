@@ -3,6 +3,7 @@ import { Sprites } from "./Sprites";
 import { AuxiliaryHolder } from "world/aux/AuxiliaryHolder";
 import { SpritesHolder } from "./aux/SpritesHolder";
 import { ObjectPool } from "utils/ObjectPool";
+import { forEach } from "./List";
 
 interface Slot {
   sprites: Sprites;
@@ -37,6 +38,15 @@ export class SpritesAccumulator extends AuxiliaryHolder implements SpritesHolder
     return this.spritesIndices.length;
   }
 
+  activate(): void {
+    super.activate();
+    this.spritesIndices.forEach(slot => {
+      if (slot.spriteId !== undefined) {
+        this.informUpdate?.(slot.spriteId);
+      }
+    });
+  }
+
   addSprites(...spritesList: Sprites[]): void {
     spritesList.forEach(sprites => {
       const slots: Slot[] = [];
@@ -68,9 +78,14 @@ export class SpritesAccumulator extends AuxiliaryHolder implements SpritesHolder
             }
           }
         };
+      } else {
+        forEach(sprites, (_, index) => {
+          const slot = this.pool.create(sprites, index);
+          slot.spriteId = this.spritesIndices.length;
+          this.spritesIndices.push(slot);
+        });
       }
     });
-    this.onSizeChange();
   }
 
   onSizeChange() {

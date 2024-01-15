@@ -6,6 +6,8 @@ precision highp float;
 //  CONST
 const mat4 identity = mat4(1.0);
 const float SPRITE = 1.0;
+const float HUD = 2.0;
+const float DISTANT = 3.0;
 const float threshold = 0.5;
 
 //  IN
@@ -47,18 +49,27 @@ void main() {
 
   vec4 basePosition = vec4(position, 0.0, 1.0);
 
-  float spriteFlag = max(0., 1. - 2. * abs(spriteType - SPRITE));
+  float isHud = max(0., 1. - 2. * abs(spriteType - HUD));
+  float isSprite = max(0., 1. - 2. * abs(spriteType - SPRITE));
+  float isDistant = max(0., 1. - 2. * abs(spriteType - DISTANT));
+
   mat4 billboardMatrix = inverse(camTilt * camTurn);
-  basePosition = (spriteFlag * billboardMatrix + (1. - spriteFlag) * identity) * basePosition;
+  float isBillboard = max(isDistant, isSprite);
+  basePosition = (isBillboard * billboardMatrix + (1. - isBillboard) * identity) * basePosition;
 
   vec4 elemPosition = transform * basePosition;
   // elementPosition => relativePosition
   vec4 relativePosition = camTilt * camTurn * camPos * elemPosition;
   relativePosition.z -= camDist;
-  relativePosition.y -= curvature * ((relativePosition.z * relativePosition.z) + (relativePosition.x * relativePosition.x) / 4.) / 10.;
-  relativePosition.x /= (1. + curvature * 1.4);
-  dist = (relativePosition.z*relativePosition.z + relativePosition.x*relativePosition.x);
+
+  float actualCurvature = curvature * (1. - isDistant);
+  relativePosition.y -= actualCurvature * ((relativePosition.z * relativePosition.z) + (relativePosition.x * relativePosition.x) / 4.) / 10.;
+  relativePosition.x /= (1. + actualCurvature * 1.4);
+
+
+  dist = max(isDistant, isHud) + (1. - max(isDistant, isHud)) * (relativePosition.z*relativePosition.z + relativePosition.x*relativePosition.x);
   // relativePosition => gl_Position
+  relativePosition = isHud * elemPosition + (1. - isHud) * relativePosition;
   gl_Position = projection * relativePosition;
 
   vTex = (vec2(slotX, slotY) + tex) * slotSize / maxTextureSize;
