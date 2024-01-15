@@ -338,9 +338,11 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
 
   private static clearBit = GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT;
   refresh(): void {
-    this.gl.clear(GraphicsEngine.clearBit);
-    this.drawElementsInstanced(VERTICES_PER_SPRITE, this.spriteCount);
+    if (this.spriteCount) {
+      this.gl.clear(GraphicsEngine.clearBit);
+      this.drawElementsInstanced(VERTICES_PER_SPRITE, this.spriteCount);
 
-    this.pixelListener?.setPixel(this.getPixel(this.pixelListener.x, this.pixelListener.y));
+      this.pixelListener?.setPixel(this.getPixel(this.pixelListener.x, this.pixelListener.y));
+    }
   }
 }

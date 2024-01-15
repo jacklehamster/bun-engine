@@ -1,4 +1,4 @@
-export class ObjectPool<T, A extends any[] = any[]> {
+export class ObjectPool<T, A extends any[] = []> {
   private allObjectsCreated: T[] = [];
   private recycler: T[] = [];
   constructor(private initCall: (elem: T | undefined, ...params: A) => T) {
@@ -16,6 +16,9 @@ export class ObjectPool<T, A extends any[] = any[]> {
 
     const elem = this.initCall(undefined, ...params);
     this.allObjectsCreated.push(elem);
+    if (this.allObjectsCreated.length === 10000) {
+      console.warn("ObjectPool already created", this.allObjectsCreated.length);
+    }
     return elem;
   }
 

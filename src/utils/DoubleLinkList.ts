@@ -25,6 +25,8 @@ export class DoubleLinkList<T extends string | number | symbol> implements FreeS
         return { value };
       }
       elem.value = value;
+      elem.prev = undefined;
+      elem.next = undefined;
       return elem;
     });
   }
@@ -43,26 +45,39 @@ export class DoubleLinkList<T extends string | number | symbol> implements FreeS
   }
 
   pushTop(value: T): void {
-    const formerTop = this.end.prev!;
+    // const formerTop = this.end.prev!;
     const newTop: DoubleLinkListNode<T> = this.pool.create(value);
-    newTop.prev = formerTop;
-    newTop.next = this.end;
-
-    formerTop.next = this.end.prev = newTop;
     this.nodeMap[value] = newTop;
     this.count++;
+    this.moveTop(value);
+  }
+
+  moveTop(value: T): boolean {
+    const entry = this.nodeMap[value];
+    if (entry) {
+      //  remove entry
+      if (entry.prev && entry.next) {
+        entry.prev.next = entry.next;
+        entry.next.prev = entry.prev;
+      }
+
+      //  re-insert at top
+      const formerTop = this.end.prev!;
+      const newTop: DoubleLinkListNode<T> = entry;
+      newTop.prev = formerTop;
+      newTop.next = this.end;
+      formerTop.next = this.end.prev = newTop;
+      return true;
+    }
+    return false;
   }
 
   remove(value: T): boolean {
     const entry = this.nodeMap[value];
     if (entry) {
       //  remove
-      if (entry.prev) {
-        entry.prev.next = entry.next;
-      }
-      if (entry.next) {
-        entry.next.prev = entry.prev;
-      }
+      entry.prev!.next = entry.next;
+      entry.next!.prev = entry.prev;
       entry.prev = entry.next = undefined;
       this.pool.recycle(entry);
       delete this.nodeMap[value];

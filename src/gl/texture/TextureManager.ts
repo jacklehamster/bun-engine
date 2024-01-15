@@ -40,6 +40,7 @@ export class TextureManager extends Disposable {
       if (!texture) {
         return;
       }
+      this.textureBuffers[textureId] = texture;
       this.gl.bindTexture(GL.TEXTURE_2D, texture);
       this.gl.texImage2D(
         GL.TEXTURE_2D,
@@ -52,8 +53,8 @@ export class TextureManager extends Disposable {
         GL.UNSIGNED_BYTE,
         null,
       );
+      this.generateMipMap(textureId);
 
-      this.textureBuffers[textureId] = texture;
       this.addOnDestroy(() => this.gl.deleteTexture(texture));
     }
     return this.textureBuffers[textureId];
@@ -176,7 +177,6 @@ export class TextureManager extends Disposable {
     if (texture) {
       this.gl.activeTexture(GL[textureId]);
       this.gl.bindTexture(GL.TEXTURE_2D, texture);
-
       this.gl.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_MIN_FILTER, GL.LINEAR);
       this.gl.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_MAG_FILTER, GL.LINEAR);
     }
@@ -187,7 +187,6 @@ export class TextureManager extends Disposable {
     if (texture) {
       this.gl.activeTexture(GL[textureId]);
       this.gl.bindTexture(GL.TEXTURE_2D, texture);
-
       this.gl.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_MIN_FILTER, GL.LINEAR_MIPMAP_LINEAR);
       this.gl.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_MAG_FILTER, GL.LINEAR);
       this.gl.generateMipmap(GL.TEXTURE_2D);

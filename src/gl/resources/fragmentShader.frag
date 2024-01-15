@@ -10,9 +10,8 @@ const float threshold = 0.00001;
 //  texture
 in float vTextureIndex;
 in vec2 vTex;
-in float opacity;
-in vec3 vInstanceColor;
 in float dist;
+in vec3 vInstanceColor;
 
 //  OUT
 out vec4 fragColor;
@@ -47,7 +46,7 @@ void main() {
   float colorFactor = 1.25 * pow(dist, -.12);
   color.rgb = (color.rgb * colorFactor) + (bgColor * (1. - colorFactor));
   fragColor = color;
-//  fragColor = vec4(vInstanceColor.rgb, 1.0);
+  fragColor.rgb += vInstanceColor / 10.;
 }
 
 vec4 getTextureColor(float textureSlot, vec2 vTexturePoint) {

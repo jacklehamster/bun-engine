@@ -31,6 +31,7 @@ export type LocationName = string;
 export class GLAttributeBuffers implements Destroyable {
   private readonly bufferRecord: Record<LocationName, BufferInfo> = {};
   private readonly vertexArray: VertexArray;
+  private copyBuffer: WebGLBuffer | null = null;
 
   constructor(private readonly gl: GL, private readonly programs: GLPrograms) {
     this.vertexArray = new VertexArray(this.gl);
@@ -116,14 +117,39 @@ export class GLAttributeBuffers implements Destroyable {
     return bufferInfo;
   }
 
+  ensureCopyBufferSize(newCount: number, bufferInfo: BufferInfo) {
+    this.vertexArray.bind();
+
+    //  delete old buffer if it's too small    
+    if (this.copyBuffer) {
+      const bufferSize = this.gl.getBufferParameter(GL.ARRAY_BUFFER, GL.BUFFER_SIZE);
+      if (bufferSize >= newCount * bufferInfo.bytesPerInstance) {
+        this.gl.bindBuffer(GL.ARRAY_BUFFER, this.copyBuffer);
+        return;
+      }
+      this.gl.deleteBuffer(this.copyBuffer);
+    }
+
+    //  create new copy buffer
+    this.copyBuffer = this.gl.createBuffer();
+    this.gl.bindBuffer(GL.ARRAY_BUFFER, this.copyBuffer);
+    this.gl.bufferData(GL.ARRAY_BUFFER, newCount * bufferInfo.bytesPerInstance, GL.DYNAMIC_COPY);
+  }
+
   ensureSize(location: LocationName, newCount: number) {
     const bufferInfo = this.bufferRecord[location];
+
     if (bufferInfo && bufferInfo.instanceCount < newCount) {
       this.bindBuffer(location);
       const bufferSize = this.gl.getBufferParameter(GL.ARRAY_BUFFER, GL.BUFFER_SIZE);
+
+      // this.ensureCopyBufferSize(newCount, bufferInfo);
+      // this.gl.copyBufferSubData(GL.ARRAY_BUFFER, GL.ARRAY_BUFFER, 0, 0, bufferSize);
+
       const oldBufferData = new Float32Array(bufferSize / Float32Array.BYTES_PER_ELEMENT);
       this.gl.getBufferSubData(GL.ARRAY_BUFFER, 0, oldBufferData);
 
+      this.bindBuffer(location);
       if (bufferInfo.callback) {
         const callback = bufferInfo.callback;
         this.gl.bufferData(bufferInfo.target,

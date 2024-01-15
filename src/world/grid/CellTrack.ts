@@ -1,7 +1,8 @@
+import { UpdatePayload } from "updates/Refresh";
 import { Cell } from "./CellPos";
 
 
 export interface CellTrack {
-  trackCell?(cell: Cell): void;
-  untrackCell?(cellTag: string): void;
+  trackCell?(cell: Cell, updatePayload: UpdatePayload): void;
+  untrackCell?(cellTag: string, updatePayload: UpdatePayload): void;
 }

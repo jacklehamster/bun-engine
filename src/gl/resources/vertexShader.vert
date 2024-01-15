@@ -29,10 +29,10 @@ uniform mat4 projection;
 uniform float curvature;
 
 //  OUT
-out vec2 vTex;
 out float vTextureIndex;
-out vec3 vInstanceColor;
+out vec2 vTex;
 out float dist;
+out vec3 vInstanceColor;
 
 void main() {
   vec2 tex = position.xy * vec2(0.49, -0.49) + 0.5;

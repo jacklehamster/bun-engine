@@ -19,6 +19,9 @@ describe('TextureManager', () => {
       getParameter: jest.fn().mockReturnValue(16),
       uniform1iv: jest.fn(),
       uniform1f: jest.fn(),
+      generateMipmap: jest.fn(),
+      activeTexture: jest.fn(),
+      texParameteri: jest.fn(),
     };
 
     uniforms = {

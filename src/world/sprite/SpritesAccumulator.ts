@@ -74,7 +74,6 @@ export class SpritesAccumulator extends AuxiliaryHolder implements SpritesHolder
   }
 
   onSizeChange() {
-    this.spritesIndices.forEach((_, spriteId) => this.informUpdate?.(spriteId));
     this.newSpritesListener.forEach(listener => listener(this));
   }
 

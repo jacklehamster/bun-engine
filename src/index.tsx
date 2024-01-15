@@ -23,7 +23,7 @@ export async function testCanvas(canvas: HTMLCanvasElement) {
   const element = <h1>Hello, world!</h1>;
   root.render(element);
 
-  canvas.style.border = '2px solid black';
+  canvas.style.outline = '2px solid black';
   canvas.style.pointerEvents = 'none';
   const pixelListener = {
     x: 0,

@@ -4,9 +4,10 @@ import { SpriteUpdateType } from "../update/SpriteUpdateType";
 import { Auxiliary } from "world/aux/Auxiliary";
 import { forEach } from "../List";
 import { UpdateNotifier } from "updates/UpdateNotifier";
-import { SpriteFactory } from "./SpriteFactory";
+import { ISpriteFactory } from "./ISpriteFactory";
 import { ObjectPool } from "utils/ObjectPool";
 import { SpritesHolder } from "./SpritesHolder";
+import { UpdatePayload } from "updates/Refresh";
 
 interface Config {
   xRange?: [number, number],
@@ -22,11 +23,11 @@ interface Slot {
 export class SpriteGrid implements Auxiliary<SpritesHolder>, UpdateNotifier {
   private slots: Slot[] = [];
   private ranges: [[number, number], [number, number], [number, number]];
-  private slotPool: ObjectPool<Slot, [Sprite, string]> = new ObjectPool<Slot>((slot, sprite: Sprite, tag: string) => {
+  private slotPool: ObjectPool<Slot, [Sprite, string]> = new ObjectPool<Slot, [Sprite, string]>((slot, sprite: Sprite, tag: string) => {
     if (!slot) {
-      return { sprite, tag };
+      return { sprite: copySprite(sprite), tag };
     }
-    slot.sprite = sprite;
+    slot.sprite = copySprite(sprite, slot.sprite);
     slot.tag = tag;
     return slot;
   });
@@ -39,7 +40,7 @@ export class SpriteGrid implements Auxiliary<SpritesHolder>, UpdateNotifier {
     this.holder?.addSprites(this);
   }
 
-  constructor(config?: Config, private spriteFactory: SpriteFactory = {}) {
+  constructor(config?: Config, private spriteFactory: ISpriteFactory = {}) {
     this.ranges = [
       config?.xRange ?? [Number.NEGATIVE_INFINITY, Number.POSITIVE_INFINITY],
       config?.yRange ?? [Number.NEGATIVE_INFINITY, Number.POSITIVE_INFINITY],
@@ -55,21 +56,22 @@ export class SpriteGrid implements Auxiliary<SpritesHolder>, UpdateNotifier {
     return this.slots[index]?.sprite;
   }
 
-  trackCell(cell: Cell): void {
+  trackCell(cell: Cell, updatePayload: UpdatePayload): void {
     const [[minX, maxX], [minY, maxY], [minZ, maxZ]] = this.ranges;
     const [x, y, z] = cell.pos;
     if (x < minX || maxX < x || y < minY || maxY < y || z < minZ || maxZ < z) {
       return;
     }
     const { tag } = cell;
-    forEach(this.spriteFactory.getSpritesAtCell?.(cell), sprite => {
+    forEach(this.spriteFactory.getSpritesAtCell?.(cell, updatePayload), sprite => {
       if (sprite) {
         const spriteId = this.slots.length;
-        const slot = this.slotPool.create(copySprite(sprite), tag);
+        const slot = this.slotPool.create(sprite, tag);
         this.slots.push(slot);
         this.informUpdate(spriteId);
       }
     });
+    this.spriteFactory.doneCellTracking?.(cell, updatePayload);
   }
 
   untrackCell(cellTag: string): void {

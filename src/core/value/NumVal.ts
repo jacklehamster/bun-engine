@@ -2,7 +2,7 @@ import { ObjectPool } from "utils/ObjectPool";
 import { Progressive } from "./Progressive";
 import { Val } from "./Val";
 
-const progressivePool: ObjectPool<Progressive<NumVal>> = new ObjectPool((progressive, val) => {
+const progressivePool: ObjectPool<Progressive<NumVal>, [NumVal]> = new ObjectPool((progressive, val) => {
   if (!progressive) {
     return new Progressive(val, elem => elem.valueOf(), (elem, value) => elem.setValue(value));
   }

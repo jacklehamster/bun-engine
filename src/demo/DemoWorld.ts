@@ -25,6 +25,7 @@ import { SpriteUpdater } from "world/sprite/update/SpriteUpdater";
 import { SpriteType } from "world/sprite/Sprite";
 import { ICamera } from "camera/ICamera";
 import { KeyboardControls } from "controls/KeyboardControls";
+import { SpriteFactory } from "world/sprite/SpritesFactory";
 
 const DOBUKI = 0, LOGO = 1, GROUND = 2, VIDEO = 3, WIREFRAME = 4, GRASS = 5, BRICK = 6;
 const LOGO_SIZE = 512;
@@ -234,18 +235,15 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
     //  * This SpriteGrid is dynamic, meaning that the cell gets generated on the
     //  * fly. This allows us to produce an infinite amounts of cells.
     spritesAccumulator.addAuxiliary(new SpriteGrid(
-      { yRange: [0, 0] }, {
-      getSpritesAtCell: cell => [
-        { //  ground
-          imageId: GRASS,
-          transform: Matrix.create().translate(cell.pos[0] * cell.pos[3], -1, cell.pos[2] * cell.pos[3]).rotateX(-Math.PI / 2).scale(1)
+      { yRange: [0, 0] }, new SpriteFactory({
+        fillSpriteBag({ pos }, _, bag) {
+          const ground = bag.createSprite(GRASS);
+          ground.transform.translate(pos[0] * pos[3], -1, pos[2] * pos[3]).rotateX(-Math.PI / 2);
+          const ceiling = bag.createSprite(WIREFRAME);
+          ceiling.transform.translate(pos[0] * pos[3], 2, pos[2] * pos[3]).rotateX(Math.PI / 2);
+          bag.addSprite(ground, ceiling);
         },
-        { //  ceiling
-          imageId: WIREFRAME,
-          transform: Matrix.create().translate(cell.pos[0] * cell.pos[3], 2, cell.pos[2] * cell.pos[3]).rotateX(Math.PI / 2).scale(1)
-        },
-      ]
-    }));
+      })));
 
     //  Static Sprites
     //  * This is just one sprite, which will appear regardless of where
@@ -296,8 +294,8 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
     camera.position.addAuxiliary(
       new CellChangeAuxiliary({ cellSize: CELLSIZE })
         .addAuxiliary(new CellTracker(this, {
-          cellLimit: 5000,
-          range: [25, 3, 25],
+          cellLimit: 100,
+          range: [5, 3, 5],
           cellSize: CELLSIZE,
         })));
   }

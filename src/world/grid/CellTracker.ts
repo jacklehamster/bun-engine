@@ -1,11 +1,12 @@
 import { List } from "world/sprite/List";
 import { Cell, cellTag } from "./CellPos";
-import { VisitCell } from "./VisitCell";
+import { VisitableCell } from "./VisitCell";
 import { DoubleLinkList } from "../../utils/DoubleLinkList";
 import { FreeStack } from "utils/FreeStack";
 import { CellTrack } from "./CellTrack";
 import { Auxiliary } from "world/aux/Auxiliary";
 import { CellChangeAuxiliary } from "gl/transform/aux/CellChangeAuxiliary";
+import { UpdatePayload } from "updates/Refresh";
 
 interface Config {
   range?: [number, number, number];
@@ -13,7 +14,7 @@ interface Config {
   cellSize?: number;
 }
 
-export class CellTracker implements VisitCell, Auxiliary<CellChangeAuxiliary> {
+export class CellTracker implements VisitableCell, Auxiliary<CellChangeAuxiliary> {
   private range: [number, number, number];
   private base: [number, number, number];
   private cellLimit: number;
@@ -43,7 +44,7 @@ export class CellTracker implements VisitCell, Auxiliary<CellChangeAuxiliary> {
     return this.cellTags.getList();
   }
 
-  iterateCells(visitedCell: Cell, callback: (cell: Cell) => void) {
+  iterateCells(visitedCell: Cell, updatePayload: UpdatePayload, callback: (cell: Cell, update: UpdatePayload) => void) {
     const { range, base, tempCell } = this;
     const { pos } = visitedCell;
     const cellX = pos[0] + base[0];
@@ -56,27 +57,27 @@ export class CellTracker implements VisitCell, Auxiliary<CellChangeAuxiliary> {
           tempCell.pos[1] = cellY + y;
           tempCell.pos[2] = cellZ + z;
           tempCell.tag = cellTag(...tempCell.pos);
-          callback(tempCell);
+          callback(tempCell, updatePayload);
         }
       }
     }
   }
 
-  onCellVisit(cell: Cell) {
-    if (!this.cellTags.remove(cell.tag)) {
-      this.cellTrack.trackCell?.(cell);
+  onCellVisit(cell: Cell, updatePayload: UpdatePayload) {
+    if (!this.cellTags.moveTop(cell.tag)) {
+      this.cellTags.pushTop(cell.tag);
+      this.cellTrack.trackCell?.(cell, updatePayload);
     }
-    this.cellTags.pushTop(cell.tag);
   }
 
-  visitCell(visitedCell: Cell): void {
-    this.iterateCells(visitedCell, this.onCellVisit);
+  visitCell(visitedCell: Cell, updatePayload: UpdatePayload): void {
+    this.iterateCells(visitedCell, updatePayload, this.onCellVisit);
 
     //  remove any excess cells (oldest visited first)
     while (this.cellTags.size > this.cellLimit) {
       const removedTag = this.cellTags.popBottom();
       if (removedTag) {
-        this.cellTrack.untrackCell?.(removedTag);
+        this.cellTrack.untrackCell?.(removedTag, updatePayload);
       }
     }
   }

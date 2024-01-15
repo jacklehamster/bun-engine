@@ -22792,6 +22792,7 @@ class GLAttributeBuffers {
   programs;
   bufferRecord = {};
   vertexArray;
+  copyBuffer = null;
   constructor(gl, programs) {
     this.gl = gl;
     this.programs = programs;
@@ -22858,6 +22859,20 @@ class GLAttributeBuffers {
     }
     return bufferInfo;
   }
+  ensureCopyBufferSize(newCount, bufferInfo) {
+    this.vertexArray.bind();
+    if (this.copyBuffer) {
+      const bufferSize = this.gl.getBufferParameter(GL.ARRAY_BUFFER, GL.BUFFER_SIZE);
+      if (bufferSize >= newCount * bufferInfo.bytesPerInstance) {
+        this.gl.bindBuffer(GL.ARRAY_BUFFER, this.copyBuffer);
+        return;
+      }
+      this.gl.deleteBuffer(this.copyBuffer);
+    }
+    this.copyBuffer = this.gl.createBuffer();
+    this.gl.bindBuffer(GL.ARRAY_BUFFER, this.copyBuffer);
+    this.gl.bufferData(GL.ARRAY_BUFFER, newCount * bufferInfo.bytesPerInstance, GL.DYNAMIC_COPY);
+  }
   ensureSize(location, newCount) {
     const bufferInfo = this.bufferRecord[location];
     if (bufferInfo && bufferInfo.instanceCount < newCount) {
@@ -22865,6 +22880,7 @@ class GLAttributeBuffers {
       const bufferSize = this.gl.getBufferParameter(GL.ARRAY_BUFFER, GL.BUFFER_SIZE);
       const oldBufferData = new Float32Array(bufferSize / Float32Array.BYTES_PER_ELEMENT);
       this.gl.getBufferSubData(GL.ARRAY_BUFFER, 0, oldBufferData);
+      this.bindBuffer(location);
       if (bufferInfo.callback) {
         const callback = bufferInfo.callback;
         this.gl.bufferData(bufferInfo.target, Float32Array.from(new Array(newCount).fill(0).map((_, index) => callback(index))), bufferInfo.usage);
@@ -25765,10 +25781,10 @@ uniform mat4 projection;
 uniform float curvature;
 
 //  OUT
-out vec2 vTex;
 out float vTextureIndex;
-out vec3 vInstanceColor;
+out vec2 vTex;
 out float dist;
+out vec3 vInstanceColor;
 
 void main() {
   vec2 tex = position.xy * vec2(0.49, -0.49) + 0.5;
@@ -25821,9 +25837,8 @@ const float threshold = 0.00001;
 //  texture
 in float vTextureIndex;
 in vec2 vTex;
-in float opacity;
-in vec3 vInstanceColor;
 in float dist;
+in vec3 vInstanceColor;
 
 //  OUT
 out vec4 fragColor;
@@ -25858,7 +25873,7 @@ void main() {
   float colorFactor = 1.25 * pow(dist, -.12);
   color.rgb = (color.rgb * colorFactor) + (bgColor * (1. - colorFactor));
   fragColor = color;
-//  fragColor = vec4(vInstanceColor.rgb, 1.0);
+  fragColor.rgb += vInstanceColor / 10.;
 }
 
 vec4 getTextureColor(float textureSlot, vec2 vTexturePoint) {
@@ -26762,9 +26777,10 @@ class TextureManager extends Disposable {
       if (!texture) {
         return;
       }
+      this.textureBuffers[textureId] = texture;
       this.gl.bindTexture(GL.TEXTURE_2D, texture);
       this.gl.texImage2D(GL.TEXTURE_2D, 0, GL.RGBA, this.textureSlotAllocator.maxTextureSize, this.textureSlotAllocator.maxTextureSize, 0, GL.RGBA, GL.UNSIGNED_BYTE, null);
-      this.textureBuffers[textureId] = texture;
+      this.generateMipMap(textureId);
       this.addOnDestroy(() => this.gl.deleteTexture(texture));
     }
     return this.textureBuffers[textureId];
@@ -27021,12 +27037,18 @@ var VectorUniform;
 })(VectorUniform || (VectorUniform = {}));
 
 // src/world/sprite/Sprite.ts
-function copySprite(sprite) {
-  return {
-    transform: Matrix_default.create().copy(sprite.transform),
-    imageId: sprite.imageId,
-    spriteType: sprite.spriteType
-  };
+function copySprite(sprite, dest) {
+  if (!dest) {
+    return {
+      transform: Matrix_default.create().copy(sprite.transform),
+      imageId: sprite.imageId,
+      spriteType: sprite.spriteType
+    };
+  }
+  dest.imageId = sprite.imageId;
+  dest.spriteType = sprite.spriteType;
+  dest.transform.copy(sprite.transform);
+  return dest;
 }
 var SpriteType;
 (function(SpriteType2) {
@@ -27286,9 +27308,11 @@ class GraphicsEngine extends Disposable {
   }
   static clearBit = GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT;
   refresh() {
-    this.gl.clear(GraphicsEngine.clearBit);
-    this.drawElementsInstanced(VERTICES_PER_SPRITE, this.spriteCount);
-    this.pixelListener?.setPixel(this.getPixel(this.pixelListener.x, this.pixelListener.y));
+    if (this.spriteCount) {
+      this.gl.clear(GraphicsEngine.clearBit);
+      this.drawElementsInstanced(VERTICES_PER_SPRITE, this.spriteCount);
+      this.pixelListener?.setPixel(this.getPixel(this.pixelListener.x, this.pixelListener.y));
+    }
   }
 }
 
@@ -27524,6 +27548,9 @@ class ObjectPool {
     }
     const elem = this.initCall(undefined, ...params);
     this.allObjectsCreated.push(elem);
+    if (this.allObjectsCreated.length === 1e4) {
+      console.warn("ObjectPool already created", this.allObjectsCreated.length);
+    }
     return elem;
   }
   reset() {
@@ -27735,8 +27762,8 @@ class CameraFloatUpdate {
       this.motor.registerUpdate(this);
     }
   }
-  refresh() {
-    this.updatedTypes.forEach((type) => this.engine.updateUniformFloat(type, this.getCameraFloat(type)));
+  refresh(updatePayload) {
+    this.updatedTypes.forEach((type) => this.engine.updateUniformFloat(type, this.getCameraFloat(type).valueOf(updatePayload.time)));
     this.updatedTypes.clear();
   }
 }
@@ -27906,7 +27933,7 @@ class Camera extends AuxiliaryHolder {
       [FloatUniform.CAM_DISTANCE]: this.distance,
       [FloatUniform.CURVATURE]: this.curvature
     };
-    this.updateInformerFloat = new CameraFloatUpdate((uniform) => cameraVal[uniform].valueOf(), engine, motor);
+    this.updateInformerFloat = new CameraFloatUpdate((uniform) => cameraVal[uniform], engine, motor);
   }
   activate() {
     super.activate();
@@ -27973,20 +28000,10 @@ class CellChangeAuxiliary extends AuxiliaryHolder {
   constructor(config) {
     super();
     this.cellSize = config?.cellSize ?? 1;
-    this.cell = { pos: [0, 0, 0, this.cellSize], tag: "" };
+    this.cell = { pos: [Number.NaN, Number.NaN, Number.NaN, this.cellSize], tag: "" };
   }
   set holder(value) {
     this.matrix = value;
-    if (this.matrix) {
-      const cellPos = this.matrix.getCellPosition(this.cellSize);
-      this.cell.pos[0] = cellPos[0];
-      this.cell.pos[1] = cellPos[1];
-      this.cell.pos[2] = cellPos[2];
-      this.cell.tag = cellTag(...this.cell.pos);
-    }
-  }
-  activate() {
-    this.visitCell?.visitCell(this.cell);
   }
   refresh(updatePayload) {
     if (!this.matrix) {
@@ -28344,6 +28361,8 @@ class DoubleLinkList {
         return { value };
       }
       elem.value = value;
+      elem.prev = undefined;
+      elem.next = undefined;
       return elem;
     });
   }
@@ -28359,23 +28378,32 @@ class DoubleLinkList {
     return this.tags;
   }
   pushTop(value) {
-    const formerTop = this.end.prev;
     const newTop = this.pool.create(value);
-    newTop.prev = formerTop;
-    newTop.next = this.end;
-    formerTop.next = this.end.prev = newTop;
     this.nodeMap[value] = newTop;
     this.count++;
+    this.moveTop(value);
+  }
+  moveTop(value) {
+    const entry = this.nodeMap[value];
+    if (entry) {
+      if (entry.prev && entry.next) {
+        entry.prev.next = entry.next;
+        entry.next.prev = entry.prev;
+      }
+      const formerTop = this.end.prev;
+      const newTop = entry;
+      newTop.prev = formerTop;
+      newTop.next = this.end;
+      formerTop.next = this.end.prev = newTop;
+      return true;
+    }
+    return false;
   }
   remove(value) {
     const entry = this.nodeMap[value];
     if (entry) {
-      if (entry.prev) {
-        entry.prev.next = entry.next;
-      }
-      if (entry.next) {
-        entry.next.prev = entry.prev;
-      }
+      entry.prev.next = entry.next;
+      entry.next.prev = entry.prev;
       entry.prev = entry.next = undefined;
       this.pool.recycle(entry);
       delete this.nodeMap[value];
@@ -28428,7 +28456,7 @@ class CellTracker {
   getCellTags() {
     return this.cellTags.getList();
   }
-  iterateCells(visitedCell, callback) {
+  iterateCells(visitedCell, updatePayload, callback) {
     const { range, base, tempCell } = this;
     const { pos } = visitedCell;
     const cellX = pos[0] + base[0];
@@ -28441,23 +28469,23 @@ class CellTracker {
           tempCell.pos[1] = cellY + y;
           tempCell.pos[2] = cellZ + z;
           tempCell.tag = cellTag(...tempCell.pos);
-          callback(tempCell);
+          callback(tempCell, updatePayload);
         }
       }
     }
   }
-  onCellVisit(cell) {
-    if (!this.cellTags.remove(cell.tag)) {
-      this.cellTrack.trackCell?.(cell);
+  onCellVisit(cell, updatePayload) {
+    if (!this.cellTags.moveTop(cell.tag)) {
+      this.cellTags.pushTop(cell.tag);
+      this.cellTrack.trackCell?.(cell, updatePayload);
     }
-    this.cellTags.pushTop(cell.tag);
   }
-  visitCell(visitedCell) {
-    this.iterateCells(visitedCell, this.onCellVisit);
+  visitCell(visitedCell, updatePayload) {
+    this.iterateCells(visitedCell, updatePayload, this.onCellVisit);
     while (this.cellTags.size > this.cellLimit) {
       const removedTag = this.cellTags.popBottom();
       if (removedTag) {
-        this.cellTrack.untrackCell?.(removedTag);
+        this.cellTrack.untrackCell?.(removedTag, updatePayload);
       }
     }
   }
@@ -28594,7 +28622,6 @@ class SpritesAccumulator extends AuxiliaryHolder {
     this.onSizeChange();
   }
   onSizeChange() {
-    this.spritesIndices.forEach((_, spriteId) => this.informUpdate?.(spriteId));
     this.newSpritesListener.forEach((listener) => listener(this));
   }
   deactivate() {
@@ -28652,9 +28679,9 @@ class SpriteGrid {
   ranges;
   slotPool = new ObjectPool((slot, sprite, tag) => {
     if (!slot) {
-      return { sprite, tag };
+      return { sprite: copySprite(sprite), tag };
     }
-    slot.sprite = sprite;
+    slot.sprite = copySprite(sprite, slot.sprite);
     slot.tag = tag;
     return slot;
   });
@@ -28678,21 +28705,22 @@ class SpriteGrid {
   at(index) {
     return this.slots[index]?.sprite;
   }
-  trackCell(cell) {
+  trackCell(cell, updatePayload) {
     const [[minX, maxX], [minY, maxY], [minZ, maxZ]] = this.ranges;
     const [x, y, z] = cell.pos;
     if (x < minX || maxX < x || y < minY || maxY < y || z < minZ || maxZ < z) {
       return;
     }
     const { tag } = cell;
-    forEach3(this.spriteFactory.getSpritesAtCell?.(cell), (sprite) => {
+    forEach3(this.spriteFactory.getSpritesAtCell?.(cell, updatePayload), (sprite) => {
       if (sprite) {
         const spriteId = this.slots.length;
-        const slot = this.slotPool.create(copySprite(sprite), tag);
+        const slot = this.slotPool.create(sprite, tag);
         this.slots.push(slot);
         this.informUpdate(spriteId);
       }
     });
+    this.spriteFactory.doneCellTracking?.(cell, updatePayload);
   }
   untrackCell(cellTag2) {
     for (let i = this.slots.length - 1;i >= 0; i--) {
@@ -28866,6 +28894,39 @@ class KeyboardControls {
   }
 }
 
+// src/world/sprite/SpritesFactory.ts
+class SpriteFactory {
+  filler;
+  sprites = [];
+  pool = new ObjectPool((sprite, imageId) => {
+    if (!sprite) {
+      return { imageId, transform: Matrix_default.create() };
+    }
+    sprite.imageId = imageId;
+    sprite.transform.identity();
+    return sprite;
+  });
+  spriteBag = {
+    createSprite: (imageId) => {
+      return this.pool.create(imageId ?? 0);
+    },
+    addSprite: (...sprites) => {
+      this.sprites.push(...sprites);
+    }
+  };
+  constructor(filler) {
+    this.filler = filler;
+  }
+  getSpritesAtCell(cell, updatePayload) {
+    this.filler.fillSpriteBag(cell, updatePayload, this.spriteBag);
+    return this.sprites;
+  }
+  doneCellTracking() {
+    this.pool.reset();
+    this.sprites.length = 0;
+  }
+}
+
 // src/demo/DemoWorld.ts
 var DOBUKI = 0;
 var LOGO = 1;
@@ -29030,18 +29091,15 @@ class DemoWorld extends AuxiliaryHolder {
         return cx === 0 && cy === 0 && cz === -3;
       }
     };
-    spritesAccumulator.addAuxiliary(new SpriteGrid({ yRange: [0, 0] }, {
-      getSpritesAtCell: (cell) => [
-        {
-          imageId: GRASS,
-          transform: Matrix_default.create().translate(cell.pos[0] * cell.pos[3], -1, cell.pos[2] * cell.pos[3]).rotateX(-Math.PI / 2).scale(1)
-        },
-        {
-          imageId: WIREFRAME,
-          transform: Matrix_default.create().translate(cell.pos[0] * cell.pos[3], 2, cell.pos[2] * cell.pos[3]).rotateX(Math.PI / 2).scale(1)
-        }
-      ]
-    }));
+    spritesAccumulator.addAuxiliary(new SpriteGrid({ yRange: [0, 0] }, new SpriteFactory({
+      fillSpriteBag({ pos }, _, bag) {
+        const ground = bag.createSprite(GRASS);
+        ground.transform.translate(pos[0] * pos[3], -1, pos[2] * pos[3]).rotateX(-Math.PI / 2);
+        const ceiling = bag.createSprite(WIREFRAME);
+        ceiling.transform.translate(pos[0] * pos[3], 2, pos[2] * pos[3]).rotateX(Math.PI / 2);
+        bag.addSprite(ground, ceiling);
+      }
+    })));
     spritesAccumulator.addAuxiliary(new StaticSprites([{
       imageId: VIDEO,
       transform: Matrix_default.create().translate(0, 1e4, -50000).scale(9600, 5400, 1)
@@ -29062,8 +29120,8 @@ class DemoWorld extends AuxiliaryHolder {
     }));
     this.addAuxiliary(keyboard);
     camera.position.addAuxiliary(new CellChangeAuxiliary({ cellSize: CELLSIZE }).addAuxiliary(new CellTracker(this, {
-      cellLimit: 5000,
-      range: [25, 3, 25],
+      cellLimit: 100,
+      range: [5, 3, 5],
       cellSize: CELLSIZE
     })));
   }
@@ -29174,7 +29232,7 @@ async function testCanvas(canvas) {
   const root = client.default.createRoot(document.body.appendChild(document.createElement("div")));
   const element = import_react.default.createElement("h1", null, "Hello, world!");
   root.render(element);
-  canvas.style.border = "2px solid black";
+  canvas.style.outline = "2px solid black";
   canvas.style.pointerEvents = "none";
   const pixelListener = {
     x: 0,
@@ -29213,4 +29271,4 @@ export {
   hello
 };
 
-//# debugId=6B8D66F0E9CB986764756e2164756e21
+//# debugId=CDE793F6684140F764756e2164756e21

@@ -9,15 +9,21 @@ export enum SpriteType {
 }
 
 export interface Sprite {
-  transform: Matrix;
+  readonly transform: Matrix;
   imageId: MediaId;
   spriteType?: SpriteType;
 }
 
-export function copySprite(sprite: Sprite): Sprite {
-  return {
-    transform: Matrix.create().copy(sprite.transform),
-    imageId: sprite.imageId,
-    spriteType: sprite.spriteType,
-  };
+export function copySprite(sprite: Sprite, dest?: Sprite): Sprite {
+  if (!dest) {
+    return {
+      transform: Matrix.create().copy(sprite.transform),
+      imageId: sprite.imageId,
+      spriteType: sprite.spriteType,
+    };
+  }
+  dest.imageId = sprite.imageId;
+  dest.spriteType = sprite.spriteType;
+  dest.transform.copy(sprite.transform);
+  return dest;
 }
