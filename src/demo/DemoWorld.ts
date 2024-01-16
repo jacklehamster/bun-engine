@@ -29,9 +29,10 @@ import { getCellPos, positionFromCell } from "world/grid/CellPos";
 import { JumpAuxiliary } from "world/aux/JumpAuxiliary";
 import { TimeAuxiliary } from "core/aux/TimeAuxiliary";
 import { PositionMatrix } from "gl/transform/PositionMatrix";
-import { SpriteUpdateType } from "world/sprite/update/SpriteUpdateType";
 import { TiltAuxiliary } from "world/aux/TiltAuxiliary";
 import { SmoothFollowAuxiliary } from "world/aux/SmoothFollowAuxiliary";
+import { DirAuxiliary } from "world/aux/DirAuxiliary";
+import { SpriteUpdateType } from "world/sprite/update/SpriteUpdateType";
 
 const DOBUKI = 0, LOGO = 1, GROUND = 2, VIDEO = 3, WIREFRAME = 4, GRASS = 5, BRICK = 6, DODO = 7;
 const LOGO_SIZE = 512;
@@ -229,7 +230,7 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
           Matrix.create().translate(0, 0, 1).rotateY(Math.PI),  //  front
           Matrix.create().translate(0, 0, -1).rotateY(0), //  back
         ].map(transform => ({ imageId: BRICK, transform })),
-      ], Matrix.create().setPosition(...positionFromCell([0, 0, -3, CELLSIZE]))),
+      ], [Matrix.create().setPosition(...positionFromCell([0, 0, -3, CELLSIZE]))]),
     ));
 
     const camera = new Camera({ engine, motor });
@@ -250,10 +251,23 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
         },
       })));
 
-    const heroPos: PositionMatrix = new PositionMatrix(() => {
+    const heroPos: PositionMatrix = new PositionMatrix().onChange(() => {
       heroSprites.informUpdate(0, SpriteUpdateType.TRANSFORM);
       heroSprites.informUpdate(1, SpriteUpdateType.TRANSFORM);
     });
+    const spriteGroup = new SpriteGroup([
+      {
+        imageId: DODO,
+        spriteType: SpriteType.SPRITE,
+        transform: Matrix.create().translate(0, -.68, 0),
+      },
+      {
+        imageId: DODO,
+        transform: Matrix.create().translate(0, -0.9, 0).rotateX(-Math.PI / 2),
+      },
+    ], [heroPos]);
+    const heroSprites = new StaticSprites(spriteGroup);
+    spritesAccumulator.addAuxiliary(heroSprites);
 
     //  * A move blocker just determines where you can or cannot move.
     //  Currently, there is just one block at [0, 0, -3]
@@ -263,20 +277,6 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
         return cx === 0 && cy === 0 && cz === -3;
       },
     };
-
-    const heroSprites = new StaticSprites(new SpriteGroup([
-      {
-        name: "dodo",
-        imageId: DODO,
-        spriteType: SpriteType.SPRITE,
-        transform: Matrix.create().translate(0, -.68, 0),
-      },
-      {
-        imageId: DODO,
-        transform: Matrix.create().translate(0, -0.9, 0).rotateX(-Math.PI / 2),
-      },
-    ], heroPos));
-    spritesAccumulator.addAuxiliary(heroSprites);
 
     //  Static Sprites
     //  * Those are just sprites, which will appear regardless of where
@@ -317,8 +317,6 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
           {
             key: "Tab", aux: Auxiliaries.from(
               new PositionStepAuxiliary({ controls, position: heroPos }),
-              // new PositionStepAuxiliary({ controls, position: heroPos, turnGoal: camera.turn.angle }),
-              // new PositionStepAuxiliary({ controls, position: camera.position, turnGoal: camera.turn.angle }, { step: 2 }),
               new TiltResetAuxiliary({ controls, tilt: camera.tilt }),
               new SmoothFollowAuxiliary({ follower: camera.position, followee: heroPos }, { speed: .05 }),
             )
@@ -336,6 +334,11 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
       }),
     );
     this.addAuxiliary(keyboard);
+
+    this.addAuxiliary(new DirAuxiliary({ flippable: spriteGroup, controls }, () => {
+      heroSprites.informUpdate(0, SpriteUpdateType.ANIM);
+      heroSprites.informUpdate(1, SpriteUpdateType.ANIM);
+    }));
 
     // heroPos.addChangeListener((dx, dy, dz) => {
     //   console.log("heropos change", heroPos.position);

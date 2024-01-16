@@ -1,6 +1,7 @@
 export interface ControlsListener {
   onQuickAction?(): void;
   onQuickTiltReset?(): void;
+  onAction?(controls: IControls): void;
 }
 
 export interface IControls {
@@ -14,4 +15,5 @@ export interface IControls {
   get turnRight(): boolean;
   get action(): boolean;
   addListener(listener: ControlsListener): () => void;
+  removeListener(listener: ControlsListener): void;
 }

@@ -42,8 +42,8 @@ void main() {
     pow(2.0, mod(slotSize_and_number.x, 16.0)));
   float slotNumber = slotSize_and_number.y;
   vec2 spriteSize = slotSize_and_number.zw;
-  vec2 tex = position.xy * vec2(0.49, -0.49) + 0.5; //  Texture corners 0..1
-  tex *= spriteSize;
+  vec2 tex = position.xy * vec2(0.49, -0.49) * sign(spriteSize) + 0.5; //  Texture corners 0..1
+  tex *= abs(spriteSize);
 
   float maxCols = maxTextureSize / slotSize.x;
   float maxRows = maxTextureSize / slotSize.y;

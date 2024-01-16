@@ -37,7 +37,7 @@ import { Media } from 'gl/texture/Media';
 import { SpriteId, SpriteType } from 'world/sprite/Sprite';
 import { IGraphicsEngine } from './IGraphicsEngine';
 import { Sprites } from 'world/sprite/Sprites';
-import { Vector } from 'gl/transform/IMatrix';
+import { IMatrix, Vector } from 'gl/transform/IMatrix';
 import { SpriteSheet } from 'gl/texture/spritesheet/SpriteSheet';
 import { Priority } from 'updates/Refresh';
 
@@ -294,13 +294,22 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
     this.spriteCount = Math.max(this.spriteCount, topVisibleSprite + 1);
   }
 
+  private tempBuffer = new Float32Array(TEX_BUFFER_ELEMS).fill(0);
   updateSpriteAnims(spriteIds: Set<SpriteId>, sprites: Sprites) {
     const attributeBuffers = this.attributeBuffers;
     attributeBuffers.bindBuffer(SLOT_SIZE_LOC);
     spriteIds.forEach(spriteId => {
       const sprite = sprites.at(spriteId);
       const slotObj = sprite ? this.textureSlots[sprite.imageId] : undefined;
-      this.gl.bufferSubData(GL.ARRAY_BUFFER, TEX_BUFFER_ELEMS * Float32Array.BYTES_PER_ELEMENT * spriteId, slotObj?.buffer ?? EMPTY_TEX);
+      let buffer = slotObj?.buffer ?? EMPTY_TEX;
+      if (sprite?.flip) {
+        this.tempBuffer[0] = buffer[0];
+        this.tempBuffer[1] = buffer[1];
+        this.tempBuffer[2] = -buffer[2];
+        this.tempBuffer[3] = buffer[3];
+        buffer = this.tempBuffer;
+      }
+      this.gl.bufferSubData(GL.ARRAY_BUFFER, TEX_BUFFER_ELEMS * Float32Array.BYTES_PER_ELEMENT * spriteId, buffer);
       const spriteWaitingForTexture = sprite && !slotObj;
       if (!spriteWaitingForTexture) {
         spriteIds.delete(spriteId);
@@ -321,8 +330,8 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
     spriteIds.clear();
   }
 
-  updateUniformMatrix(type: MatrixUniform, matrix: Float32Array) {
-    this.gl.uniformMatrix4fv(this.matrixUniforms[type], false, matrix);
+  updateUniformMatrix(type: MatrixUniform, matrix: IMatrix) {
+    this.gl.uniformMatrix4fv(this.matrixUniforms[type], false, matrix.getMatrix());
   }
 
   updateUniformFloat(type: FloatUniform, value: number) {

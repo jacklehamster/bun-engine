@@ -10,7 +10,11 @@ export enum SpriteType {
   DISTANT = 3,
 }
 
-export interface Sprite {
+export interface Flippable {
+  flip?: boolean;
+}
+
+export interface Sprite extends Flippable {
   name?: string;
   imageId: MediaId;
   readonly transform: Matrix;
@@ -24,11 +28,13 @@ export function copySprite(sprite: Sprite, dest?: Sprite): Sprite {
       transform: Matrix.create().copy(sprite.transform),
       imageId: sprite.imageId,
       spriteType: sprite.spriteType,
+      flip: sprite.flip,
     };
   }
   dest.name = sprite.name;
   dest.imageId = sprite.imageId;
   dest.spriteType = sprite.spriteType;
   dest.transform.copy(sprite.transform);
+  dest.flip = sprite.flip;
   return dest;
 }

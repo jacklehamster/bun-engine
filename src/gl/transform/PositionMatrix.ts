@@ -10,27 +10,30 @@ export type ChangeListener = (dx: number, dy: number, dz: number) => void;
 export class PositionMatrix extends AuxiliaryHolder<PositionMatrix> implements IPositionMatrix {
   private matrix: Matrix = Matrix.create().setPosition(0, 0, 0);
   private _position: Position = [0, 0, 0];
+  private changeListeners: Set<ChangeListener> = new Set();
   moveBlocker?: MoveBlocker;
 
-  constructor(private onChange?: ChangeListener) {
+  constructor(onChange?: (dx: number, dy: number, dz: number) => void) {
     super();
+    if (onChange) {
+      this.onChange(onChange);
+    }
   }
 
-  addChangeListener(listener: ChangeListener) {
-    const { onChange } = this;
-    this.onChange = !onChange ? listener : (dx, dy, dz) => {
-      onChange(dx, dy, dz);
-      listener(dx, dy, dz);
-    };
+  onChange(listener: ChangeListener): this {
+    this.changeListeners.add(listener);
+    return this;
   }
 
   removeChangeListener(listener: ChangeListener) {
-    throw new Error("Not yet implemented");
+    this.changeListeners.delete(listener);
   }
 
   private changedPosition(dx: number, dy: number, dz: number) {
     transformToPosition(this.matrix, this._position);
-    this.onChange?.(dx, dy, dz);
+    for (let listener of this.changeListeners) {
+      listener(dx, dy, dz);
+    }
   }
 
   moveBy(x: number, y: number, z: number, turnMatrix?: IMatrix) {

@@ -1,6 +1,8 @@
 import { ObjectPool } from "utils/ObjectPool";
 import { Progressive } from "./Progressive";
 import { Val } from "./Val";
+import { IMotor } from "motor/IMotor";
+import { Refresh } from "updates/Refresh";
 
 const progressivePool: ObjectPool<Progressive<NumVal>, [NumVal]> = new ObjectPool((progressive, val) => {
   if (!progressive) {
@@ -39,11 +41,21 @@ export class NumVal implements Val<number> {
     return !!this.progressive?.update(deltaTime);
   }
 
-  progressTowards(goal: number, speed: number, locker?: any) {
+  progressTowards(goal: number, speed: number, locker?: any, motor?: IMotor) {
     if (!this.progressive) {
       this.progressive = progressivePool.create(this);
     }
     this.progressive.setGoal(goal, speed, locker);
+    if (motor) {
+      const refresh: Refresh = {
+        refresh: (updatePayload) => {
+          if (!this.update(updatePayload.deltaTime)) {
+            motor.deregisterUpdate(refresh);
+          }
+        },
+      };
+      motor.loop(refresh);
+    }
   }
 
   get goal(): number {

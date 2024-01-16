@@ -3,7 +3,7 @@ import { MatrixUniform } from "./Uniforms";
 import { MediaId } from "gl/texture/ImageManager";
 import { Media } from "gl/texture/Media";
 import { MediaData } from "gl/texture/MediaData";
-import { Vector } from "gl/transform/IMatrix";
+import { IMatrix, Vector } from "gl/transform/IMatrix";
 import { Auxiliary } from "world/aux/Auxiliary";
 import { SpriteId } from "world/sprite/Sprite";
 import { Sprites } from "world/sprite/Sprites";
@@ -15,7 +15,7 @@ export interface IGraphicsEngine extends Auxiliary {
   updateSpriteTransforms(spriteIds: Set<SpriteId>, sprites: Sprites): void;
   updateSpriteAnims(spriteIds: Set<SpriteId>, sprites: Sprites): void;
   updateSpriteTypes(spriteIds: Set<SpriteId>, sprites: Sprites): void;
-  updateUniformMatrix(type: MatrixUniform, matrix: Float32Array): void;
+  updateUniformMatrix(type: MatrixUniform, matrix: IMatrix): void;
   updateUniformFloat(type: FloatUniform, value: number): void;
   updateUniformVector(type: VectorUniform, value: Vector): void;
   setPixelListener(listener: { x: number, y: number, setPixel(value: number): void }): void;

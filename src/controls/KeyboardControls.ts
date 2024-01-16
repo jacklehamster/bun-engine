@@ -17,7 +17,12 @@ export class KeyboardControls implements IControls {
             break;
         }
       },
+      onKeyDown: () => listener.onAction?.(this),
     });
+  }
+
+  removeListener(listener: ControlsListener): void {
+    throw new Error("Not implemented");
   }
 
   get forward(): boolean {

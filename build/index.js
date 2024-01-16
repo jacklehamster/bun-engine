@@ -25795,8 +25795,8 @@ void main() {
     pow(2.0, mod(slotSize_and_number.x, 16.0)));
   float slotNumber = slotSize_and_number.y;
   vec2 spriteSize = slotSize_and_number.zw;
-  vec2 tex = position.xy * vec2(0.49, -0.49) + 0.5; //  Texture corners 0..1
-  tex *= spriteSize;
+  vec2 tex = position.xy * vec2(0.49, -0.49) * sign(spriteSize) + 0.5; //  Texture corners 0..1
+  tex *= abs(spriteSize);
 
   float maxCols = maxTextureSize / slotSize.x;
   float maxRows = maxTextureSize / slotSize.y;
@@ -27059,13 +27059,15 @@ function copySprite(sprite, dest) {
       name: sprite.name,
       transform: Matrix_default.create().copy(sprite.transform),
       imageId: sprite.imageId,
-      spriteType: sprite.spriteType
+      spriteType: sprite.spriteType,
+      flip: sprite.flip
     };
   }
   dest.name = sprite.name;
   dest.imageId = sprite.imageId;
   dest.spriteType = sprite.spriteType;
   dest.transform.copy(sprite.transform);
+  dest.flip = sprite.flip;
   return dest;
 }
 var SpriteType;
@@ -27294,13 +27296,22 @@ class GraphicsEngine extends Disposable {
     }
     this.spriteCount = Math.max(this.spriteCount, topVisibleSprite + 1);
   }
+  tempBuffer = new Float32Array(TEX_BUFFER_ELEMS).fill(0);
   updateSpriteAnims(spriteIds, sprites) {
     const attributeBuffers = this.attributeBuffers;
     attributeBuffers.bindBuffer(SLOT_SIZE_LOC);
     spriteIds.forEach((spriteId) => {
       const sprite = sprites.at(spriteId);
       const slotObj = sprite ? this.textureSlots[sprite.imageId] : undefined;
-      this.gl.bufferSubData(GL.ARRAY_BUFFER, TEX_BUFFER_ELEMS * Float32Array.BYTES_PER_ELEMENT * spriteId, slotObj?.buffer ?? EMPTY_TEX);
+      let buffer = slotObj?.buffer ?? EMPTY_TEX;
+      if (sprite?.flip) {
+        this.tempBuffer[0] = buffer[0];
+        this.tempBuffer[1] = buffer[1];
+        this.tempBuffer[2] = -buffer[2];
+        this.tempBuffer[3] = buffer[3];
+        buffer = this.tempBuffer;
+      }
+      this.gl.bufferSubData(GL.ARRAY_BUFFER, TEX_BUFFER_ELEMS * Float32Array.BYTES_PER_ELEMENT * spriteId, buffer);
       const spriteWaitingForTexture = sprite && !slotObj;
       if (!spriteWaitingForTexture) {
         spriteIds.delete(spriteId);
@@ -27320,7 +27331,7 @@ class GraphicsEngine extends Disposable {
     spriteIds.clear();
   }
   updateUniformMatrix(type, matrix) {
-    this.gl.uniformMatrix4fv(this.matrixUniforms[type], false, matrix);
+    this.gl.uniformMatrix4fv(this.matrixUniforms[type], false, matrix.getMatrix());
   }
   updateUniformFloat(type, value) {
     this.gl.uniform1f(this.floatUniforms[type], value);
@@ -27686,11 +27697,21 @@ class NumVal {
   update(deltaTime) {
     return !!this.progressive?.update(deltaTime);
   }
-  progressTowards(goal, speed, locker) {
+  progressTowards(goal, speed, locker, motor) {
     if (!this.progressive) {
       this.progressive = progressivePool.create(this);
     }
     this.progressive.setGoal(goal, speed, locker);
+    if (motor) {
+      const refresh = {
+        refresh: (updatePayload) => {
+          if (!this.update(updatePayload.deltaTime)) {
+            motor.deregisterUpdate(refresh);
+          }
+        }
+      };
+      motor.loop(refresh);
+    }
   }
   get goal() {
     return this.progressive?.goal ?? this.valueOf();
@@ -27809,27 +27830,28 @@ var _matrix = Matrix_default.create();
 
 // src/gl/transform/PositionMatrix.ts
 class PositionMatrix extends AuxiliaryHolder {
-  onChange;
   matrix = Matrix_default.create().setPosition(0, 0, 0);
   _position = [0, 0, 0];
+  changeListeners = new Set;
   moveBlocker;
   constructor(onChange) {
     super();
-    this.onChange = onChange;
+    if (onChange) {
+      this.onChange(onChange);
+    }
   }
-  addChangeListener(listener) {
-    const { onChange } = this;
-    this.onChange = !onChange ? listener : (dx, dy, dz) => {
-      onChange(dx, dy, dz);
-      listener(dx, dy, dz);
-    };
+  onChange(listener) {
+    this.changeListeners.add(listener);
+    return this;
   }
   removeChangeListener(listener) {
-    throw new Error("Not yet implemented");
+    this.changeListeners.delete(listener);
   }
   changedPosition(dx, dy, dz) {
     transformToPosition(this.matrix, this._position);
-    this.onChange?.(dx, dy, dz);
+    for (let listener of this.changeListeners) {
+      listener(dx, dy, dz);
+    }
   }
   moveBy(x, y, z, turnMatrix) {
     const vector = Matrix_default.getMoveVector(x, y, z, turnMatrix);
@@ -27902,7 +27924,10 @@ class UpdateRegistry {
 class Camera extends AuxiliaryHolder {
   camMatrix = Matrix_default.create();
   projection = new ProjectionMatrix(() => this.updateInformer.informUpdate(MatrixUniform.PROJECTION));
-  position = new PositionMatrix(() => this.updateInformer.informUpdate(MatrixUniform.CAM_POS));
+  position = new PositionMatrix().onChange(() => {
+    this.camMatrix.invert(this.position);
+    this.engine.updateUniformMatrix(MatrixUniform.CAM_POS, this.camMatrix);
+  });
   tilt = new TiltMatrix(() => this.updateInformer.informUpdate(MatrixUniform.CAM_TILT));
   turn = new TurnMatrix(() => this.updateInformer.informUpdate(MatrixUniform.CAM_TURN));
   _bgColor = [0, 0, 0];
@@ -27918,12 +27943,21 @@ class Camera extends AuxiliaryHolder {
   constructor({ engine, motor }) {
     super();
     this.engine = engine;
+    const cameraMatrices = {
+      [MatrixUniform.PROJECTION]: this.projection,
+      [MatrixUniform.CAM_POS]: this.camMatrix,
+      [MatrixUniform.CAM_TURN]: this.turn,
+      [MatrixUniform.CAM_TILT]: this.tilt
+    };
     this.updateInformer = new UpdateRegistry((ids) => {
-      ids.forEach((type) => this.engine.updateUniformMatrix(type, this.getCameraMatrix(type)));
+      ids.forEach((type) => this.engine.updateUniformMatrix(type, cameraMatrices[type]));
       ids.clear();
     }, motor);
+    const cameraVectors = {
+      [VectorUniform.BG_COLOR]: this._bgColor
+    };
     this.updateInformerVector = new UpdateRegistry((ids) => {
-      ids.forEach((type) => this.engine.updateUniformVector(type, this.getCameraVector(type)));
+      ids.forEach((type) => this.engine.updateUniformVector(type, cameraVectors[type]));
       ids.clear();
     }, motor);
     this.curvature = new NumVal(0.05, () => this.updateInformerFloat.informUpdate(FloatUniform.CURVATURE));
@@ -27957,15 +27991,6 @@ class Camera extends AuxiliaryHolder {
     this.updateInformerFloat.informUpdate(FloatUniform.BG_BLUR);
     this.updateInformerVector.informUpdate(VectorUniform.BG_COLOR);
   }
-  cameraMatrices = {
-    [MatrixUniform.PROJECTION]: this.projection,
-    [MatrixUniform.CAM_POS]: this.camMatrix,
-    [MatrixUniform.CAM_TURN]: this.turn,
-    [MatrixUniform.CAM_TILT]: this.tilt
-  };
-  cameraVectors = {
-    [VectorUniform.BG_COLOR]: this._bgColor
-  };
   resizeViewport(width, height2) {
     if (this._viewportWidth !== width || this._viewportHeight !== height2) {
       this._viewportWidth = width;
@@ -27982,15 +28007,6 @@ class Camera extends AuxiliaryHolder {
     this._bgColor[2] = blue / 255;
     this.updateInformerVector.informUpdate(VectorUniform.BG_COLOR);
     this.engine.setBgColor(this._bgColor);
-  }
-  getCameraMatrix(uniform) {
-    if (uniform === MatrixUniform.CAM_POS) {
-      this.camMatrix.invert(this.position);
-    }
-    return this.cameraMatrices[uniform].getMatrix();
-  }
-  getCameraVector(uniform) {
-    return this.cameraVectors[uniform];
   }
 }
 
@@ -28545,14 +28561,15 @@ class SpritesAccumulator extends AuxiliaryHolder {
 // src/world/sprite/SpritesGroup.ts
 class SpriteGroup {
   children;
-  transform;
+  transforms;
+  flip = false;
   spriteModel = {
     imageId: 0,
     transform: Matrix_default.create()
   };
-  constructor(children, transform = Matrix_default.create()) {
+  constructor(children, transforms = []) {
     this.children = children;
-    this.transform = transform;
+    this.transforms = transforms;
   }
   get length() {
     return this.children.length;
@@ -28562,10 +28579,13 @@ class SpriteGroup {
     if (!s) {
       return;
     }
-    this.spriteModel.name = s.name;
-    this.spriteModel.spriteType = s.spriteType;
-    this.spriteModel.imageId = s.imageId;
-    this.spriteModel.transform.multiply2(this.transform, s.transform);
+    copySprite(s, this.spriteModel);
+    for (let transform of this.transforms) {
+      this.spriteModel.transform.multiply2(transform, this.spriteModel.transform);
+    }
+    if (this.flip) {
+      this.spriteModel.flip = !this.spriteModel.flip;
+    }
     return this.spriteModel;
   }
   informUpdate(id, type) {
@@ -28764,8 +28784,12 @@ class KeyboardControls {
             listener.onQuickTiltReset?.();
             break;
         }
-      }
+      },
+      onKeyDown: () => listener.onAction?.(this)
     });
+  }
+  removeListener(listener) {
+    throw new Error("Not implemented");
   }
   get forward() {
     const { keys } = this.keyboard;
@@ -28973,6 +28997,39 @@ class SmoothFollowAuxiliary {
   }
 }
 
+// src/world/aux/DirAuxiliary.ts
+class DirAuxiliary {
+  onChange;
+  flippable;
+  controls;
+  dx = 0;
+  constructor({ flippable, controls }, onChange) {
+    this.onChange = onChange;
+    this.flippable = flippable;
+    this.controls = controls;
+  }
+  onAction(controls) {
+    let dx = 0;
+    if (controls.left) {
+      dx--;
+    }
+    if (controls.right) {
+      dx++;
+    }
+    if (dx !== this.dx) {
+      this.dx = dx;
+      this.flippable.flip = this.dx < 0;
+      this.onChange?.();
+    }
+  }
+  activate() {
+    this.controls.addListener(this);
+  }
+  deactivate() {
+    this.controls.removeListener(this);
+  }
+}
+
 // src/demo/DemoWorld.ts
 var DOBUKI = 0;
 var LOGO = 1;
@@ -29135,7 +29192,7 @@ class DemoWorld extends AuxiliaryHolder {
         Matrix_default.create().translate(0, 0, 1).rotateY(Math.PI),
         Matrix_default.create().translate(0, 0, -1).rotateY(0)
       ].map((transform) => ({ imageId: BRICK, transform }))
-    ], Matrix_default.create().setPosition(...positionFromCell([0, 0, -3, CELLSIZE])))));
+    ], [Matrix_default.create().setPosition(...positionFromCell([0, 0, -3, CELLSIZE]))])));
     const camera = new Camera({ engine, motor });
     this.addAuxiliary(camera);
     this.camera = camera;
@@ -29148,19 +29205,12 @@ class DemoWorld extends AuxiliaryHolder {
         bag.addSprite(ground, ceiling);
       }
     })));
-    const heroPos = new PositionMatrix(() => {
+    const heroPos = new PositionMatrix().onChange(() => {
       heroSprites.informUpdate(0, SpriteUpdateType.TRANSFORM);
       heroSprites.informUpdate(1, SpriteUpdateType.TRANSFORM);
     });
-    heroPos.moveBlocker = {
-      isBlocked(pos) {
-        const [cx, cy, cz] = getCellPos(pos, 2);
-        return cx === 0 && cy === 0 && cz === -3;
-      }
-    };
-    const heroSprites = new StaticSprites(new SpriteGroup([
+    const spriteGroup = new SpriteGroup([
       {
-        name: "dodo",
         imageId: DODO,
         spriteType: SpriteType.SPRITE,
         transform: Matrix_default.create().translate(0, -0.68, 0)
@@ -29169,8 +29219,15 @@ class DemoWorld extends AuxiliaryHolder {
         imageId: DODO,
         transform: Matrix_default.create().translate(0, -0.9, 0).rotateX(-Math.PI / 2)
       }
-    ], heroPos));
+    ], [heroPos]);
+    const heroSprites = new StaticSprites(spriteGroup);
     spritesAccumulator.addAuxiliary(heroSprites);
+    heroPos.moveBlocker = {
+      isBlocked(pos) {
+        const [cx, cy, cz] = getCellPos(pos, 2);
+        return cx === 0 && cy === 0 && cz === -3;
+      }
+    };
     spritesAccumulator.addAuxiliary(new StaticSprites([
       {
         imageId: VIDEO,
@@ -29193,6 +29250,10 @@ class DemoWorld extends AuxiliaryHolder {
       ]
     }));
     this.addAuxiliary(keyboard);
+    this.addAuxiliary(new DirAuxiliary({ flippable: spriteGroup, controls }, () => {
+      heroSprites.informUpdate(0, SpriteUpdateType.ANIM);
+      heroSprites.informUpdate(1, SpriteUpdateType.ANIM);
+    }));
     camera.position.addAuxiliary(new CellChangeAuxiliary({ cellSize: CELLSIZE }).addAuxiliary(new CellTracker(this, {
       cellLimit: 20000,
       range: [30, 3, 30],
@@ -29349,4 +29410,4 @@ export {
   hello
 };
 
-//# debugId=3830C7912164B3F664756e2164756e21
+//# debugId=6B6D5F24399703D464756e2164756e21

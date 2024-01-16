@@ -22,7 +22,10 @@ interface Props {
 export class Camera extends AuxiliaryHolder<ICamera> implements ICamera {
   private readonly camMatrix = Matrix.create();
   readonly projection = new ProjectionMatrix(() => this.updateInformer.informUpdate(MatrixUniform.PROJECTION));
-  readonly position = new PositionMatrix(() => this.updateInformer.informUpdate(MatrixUniform.CAM_POS));
+  readonly position = new PositionMatrix().onChange(() => {
+    this.camMatrix.invert(this.position);
+    this.engine.updateUniformMatrix(MatrixUniform.CAM_POS, this.camMatrix);
+  });
   readonly tilt = new TiltMatrix(() => this.updateInformer.informUpdate(MatrixUniform.CAM_TILT));
   readonly turn = new TurnMatrix(() => this.updateInformer.informUpdate(MatrixUniform.CAM_TURN));
   private readonly _bgColor: Vector = [0, 0, 0];
@@ -39,12 +42,23 @@ export class Camera extends AuxiliaryHolder<ICamera> implements ICamera {
   constructor({ engine, motor }: Props) {
     super();
     this.engine = engine;
-    this.updateInformer = new UpdateRegistry(ids => {
-      ids.forEach(type => this.engine.updateUniformMatrix(type, this.getCameraMatrix(type)));
+
+    const cameraMatrices: Record<MatrixUniform, IMatrix> = {
+      [MatrixUniform.PROJECTION]: this.projection,
+      [MatrixUniform.CAM_POS]: this.camMatrix,
+      [MatrixUniform.CAM_TURN]: this.turn,
+      [MatrixUniform.CAM_TILT]: this.tilt,
+    };
+    this.updateInformer = new UpdateRegistry<MatrixUniform>(ids => {
+      ids.forEach(type => this.engine.updateUniformMatrix(type, cameraMatrices[type]));
       ids.clear();
     }, motor);
-    this.updateInformerVector = new UpdateRegistry(ids => {
-      ids.forEach(type => this.engine.updateUniformVector(type, this.getCameraVector(type)));
+
+    const cameraVectors: Record<VectorUniform, Vector> = {
+      [VectorUniform.BG_COLOR]: this._bgColor,
+    };
+    this.updateInformerVector = new UpdateRegistry<VectorUniform>(ids => {
+      ids.forEach(type => this.engine.updateUniformVector(type, cameraVectors[type]));
       ids.clear();
     }, motor);
 
@@ -81,17 +95,6 @@ export class Camera extends AuxiliaryHolder<ICamera> implements ICamera {
     this.updateInformerVector.informUpdate(VectorUniform.BG_COLOR);
   }
 
-  private readonly cameraMatrices: Record<MatrixUniform, IMatrix> = {
-    [MatrixUniform.PROJECTION]: this.projection,
-    [MatrixUniform.CAM_POS]: this.camMatrix,
-    [MatrixUniform.CAM_TURN]: this.turn,
-    [MatrixUniform.CAM_TILT]: this.tilt,
-  };
-
-  private readonly cameraVectors: Record<VectorUniform, Vector> = {
-    [VectorUniform.BG_COLOR]: this._bgColor,
-  }
-
   resizeViewport(width: number, height: number) {
     if (this._viewportWidth !== width || this._viewportHeight !== height) {
       this._viewportWidth = width;
@@ -109,16 +112,5 @@ export class Camera extends AuxiliaryHolder<ICamera> implements ICamera {
     this._bgColor[2] = blue / 255.0;
     this.updateInformerVector.informUpdate(VectorUniform.BG_COLOR);
     this.engine.setBgColor(this._bgColor);
-  }
-
-  private getCameraMatrix(uniform: MatrixUniform): Float32Array {
-    if (uniform === MatrixUniform.CAM_POS) {
-      this.camMatrix.invert(this.position);
-    }
-    return this.cameraMatrices[uniform].getMatrix();
-  }
-
-  private getCameraVector(uniform: VectorUniform): Vector {
-    return this.cameraVectors[uniform];
   }
 }
