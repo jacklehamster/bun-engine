@@ -1,5 +1,5 @@
 import { Time } from "core/Time";
-import { Refresh, UpdatePayload } from "../updates/Refresh";
+import { Priority, Refresh, UpdatePayload } from "../updates/Refresh";
 import { IMotor } from "./IMotor";
 import { Duration } from "core/Time";
 
@@ -7,6 +7,8 @@ import { Duration } from "core/Time";
  * Continously runs a loop which feeds a world into the GL Engine.
  */
 const MAX_DELTA_TIME = 1000 / 20;
+const FRAME_PERIOD = 16.6;
+
 
 export interface Schedule {
   triggerTime: Time;
@@ -50,26 +52,41 @@ export class Motor implements IMotor {
       time: 0,
       deltaTime: 0,
     };
-    const updates: Refresh[] = [];
+    const updateGroups: [Refresh[], Refresh[]] = [
+      [],
+      [],
+    ];
 
-    const loop: FrameRequestCallback = (time: Time) => {
+    let time = 0;
+    // let counter = 0;
+    const loop: FrameRequestCallback = () => {
       handle = requestAnimationFrame(loop);
+      // counter++;
+      // if (counter > 30) {
+      //   counter = 0;
+      // } else {
+      //   return;
+      // }
+      time += FRAME_PERIOD;
       updatePayload.deltaTime = Math.min(time - updatePayload.time, MAX_DELTA_TIME);
       this.time = updatePayload.time = time;
 
-      updates.length = 0;
+      updateGroups[Priority.DEFAULT].length = 0;
+      updateGroups[Priority.LAST].length = 0;
       this.updateSchedule.forEach((schedule, update) => {
         if (time < schedule.triggerTime) {
           return;
         }
-        updates.push(update);
         if (schedule.period && time < schedule.expirationTime) {
           schedule.triggerTime = Math.max(schedule.triggerTime + schedule.period, time);
         } else {
           this.updateSchedule.delete(update);
         }
+        updateGroups[update.priority ?? Priority.DEFAULT].push(update);
       });
-      updates.forEach(update => update.refresh?.(updatePayload));
+      updateGroups.forEach(updates => {
+        updates.forEach(update => update.refresh?.(updatePayload));
+      });
     };
     requestAnimationFrame(loop);
     this.stopLoop = () => {

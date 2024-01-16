@@ -1,6 +1,7 @@
 import { List, forEach } from "world/sprite/List";
 import { Auxiliary } from "./Auxiliary";
 import { UpdatePayload } from "updates/Refresh";
+import { Cell } from "world/grid/CellPos";
 
 export class Auxiliaries implements List<Auxiliary>, Auxiliary {
   private active: boolean = false;
@@ -19,18 +20,26 @@ export class Auxiliaries implements List<Auxiliary>, Auxiliary {
     return this.auxiliaries.at(index);
   }
 
-  refresh?(updatePayload: UpdatePayload): void {
+  refresh(updatePayload: UpdatePayload): void {
     forEach(this.auxiliaries, aux => aux?.refresh?.(updatePayload));
   }
 
-  activate?(): void {
+  trackCell(cell: Cell, updatePayload: UpdatePayload): void {
+    forEach(this.auxiliaries, aux => aux?.trackCell?.(cell, updatePayload));
+  }
+
+  untrackCell(cellTag: string, updatePayload: UpdatePayload): void {
+    forEach(this.auxiliaries, aux => aux?.untrackCell?.(cellTag, updatePayload));
+  }
+
+  activate(): void {
     if (!this.active) {
       this.active = true;
       forEach(this.auxiliaries, aux => aux?.activate?.());
     }
   }
 
-  deactivate?(): void {
+  deactivate(): void {
     if (this.active) {
       this.active = false;
       forEach(this.auxiliaries, aux => aux?.deactivate?.());

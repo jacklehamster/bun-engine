@@ -1,21 +1,21 @@
 import { UpdatePayload } from "updates/Refresh";
 import { Auxiliary } from "./Auxiliary";
-import { ICamera } from "camera/ICamera";
 import { IControls } from "controls/IControls";
+import { PositionMatrix } from "gl/transform/PositionMatrix";
 
 interface Props {
   controls: IControls;
-  camera: ICamera;
+  position: PositionMatrix;
 }
 
 export class RiseAuxiliary implements Auxiliary {
   private readonly controls: IControls;
-  private readonly camera: ICamera;
+  private readonly position: PositionMatrix;
   private dropping: boolean = false;
 
-  constructor({ controls, camera }: Props) {
+  constructor({ controls, position }: Props) {
     this.controls = controls;
-    this.camera = camera;
+    this.position = position;
   }
 
   activate(): void {
@@ -42,12 +42,12 @@ export class RiseAuxiliary implements Auxiliary {
     const speed = deltaTime / 80;
     const { action } = controls;
     if (action) {
-      this.camera.moveCam(0, speed, 0);
+      this.position.moveBy(0, speed, 0);
     } else if (this.dropping) {
-      this.camera.moveCam(0, -speed, 0);
-      const [x, y, z] = this.camera.position.position;
+      this.position.moveBy(0, -speed, 0);
+      const [x, y, z] = this.position.position;
       if (y < 0) {
-        this.camera.position.moveTo(x, 0, z);
+        this.position.moveTo(x, 0, z);
         this.dropping = false;
       }
     }

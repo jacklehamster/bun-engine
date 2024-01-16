@@ -22662,6 +22662,7 @@ var BG_BLUR_LOC = "bgBlur";
 var BG_COLOR_LOC = "bgColor";
 var MAX_TEXTURE_SIZE_LOC = "maxTextureSize";
 var TEXTURE_UNIFORM_LOC = "uTextures";
+var TIME_LOC = "time";
 
 // src/gl/programs/GLProgram.ts
 var createProgram = function(gl, vertex, fragment) {
@@ -25718,7 +25719,7 @@ class Matrix {
     return this;
   }
   static tempQuat = exports_quat.create();
-  getMoveVector(x, y, z, turnMatrix) {
+  static getMoveVector(x, y, z, turnMatrix) {
     const v = Matrix.tempVec;
     v[0] = x;
     v[1] = y;
@@ -25768,7 +25769,7 @@ layout(location = 0) in vec2 position;
 layout(location = 1) in mat4 transform;
 //  1, 2, 3, 4 reserved for transform
 //  animation
-layout(location = 5) in vec2 slotSize_and_number;
+layout(location = 5) in vec4 slotSize_and_number;
 //  instance
 layout(location = 6) in float instance;
 layout(location = 7) in float spriteType;
@@ -25789,11 +25790,14 @@ out float dist;
 out vec3 vInstanceColor;
 
 void main() {
-  vec2 tex = position.xy * vec2(0.49, -0.49) + 0.5;
   vec2 slotSize = vec2(
     pow(2.0, floor(slotSize_and_number.x / 16.0)),
     pow(2.0, mod(slotSize_and_number.x, 16.0)));
   float slotNumber = slotSize_and_number.y;
+  vec2 spriteSize = slotSize_and_number.zw;
+  vec2 tex = position.xy * vec2(0.49, -0.49) + 0.5; //  Texture corners 0..1
+  tex *= spriteSize;
+
   float maxCols = maxTextureSize / slotSize.x;
   float maxRows = maxTextureSize / slotSize.y;
   float slotX = mod(slotNumber, maxCols);
@@ -25817,7 +25821,6 @@ void main() {
   float actualCurvature = curvature * (1. - isDistant);
   relativePosition.y -= actualCurvature * ((relativePosition.z * relativePosition.z) + (relativePosition.x * relativePosition.x) / 4.) / 10.;
   relativePosition.x /= (1. + actualCurvature * 1.4);
-
 
   dist = max(isDistant, isHud) + (1. - max(isDistant, isHud)) * (relativePosition.z*relativePosition.z + relativePosition.x*relativePosition.x);
   // relativePosition => gl_Position
@@ -25858,6 +25861,7 @@ out vec4 fragColor;
 uniform sampler2D uTextures[NUM_TEXTURES];
 uniform vec3 bgColor;
 uniform float bgBlur;
+uniform float time;
 
 //  FUNCTIONS
 vec4 getTextureColor(float textureSlot, vec2 vTexturePoint);
@@ -25868,21 +25872,22 @@ float rand(vec2 co){
 
 void main() {
   vec2 vFragment = vTex;
-  float blur = bgBlur * pow(dist, .9) / 20000.;
+  float blur = bgBlur * pow(dist, .7) / 20000.;
   vec4 color = getTextureColor(vTextureIndex, vTex);
   if (color.a <= .2) {
     discard;
   };
-  int blurPass = 3;
+  int blurPass = 8;
+  vec2 vecSeed = vTex * mod(time, 7.);
   for (int i = 0; i < blurPass; i++) {
-    vFragment = vTex + blur * rand(vTex + dist * float(i));
+    vFragment = vTex + blur * rand(vecSeed + dist * float(i));
     color += getTextureColor(vTextureIndex, vFragment);
   }
   color /= float(blurPass + 1);
 
   color.a = 1.;
-  float colorFactor = 1.25 * pow(dist, -.2);
-  color.rgb = (color.rgb * colorFactor) + (bgColor * (1. - colorFactor));
+  float colorFactor = 1.25 * pow(dist, -.12);
+  color.rgb = color.rgb * colorFactor + bgColor * (1. - colorFactor);
   fragColor = color;
   fragColor.rgb += vInstanceColor / 10.;
 }
@@ -26884,7 +26889,6 @@ class TextureManager extends Disposable {
 // src/gl/texture/MediaData.ts
 class MediaData extends Disposable {
   texImgSrc;
-  active = false;
   width;
   height;
   isVideo;
@@ -27031,9 +27035,10 @@ function replaceTilda(inputString, replacementMap) {
 // src/graphics/Uniforms.ts
 var FloatUniform;
 (function(FloatUniform2) {
-  FloatUniform2[FloatUniform2["CURVATURE"] = 0] = "CURVATURE";
-  FloatUniform2[FloatUniform2["CAM_DISTANCE"] = 1] = "CAM_DISTANCE";
-  FloatUniform2[FloatUniform2["BG_BLUR"] = 2] = "BG_BLUR";
+  FloatUniform2[FloatUniform2["TIME"] = 0] = "TIME";
+  FloatUniform2[FloatUniform2["CURVATURE"] = 1] = "CURVATURE";
+  FloatUniform2[FloatUniform2["CAM_DISTANCE"] = 2] = "CAM_DISTANCE";
+  FloatUniform2[FloatUniform2["BG_BLUR"] = 3] = "BG_BLUR";
 })(FloatUniform || (FloatUniform = {}));
 var MatrixUniform;
 (function(MatrixUniform2) {
@@ -27051,11 +27056,13 @@ var VectorUniform;
 function copySprite(sprite, dest) {
   if (!dest) {
     return {
+      name: sprite.name,
       transform: Matrix_default.create().copy(sprite.transform),
       imageId: sprite.imageId,
       spriteType: sprite.spriteType
     };
   }
+  dest.name = sprite.name;
   dest.imageId = sprite.imageId;
   dest.spriteType = sprite.spriteType;
   dest.transform.copy(sprite.transform);
@@ -27069,12 +27076,21 @@ var SpriteType;
   SpriteType2[SpriteType2["DISTANT"] = 3] = "DISTANT";
 })(SpriteType || (SpriteType = {}));
 
+// src/updates/Refresh.ts
+var Priority;
+(function(Priority2) {
+  Priority2[Priority2["DEFAULT"] = 0] = "DEFAULT";
+  Priority2[Priority2["LAST"] = 1] = "LAST";
+})(Priority || (Priority = {}));
+
 // src/graphics/GraphicsEngine.ts
 var VERTICES_PER_SPRITE = 6;
-var EMPTY_VEC2 = Float32Array.from([0, 0]);
+var TEX_BUFFER_ELEMS = 4;
+var EMPTY_TEX = new Float32Array(TEX_BUFFER_ELEMS).fill(0);
 
 class GraphicsEngine extends Disposable {
   gl;
+  priority = Priority.LAST;
   programs;
   attributeBuffers;
   uniforms;
@@ -27108,7 +27124,8 @@ class GraphicsEngine extends Disposable {
     this.floatUniforms = {
       [FloatUniform.CURVATURE]: this.uniforms.getUniformLocation(CAM_CURVATURE_LOC, PROGRAM_NAME),
       [FloatUniform.CAM_DISTANCE]: this.uniforms.getUniformLocation(CAM_DISTANCE_LOC, PROGRAM_NAME),
-      [FloatUniform.BG_BLUR]: this.uniforms.getUniformLocation(BG_BLUR_LOC, PROGRAM_NAME)
+      [FloatUniform.BG_BLUR]: this.uniforms.getUniformLocation(BG_BLUR_LOC, PROGRAM_NAME),
+      [FloatUniform.TIME]: this.uniforms.getUniformLocation(TIME_LOC, PROGRAM_NAME)
     };
     this.vec3Uniforms = {
       [VectorUniform.BG_COLOR]: this.uniforms.getUniformLocation(BG_COLOR_LOC, PROGRAM_NAME)
@@ -27190,7 +27207,7 @@ class GraphicsEngine extends Disposable {
         target: GL.ARRAY_BUFFER,
         usage: GL.DYNAMIC_DRAW,
         vertexAttribPointerRows: 1,
-        elemCount: 2,
+        elemCount: TEX_BUFFER_ELEMS,
         divisor: 1,
         instanceCount
       });
@@ -27234,14 +27251,15 @@ class GraphicsEngine extends Disposable {
         return;
       }
       const mediaData = await this.imageManager.renderMedia(imageId, media);
-      return { mediaData, imageId };
+      return { mediaData, imageId, spriteSheet: media.spriteSheet };
     }))).filter((data) => !!data);
-    const textureIndices = await Promise.all(mediaInfos.map(async ({ mediaData, imageId }) => {
+    const textureIndices = await Promise.all(mediaInfos.map(async ({ mediaData, imageId, spriteSheet }) => {
       const { slot, refreshCallback } = this.textureManager.allocateSlotForImage(mediaData);
       const slotW = Math.log2(slot.size[0]), slotH = Math.log2(slot.size[1]);
       const wh = slotW * 16 + slotH;
+      const [spriteWidth, spriteHeight] = spriteSheet?.spriteSize ?? [mediaData.width, mediaData.height];
       this.textureSlots[imageId] = {
-        buffer: Float32Array.from([wh, slot.slotNumber])
+        buffer: Float32Array.from([wh, slot.slotNumber, spriteWidth / mediaData.width, spriteHeight / mediaData.height])
       };
       mediaData.refreshCallback = refreshCallback;
       return slot.textureIndex;
@@ -27282,7 +27300,7 @@ class GraphicsEngine extends Disposable {
     spriteIds.forEach((spriteId) => {
       const sprite = sprites.at(spriteId);
       const slotObj = sprite ? this.textureSlots[sprite.imageId] : undefined;
-      this.gl.bufferSubData(GL.ARRAY_BUFFER, 2 * Float32Array.BYTES_PER_ELEMENT * spriteId, slotObj?.buffer ?? EMPTY_VEC2);
+      this.gl.bufferSubData(GL.ARRAY_BUFFER, TEX_BUFFER_ELEMS * Float32Array.BYTES_PER_ELEMENT * spriteId, slotObj?.buffer ?? EMPTY_TEX);
       const spriteWaitingForTexture = sprite && !slotObj;
       if (!spriteWaitingForTexture) {
         spriteIds.delete(spriteId);
@@ -27331,6 +27349,7 @@ class GraphicsEngine extends Disposable {
 
 // src/motor/Motor.ts
 var MAX_DELTA_TIME = 50;
+var FRAME_PERIOD = 16.6;
 
 class Motor {
   updateSchedule = new Map;
@@ -27363,24 +27382,32 @@ class Motor {
       time: 0,
       deltaTime: 0
     };
-    const updates = [];
-    const loop = (time) => {
+    const updateGroups = [
+      [],
+      []
+    ];
+    let time = 0;
+    const loop = () => {
       handle = requestAnimationFrame(loop);
+      time += FRAME_PERIOD;
       updatePayload.deltaTime = Math.min(time - updatePayload.time, MAX_DELTA_TIME);
       this.time = updatePayload.time = time;
-      updates.length = 0;
+      updateGroups[Priority.DEFAULT].length = 0;
+      updateGroups[Priority.LAST].length = 0;
       this.updateSchedule.forEach((schedule, update) => {
         if (time < schedule.triggerTime) {
           return;
         }
-        updates.push(update);
         if (schedule.period && time < schedule.expirationTime) {
           schedule.triggerTime = Math.max(schedule.triggerTime + schedule.period, time);
         } else {
           this.updateSchedule.delete(update);
         }
+        updateGroups[update.priority ?? Priority.DEFAULT].push(update);
       });
-      updates.forEach((update) => update.refresh?.(updatePayload));
+      updateGroups.forEach((updates) => {
+        updates.forEach((update) => update.refresh?.(updatePayload));
+      });
     };
     requestAnimationFrame(loop);
     this.stopLoop = () => {
@@ -27425,14 +27452,14 @@ class AuxiliaryHolder {
       r.refresh?.(updatePayload);
     }
   }
-  trackCell(cell) {
+  trackCell(cell, payload) {
     for (const v of this.cellTracks) {
-      v.trackCell(cell);
+      v.trackCell(cell, payload);
     }
   }
-  untrackCell(cellTag) {
+  untrackCell(cellTag, payload) {
     for (const v of this.cellTracks) {
-      v.untrackCell(cellTag);
+      v.untrackCell(cellTag, payload);
     }
   }
   addAuxiliary(...aux) {
@@ -27672,15 +27699,17 @@ class ProjectionMatrix extends AuxiliaryHolder {
   baseMatrix = Matrix_default.create();
   perspectiveMatrix = Matrix_default.create();
   orthoMatrix = Matrix_default.create();
-  perspectiveLevel;
+  perspective;
   zoom;
   _width = 0;
   _height = 0;
   constructor(onChange) {
     super();
     this.onChange = onChange;
-    this.perspectiveLevel = new NumVal(DEFAULT_PERSPECTIVE_LEVEL, onChange);
-    this.zoom = new NumVal(DEFAULT_ZOOM, onChange);
+    this.perspective = new NumVal(DEFAULT_PERSPECTIVE_LEVEL, onChange);
+    this.zoom = new NumVal(DEFAULT_ZOOM, (zoom) => {
+      this.configure(this._width, this._height, zoom);
+    });
   }
   configPerspectiveMatrix(angle2, ratio, near, far) {
     this.perspectiveMatrix.perspective(angle2, ratio, near, far);
@@ -27688,23 +27717,20 @@ class ProjectionMatrix extends AuxiliaryHolder {
   configOrthoMatrix(width, height2, near, far) {
     this.orthoMatrix.ortho(-width / 2, width / 2, -height2 / 2, height2 / 2, near, far);
   }
-  configure(width, height2, zoom = 1, near = 0.5, far = 1e4) {
-    if (this._width !== width || this._height !== height2 || this.zoom.valueOf() !== zoom) {
-      this._width = width;
-      this._height = height2;
-      this.zoom.setValue?.(zoom);
-      const ratio = width / height2;
-      const angle2 = 45 / Math.sqrt(zoom);
-      this.configPerspectiveMatrix(angle2, ratio, Math.max(near, 0.00001), far);
-      this.configOrthoMatrix(ratio / zoom / zoom, 1 / zoom / zoom, -far, far);
-      this.onChange?.();
+  configure(width, height2, zoom, near = 0.5, far = 1e4) {
+    if (!zoom) {
+      zoom = this.zoom.valueOf();
     }
-  }
-  setZoom(zoom) {
-    this.configure(this._width, this._height, zoom);
+    this._width = width;
+    this._height = height2;
+    const ratio = width / height2;
+    const angle2 = 45 / Math.sqrt(zoom);
+    this.configPerspectiveMatrix(angle2, ratio, Math.max(near, 0.00001), far);
+    this.configOrthoMatrix(ratio / zoom / zoom, 1 / zoom / zoom, -far, far);
+    this.onChange?.();
   }
   getMatrix() {
-    this.baseMatrix.combine(this.orthoMatrix, this.perspectiveMatrix, this.perspectiveLevel.valueOf());
+    this.baseMatrix.combine(this.orthoMatrix, this.perspectiveMatrix, this.perspective.valueOf());
     return this.baseMatrix.getMatrix();
   }
 }
@@ -27753,8 +27779,8 @@ class CameraUpdate {
   informUpdate(type) {
     if (!this.updatedTypes.has(type)) {
       this.updatedTypes.add(type);
-      this.motor.registerUpdate(this);
     }
+    this.motor.registerUpdate(this);
   }
   refresh() {
     this.updatedTypes.forEach((type) => this.engine.updateUniformMatrix(type, this.getCameraMatrix(type)));
@@ -27774,13 +27800,18 @@ class CameraFloatUpdate {
     this.motor = motor;
   }
   informUpdate(type) {
-    if (!this.updatedTypes.has(type)) {
+    if (!this.updatedTypes.has(type) && this.getCameraFloat(type)) {
       this.updatedTypes.add(type);
       this.motor.registerUpdate(this);
     }
   }
   refresh(updatePayload) {
-    this.updatedTypes.forEach((type) => this.engine.updateUniformFloat(type, this.getCameraFloat(type).valueOf(updatePayload.time)));
+    this.updatedTypes.forEach((type) => {
+      const val = this.getCameraFloat(type);
+      if (val) {
+        this.engine.updateUniformFloat(type, val.valueOf(updatePayload.time));
+      }
+    });
     this.updatedTypes.clear();
   }
 }
@@ -27825,24 +27856,32 @@ class PositionMatrix extends AuxiliaryHolder {
   onChange;
   matrix = Matrix_default.create().setPosition(0, 0, 0);
   _position = [0, 0, 0];
-  static _cellPos = [0, 0, 0, 0];
-  static _tempPos = [0, 0, 0];
   moveBlocker;
   constructor(onChange) {
     super();
     this.onChange = onChange;
   }
-  changedPosition() {
+  addChangeListener(listener) {
+    const { onChange } = this;
+    this.onChange = !onChange ? listener : (dx, dy, dz) => {
+      onChange(dx, dy, dz);
+      listener(dx, dy, dz);
+    };
+  }
+  removeChangeListener(listener) {
+    throw new Error("Not yet implemented");
+  }
+  changedPosition(dx, dy, dz) {
     transformToPosition(this.matrix, this._position);
-    this.onChange?.();
+    this.onChange?.(dx, dy, dz);
   }
   moveBy(x, y, z, turnMatrix) {
-    const vector = this.matrix.getMoveVector(x, y, z, turnMatrix);
+    const vector = Matrix_default.getMoveVector(x, y, z, turnMatrix);
     const blocked = this.moveBlocker?.isBlocked(toPos(this.position[0] + vector[0], this.position[1] + vector[1], this.position[2] + vector[2]), this.position);
     if (!blocked) {
       if (vector[0] || vector[1] || vector[2]) {
         this.matrix.move(vector);
-        this.changedPosition();
+        this.changedPosition(x, y, z);
       }
     }
     return !blocked;
@@ -27852,31 +27891,15 @@ class PositionMatrix extends AuxiliaryHolder {
     if (!blocked) {
       const [curX, curY, curZ] = this.matrix.getPosition();
       if (curX !== x || curY !== y || curZ !== z) {
+        const dx = x - curX, dy = y - curY, dz = z - curZ;
         this.matrix.setPosition(x, y, z);
-        this.changedPosition();
+        this.changedPosition(dx, dy, dz);
       }
     }
     return !blocked;
   }
   get position() {
     return this._position;
-  }
-  getCellPosition(cellSize) {
-    return PositionMatrix.getCellPos(this.position, cellSize);
-  }
-  static getCellPos(pos, cellSize) {
-    this._cellPos[0] = Math.round(pos[0] / cellSize);
-    this._cellPos[1] = Math.round(pos[1] / cellSize);
-    this._cellPos[2] = Math.round(pos[2] / cellSize);
-    this._cellPos[3] = cellSize;
-    return this._cellPos;
-  }
-  static positionFromCell(cellPos) {
-    const [cx, cy, cz, cellSize] = cellPos;
-    this._tempPos[0] = cx * cellSize;
-    this._tempPos[1] = cy * cellSize;
-    this._tempPos[2] = cz * cellSize;
-    return this._tempPos;
   }
   gotoPos(x, y, z, speed = 0.1) {
     const curPos = this.position;
@@ -27948,7 +27971,8 @@ class Camera extends AuxiliaryHolder {
     const cameraVal = {
       [FloatUniform.BG_BLUR]: this.blur,
       [FloatUniform.CAM_DISTANCE]: this.distance,
-      [FloatUniform.CURVATURE]: this.curvature
+      [FloatUniform.CURVATURE]: this.curvature,
+      [FloatUniform.TIME]: undefined
     };
     this.updateInformerFloat = new CameraFloatUpdate((uniform) => cameraVal[uniform], engine, motor);
   }
@@ -27998,15 +28022,28 @@ class Camera extends AuxiliaryHolder {
   getCameraVector(uniform) {
     return this.cameraVectors[uniform];
   }
-  moveCam(x, y, z) {
-    this.position.moveBy(x, y, z, this.turn);
-  }
 }
 
 // src/world/grid/CellPos.ts
 function cellTag(x, y, z, cellSize) {
   return `(${x},${y},${z})_${cellSize}`;
 }
+function getCellPos(pos, cellSize) {
+  cellPos[0] = Math.round(pos[0] / cellSize);
+  cellPos[1] = Math.round(pos[1] / cellSize);
+  cellPos[2] = Math.round(pos[2] / cellSize);
+  cellPos[3] = cellSize;
+  return cellPos;
+}
+function positionFromCell(cellPos) {
+  const [cx, cy, cz, cellSize] = cellPos;
+  tempPos[0] = cx * cellSize;
+  tempPos[1] = cy * cellSize;
+  tempPos[2] = cz * cellSize;
+  return tempPos;
+}
+var cellPos = [0, 0, 0, 0];
+var tempPos = [0, 0, 0];
 
 // src/gl/transform/aux/CellChangeAuxiliary.ts
 class CellChangeAuxiliary extends AuxiliaryHolder {
@@ -28026,7 +28063,8 @@ class CellChangeAuxiliary extends AuxiliaryHolder {
     if (!this.matrix) {
       return;
     }
-    const [x, y, z] = this.matrix.getCellPosition(this.cellSize);
+    const pos = this.matrix.position;
+    const [x, y, z] = getCellPos(pos, this.cellSize);
     if (this.cell.pos[0] !== x || this.cell.pos[1] !== y || this.cell.pos[2] !== z) {
       this.cell.pos[0] = x;
       this.cell.pos[1] = y;
@@ -28056,6 +28094,12 @@ class Auxiliaries {
   refresh(updatePayload) {
     forEach3(this.auxiliaries, (aux) => aux?.refresh?.(updatePayload));
   }
+  trackCell(cell, updatePayload) {
+    forEach3(this.auxiliaries, (aux) => aux?.trackCell?.(cell, updatePayload));
+  }
+  untrackCell(cellTag2, updatePayload) {
+    forEach3(this.auxiliaries, (aux) => aux?.untrackCell?.(cellTag2, updatePayload));
+  }
   activate() {
     if (!this.active) {
       this.active = true;
@@ -28070,81 +28114,51 @@ class Auxiliaries {
   }
 }
 
-// src/world/aux/CamMoveAuxiliary.ts
-class CamMoveAuxiliary {
+// src/world/aux/TurnAuxiliary.ts
+class TurnAuxiliary {
   controls;
-  camera;
-  config;
-  constructor(props, config) {
+  turn;
+  constructor(props) {
     this.controls = props.controls;
-    this.camera = props.camera;
-    this.config = {
-      speed: config?.speed ?? 1
-    };
+    this.turn = props.turn;
   }
   refresh(update) {
-    const { forward, backward, left, right, up, down, turnLeft, turnRight } = this.controls;
+    const { turnLeft, turnRight } = this.controls;
     const { deltaTime } = update;
-    const speed = deltaTime / 80 * this.config.speed;
     const turnspeed = deltaTime / 400;
-    if (forward) {
-      this.camera.moveCam(0, 0, -speed);
-    }
-    if (backward) {
-      this.camera.moveCam(0, 0, speed);
-    }
-    if (left) {
-      this.camera.moveCam(-speed, 0, 0);
-    }
-    if (right) {
-      this.camera.moveCam(speed, 0, 0);
-    }
     if (turnLeft) {
-      this.camera.turn.angle.addValue(-turnspeed);
+      this.turn.angle.addValue(-turnspeed);
     }
     if (turnRight) {
-      this.camera.turn.angle.addValue(turnspeed);
-    }
-    if (up) {
-      this.camera.tilt.angle.addValue(-turnspeed);
-    }
-    if (down) {
-      this.camera.tilt.angle.addValue(turnspeed);
+      this.turn.angle.addValue(turnspeed);
     }
   }
 }
 
-// src/gl/utils/angleUtils.ts
-function angleStep(angle2, step) {
-  return Math.round(angle2 / step) * step;
-}
-
-// src/world/aux/CamStepAuxiliary.ts
-class CamStepAuxiliary {
+// src/world/aux/PositionStepAuxiliary.ts
+class PositionStepAuxiliary {
   controls;
-  camera;
   goalPos;
+  position;
+  turnGoal;
   stepCount = 0;
-  turnCount = 0;
-  tiltCount = 0;
   config;
-  constructor({ controls, camera }, config = {}) {
+  constructor({ controls, position, turnGoal }, config = {}) {
     this.controls = controls;
-    this.camera = camera;
-    this.goalPos = [...this.camera.position.position];
+    this.position = position;
+    this.turnGoal = turnGoal;
+    this.goalPos = [...this.position.position];
     this.config = {
       step: config.step ?? 2,
-      turnStep: config.turnStep ?? Math.PI / 2,
-      tiltStep: config.tiltStep ?? Math.PI / 2,
       speed: config.speed ?? 1
     };
   }
   prePos = [0, 0, 0];
   refresh(update) {
-    const { backward, forward, left, right, up, down, turnLeft, turnRight } = this.controls;
+    const { backward, forward, left, right } = this.controls;
     const { deltaTime } = update;
-    const pos = this.camera.position.position;
-    const { step, turnStep, tiltStep } = this.config;
+    const pos = this.position.position;
+    const { step } = this.config;
     this.prePos[0] = Math.round(pos[0] / step) * step;
     this.prePos[1] = Math.round(pos[1] / step) * step;
     this.prePos[2] = Math.round(pos[2] / step) * step;
@@ -28161,7 +28175,7 @@ class CamStepAuxiliary {
     if (right) {
       dx++;
     }
-    const turnGoal = this.camera.turn.angle.goal;
+    const turnGoal = this.turnGoal?.goal ?? 0;
     if (dx || dz || this.stepCount > 0) {
       const relativeDx = dx * Math.cos(turnGoal) - dz * Math.sin(turnGoal);
       const relativeDz = dx * Math.sin(turnGoal) + dz * Math.cos(turnGoal);
@@ -28174,74 +28188,34 @@ class CamStepAuxiliary {
       this.stepCount = 0;
     }
     const speed = (dx || dz ? deltaTime / 150 : deltaTime / 100) * this.config.speed;
-    const didMove = this.camera.position.gotoPos(this.goalPos[0], pos[1], this.goalPos[2], speed);
+    const didMove = this.position.gotoPos(this.goalPos[0], pos[1], this.goalPos[2], speed);
     if (!didMove) {
       const gx = Math.round(pos[0] / step) * step;
       const gz = Math.round(pos[2] / step) * step;
       this.goalPos[0] = gx;
       this.goalPos[2] = gz;
     }
-    const newPos = this.camera.position.position;
+    const newPos = this.position.position;
     if (Math.round(newPos[0] / step) * step !== this.prePos[0] || Math.round(newPos[1] / step) * step !== this.prePos[1] || Math.round(newPos[2] / step) * step !== this.prePos[2]) {
       this.stepCount++;
-    }
-    let dTurn = 0;
-    if (turnLeft) {
-      dTurn--;
-    }
-    if (turnRight) {
-      dTurn++;
-    }
-    const turn = angleStep(this.camera.turn.angle.valueOf(), turnStep);
-    if (dTurn || this.turnCount > 0) {
-      this.camera.turn.angle.progressTowards(angleStep(turn + turnStep * dTurn, turnStep), dTurn ? 0.005 : 0.01, this);
-    }
-    if (!dTurn) {
-      this.turnCount = 0;
-    }
-    if (this.camera.turn.angle.update(deltaTime)) {
-      const newTurn = angleStep(this.camera.turn.angle.valueOf(), turnStep);
-      if (newTurn !== turn) {
-        this.turnCount++;
-      }
-    }
-    let dTilt = 0;
-    if (up) {
-      dTilt--;
-    }
-    if (down) {
-      dTilt++;
-    }
-    const tilt = angleStep(this.camera.tilt.angle.valueOf(), tiltStep);
-    if (dTilt || this.tiltCount > 0) {
-      this.camera.tilt.angle.progressTowards(angleStep(tilt + tiltStep * dTilt, tiltStep), dTilt ? 0.0025 : 0.005, this);
-    }
-    if (!dTilt) {
-      this.tiltCount = 0;
-    }
-    if (this.camera.tilt.angle.update(deltaTime)) {
-      const newTilt = angleStep(this.camera.tilt.angle.valueOf(), tiltStep);
-      if (newTilt !== tilt) {
-        this.tiltCount++;
-      }
     }
   }
 }
 
-// src/world/aux/CamTiltResetAuxiliary.ts
-class CamTiltResetAuxiliary {
+// src/world/aux/TiltResetAuxiliary.ts
+class TiltResetAuxiliary {
   controls;
-  camera;
+  tilt;
   constructor(props) {
     this.controls = props.controls;
-    this.camera = props.camera;
+    this.tilt = props.tilt;
     this._refresh = this._refresh.bind(this);
   }
   activate() {
     const removeListener = this.controls.addListener({
       onQuickTiltReset: () => {
         this.refresh = this._refresh;
-        this.camera.tilt.angle.progressTowards(0, 0.0033333333333333335, this);
+        this.tilt.angle.progressTowards(0, 0.0033333333333333335, this);
       }
     });
     this.deactivate = () => {
@@ -28252,52 +28226,8 @@ class CamTiltResetAuxiliary {
   refresh;
   _refresh(update) {
     const { deltaTime } = update;
-    if (!this.camera.tilt.angle.update(deltaTime)) {
+    if (!this.tilt.angle.update(deltaTime)) {
       this.refresh = undefined;
-    }
-  }
-}
-
-// src/world/aux/JumpAuxiliary.ts
-class JumpAuxiliary {
-  controls;
-  camera;
-  gravity;
-  dy;
-  jumpStrength = 0;
-  plane = 1;
-  constructor({ controls, camera }, config = {}) {
-    this.controls = controls;
-    this.camera = camera;
-    this.gravity = config.gravity ?? -1;
-    this.jumpStrength = config.jump ?? 2;
-    this.plane = config.plane ?? 10;
-    this.dy = 0;
-  }
-  refresh(update) {
-    const { deltaTime } = update;
-    this.jump(deltaTime, this.controls);
-  }
-  jump(deltaTime, controls) {
-    const speed = deltaTime / 80;
-    const acceleration = deltaTime / 80;
-    const { action } = controls;
-    const [_x, y, _z] = this.camera.position.position;
-    if (y === 0) {
-      if (action) {
-        this.dy = this.jumpStrength;
-        this.camera.moveCam(0, speed * this.dy, 0);
-      }
-    } else {
-      this.camera.moveCam(0, speed * this.dy, 0);
-      const [x, y2, z] = this.camera.position.position;
-      if (y2 > 0) {
-        const mul4 = this.dy < 0 ? 1 / this.plane : 1;
-        this.dy += this.gravity * acceleration * mul4;
-      } else {
-        this.camera.position.moveTo(x, 0, z);
-        this.dy = 0;
-      }
     }
   }
 }
@@ -28306,7 +28236,7 @@ class JumpAuxiliary {
 class ToggleAuxiliary {
   keyboard;
   active = false;
-  toggleIndex = 0;
+  toggleIndex;
   keys;
   auxiliaries;
   keyListener;
@@ -28325,6 +28255,7 @@ class ToggleAuxiliary {
       }
     };
     this.auxiliaries = map(config.auxiliariesMapping, ({ aux }) => aux);
+    this.toggleIndex = config.initialIndex ?? 0;
   }
   set holder(keyboard) {
     this.keyboard = keyboard;
@@ -28546,8 +28477,8 @@ class UpdateRegistry {
   informUpdate(id) {
     if (!this.updatedIds.has(id)) {
       this.updatedIds.add(id);
-      this.motor.registerUpdate(this);
     }
+    this.motor.registerUpdate(this);
   }
   refresh() {
     this.applyUpdate(this.updatedIds);
@@ -28683,6 +28614,8 @@ class SpriteGroup {
     if (!s) {
       return;
     }
+    this.spriteModel.name = s.name;
+    this.spriteModel.spriteType = s.spriteType;
     this.spriteModel.imageId = s.imageId;
     this.spriteModel.transform.multiply2(this.transform, s.transform);
     return this.spriteModel;
@@ -28775,9 +28708,7 @@ class FixedSpriteGrid extends SpriteGrid {
   spritesList;
   constructor(config, ...spritesList) {
     super({}, {
-      getSpritesAtCell: (cell) => {
-        return this.spritesPerCell[cell.tag] ?? EMPTY;
-      }
+      getSpritesAtCell: (cell) => this.spritesPerCell[cell.tag] ?? EMPTY
     });
     this.cellSize = config.cellSize ?? 1;
     this.spritesList = spritesList;
@@ -28788,8 +28719,8 @@ class FixedSpriteGrid extends SpriteGrid {
       forEach3(sprites, (sprite) => {
         if (sprite) {
           const pos = transformToPosition(sprite.transform);
-          const cellPos = PositionMatrix.getCellPos(pos, this.cellSize);
-          const tag = cellTag(...cellPos);
+          const cellPos2 = getCellPos(pos, this.cellSize);
+          const tag = cellTag(...cellPos2);
           this.spritesPerCell[tag] = this.spritesPerCell[tag] ?? [];
           this.spritesPerCell[tag].push(copySprite(sprite));
         }
@@ -28959,6 +28890,138 @@ class SpriteFactory {
   }
 }
 
+// src/world/aux/MoveAuxiliary.ts
+class MoveAuxiliary {
+  controls;
+  direction;
+  position;
+  config;
+  constructor(props, config) {
+    this.controls = props.controls;
+    this.direction = props.direction;
+    this.position = props.position;
+    this.config = {
+      speed: config?.speed ?? 1
+    };
+  }
+  refresh(update) {
+    const { forward, backward, left, right } = this.controls;
+    const { deltaTime } = update;
+    const speed = deltaTime / 80 * this.config.speed;
+    let dx = 0, dz = 0;
+    if (forward) {
+      dz -= speed;
+    }
+    if (backward) {
+      dz += speed;
+    }
+    if (left) {
+      dx -= speed;
+    }
+    if (right) {
+      dx += speed;
+    }
+    this.position.moveBy(dx, 0, dz, this.direction);
+  }
+}
+
+// src/world/aux/JumpAuxiliary.ts
+class JumpAuxiliary {
+  controls;
+  position;
+  gravity;
+  dy;
+  jumpStrength = 0;
+  plane = 1;
+  constructor({ controls, position }, config = {}) {
+    this.controls = controls;
+    this.position = position;
+    this.gravity = config.gravity ?? -1;
+    this.jumpStrength = config.jump ?? 2;
+    this.plane = config.plane ?? 10;
+    this.dy = 0;
+  }
+  refresh(update) {
+    const { deltaTime } = update;
+    this.jump(deltaTime, this.controls);
+  }
+  jump(deltaTime, controls) {
+    const speed = deltaTime / 80;
+    const acceleration = deltaTime / 80;
+    const { action } = controls;
+    const [_x, y, _z] = this.position.position;
+    if (y === 0) {
+      if (action) {
+        this.dy = this.jumpStrength;
+        this.position.moveBy(0, speed * this.dy, 0);
+      }
+    } else {
+      this.position.moveBy(0, speed * this.dy, 0);
+      const [x, y2, z] = this.position.position;
+      if (y2 > 0) {
+        const mul4 = this.dy < 0 ? 1 / this.plane : 1;
+        this.dy += this.gravity * acceleration * mul4;
+      } else {
+        this.position.moveTo(x, 0, z);
+        this.dy = 0;
+      }
+    }
+  }
+}
+
+// src/core/aux/TimeAuxiliary.ts
+class TimeAuxiliary {
+  engine;
+  constructor(engine) {
+    this.engine = engine;
+  }
+  refresh(updatePayload) {
+    this.engine.updateUniformFloat(FloatUniform.TIME, updatePayload.time);
+  }
+}
+
+// src/world/aux/TiltAuxiliary.ts
+class TiltAuxiliary {
+  controls;
+  tilt;
+  constructor(props) {
+    this.controls = props.controls;
+    this.tilt = props.tilt;
+  }
+  refresh(update) {
+    const { up, down } = this.controls;
+    const { deltaTime } = update;
+    const turnspeed = deltaTime / 400;
+    if (up) {
+      this.tilt.angle.addValue(-turnspeed);
+    }
+    if (down) {
+      this.tilt.angle.addValue(turnspeed);
+    }
+  }
+}
+
+// src/world/aux/SmoothFollowAuxiliary.ts
+class SmoothFollowAuxiliary {
+  followee;
+  follower;
+  constructor({ followee, follower }) {
+    this.followee = followee;
+    this.follower = follower;
+  }
+  refresh() {
+    const [x, y, z] = this.followee.position;
+    const [fx, fy, fz] = this.follower.position;
+    const dx = x - fx, dy = y - fy, dz = z - fz;
+    const dist2 = Math.sqrt(dx * dx + dy * dy + dz * dz);
+    if (dist2 < 0.1) {
+      this.follower.moveTo(x, y, z);
+    } else {
+      this.follower.moveBy(dx / 10, dy / 10, dz / 10);
+    }
+  }
+}
+
 // src/demo/DemoWorld.ts
 var DOBUKI = 0;
 var LOGO = 1;
@@ -28967,6 +29030,7 @@ var VIDEO = 3;
 var WIREFRAME = 4;
 var GRASS = 5;
 var BRICK = 6;
+var DODO = 7;
 var LOGO_SIZE = 512;
 var CELLSIZE = 2;
 
@@ -28980,6 +29044,13 @@ class DemoWorld extends AuxiliaryHolder {
     medias.set(DOBUKI, {
       type: "image",
       src: "dobuki.png"
+    });
+    medias.set(DODO, {
+      type: "image",
+      src: "dodo.png",
+      spriteSheet: {
+        spriteSize: [190, 290]
+      }
     });
     medias.set(LOGO, {
       type: "draw",
@@ -29052,9 +29123,7 @@ class DemoWorld extends AuxiliaryHolder {
         const { canvas } = ctx;
         canvas.width = LOGO_SIZE;
         canvas.height = LOGO_SIZE;
-        ctx.lineWidth = 5;
-        ctx.fillStyle = "black";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.lineWidth = 8;
         ctx.setLineDash([5, 2]);
         ctx.strokeStyle = "green";
         ctx.beginPath();
@@ -29115,23 +29184,42 @@ class DemoWorld extends AuxiliaryHolder {
         Matrix_default.create().translate(0, 0, 1).rotateY(Math.PI),
         Matrix_default.create().translate(0, 0, -1).rotateY(0)
       ].map((transform) => ({ imageId: BRICK, transform }))
-    ], Matrix_default.create().setPosition(...PositionMatrix.positionFromCell([0, 0, -3, CELLSIZE])))));
+    ], Matrix_default.create().setPosition(...positionFromCell([0, 0, -3, CELLSIZE])))));
     const camera = new Camera({ engine, motor });
     this.addAuxiliary(camera);
     this.camera = camera;
-    camera.position.moveBlocker = {
+    spritesAccumulator.addAuxiliary(new SpriteGrid({ yRange: [0, 0] }, new SpriteFactory({
+      fillSpriteBag({ pos }, _, bag) {
+        const ground = bag.createSprite(GRASS);
+        ground.transform.translate(pos[0] * pos[3], -1, pos[2] * pos[3]).rotateX(-Math.PI / 2);
+        const ceiling = bag.createSprite(WIREFRAME);
+        ceiling.transform.translate(pos[0] * pos[3], 2, pos[2] * pos[3]).rotateX(Math.PI / 2);
+        bag.addSprite(ground, ceiling);
+      }
+    })));
+    const heroPos = new PositionMatrix(() => {
+      heroSprites.informUpdate(0, SpriteUpdateType.TRANSFORM);
+      heroSprites.informUpdate(1, SpriteUpdateType.TRANSFORM);
+    });
+    heroPos.moveBlocker = {
       isBlocked(pos) {
-        const [cx, cy, cz] = PositionMatrix.getCellPos(pos, 2);
+        const [cx, cy, cz] = getCellPos(pos, 2);
         return cx === 0 && cy === 0 && cz === -3;
       }
     };
-    spritesAccumulator.addAuxiliary(new SpriteGrid({ yRange: [0, 0] }, new SpriteFactory({
-      fillSpriteBag({ pos }, _, bag) {
-        const ground = bag.createSprite(WIREFRAME);
-        ground.transform.translate(pos[0] * pos[3], -1, pos[2] * pos[3]).rotateX(-Math.PI / 2);
-        bag.addSprite(ground);
+    const heroSprites = new StaticSprites(new SpriteGroup([
+      {
+        name: "dodo",
+        imageId: DODO,
+        spriteType: SpriteType.SPRITE,
+        transform: Matrix_default.create().translate(0, -0.68, 0)
+      },
+      {
+        imageId: DODO,
+        transform: Matrix_default.create().translate(0, -0.9, 0).rotateX(-Math.PI / 2)
       }
-    })));
+    ], heroPos));
+    spritesAccumulator.addAuxiliary(heroSprites);
     spritesAccumulator.addAuxiliary(new StaticSprites([
       {
         imageId: VIDEO,
@@ -29139,35 +29227,31 @@ class DemoWorld extends AuxiliaryHolder {
         transform: Matrix_default.create().translate(3000, 1000, -5000).scale(480, 270, 1)
       }
     ]));
-    spritesAccumulator.addSprites([
-      {
-        imageId: DOBUKI,
-        spriteType: SpriteType.HUD,
-        transform: Matrix_default.create().translate(-0.45, 0.45, -0.5).scale(0.05)
-      }
-    ]);
     const keyboard = new Keyboard({ motor });
     const controls = new KeyboardControls(keyboard);
     keyboard.addAuxiliary(new ToggleAuxiliary({
       auxiliariesMapping: [
         {
           key: "Tab",
-          aux: Auxiliaries.from(new CamMoveAuxiliary({ controls, camera }), new JumpAuxiliary({ controls, camera }), new CamTiltResetAuxiliary({ controls, camera }))
+          aux: Auxiliaries.from(new PositionStepAuxiliary({ controls, position: heroPos }), new TiltResetAuxiliary({ controls, tilt: camera.tilt }), new SmoothFollowAuxiliary({ follower: camera.position, followee: heroPos }))
         },
         {
           key: "Tab",
-          aux: Auxiliaries.from(new CamStepAuxiliary({ controls, camera }, { step: 2, turnStep: Math.PI / 2, tiltStep: Math.PI / 4 }), new CamTiltResetAuxiliary({ controls, camera }))
+          aux: Auxiliaries.from(new TurnAuxiliary({ controls, turn: camera.turn }), new TiltAuxiliary({ controls, tilt: camera.tilt }), new MoveAuxiliary({ controls, direction: camera.turn, position: camera.position }), new JumpAuxiliary({ controls, position: camera.position }), new TiltResetAuxiliary({ controls, tilt: camera.tilt }))
         }
       ]
     }));
     this.addAuxiliary(keyboard);
     camera.position.addAuxiliary(new CellChangeAuxiliary({ cellSize: CELLSIZE }).addAuxiliary(new CellTracker(this, {
-      cellLimit: 1e5,
-      range: [40, 3, 40],
+      cellLimit: 20000,
+      range: [30, 3, 30],
       cellSize: CELLSIZE
     })));
     camera.distance.setValue(5);
-    camera.tilt.angle.setValue(0.5);
+    camera.tilt.angle.setValue(1.2);
+    camera.projection.zoom.setValue(0.25);
+    camera.projection.perspective.setValue(0.05);
+    this.addAuxiliary(new TimeAuxiliary(engine));
   }
 }
 
@@ -29242,10 +29326,9 @@ function logProxy(gl) {
 }
 
 // src/graphics/WebGlCanvas.ts
-var LOG_GL = false;
 var DEFAULT_ATTRIBUTES = {
   alpha: true,
-  antialias: false,
+  antialias: true,
   depth: true,
   failIfMajorPerformanceCaveat: undefined,
   powerPreference: "default",
@@ -29258,10 +29341,10 @@ class WebGlCanvas extends DOMWrap {
   gl;
   constructor(canvas, {
     attributes
-  } = {}) {
+  } = {}, config) {
     super(canvas);
     const gl = canvas.getContext("webgl2", { ...DEFAULT_ATTRIBUTES, ...attributes });
-    this.gl = LOG_GL ? logProxy(gl) : gl;
+    this.gl = config?.logGL ? logProxy(gl) : gl;
   }
 }
 
@@ -29297,11 +29380,11 @@ async function testCanvas(canvas) {
   const core = new AuxiliaryHolder;
   const world = new DemoWorld({ engine, motor });
   core.addAuxiliary(motor);
-  core.addAuxiliary(engine);
   core.addAuxiliary(world);
   core.addAuxiliary(webGlCanvas);
   webGlCanvas.addAuxiliary(new ResizeAux({ engine, camera: world.camera }));
   core.activate();
+  motor.loop(engine);
   onStop = () => core.deactivate();
   return { engine, motor, world };
 }
@@ -29315,4 +29398,4 @@ export {
   hello
 };
 
-//# debugId=B1263B25CD7A86D564756e2164756e21
+//# debugId=1998B3942B22C35164756e2164756e21

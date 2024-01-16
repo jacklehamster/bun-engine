@@ -1,20 +1,20 @@
 import { UpdatePayload } from "updates/Refresh";
 import { Auxiliary } from "./Auxiliary";
-import { ICamera } from "camera/ICamera";
 import { IControls } from "controls/IControls";
+import { IAngleMatrix } from "gl/transform/IAngleMatrix";
 
 interface Props {
   controls: IControls;
-  camera: ICamera;
+  tilt: IAngleMatrix;
 }
 
-export class CamTiltResetAuxiliary implements Auxiliary {
+export class TiltResetAuxiliary implements Auxiliary {
   private readonly controls: IControls;
-  private readonly camera: ICamera;
+  private readonly tilt: IAngleMatrix;
 
   constructor(props: Props) {
     this.controls = props.controls;
-    this.camera = props.camera;
+    this.tilt = props.tilt;
     this._refresh = this._refresh.bind(this);
   }
 
@@ -22,7 +22,7 @@ export class CamTiltResetAuxiliary implements Auxiliary {
     const removeListener = this.controls.addListener({
       onQuickTiltReset: () => {
         this.refresh = this._refresh;
-        this.camera.tilt.angle.progressTowards(
+        this.tilt.angle.progressTowards(
           0, 1 / 300, this
         );
       },
@@ -39,7 +39,7 @@ export class CamTiltResetAuxiliary implements Auxiliary {
 
   _refresh(update: UpdatePayload): void {
     const { deltaTime } = update;
-    if (!this.camera.tilt.angle.update(deltaTime)) {
+    if (!this.tilt.angle.update(deltaTime)) {
       this.refresh = undefined;
     }
   }

@@ -20,6 +20,7 @@ out vec4 fragColor;
 uniform sampler2D uTextures[NUM_TEXTURES];
 uniform vec3 bgColor;
 uniform float bgBlur;
+uniform float time;
 
 //  FUNCTIONS
 vec4 getTextureColor(float textureSlot, vec2 vTexturePoint);
@@ -30,21 +31,22 @@ float rand(vec2 co){
 
 void main() {
   vec2 vFragment = vTex;
-  float blur = bgBlur * pow(dist, .9) / 20000.;
+  float blur = bgBlur * pow(dist, .7) / 20000.;
   vec4 color = getTextureColor(vTextureIndex, vTex);
   if (color.a <= .2) {
     discard;
   };
-  int blurPass = 3;
+  int blurPass = 8;
+  vec2 vecSeed = vTex * mod(time, 7.);
   for (int i = 0; i < blurPass; i++) {
-    vFragment = vTex + blur * rand(vTex + dist * float(i));
+    vFragment = vTex + blur * rand(vecSeed + dist * float(i));
     color += getTextureColor(vTextureIndex, vFragment);
   }
   color /= float(blurPass + 1);
 
   color.a = 1.;
-  float colorFactor = 1.25 * pow(dist, -.2);
-  color.rgb = (color.rgb * colorFactor) + (bgColor * (1. - colorFactor));
+  float colorFactor = 1.25 * pow(dist, -.12);
+  color.rgb = color.rgb * colorFactor + bgColor * (1. - colorFactor);
   fragColor = color;
   fragColor.rgb += vInstanceColor / 10.;
 }

@@ -4,7 +4,6 @@ import { Schedule } from 'motor/Motor';
 
 export class MediaData extends Disposable implements Refresh {
   readonly texImgSrc: TexImageSource;
-  active: boolean = false;
   readonly width: number;
   readonly height: number;
   readonly isVideo: boolean;

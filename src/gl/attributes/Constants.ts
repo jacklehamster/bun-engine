@@ -27,3 +27,4 @@ export const BG_BLUR_LOC: LocationName = 'bgBlur';
 export const BG_COLOR_LOC: LocationName = 'bgColor';
 export const MAX_TEXTURE_SIZE_LOC: LocationName = 'maxTextureSize';
 export const TEXTURE_UNIFORM_LOC: LocationName = 'uTextures';
+export const TIME_LOC: LocationName = 'time';

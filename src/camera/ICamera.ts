@@ -7,7 +7,6 @@ import { Holder } from "world/aux/Holder";
 
 export interface ICamera extends Holder<ICamera>, Auxiliary {
   resizeViewport(width: number, height: number): void;
-  moveCam(x: number, y: number, z: number): void;
   readonly position: PositionMatrix;
   readonly tilt: TiltMatrix;
   readonly turn: TurnMatrix;

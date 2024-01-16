@@ -1,28 +1,40 @@
 import { Position, toPos, transformToPosition } from "world/grid/Position";
 import { IMatrix } from "./IMatrix";
 import Matrix from "./Matrix";
-import { CellPos } from "world/grid/CellPos";
 import { AuxiliaryHolder } from "world/aux/AuxiliaryHolder";
 import { MoveBlocker } from "./aux/MoveBlocker";
+import { IPositionMatrix } from "./IPositionMatrix";
 
-export class PositionMatrix extends AuxiliaryHolder<PositionMatrix> implements IMatrix {
+export type ChangeListener = (dx: number, dy: number, dz: number) => void;
+
+export class PositionMatrix extends AuxiliaryHolder<PositionMatrix> implements IPositionMatrix {
   private matrix: Matrix = Matrix.create().setPosition(0, 0, 0);
   private _position: Position = [0, 0, 0];
-  private static _cellPos: CellPos = [0, 0, 0, 0];
-  private static _tempPos: Position = [0, 0, 0];
   moveBlocker?: MoveBlocker;
 
-  constructor(private onChange?: () => void) {
+  constructor(private onChange?: ChangeListener) {
     super();
   }
 
-  private changedPosition() {
+  addChangeListener(listener: ChangeListener) {
+    const { onChange } = this;
+    this.onChange = !onChange ? listener : (dx, dy, dz) => {
+      onChange(dx, dy, dz);
+      listener(dx, dy, dz);
+    };
+  }
+
+  removeChangeListener(listener: ChangeListener) {
+    throw new Error("Not yet implemented");
+  }
+
+  private changedPosition(dx: number, dy: number, dz: number) {
     transformToPosition(this.matrix, this._position);
-    this.onChange?.();
+    this.onChange?.(dx, dy, dz);
   }
 
   moveBy(x: number, y: number, z: number, turnMatrix?: IMatrix) {
-    const vector = this.matrix.getMoveVector(x, y, z, turnMatrix);
+    const vector = Matrix.getMoveVector(x, y, z, turnMatrix);
     const blocked = this.moveBlocker?.isBlocked(toPos(
       this.position[0] + vector[0],
       this.position[1] + vector[1],
@@ -31,7 +43,7 @@ export class PositionMatrix extends AuxiliaryHolder<PositionMatrix> implements I
     if (!blocked) {
       if (vector[0] || vector[1] || vector[2]) {
         this.matrix.move(vector);
-        this.changedPosition();
+        this.changedPosition(x, y, z);
       }
     }
     return !blocked;
@@ -42,8 +54,9 @@ export class PositionMatrix extends AuxiliaryHolder<PositionMatrix> implements I
     if (!blocked) {
       const [curX, curY, curZ] = this.matrix.getPosition();
       if (curX !== x || curY !== y || curZ !== z) {
+        const dx = x - curX, dy = y - curY, dz = z - curZ;
         this.matrix.setPosition(x, y, z);
-        this.changedPosition();
+        this.changedPosition(dx, dy, dz);
       }
     }
     return !blocked;
@@ -51,26 +64,6 @@ export class PositionMatrix extends AuxiliaryHolder<PositionMatrix> implements I
 
   get position() {
     return this._position;
-  }
-
-  getCellPosition(cellSize: number) {
-    return PositionMatrix.getCellPos(this.position, cellSize);
-  }
-
-  static getCellPos(pos: Position, cellSize: number): CellPos {
-    this._cellPos[0] = Math.round(pos[0] / cellSize);
-    this._cellPos[1] = Math.round(pos[1] / cellSize);
-    this._cellPos[2] = Math.round(pos[2] / cellSize);
-    this._cellPos[3] = cellSize;
-    return this._cellPos;
-  }
-
-  static positionFromCell(cellPos: CellPos): Position {
-    const [cx, cy, cz, cellSize] = cellPos;
-    this._tempPos[0] = cx * cellSize;
-    this._tempPos[1] = cy * cellSize;
-    this._tempPos[2] = cz * cellSize;
-    return this._tempPos;
   }
 
   gotoPos(x: number, y: number, z: number, speed: number = .1): boolean {

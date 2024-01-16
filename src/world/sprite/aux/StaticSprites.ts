@@ -3,11 +3,12 @@ import { Sprites } from "../Sprites";
 import { Sprite } from "../Sprite";
 import { SpritesHolder } from "./SpritesHolder";
 import { forEach } from "../List";
+import { SpriteUpdateType } from "../update/SpriteUpdateType";
 
 export class StaticSprites implements Sprites, Auxiliary<SpritesHolder> {
   holder?: SpritesHolder;
 
-  constructor(private sprites: Sprites) {
+  constructor(private sprites: Sprites | Sprite[]) {
   }
 
   get length(): number {
@@ -18,7 +19,7 @@ export class StaticSprites implements Sprites, Auxiliary<SpritesHolder> {
     return this.sprites.at(index);
   }
 
-  informUpdate(_id: number, _type?: number | undefined): void {
+  informUpdate(_id: number, _type?: SpriteUpdateType | undefined): void {
     //  needs replacement
   }
 

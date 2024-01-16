@@ -12,8 +12,10 @@ export class CameraUpdate implements Refresh, UpdateNotifier {
   informUpdate(type: MatrixUniform): void {
     if (!this.updatedTypes.has(type)) {
       this.updatedTypes.add(type);
-      this.motor.registerUpdate(this);
     }
+    this.motor.registerUpdate(this);  //  BUGBUG << Causes too frequent update
+    //  but is needed because we use "triggerTime" in motor.
+    //  Just ensure we eliminate use of triggerTime, then all updates get handled immediately
   }
 
   refresh(): void {

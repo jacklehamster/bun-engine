@@ -11,19 +11,22 @@ export enum SpriteType {
 }
 
 export interface Sprite {
-  readonly transform: Matrix;
+  name?: string;
   imageId: MediaId;
+  readonly transform: Matrix;
   spriteType?: SpriteType;
 }
 
 export function copySprite(sprite: Sprite, dest?: Sprite): Sprite {
   if (!dest) {
     return {
+      name: sprite.name,
       transform: Matrix.create().copy(sprite.transform),
       imageId: sprite.imageId,
       spriteType: sprite.spriteType,
     };
   }
+  dest.name = sprite.name;
   dest.imageId = sprite.imageId;
   dest.spriteType = sprite.spriteType;
   dest.transform.copy(sprite.transform);

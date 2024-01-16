@@ -11,8 +11,8 @@ export class UpdateRegistry implements Refresh, UpdateNotifier {
   informUpdate(id: IdType): void {
     if (!this.updatedIds.has(id)) {
       this.updatedIds.add(id);
-      this.motor.registerUpdate(this);
     }
+    this.motor.registerUpdate(this);
   }
 
   refresh(): void {

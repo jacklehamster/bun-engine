@@ -1,16 +1,16 @@
 import { Auxiliary } from "world/aux/Auxiliary";
-import { PositionMatrix } from "../PositionMatrix";
-import { Cell, cellTag } from "world/grid/CellPos";
+import { Cell, cellTag, getCellPos } from "world/grid/CellPos";
 import { VisitableCell } from "../../../world/grid/VisitCell";
 import { UpdatePayload } from "updates/Refresh";
 import { AuxiliaryHolder } from "world/aux/AuxiliaryHolder";
+import { IPositionMatrix } from "../IPositionMatrix";
 
 interface Config {
   cellSize?: number;
 }
 
-export class CellChangeAuxiliary extends AuxiliaryHolder implements Auxiliary<PositionMatrix> {
-  private matrix?: PositionMatrix;
+export class CellChangeAuxiliary extends AuxiliaryHolder implements Auxiliary<IPositionMatrix> {
+  private matrix?: IPositionMatrix;
   private cellSize: number;
   private cell: Cell;
   visitCell?: VisitableCell;
@@ -21,7 +21,7 @@ export class CellChangeAuxiliary extends AuxiliaryHolder implements Auxiliary<Po
     this.cell = { pos: [Number.NaN, Number.NaN, Number.NaN, this.cellSize], tag: "" };
   }
 
-  set holder(value: PositionMatrix | undefined) {
+  set holder(value: IPositionMatrix | undefined) {
     this.matrix = value;
   }
 
@@ -29,7 +29,8 @@ export class CellChangeAuxiliary extends AuxiliaryHolder implements Auxiliary<Po
     if (!this.matrix) {
       return;
     }
-    const [x, y, z] = this.matrix.getCellPosition(this.cellSize);
+    const pos = this.matrix.position;
+    const [x, y, z] = getCellPos(pos, this.cellSize);
     if (this.cell.pos[0] !== x || this.cell.pos[1] !== y || this.cell.pos[2] !== z) {
       this.cell.pos[0] = x;
       this.cell.pos[1] = y;

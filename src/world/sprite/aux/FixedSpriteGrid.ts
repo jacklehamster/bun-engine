@@ -3,8 +3,7 @@ import { Sprites } from "../Sprites";
 import { Sprite, copySprite } from "../Sprite";
 import { forEach } from "../List";
 import { transformToPosition } from "world/grid/Position";
-import { PositionMatrix } from "gl/transform/PositionMatrix";
-import { cellTag } from "world/grid/CellPos";
+import { cellTag, getCellPos } from "world/grid/CellPos";
 
 interface Config {
   cellSize?: number;
@@ -20,9 +19,7 @@ export class FixedSpriteGrid extends SpriteGrid {
 
   constructor(config: Config, ...spritesList: (Sprites | Sprite[])[]) {
     super({}, {
-      getSpritesAtCell: cell => {
-        return this.spritesPerCell[cell.tag] ?? EMPTY
-      }
+      getSpritesAtCell: cell => this.spritesPerCell[cell.tag] ?? EMPTY,
     });
     this.cellSize = config.cellSize ?? 1;
     this.spritesList = spritesList;
@@ -34,7 +31,7 @@ export class FixedSpriteGrid extends SpriteGrid {
       forEach(sprites, (sprite) => {
         if (sprite) {
           const pos = transformToPosition(sprite.transform);
-          const cellPos = PositionMatrix.getCellPos(pos, this.cellSize);
+          const cellPos = getCellPos(pos, this.cellSize);
           const tag = cellTag(...cellPos);
           this.spritesPerCell[tag] = this.spritesPerCell[tag] ?? [];
           this.spritesPerCell[tag].push(copySprite(sprite));

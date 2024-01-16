@@ -47,11 +47,12 @@ export async function testCanvas(canvas: HTMLCanvasElement) {
   const core = new AuxiliaryHolder();
   const world = new DemoWorld({ engine, motor });
   core.addAuxiliary(motor);
-  core.addAuxiliary(engine);
   core.addAuxiliary(world);
   core.addAuxiliary(webGlCanvas);
   webGlCanvas.addAuxiliary(new ResizeAux({ engine, camera: world.camera }));
+  // core.addAuxiliary(engine);
   core.activate();
+  motor.loop(engine);
   onStop = () => core.deactivate();
   return { engine, motor, world };
 }

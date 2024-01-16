@@ -41,15 +41,15 @@ export class AuxiliaryHolder<H extends Holder = any> implements Holder<Auxiliary
     }
   }
 
-  trackCell(cell: Cell): void {
+  trackCell(cell: Cell, payload: UpdatePayload): void {
     for (const v of this.cellTracks!) {
-      v.trackCell!(cell);
+      v.trackCell!(cell, payload);
     }
   }
 
-  untrackCell(cellTag: string): void {
+  untrackCell(cellTag: string, payload: UpdatePayload): void {
     for (const v of this.cellTracks!) {
-      v.untrackCell!(cellTag);
+      v.untrackCell!(cellTag, payload);
     }
   }
 

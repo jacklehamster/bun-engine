@@ -1,6 +1,8 @@
 import Matrix from "gl/transform/Matrix";
 import { Sprites } from "./Sprites";
 import { Sprite } from "./Sprite";
+import { IMatrix } from "gl/transform/IMatrix";
+import { SpriteUpdateType } from "./update/SpriteUpdateType";
 
 export class SpriteGroup implements Sprites {
   private spriteModel: Sprite = {
@@ -8,7 +10,7 @@ export class SpriteGroup implements Sprites {
     transform: Matrix.create(),
   };
 
-  constructor(private children: Sprites, public transform: Matrix = Matrix.create()) {
+  constructor(private children: Sprites, public transform: IMatrix = Matrix.create()) {
   }
 
   get length(): number {
@@ -20,12 +22,14 @@ export class SpriteGroup implements Sprites {
     if (!s) {
       return undefined;
     }
+    this.spriteModel.name = s.name;
+    this.spriteModel.spriteType = s.spriteType;
     this.spriteModel.imageId = s.imageId;
     this.spriteModel.transform.multiply2(this.transform, s.transform);
     return this.spriteModel;
   }
 
-  informUpdate(id: number, type?: number | undefined): void {
+  informUpdate(id: number, type?: SpriteUpdateType | undefined): void {
     this.children.informUpdate?.(id, type);
   }
 }

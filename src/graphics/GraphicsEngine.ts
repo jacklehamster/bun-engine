@@ -22,6 +22,7 @@ import {
   BG_COLOR_LOC,
   BG_BLUR_LOC,
   SPRITE_TYPE_LOC,
+  TIME_LOC,
 } from '../gl/attributes/Constants';
 import Matrix from 'gl/transform/Matrix';
 import vertexShader from 'generated/src/gl/resources/vertexShader.txt';
@@ -37,16 +38,21 @@ import { SpriteId, SpriteType } from 'world/sprite/Sprite';
 import { IGraphicsEngine } from './IGraphicsEngine';
 import { Sprites } from 'world/sprite/Sprites';
 import { Vector } from 'gl/transform/IMatrix';
+import { SpriteSheet } from 'gl/texture/spritesheet/SpriteSheet';
+import { Priority } from 'updates/Refresh';
 
 const VERTICES_PER_SPRITE = 6;
 
-const EMPTY_VEC2 = Float32Array.from([0, 0]);
+const TEX_BUFFER_ELEMS = 4;
+const EMPTY_TEX = new Float32Array(TEX_BUFFER_ELEMS).fill(0);
 
 export interface Props {
   attributes?: WebGLContextAttributes;
 }
 
 export class GraphicsEngine extends Disposable implements IGraphicsEngine {
+  priority = Priority.LAST;
+
   private programs: GLPrograms;
   private attributeBuffers: GLAttributeBuffers;
   private uniforms: GLUniforms;
@@ -90,6 +96,7 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
       [FloatUniform.CURVATURE]: this.uniforms.getUniformLocation(CAM_CURVATURE_LOC, PROGRAM_NAME),
       [FloatUniform.CAM_DISTANCE]: this.uniforms.getUniformLocation(CAM_DISTANCE_LOC, PROGRAM_NAME),
       [FloatUniform.BG_BLUR]: this.uniforms.getUniformLocation(BG_BLUR_LOC, PROGRAM_NAME),
+      [FloatUniform.TIME]: this.uniforms.getUniformLocation(TIME_LOC, PROGRAM_NAME),
     };
     this.vec3Uniforms = {
       [VectorUniform.BG_COLOR]: this.uniforms.getUniformLocation(BG_COLOR_LOC, PROGRAM_NAME),
@@ -190,7 +197,7 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
         target: GL.ARRAY_BUFFER,
         usage: GL.DYNAMIC_DRAW,
         vertexAttribPointerRows: 1,
-        elemCount: 2,
+        elemCount: TEX_BUFFER_ELEMS,
         divisor: 1,
         instanceCount,
       });
@@ -235,14 +242,15 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
         return;
       }
       const mediaData = await this.imageManager.renderMedia(imageId, media);
-      return { mediaData, imageId };
-    }))).filter((data): data is { mediaData: MediaData, imageId: MediaId } => !!data);
-    const textureIndices = await Promise.all(mediaInfos.map(async ({ mediaData, imageId }) => {
+      return { mediaData, imageId, spriteSheet: media.spriteSheet };
+    }))).filter((data): data is { mediaData: MediaData, imageId: MediaId, spriteSheet: SpriteSheet | undefined } => !!data);
+    const textureIndices = await Promise.all(mediaInfos.map(async ({ mediaData, imageId, spriteSheet }) => {
       const { slot, refreshCallback } = this.textureManager.allocateSlotForImage(mediaData);
       const slotW = Math.log2(slot.size[0]), slotH = Math.log2(slot.size[1]);
       const wh = slotW * 16 + slotH;
+      const [spriteWidth, spriteHeight] = spriteSheet?.spriteSize ?? [mediaData.width, mediaData.height];
       this.textureSlots[imageId] = {
-        buffer: Float32Array.from([wh, slot.slotNumber]),
+        buffer: Float32Array.from([wh, slot.slotNumber, spriteWidth / mediaData.width, spriteHeight / mediaData.height]),
       };
       mediaData.refreshCallback = refreshCallback;
       return slot.textureIndex;
@@ -292,7 +300,7 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
     spriteIds.forEach(spriteId => {
       const sprite = sprites.at(spriteId);
       const slotObj = sprite ? this.textureSlots[sprite.imageId] : undefined;
-      this.gl.bufferSubData(GL.ARRAY_BUFFER, 2 * Float32Array.BYTES_PER_ELEMENT * spriteId, slotObj?.buffer ?? EMPTY_VEC2);
+      this.gl.bufferSubData(GL.ARRAY_BUFFER, TEX_BUFFER_ELEMS * Float32Array.BYTES_PER_ELEMENT * spriteId, slotObj?.buffer ?? EMPTY_TEX);
       const spriteWaitingForTexture = sprite && !slotObj;
       if (!spriteWaitingForTexture) {
         spriteIds.delete(spriteId);

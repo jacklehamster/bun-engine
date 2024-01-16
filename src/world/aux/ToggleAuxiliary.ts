@@ -6,13 +6,14 @@ import { List, map } from "world/sprite/List";
 type KeyMap = { key: string; aux: Auxiliary };
 
 interface Config {
+  initialIndex?: number;
   auxiliariesMapping: List<KeyMap>;
 }
 
 export class ToggleAuxiliary implements Auxiliary<IKeyboard> {
   private keyboard?: IKeyboard;
   private active: boolean = false;
-  private toggleIndex: number = 0;
+  private toggleIndex: number;
   private keys: (string | undefined)[];
   private auxiliaries: List<Auxiliary>;
   private keyListener: KeyListener;
@@ -32,6 +33,7 @@ export class ToggleAuxiliary implements Auxiliary<IKeyboard> {
       },
     };
     this.auxiliaries = map(config.auxiliariesMapping, (({ aux }) => aux));
+    this.toggleIndex = (config.initialIndex ?? 0);
   }
 
   set holder(keyboard: IKeyboard | undefined) {

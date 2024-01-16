@@ -19,7 +19,7 @@ class Matrix implements IMatrix {
     return new Matrix();
   }
 
-  copy(matrix: Matrix): Matrix {
+  copy(matrix: IMatrix): Matrix {
     mat4.copy(this.m4, matrix.getMatrix());
     return this;
   }
@@ -119,7 +119,7 @@ class Matrix implements IMatrix {
   }
 
   private static tempQuat = quat.create();
-  getMoveVector(x: number, y: number, z: number, turnMatrix?: IMatrix): Vector {
+  static getMoveVector(x: number, y: number, z: number, turnMatrix?: IMatrix): Vector {
     const v = Matrix.tempVec;
     v[0] = x;
     v[1] = y;

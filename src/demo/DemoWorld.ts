@@ -3,15 +3,13 @@ import { IGraphicsEngine } from "graphics/IGraphicsEngine";
 import { IMotor } from "motor/IMotor";
 import { Camera } from "camera/Camera";
 import Matrix from "gl/transform/Matrix";
-import { PositionMatrix } from "gl/transform/PositionMatrix";
 import { CellChangeAuxiliary } from "gl/transform/aux/CellChangeAuxiliary";
 import IWorld from "world/IWorld";
 import { Auxiliaries } from "world/aux/Auxiliaries";
 import { AuxiliaryHolder } from "world/aux/AuxiliaryHolder";
-import { CamMoveAuxiliary } from "world/aux/CamMoveAuxiliary";
-import { CamStepAuxiliary } from "world/aux/CamStepAuxiliary";
-import { CamTiltResetAuxiliary } from "world/aux/CamTiltResetAuxiliary";
-import { JumpAuxiliary } from "world/aux/JumpAuxiliary";
+import { TurnAuxiliary } from "world/aux/TurnAuxiliary";
+import { PositionStepAuxiliary } from "world/aux/PositionStepAuxiliary";
+import { TiltResetAuxiliary } from "world/aux/TiltResetAuxiliary";
 import { ToggleAuxiliary } from "world/aux/ToggleAuxiliary";
 import { CellTracker } from "world/grid/CellTracker";
 import { UpdatableMedias } from "world/sprite/Medias";
@@ -26,8 +24,17 @@ import { SpriteType } from "world/sprite/Sprite";
 import { ICamera } from "camera/ICamera";
 import { KeyboardControls } from "controls/KeyboardControls";
 import { SpriteFactory } from "world/sprite/SpritesFactory";
+import { MoveAuxiliary } from "world/aux/MoveAuxiliary";
+import { getCellPos, positionFromCell } from "world/grid/CellPos";
+import { JumpAuxiliary } from "world/aux/JumpAuxiliary";
+import { TimeAuxiliary } from "core/aux/TimeAuxiliary";
+import { PositionMatrix } from "gl/transform/PositionMatrix";
+import { SpriteUpdateType } from "world/sprite/update/SpriteUpdateType";
+import { TiltAuxiliary } from "world/aux/TiltAuxiliary";
+import { FollowAuxiliary } from "world/aux/FollowAuxiliary";
+import { SmoothFollowAuxiliary } from "world/aux/SmoothFollowAuxiliary";
 
-const DOBUKI = 0, LOGO = 1, GROUND = 2, VIDEO = 3, WIREFRAME = 4, GRASS = 5, BRICK = 6;
+const DOBUKI = 0, LOGO = 1, GROUND = 2, VIDEO = 3, WIREFRAME = 4, GRASS = 5, BRICK = 6, DODO = 7;
 const LOGO_SIZE = 512;
 const CELLSIZE = 2;
 
@@ -54,6 +61,12 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
     const medias = new UpdatableMedias({ engine, motor });
     medias.set(DOBUKI, {
       type: "image", src: "dobuki.png",
+    });
+    medias.set(DODO, {
+      type: "image", src: "dodo.png",
+      spriteSheet: {
+        spriteSize: [190, 290],
+      },
     });
     medias.set(LOGO, {
       type: "draw",
@@ -135,9 +148,9 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
         const { canvas } = ctx;
         canvas.width = LOGO_SIZE;
         canvas.height = LOGO_SIZE;
-        ctx.lineWidth = 5;
-        ctx.fillStyle = "black";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.lineWidth = 8;
+        // ctx.fillStyle = "black";
+        // ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.setLineDash([5, 2]);
 
         ctx.strokeStyle = 'green';
@@ -217,21 +230,12 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
           Matrix.create().translate(0, 0, 1).rotateY(Math.PI),  //  front
           Matrix.create().translate(0, 0, -1).rotateY(0), //  back
         ].map(transform => ({ imageId: BRICK, transform })),
-      ], Matrix.create().setPosition(...PositionMatrix.positionFromCell([0, 0, -3, CELLSIZE]))),
+      ], Matrix.create().setPosition(...positionFromCell([0, 0, -3, CELLSIZE]))),
     ));
 
     const camera = new Camera({ engine, motor });
     this.addAuxiliary(camera);
     this.camera = camera;
-
-    //  * A move blocker just determines where you can or cannot move.
-    //  Currently, there is just one block at [0, 0, -3]
-    camera.position.moveBlocker = {
-      isBlocked(pos): boolean {
-        const [cx, cy, cz] = PositionMatrix.getCellPos(pos, 2);
-        return cx === 0 && cy === 0 && cz === -3;
-      },
-    };
 
     //  Dynamic SpriteGrid
     //  * This SpriteGrid is dynamic, meaning that the cell gets generated on the
@@ -239,14 +243,41 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
     spritesAccumulator.addAuxiliary(new SpriteGrid(
       { yRange: [0, 0] }, new SpriteFactory({
         fillSpriteBag({ pos }, _, bag) {
-          const ground = bag.createSprite(WIREFRAME);
+          const ground = bag.createSprite(GRASS);
           ground.transform.translate(pos[0] * pos[3], -1, pos[2] * pos[3]).rotateX(-Math.PI / 2);
-          // const ceiling = bag.createSprite(WIREFRAME);
-          // ceiling.transform.translate(pos[0] * pos[3], 2, pos[2] * pos[3]).rotateX(Math.PI / 2);
-          // bag.addSprite(ground, ceiling);
-          bag.addSprite(ground);
+          const ceiling = bag.createSprite(WIREFRAME);
+          ceiling.transform.translate(pos[0] * pos[3], 2, pos[2] * pos[3]).rotateX(Math.PI / 2);
+          bag.addSprite(ground, ceiling);
         },
       })));
+
+    const heroPos: PositionMatrix = new PositionMatrix(() => {
+      heroSprites.informUpdate(0, SpriteUpdateType.TRANSFORM);
+      heroSprites.informUpdate(1, SpriteUpdateType.TRANSFORM);
+    });
+
+    //  * A move blocker just determines where you can or cannot move.
+    //  Currently, there is just one block at [0, 0, -3]
+    heroPos.moveBlocker = {
+      isBlocked(pos): boolean {
+        const [cx, cy, cz] = getCellPos(pos, 2);
+        return cx === 0 && cy === 0 && cz === -3;
+      },
+    };
+
+    const heroSprites = new StaticSprites(new SpriteGroup([
+      {
+        name: "dodo",
+        imageId: DODO,
+        spriteType: SpriteType.SPRITE,
+        transform: Matrix.create().translate(0, -.68, 0),
+      },
+      {
+        imageId: DODO,
+        transform: Matrix.create().translate(0, -0.9, 0).rotateX(-Math.PI / 2),
+      },
+    ], heroPos));
+    spritesAccumulator.addAuxiliary(heroSprites);
 
     //  Static Sprites
     //  * Those are just sprites, which will appear regardless of where
@@ -261,16 +292,17 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
       },
     ]));
 
+
     //  Note that you don't need a StaticSprites auxiliary for adding simple permanent
     //  sprites. You can just do this directly.
     //  That said, StaticSprites is a better use, for its ability to be switched on/off
-    spritesAccumulator.addSprites([
-      {
-        imageId: DOBUKI,
-        spriteType: SpriteType.HUD,
-        transform: Matrix.create().translate(-.45, .45, -.5).scale(.05),
-      },
-    ]);
+    // spritesAccumulator.addSprites([
+    //   {
+    //     imageId: DOBUKI,
+    //     spriteType: SpriteType.HUD,
+    //     transform: Matrix.create().translate(-.45, .45, -.5).scale(.05),
+    //   },
+    // ]);
 
     //  Toggle auxiliary
     //  * Pressing the "Tab" button switches between two modes of movement below
@@ -285,15 +317,20 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
         auxiliariesMapping: [
           {
             key: "Tab", aux: Auxiliaries.from(
-              new CamMoveAuxiliary({ controls, camera }),
-              new JumpAuxiliary({ controls, camera }),
-              new CamTiltResetAuxiliary({ controls, camera }),
+              new PositionStepAuxiliary({ controls, position: heroPos }),
+              // new PositionStepAuxiliary({ controls, position: heroPos, turnGoal: camera.turn.angle }),
+              // new PositionStepAuxiliary({ controls, position: camera.position, turnGoal: camera.turn.angle }, { step: 2 }),
+              new TiltResetAuxiliary({ controls, tilt: camera.tilt }),
+              new SmoothFollowAuxiliary({ follower: camera.position, followee: heroPos }),
             )
           },
           {
             key: "Tab", aux: Auxiliaries.from(
-              new CamStepAuxiliary({ controls, camera }, { step: 2, turnStep: Math.PI / 2, tiltStep: Math.PI / 4 }),
-              new CamTiltResetAuxiliary({ controls, camera }),
+              new TurnAuxiliary({ controls, turn: camera.turn }),
+              new TiltAuxiliary({ controls, tilt: camera.tilt }),
+              new MoveAuxiliary({ controls, direction: camera.turn, position: camera.position }),
+              new JumpAuxiliary({ controls, position: camera.position }),
+              new TiltResetAuxiliary({ controls, tilt: camera.tilt }),
             )
           },
         ],
@@ -301,6 +338,13 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
     );
     this.addAuxiliary(keyboard);
 
+    // heroPos.addChangeListener((dx, dy, dz) => {
+    //   console.log("heropos change", heroPos.position);
+    //   camera.position.moveBy(dx, dy, dz);
+    // });
+    // camera.position.addChangeListener(() => {
+    //   console.log("camera change", heroPos.position);
+    // })
 
     //  CellChangeAuxiliary
     //  * This is needed to indicate when the player is changing cell
@@ -309,14 +353,16 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
     camera.position.addAuxiliary(
       new CellChangeAuxiliary({ cellSize: CELLSIZE })
         .addAuxiliary(new CellTracker(this, {
-          cellLimit: 100000,
-          range: [40, 3, 40],
+          cellLimit: 20000,
+          range: [30, 3, 30],
           cellSize: CELLSIZE,
         })));
 
-
     //  Hack some base settings
     camera.distance.setValue(5)
-    camera.tilt.angle.setValue(.5);
+    camera.tilt.angle.setValue(1.2);
+    camera.projection.zoom.setValue(.25);
+    camera.projection.perspective.setValue(.05);
+    this.addAuxiliary(new TimeAuxiliary(engine));
   }
 }

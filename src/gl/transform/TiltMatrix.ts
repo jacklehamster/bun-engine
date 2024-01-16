@@ -1,8 +1,8 @@
-import { IMatrix } from "./IMatrix";
+import { IAngleMatrix } from "./IAngleMatrix";
 import Matrix from "./Matrix";
 import { NumVal } from "core/value/NumVal";
 
-export class TiltMatrix implements IMatrix {
+export class TiltMatrix implements IAngleMatrix {
   private matrix: Matrix = Matrix.create();
   readonly angle: NumVal;
 

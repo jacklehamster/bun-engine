@@ -48,10 +48,11 @@ export class Camera extends AuxiliaryHolder<ICamera> implements ICamera {
     this.curvature = new NumVal(0.05, () => this.updateInformerFloat.informUpdate(FloatUniform.CURVATURE));
     this.distance = new NumVal(.5, () => this.updateInformerFloat.informUpdate(FloatUniform.CAM_DISTANCE));
     this.blur = new NumVal(1, () => this.updateInformerFloat.informUpdate(FloatUniform.BG_BLUR));
-    const cameraVal: Record<FloatUniform, Val<number>> = {
+    const cameraVal: Record<FloatUniform, Val<number> | undefined> = {
       [FloatUniform.BG_BLUR]: this.blur,
       [FloatUniform.CAM_DISTANCE]: this.distance,
       [FloatUniform.CURVATURE]: this.curvature,
+      [FloatUniform.TIME]: undefined,
     };
     this.updateInformerFloat = new CameraFloatUpdate(uniform => cameraVal[uniform], engine, motor);
   }
@@ -107,9 +108,5 @@ export class Camera extends AuxiliaryHolder<ICamera> implements ICamera {
 
   private getCameraVector(uniform: VectorUniform): Vector {
     return this.cameraVectors[uniform];
-  }
-
-  moveCam(x: number, y: number, z: number) {
-    this.position.moveBy(x, y, z, this.turn);
   }
 }

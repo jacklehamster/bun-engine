@@ -16,7 +16,7 @@ layout(location = 0) in vec2 position;
 layout(location = 1) in mat4 transform;
 //  1, 2, 3, 4 reserved for transform
 //  animation
-layout(location = 5) in vec2 slotSize_and_number;
+layout(location = 5) in vec4 slotSize_and_number;
 //  instance
 layout(location = 6) in float instance;
 layout(location = 7) in float spriteType;
@@ -37,11 +37,14 @@ out float dist;
 out vec3 vInstanceColor;
 
 void main() {
-  vec2 tex = position.xy * vec2(0.49, -0.49) + 0.5;
   vec2 slotSize = vec2(
     pow(2.0, floor(slotSize_and_number.x / 16.0)),
     pow(2.0, mod(slotSize_and_number.x, 16.0)));
   float slotNumber = slotSize_and_number.y;
+  vec2 spriteSize = slotSize_and_number.zw;
+  vec2 tex = position.xy * vec2(0.49, -0.49) + 0.5; //  Texture corners 0..1
+  tex *= spriteSize;
+
   float maxCols = maxTextureSize / slotSize.x;
   float maxRows = maxTextureSize / slotSize.y;
   float slotX = mod(slotNumber, maxCols);
@@ -65,7 +68,6 @@ void main() {
   float actualCurvature = curvature * (1. - isDistant);
   relativePosition.y -= actualCurvature * ((relativePosition.z * relativePosition.z) + (relativePosition.x * relativePosition.x) / 4.) / 10.;
   relativePosition.x /= (1. + actualCurvature * 1.4);
-
 
   dist = max(isDistant, isHud) + (1. - max(isDistant, isHud)) * (relativePosition.z*relativePosition.z + relativePosition.x*relativePosition.x);
   // relativePosition => gl_Position

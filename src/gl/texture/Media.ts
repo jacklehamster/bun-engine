@@ -1,6 +1,9 @@
+import { SpriteSheet } from "./spritesheet/SpriteSheet";
+
 export type MediaType = "image" | "video" | "canvas" | "draw" | "webcam" | string;
 
 interface BaseMedia {
+  spriteSheet?: SpriteSheet;
 }
 
 export interface ImageMedia extends BaseMedia {
