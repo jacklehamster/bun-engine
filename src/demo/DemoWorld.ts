@@ -31,7 +31,6 @@ import { TimeAuxiliary } from "core/aux/TimeAuxiliary";
 import { PositionMatrix } from "gl/transform/PositionMatrix";
 import { SpriteUpdateType } from "world/sprite/update/SpriteUpdateType";
 import { TiltAuxiliary } from "world/aux/TiltAuxiliary";
-import { FollowAuxiliary } from "world/aux/FollowAuxiliary";
 import { SmoothFollowAuxiliary } from "world/aux/SmoothFollowAuxiliary";
 
 const DOBUKI = 0, LOGO = 1, GROUND = 2, VIDEO = 3, WIREFRAME = 4, GRASS = 5, BRICK = 6, DODO = 7;
@@ -321,7 +320,7 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
               // new PositionStepAuxiliary({ controls, position: heroPos, turnGoal: camera.turn.angle }),
               // new PositionStepAuxiliary({ controls, position: camera.position, turnGoal: camera.turn.angle }, { step: 2 }),
               new TiltResetAuxiliary({ controls, tilt: camera.tilt }),
-              new SmoothFollowAuxiliary({ follower: camera.position, followee: heroPos }),
+              new SmoothFollowAuxiliary({ follower: camera.position, followee: heroPos }, { speed: .05 }),
             )
           },
           {

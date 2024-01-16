@@ -27358,11 +27358,16 @@ class Motor {
   loop(update, frameRate, expirationTime) {
     this.registerUpdate(update, { period: frameRate ? 1000 / frameRate : 1, expirationTime });
   }
-  registerUpdate(update, schedule = {}) {
-    schedule.triggerTime = schedule.triggerTime ?? this.time;
-    schedule.expirationTime = schedule.expirationTime ?? Infinity;
-    schedule.period = schedule.period;
-    this.updateSchedule.set(update, schedule);
+  registerUpdate(update, schedule) {
+    if (!this.updateSchedule.has(update) || schedule) {
+      if (!schedule) {
+        schedule = {};
+      }
+      schedule.triggerTime = schedule.triggerTime ?? 0;
+      schedule.expirationTime = schedule.expirationTime ?? Infinity;
+      schedule.period = schedule.period;
+      this.updateSchedule.set(update, schedule);
+    }
   }
   deregisterUpdate(update) {
     this.updateSchedule.delete(update);
@@ -27392,8 +27397,6 @@ class Motor {
       time += FRAME_PERIOD;
       updatePayload.deltaTime = Math.min(time - updatePayload.time, MAX_DELTA_TIME);
       this.time = updatePayload.time = time;
-      updateGroups[Priority.DEFAULT].length = 0;
-      updateGroups[Priority.LAST].length = 0;
       this.updateSchedule.forEach((schedule, update) => {
         if (time < schedule.triggerTime) {
           return;
@@ -27405,9 +27408,13 @@ class Motor {
         }
         updateGroups[update.priority ?? Priority.DEFAULT].push(update);
       });
-      updateGroups.forEach((updates) => {
-        updates.forEach((update) => update.refresh?.(updatePayload));
-      });
+      for (let updates of updateGroups) {
+        for (let update of updates) {
+          update.refresh?.(updatePayload);
+        }
+      }
+      updateGroups[Priority.DEFAULT].length = 0;
+      updateGroups[Priority.LAST].length = 0;
     };
     requestAnimationFrame(loop);
     this.stopLoop = () => {
@@ -27765,57 +27772,6 @@ class TurnMatrix {
   }
 }
 
-// src/updates/CameraUpdate.ts
-class CameraUpdate {
-  getCameraMatrix;
-  engine;
-  motor;
-  updatedTypes = new Set;
-  constructor(getCameraMatrix, engine, motor) {
-    this.getCameraMatrix = getCameraMatrix;
-    this.engine = engine;
-    this.motor = motor;
-  }
-  informUpdate(type) {
-    if (!this.updatedTypes.has(type)) {
-      this.updatedTypes.add(type);
-    }
-    this.motor.registerUpdate(this);
-  }
-  refresh() {
-    this.updatedTypes.forEach((type) => this.engine.updateUniformMatrix(type, this.getCameraMatrix(type)));
-    this.updatedTypes.clear();
-  }
-}
-
-// src/updates/CameraFloatUpdate.ts
-class CameraFloatUpdate {
-  getCameraFloat;
-  engine;
-  motor;
-  updatedTypes = new Set;
-  constructor(getCameraFloat, engine, motor) {
-    this.getCameraFloat = getCameraFloat;
-    this.engine = engine;
-    this.motor = motor;
-  }
-  informUpdate(type) {
-    if (!this.updatedTypes.has(type) && this.getCameraFloat(type)) {
-      this.updatedTypes.add(type);
-      this.motor.registerUpdate(this);
-    }
-  }
-  refresh(updatePayload) {
-    this.updatedTypes.forEach((type) => {
-      const val = this.getCameraFloat(type);
-      if (val) {
-        this.engine.updateUniformFloat(type, val.valueOf(updatePayload.time));
-      }
-    });
-    this.updatedTypes.clear();
-  }
-}
-
 // src/world/sprite/List.ts
 function forEach3(list, callback) {
   if (list) {
@@ -27919,26 +27875,26 @@ class PositionMatrix extends AuxiliaryHolder {
   }
 }
 
-// src/updates/CameraVectorUpdate.ts
-class CameraVectorUpdate {
-  getCameraVector;
-  engine;
+// src/updates/UpdateRegistry.ts
+class UpdateRegistry {
+  applyUpdate;
   motor;
-  updatedTypes = new Set;
-  constructor(getCameraVector, engine, motor) {
-    this.getCameraVector = getCameraVector;
-    this.engine = engine;
+  updatedIds = new Set;
+  constructor(applyUpdate, motor) {
+    this.applyUpdate = applyUpdate;
     this.motor = motor;
   }
-  informUpdate(type) {
-    if (!this.updatedTypes.has(type)) {
-      this.updatedTypes.add(type);
+  informUpdate(id) {
+    if (!this.updatedIds.has(id)) {
+      this.updatedIds.add(id);
+    }
+    this.motor.registerUpdate(this);
+  }
+  refresh(update) {
+    this.applyUpdate(this.updatedIds, update);
+    if (this.updatedIds.size) {
       this.motor.registerUpdate(this);
     }
-  }
-  refresh() {
-    this.updatedTypes.forEach((type) => this.engine.updateUniformVector(type, this.getCameraVector(type)));
-    this.updatedTypes.clear();
   }
 }
 
@@ -27962,9 +27918,14 @@ class Camera extends AuxiliaryHolder {
   constructor({ engine, motor }) {
     super();
     this.engine = engine;
-    this.updateInformer = new CameraUpdate(this.getCameraMatrix.bind(this), engine, motor);
-    this.updateInformerVector = new CameraVectorUpdate(this.getCameraVector.bind(this), engine, motor);
-    this.addAuxiliary(this.position);
+    this.updateInformer = new UpdateRegistry((ids) => {
+      ids.forEach((type) => this.engine.updateUniformMatrix(type, this.getCameraMatrix(type)));
+      ids.clear();
+    }, motor);
+    this.updateInformerVector = new UpdateRegistry((ids) => {
+      ids.forEach((type) => this.engine.updateUniformVector(type, this.getCameraVector(type)));
+      ids.clear();
+    }, motor);
     this.curvature = new NumVal(0.05, () => this.updateInformerFloat.informUpdate(FloatUniform.CURVATURE));
     this.distance = new NumVal(0.5, () => this.updateInformerFloat.informUpdate(FloatUniform.CAM_DISTANCE));
     this.blur = new NumVal(1, () => this.updateInformerFloat.informUpdate(FloatUniform.BG_BLUR));
@@ -27974,7 +27935,16 @@ class Camera extends AuxiliaryHolder {
       [FloatUniform.CURVATURE]: this.curvature,
       [FloatUniform.TIME]: undefined
     };
-    this.updateInformerFloat = new CameraFloatUpdate((uniform) => cameraVal[uniform], engine, motor);
+    this.updateInformerFloat = new UpdateRegistry((ids, updatePayload) => {
+      ids.forEach((type) => {
+        const val = cameraVal[type];
+        if (val) {
+          this.engine.updateUniformFloat(type, val.valueOf(updatePayload.time));
+        }
+      });
+      ids.clear();
+    }, motor);
+    this.addAuxiliary(this.position);
   }
   activate() {
     super.activate();
@@ -28410,13 +28380,14 @@ class CellTracker {
     const cellX = pos[0] + base[0];
     const cellY = pos[1] + base[1];
     const cellZ = pos[2] + base[2];
+    const tempCellPos = tempCell.pos;
     for (let z = 0;z < range[0]; z++) {
       for (let x = 0;x < range[2]; x++) {
         for (let y = 0;y < range[1]; y++) {
-          tempCell.pos[0] = cellX + x;
-          tempCell.pos[1] = cellY + y;
-          tempCell.pos[2] = cellZ + z;
-          tempCell.tag = cellTag(...tempCell.pos);
+          tempCellPos[0] = cellX + x;
+          tempCellPos[1] = cellY + y;
+          tempCellPos[2] = cellZ + z;
+          tempCell.tag = cellTag(tempCellPos[0], tempCellPos[1], tempCellPos[2], tempCellPos[3]);
           callback(tempCell, updatePayload);
         }
       }
@@ -28462,29 +28433,6 @@ class UpdatableList {
   remove(index) {
     this.updateValue(index, undefined);
     this.notifier?.informUpdate(index);
-  }
-}
-
-// src/updates/UpdateRegistry.ts
-class UpdateRegistry {
-  applyUpdate;
-  motor;
-  updatedIds = new Set;
-  constructor(applyUpdate, motor) {
-    this.applyUpdate = applyUpdate;
-    this.motor = motor;
-  }
-  informUpdate(id) {
-    if (!this.updatedIds.has(id)) {
-      this.updatedIds.add(id);
-    }
-    this.motor.registerUpdate(this);
-  }
-  refresh() {
-    this.applyUpdate(this.updatedIds);
-    if (this.updatedIds.size) {
-      this.motor.registerUpdate(this);
-    }
   }
 }
 
@@ -29005,9 +28953,11 @@ class TiltAuxiliary {
 class SmoothFollowAuxiliary {
   followee;
   follower;
-  constructor({ followee, follower }) {
+  speed;
+  constructor({ followee, follower }, config) {
     this.followee = followee;
     this.follower = follower;
+    this.speed = config?.speed ?? 1;
   }
   refresh() {
     const [x, y, z] = this.followee.position;
@@ -29017,7 +28967,8 @@ class SmoothFollowAuxiliary {
     if (dist2 < 0.1) {
       this.follower.moveTo(x, y, z);
     } else {
-      this.follower.moveBy(dx / 10, dy / 10, dz / 10);
+      const speed = Math.min(dist2, this.speed * dist2);
+      this.follower.moveBy(dx / dist2 * speed, dy / dist2 * speed, dz / dist2 * speed);
     }
   }
 }
@@ -29233,7 +29184,7 @@ class DemoWorld extends AuxiliaryHolder {
       auxiliariesMapping: [
         {
           key: "Tab",
-          aux: Auxiliaries.from(new PositionStepAuxiliary({ controls, position: heroPos }), new TiltResetAuxiliary({ controls, tilt: camera.tilt }), new SmoothFollowAuxiliary({ follower: camera.position, followee: heroPos }))
+          aux: Auxiliaries.from(new PositionStepAuxiliary({ controls, position: heroPos }), new TiltResetAuxiliary({ controls, tilt: camera.tilt }), new SmoothFollowAuxiliary({ follower: camera.position, followee: heroPos }, { speed: 0.05 }))
         },
         {
           key: "Tab",
@@ -29398,4 +29349,4 @@ export {
   hello
 };
 
-//# debugId=1998B3942B22C35164756e2164756e21
+//# debugId=3830C7912164B3F664756e2164756e21

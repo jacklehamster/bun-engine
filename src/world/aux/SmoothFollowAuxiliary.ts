@@ -6,12 +6,18 @@ interface Props {
   follower: PositionMatrix;
 }
 
+export interface Config {
+  speed: number;
+}
+
 export class SmoothFollowAuxiliary implements Auxiliary {
   private followee;
   private follower;
-  constructor({ followee, follower }: Props) {
+  private speed: number;
+  constructor({ followee, follower }: Props, config?: Partial<Config>) {
     this.followee = followee;
     this.follower = follower;
+    this.speed = config?.speed ?? 1;
   }
 
   refresh(): void {
@@ -22,7 +28,8 @@ export class SmoothFollowAuxiliary implements Auxiliary {
     if (dist < .1) {
       this.follower.moveTo(x, y, z);
     } else {
-      this.follower.moveBy(dx / 10, dy / 10, dz / 10);
+      const speed = Math.min(dist, this.speed * dist);
+      this.follower.moveBy(dx / dist * speed, dy / dist * speed, dz / dist * speed);
     }
   }
 }

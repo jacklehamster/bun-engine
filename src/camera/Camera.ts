@@ -3,18 +3,16 @@ import { IMatrix, Vector } from "gl/transform/IMatrix";
 import { ProjectionMatrix } from "gl/transform/ProjectionMatrix";
 import { TiltMatrix } from "gl/transform/TiltMatrix";
 import { TurnMatrix } from "gl/transform/TurnMatrix";
-import { CameraUpdate } from "updates/CameraUpdate";
 import { ICamera } from "./ICamera";
-import { CameraFloatUpdate } from "updates/CameraFloatUpdate";
 import { IGraphicsEngine } from "graphics/IGraphicsEngine";
 import { IMotor } from "motor/IMotor";
 import { PositionMatrix } from "gl/transform/PositionMatrix";
 import { AuxiliaryHolder } from "world/aux/AuxiliaryHolder";
 import { MatrixUniform, VectorUniform } from "graphics/Uniforms";
 import { FloatUniform } from "graphics/Uniforms";
-import { CameraVectorUpdate } from "updates/CameraVectorUpdate";
 import { Val } from "core/value/Val";
 import { NumVal } from "core/value/NumVal";
+import { UpdateRegistry } from "updates/UpdateRegistry";
 
 interface Props {
   engine: IGraphicsEngine;
@@ -41,9 +39,14 @@ export class Camera extends AuxiliaryHolder<ICamera> implements ICamera {
   constructor({ engine, motor }: Props) {
     super();
     this.engine = engine;
-    this.updateInformer = new CameraUpdate(this.getCameraMatrix.bind(this), engine, motor);
-    this.updateInformerVector = new CameraVectorUpdate(this.getCameraVector.bind(this), engine, motor);
-    this.addAuxiliary(this.position);
+    this.updateInformer = new UpdateRegistry(ids => {
+      ids.forEach(type => this.engine.updateUniformMatrix(type, this.getCameraMatrix(type)));
+      ids.clear();
+    }, motor);
+    this.updateInformerVector = new UpdateRegistry(ids => {
+      ids.forEach(type => this.engine.updateUniformVector(type, this.getCameraVector(type)));
+      ids.clear();
+    }, motor);
 
     this.curvature = new NumVal(0.05, () => this.updateInformerFloat.informUpdate(FloatUniform.CURVATURE));
     this.distance = new NumVal(.5, () => this.updateInformerFloat.informUpdate(FloatUniform.CAM_DISTANCE));
@@ -54,7 +57,16 @@ export class Camera extends AuxiliaryHolder<ICamera> implements ICamera {
       [FloatUniform.CURVATURE]: this.curvature,
       [FloatUniform.TIME]: undefined,
     };
-    this.updateInformerFloat = new CameraFloatUpdate(uniform => cameraVal[uniform], engine, motor);
+    this.updateInformerFloat = new UpdateRegistry<FloatUniform>((ids, updatePayload) => {
+      ids.forEach(type => {
+        const val = cameraVal[type];
+        if (val) {
+          this.engine.updateUniformFloat(type, val.valueOf(updatePayload.time));
+        }
+      });
+      ids.clear();
+    }, motor);
+    this.addAuxiliary(this.position);
   }
 
   activate() {

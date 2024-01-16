@@ -50,13 +50,14 @@ export class CellTracker implements VisitableCell, Auxiliary<CellChangeAuxiliary
     const cellX = pos[0] + base[0];
     const cellY = pos[1] + base[1];
     const cellZ = pos[2] + base[2];
+    const tempCellPos = tempCell.pos;
     for (let z = 0; z < range[0]; z++) {
       for (let x = 0; x < range[2]; x++) {
         for (let y = 0; y < range[1]; y++) {
-          tempCell.pos[0] = cellX + x;
-          tempCell.pos[1] = cellY + y;
-          tempCell.pos[2] = cellZ + z;
-          tempCell.tag = cellTag(...tempCell.pos);
+          tempCellPos[0] = cellX + x;
+          tempCellPos[1] = cellY + y;
+          tempCellPos[2] = cellZ + z;
+          tempCell.tag = cellTag(tempCellPos[0], tempCellPos[1], tempCellPos[2], tempCellPos[3]);
           callback(tempCell, updatePayload);
         }
       }

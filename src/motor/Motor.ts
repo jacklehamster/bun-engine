@@ -25,11 +25,16 @@ export class Motor implements IMotor {
     this.registerUpdate(update, { period: frameRate ? 1000 / frameRate : 1, expirationTime });
   }
 
-  registerUpdate(update: Refresh, schedule: Partial<Schedule> = {}) {
-    schedule.triggerTime = schedule.triggerTime ?? this.time;
-    schedule.expirationTime = schedule.expirationTime ?? Infinity;
-    schedule.period = schedule.period;
-    this.updateSchedule.set(update, schedule as Schedule);
+  registerUpdate(update: Refresh, schedule?: Partial<Schedule>) {
+    if (!this.updateSchedule.has(update) || schedule) {
+      if (!schedule) {
+        schedule = {};
+      }
+      schedule.triggerTime = schedule.triggerTime ?? 0;
+      schedule.expirationTime = schedule.expirationTime ?? Infinity;
+      schedule.period = schedule.period;
+      this.updateSchedule.set(update, schedule as Schedule);
+    }
   }
 
   deregisterUpdate(update: Refresh) {
@@ -71,8 +76,6 @@ export class Motor implements IMotor {
       updatePayload.deltaTime = Math.min(time - updatePayload.time, MAX_DELTA_TIME);
       this.time = updatePayload.time = time;
 
-      updateGroups[Priority.DEFAULT].length = 0;
-      updateGroups[Priority.LAST].length = 0;
       this.updateSchedule.forEach((schedule, update) => {
         if (time < schedule.triggerTime) {
           return;
@@ -84,9 +87,13 @@ export class Motor implements IMotor {
         }
         updateGroups[update.priority ?? Priority.DEFAULT].push(update);
       });
-      updateGroups.forEach(updates => {
-        updates.forEach(update => update.refresh?.(updatePayload));
-      });
+      for (let updates of updateGroups) {
+        for (let update of updates) {
+          update.refresh?.(updatePayload);
+        }
+      }
+      updateGroups[Priority.DEFAULT].length = 0;
+      updateGroups[Priority.LAST].length = 0;
     };
     requestAnimationFrame(loop);
     this.stopLoop = () => {
