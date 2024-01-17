@@ -1,10 +1,10 @@
+import IWorld from "world/IWorld";
+import Matrix from "gl/transform/Matrix";
 import { Keyboard } from "controls/Keyboard";
 import { IGraphicsEngine } from "graphics/IGraphicsEngine";
 import { IMotor } from "motor/IMotor";
 import { Camera } from "camera/Camera";
-import Matrix from "gl/transform/Matrix";
 import { CellChangeAuxiliary } from "gl/transform/aux/CellChangeAuxiliary";
-import IWorld from "world/IWorld";
 import { Auxiliaries } from "world/aux/Auxiliaries";
 import { AuxiliaryHolder } from "world/aux/AuxiliaryHolder";
 import { TurnAuxiliary } from "world/aux/TurnAuxiliary";
@@ -65,13 +65,24 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
     medias.set(DODO, {
       type: "image", src: "dodo.png",
       spriteSheet: {
-        spriteSize: [190, 290],
+        spriteSize: [190, 209],
       },
     });
     medias.set(DODO_SHADOW, {
       type: "image", src: "dodo.png",
       spriteSheet: {
-        spriteSize: [190, 290],
+        spriteSize: [190, 209],
+      },
+      postProcessing(canvas) {
+        const context = canvas.getContext("2d");
+        if (context) {
+          const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+          const data = imageData.data;
+          for (let i = 0; i < data.length; i += 4) {
+            data[i] = data[i + 1] = data[i + 2] = 0;
+          }
+          context.putImageData(imageData, 0, 0);
+        }
       },
     });
     medias.set(LOGO, {
@@ -265,15 +276,15 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
       {
         imageId: DODO,
         spriteType: SpriteType.SPRITE,
-        transform: Matrix.create().translate(0, -.68, 0),
+        transform: Matrix.create().translate(0, -.5, 0),
         animation: {
           frames: [1, 5],
           fps: 24,
         },
       },
       {
-        imageId: DODO,
-        transform: Matrix.create().translate(0, -0.9, 0).rotateX(-Math.PI / 2).scale(1, .3, 1),
+        imageId: DODO_SHADOW,
+        transform: Matrix.create().translate(0, -0.7, 0).rotateX(-Math.PI / 2).scale(1, .3, 1),
         animation: {
           frames: [1, 5],
           fps: 24,
@@ -304,7 +315,6 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
           .scale(480, 270, 1),
       },
     ]));
-
 
     //  Note that you don't need a StaticSprites auxiliary for adding simple permanent
     //  sprites. You can just do this directly.

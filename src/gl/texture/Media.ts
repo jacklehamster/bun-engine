@@ -2,12 +2,12 @@ import { SpriteSheet } from "./spritesheet/SpriteSheet";
 
 export type MediaType = "image" | "video" | "canvas" | "draw" | "webcam" | string;
 
-interface BaseMedia {
-  spriteSheet?: SpriteSheet;
+interface PostProcessable {
+  postProcessing?: (canvas: OffscreenCanvas) => Promise<OffscreenCanvas> | OffscreenCanvas | void;
 }
 
-export interface PostProcessable {
-  postProcessing?: (canvas: OffscreenCanvas) => Promise<OffscreenCanvas>;
+interface BaseMedia extends PostProcessable {
+  spriteSheet?: SpriteSheet;
 }
 
 export interface ImageMedia extends BaseMedia {

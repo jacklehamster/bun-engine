@@ -1,4 +1,4 @@
-import { ControlsListener, IControls } from "./IControls";
+import { ActionEnum, ControlsListener, IControls } from "./IControls";
 import { IKeyboard } from "./IKeyboard";
 
 export class KeyboardControls implements IControls {
@@ -17,7 +17,8 @@ export class KeyboardControls implements IControls {
             break;
         }
       },
-      onKeyDown: () => listener.onAction?.(this),
+      onKeyDown: () => listener.onAction?.(this, ActionEnum.PRESS_DOWN),
+      onKeyUp: () => listener.onAction?.(this, ActionEnum.PRESS_UP),
     });
   }
 

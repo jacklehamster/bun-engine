@@ -25,7 +25,7 @@ export class DirAuxiliary implements Auxiliary<PositionMatrix> {
     if (controls.right) {
       dx++;
     }
-    if (dx !== this.dx) {
+    if (dx && dx !== this.dx) {
       this.dx = dx;
       this.flippable.flip = this.dx < 0;
       this.onChange?.();

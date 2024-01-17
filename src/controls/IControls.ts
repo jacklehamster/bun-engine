@@ -1,7 +1,12 @@
+export enum ActionEnum {
+  PRESS_UP = 0,
+  PRESS_DOWN = 1,
+}
+
 export interface ControlsListener {
   onQuickAction?(): void;
   onQuickTiltReset?(): void;
-  onAction?(controls: IControls): void;
+  onAction?(controls: IControls, action: ActionEnum): void;
 }
 
 export interface IControls {

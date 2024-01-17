@@ -25762,7 +25762,6 @@ const mat4 identity = mat4(1.0);
 const float SPRITE = 1.0;
 const float HUD = 2.0;
 const float DISTANT = 3.0;
-const float threshold = 0.5;
 
 //  IN
 //  shape
@@ -25799,13 +25798,14 @@ void main() {
   float slotNumber = slotSize_and_number.y;
   vec2 spriteSize = abs(slotSize_and_number.zw);
   vec2 tex = position.xy * vec2(0.49, -0.49) * sign(slotSize_and_number.zw) + 0.5; //  Texture corners 0..1
-  float sheetCols = 1. / spriteSize.x;
+  float sheetCols = ceil(1. / spriteSize[0]);
   float frameStart = animation[0];
   float frameEnd = animation[1];
   float fps = animation[2];
-  float frameOffset = floor(mod(time * fps / 1000., frameEnd + 1.));
+  float maxFrameCount = animation[3];
+  float frameOffset = floor(mod(min(time * fps / 1000., maxFrameCount), frameEnd + 1.));
   float frame = frameStart + frameOffset;
-  tex += vec2(1., 0) * frame;//mod(frame, sheetCols) + vec2(0, 1.) * floor(frame / sheetCols);
+  tex += vec2(1., 0) * mod(frame, sheetCols) + vec2(0, 1.) * floor(frame / sheetCols);
   tex *= spriteSize;
 
   float maxCols = maxTextureSize / slotSize.x;
@@ -27000,7 +27000,7 @@ class ImageManager extends Disposable {
       const canvas = new OffscreenCanvas(mediaData.width, mediaData.height);
       const ctx = canvas.getContext("2d");
       ctx?.drawImage(mediaData.canvasImgSrc, 0, 0);
-      return MediaData.createFromCanvas(await postProcessing(canvas));
+      return MediaData.createFromCanvas(await postProcessing(canvas) ?? canvas);
     }
     return mediaData;
   }
@@ -27099,6 +27099,7 @@ function copySprite(sprite, dest) {
   dest.animation.frames[0] = sprite.animation?.frames?.[0] ?? 0;
   dest.animation.frames[1] = sprite.animation?.frames?.[1] ?? dest.animation.frames[0];
   dest.animation.fps = sprite.animation?.fps;
+  dest.animation.maxFrameCount = sprite.animation?.maxFrameCount;
   return dest;
 }
 var SpriteType;
@@ -27107,6 +27108,7 @@ var SpriteType;
   SpriteType2[SpriteType2["SPRITE"] = 1] = "SPRITE";
   SpriteType2[SpriteType2["HUD"] = 2] = "HUD";
   SpriteType2[SpriteType2["DISTANT"] = 3] = "DISTANT";
+  SpriteType2[SpriteType2["SHADOW"] = 4] = "SHADOW";
 })(SpriteType || (SpriteType = {}));
 
 // src/updates/Refresh.ts
@@ -27382,6 +27384,7 @@ class GraphicsEngine extends Disposable {
         this.tempBuffer[0] = sprite.animation?.frames?.[0] ?? 0;
         this.tempBuffer[1] = sprite.animation?.frames?.[1] ?? this.tempBuffer[0];
         this.tempBuffer[2] = sprite.animation?.fps ?? 0;
+        this.tempBuffer[3] = sprite.animation?.maxFrameCount ?? Number.MAX_SAFE_INTEGER;
         this.gl.bufferSubData(GL.ARRAY_BUFFER, 4 * Float32Array.BYTES_PER_ELEMENT * spriteId, this.tempBuffer);
       }
     });
@@ -28831,6 +28834,13 @@ class SpriteUpdater {
   }
 }
 
+// src/controls/IControls.ts
+var ActionEnum;
+(function(ActionEnum2) {
+  ActionEnum2[ActionEnum2["PRESS_UP"] = 0] = "PRESS_UP";
+  ActionEnum2[ActionEnum2["PRESS_DOWN"] = 1] = "PRESS_DOWN";
+})(ActionEnum || (ActionEnum = {}));
+
 // src/controls/KeyboardControls.ts
 class KeyboardControls {
   keyboard;
@@ -28849,7 +28859,8 @@ class KeyboardControls {
             break;
         }
       },
-      onKeyDown: () => listener.onAction?.(this)
+      onKeyDown: () => listener.onAction?.(this, ActionEnum.PRESS_DOWN),
+      onKeyUp: () => listener.onAction?.(this, ActionEnum.PRESS_UP)
     });
   }
   removeListener(listener) {
@@ -29080,7 +29091,7 @@ class DirAuxiliary {
     if (controls.right) {
       dx++;
     }
-    if (dx !== this.dx) {
+    if (dx && dx !== this.dx) {
       this.dx = dx;
       this.flippable.flip = this.dx < 0;
       this.onChange?.();
@@ -29122,14 +29133,25 @@ class DemoWorld extends AuxiliaryHolder {
       type: "image",
       src: "dodo.png",
       spriteSheet: {
-        spriteSize: [190, 290]
+        spriteSize: [190, 209]
       }
     });
     medias.set(DODO_SHADOW, {
       type: "image",
       src: "dodo.png",
       spriteSheet: {
-        spriteSize: [190, 290]
+        spriteSize: [190, 209]
+      },
+      postProcessing(canvas) {
+        const context = canvas.getContext("2d");
+        if (context) {
+          const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+          const data = imageData.data;
+          for (let i = 0;i < data.length; i += 4) {
+            data[i] = data[i + 1] = data[i + 2] = 0;
+          }
+          context.putImageData(imageData, 0, 0);
+        }
       }
     });
     medias.set(LOGO, {
@@ -29285,7 +29307,15 @@ class DemoWorld extends AuxiliaryHolder {
       {
         imageId: DODO,
         spriteType: SpriteType.SPRITE,
-        transform: Matrix_default.create().translate(0, -0.68, 0),
+        transform: Matrix_default.create().translate(0, -0.5, 0),
+        animation: {
+          frames: [1, 5],
+          fps: 24
+        }
+      },
+      {
+        imageId: DODO_SHADOW,
+        transform: Matrix_default.create().translate(0, -0.7, 0).rotateX(-Math.PI / 2).scale(1, 0.3, 1),
         animation: {
           frames: [1, 5],
           fps: 24
@@ -29482,4 +29512,4 @@ export {
   hello
 };
 
-//# debugId=8C59F1A63167547864756e2164756e21
+//# debugId=E1822966F977CCAA64756e2164756e21

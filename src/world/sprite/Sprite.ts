@@ -10,6 +10,7 @@ export enum SpriteType {
   SPRITE = 1,
   HUD = 2,
   DISTANT = 3,
+  SHADOW = 4,
 }
 
 export interface Flippable {
@@ -47,5 +48,6 @@ export function copySprite(sprite: Sprite, dest?: Sprite): Sprite {
   dest.animation.frames[0] = sprite.animation?.frames?.[0] ?? 0;
   dest.animation.frames[1] = sprite.animation?.frames?.[1] ?? dest.animation.frames[0];
   dest.animation.fps = sprite.animation?.fps;
+  dest.animation.maxFrameCount = sprite.animation?.maxFrameCount;
   return dest;
 }

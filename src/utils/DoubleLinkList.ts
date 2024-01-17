@@ -12,7 +12,7 @@ export class DoubleLinkList<T extends string | number | symbol> implements FreeS
   private readonly start: DoubleLinkListNode<T>;
   private readonly end: DoubleLinkListNode<T>;
   private readonly nodeMap: Record<T, DoubleLinkListNode<T>> = {} as Record<T, DoubleLinkListNode<T>>;
-  private readonly pool: ObjectPool<DoubleLinkListNode<T>>;
+  private readonly pool: ObjectPool<DoubleLinkListNode<T>, [T]>;
   private count: number = 0;
 
   constructor(edgeValue: T) {
@@ -20,7 +20,7 @@ export class DoubleLinkList<T extends string | number | symbol> implements FreeS
     this.end = { value: edgeValue };
     this.start.next = this.end;
     this.end.prev = this.start;
-    this.pool = new ObjectPool<DoubleLinkListNode<T>>((elem, value: T) => {
+    this.pool = new ObjectPool<DoubleLinkListNode<T>, [T]>((elem, value: T) => {
       if (!elem) {
         return { value };
       }

@@ -353,6 +353,7 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
         this.tempBuffer[0] = sprite.animation?.frames?.[0] ?? 0;
         this.tempBuffer[1] = sprite.animation?.frames?.[1] ?? this.tempBuffer[0];
         this.tempBuffer[2] = sprite.animation?.fps ?? 0;
+        this.tempBuffer[3] = sprite.animation?.maxFrameCount ?? Number.MAX_SAFE_INTEGER;
         this.gl.bufferSubData(GL.ARRAY_BUFFER, 4 * Float32Array.BYTES_PER_ELEMENT * spriteId, this.tempBuffer);
       }
     });

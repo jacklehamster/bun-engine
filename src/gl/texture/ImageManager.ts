@@ -1,7 +1,7 @@
 import { Disposable } from "gl/lifecycle/Disposable";
 import { Url } from "./TextureManager";
 import { MediaData } from "./MediaData";
-import { CanvasMedia, DrawMedia, ImageMedia, Media, MediaType, PostProcessable, VideoMedia, WebcamMedia } from "./Media";
+import { CanvasMedia, DrawMedia, ImageMedia, Media, MediaType, VideoMedia, WebcamMedia } from "./Media";
 
 export type MediaId = number;
 
@@ -21,12 +21,12 @@ export class ImageManager extends Disposable {
     webcam: createDrawProcedure<WebcamMedia>((imageId, media) => this.loadWebCam(imageId, media.deviceId)) as DrawProcedure<Media>,
   };
 
-  private async postProcess(mediaData: MediaData, postProcessing: (canvas: OffscreenCanvas) => Promise<OffscreenCanvas>) {
+  private async postProcess(mediaData: MediaData, postProcessing: (canvas: OffscreenCanvas) => Promise<OffscreenCanvas> | OffscreenCanvas | void) {
     if (mediaData.canvasImgSrc) {
       const canvas = new OffscreenCanvas(mediaData.width, mediaData.height);
       const ctx = canvas.getContext("2d");
       ctx?.drawImage(mediaData.canvasImgSrc, 0, 0);
-      return MediaData.createFromCanvas(await postProcessing(canvas));
+      return MediaData.createFromCanvas(await postProcessing(canvas) ?? canvas);
     }
     return mediaData;
   }
@@ -46,7 +46,7 @@ export class ImageManager extends Disposable {
 
   async renderMedia(imageId: MediaId, media: Media): Promise<MediaData> {
     const mediaData = await this.renderProcedures[media.type](imageId, media);
-    const postProcessing = (media as PostProcessable).postProcessing;
+    const { postProcessing } = media;
     return postProcessing ? this.postProcess(mediaData, postProcessing) : mediaData;
   }
 

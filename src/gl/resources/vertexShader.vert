@@ -8,7 +8,6 @@ const mat4 identity = mat4(1.0);
 const float SPRITE = 1.0;
 const float HUD = 2.0;
 const float DISTANT = 3.0;
-const float threshold = 0.5;
 
 //  IN
 //  shape
@@ -45,13 +44,14 @@ void main() {
   float slotNumber = slotSize_and_number.y;
   vec2 spriteSize = abs(slotSize_and_number.zw);
   vec2 tex = position.xy * vec2(0.49, -0.49) * sign(slotSize_and_number.zw) + 0.5; //  Texture corners 0..1
-  float sheetCols = 1. / spriteSize.x;
+  float sheetCols = ceil(1. / spriteSize[0]);
   float frameStart = animation[0];
   float frameEnd = animation[1];
   float fps = animation[2];
-  float frameOffset = floor(mod(time * fps / 1000., frameEnd + 1.));
+  float maxFrameCount = animation[3];
+  float frameOffset = floor(mod(min(time * fps / 1000., maxFrameCount), frameEnd + 1.));
   float frame = frameStart + frameOffset;
-  tex += vec2(1., 0) * frame;//mod(frame, sheetCols) + vec2(0, 1.) * floor(frame / sheetCols);
+  tex += vec2(1., 0) * mod(frame, sheetCols) + vec2(0, 1.) * floor(frame / sheetCols);
   tex *= spriteSize;
 
   float maxCols = maxTextureSize / slotSize.x;
