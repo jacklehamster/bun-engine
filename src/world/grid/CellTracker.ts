@@ -65,15 +65,21 @@ export class CellTracker implements VisitableCell, Auxiliary<CellChangeAuxiliary
   }
 
   onCellVisit(cell: Cell, updatePayload: UpdatePayload) {
-    if (!this.cellTags.moveTop(cell.tag)) {
-      this.cellTags.pushTop(cell.tag);
-      this.cellTrack.trackCell?.(cell, updatePayload);
+    if (!this.cellTags.contains(cell.tag)) {
+      if (this.cellTrack.trackCell?.(cell, updatePayload)) {
+        this.cellTags.pushTop(cell.tag);
+      }
+    } else {
+      this.cellTags.moveTop(cell.tag);
     }
   }
 
   visitCell(visitedCell: Cell, updatePayload: UpdatePayload): void {
     this.iterateCells(visitedCell, updatePayload, this.onCellVisit);
+    this.trimCells(updatePayload);
+  }
 
+  trimCells(updatePayload: UpdatePayload) {
     //  remove any excess cells (oldest visited first)
     while (this.cellTags.size > this.cellLimit) {
       const removedTag = this.cellTags.popBottom();

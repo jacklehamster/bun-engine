@@ -52,6 +52,10 @@ export class DoubleLinkList<T extends string | number | symbol> implements FreeS
     this.moveTop(value);
   }
 
+  contains(value: T): boolean {
+    return !!this.nodeMap[value];
+  }
+
   moveTop(value: T): boolean {
     const entry = this.nodeMap[value];
     if (entry) {
@@ -75,29 +79,26 @@ export class DoubleLinkList<T extends string | number | symbol> implements FreeS
   remove(value: T): boolean {
     const entry = this.nodeMap[value];
     if (entry) {
-      //  remove
-      entry.prev!.next = entry.next;
-      entry.next!.prev = entry.prev;
-      entry.prev = entry.next = undefined;
-      this.pool.recycle(entry);
-      delete this.nodeMap[value];
-      this.count--;
+      this.removeEntry(entry);
       return true;
     } else {
       return false;
     }
   }
 
+  private removeEntry(entry: DoubleLinkListNode<T>) {
+    entry.prev!.next = entry.next;
+    entry.next!.prev = entry.prev;
+    entry.prev = entry.next = undefined;
+    this.pool.recycle(entry);
+    delete this.nodeMap[entry.value];
+    this.count--;
+  }
+
   popBottom(): T | undefined {
     const entryToRemove = this.start.next!;
     if (entryToRemove !== this.end) {
-      const newBottom = entryToRemove.next!;
-      this.start.next = newBottom;
-      newBottom.prev = this.start;
-      delete this.nodeMap[entryToRemove.value];
-      this.count--;
-      entryToRemove.prev = entryToRemove.next = undefined;
-      this.pool.recycle(entryToRemove);
+      this.removeEntry(entryToRemove);
       return entryToRemove.value;
     }
     return;

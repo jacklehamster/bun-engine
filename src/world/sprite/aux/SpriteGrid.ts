@@ -56,22 +56,26 @@ export class SpriteGrid implements Auxiliary<SpritesHolder>, UpdateNotifier {
     return this.slots[index]?.sprite;
   }
 
-  trackCell(cell: Cell, updatePayload: UpdatePayload): void {
+  trackCell(cell: Cell, updatePayload: UpdatePayload): boolean {
     const [[minX, maxX], [minY, maxY], [minZ, maxZ]] = this.ranges;
     const [x, y, z] = cell.pos;
     if (x < minX || maxX < x || y < minY || maxY < y || z < minZ || maxZ < z) {
-      return;
+      return false;
     }
+    let spriteCount = 0;
     const { tag } = cell;
-    forEach(this.spriteFactory.getSpritesAtCell?.(cell, updatePayload), sprite => {
+    const sprites = this.spriteFactory.getSpritesAtCell?.(cell, updatePayload);
+    forEach(sprites, sprite => {
       if (sprite) {
         const spriteId = this.slots.length;
         const slot = this.slotPool.create(sprite, tag);
         this.slots.push(slot);
         this.informUpdate(spriteId);
+        spriteCount++;
       }
     });
     this.spriteFactory.doneCellTracking?.(cell, updatePayload);
+    return !!spriteCount;
   }
 
   untrackCell(cellTag: string): void {

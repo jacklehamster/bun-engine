@@ -27015,7 +27015,7 @@ class ImageManager extends Disposable {
   }
   async renderMedia(imageId, media) {
     const mediaData = await this.renderProcedures[media.type](imageId, media);
-    const postProcessing = media.postProcessing;
+    const { postProcessing } = media;
     return postProcessing ? this.postProcess(mediaData, postProcessing) : mediaData;
   }
   async drawImage(imageId, drawProcedure) {
@@ -27531,9 +27531,13 @@ class AuxiliaryHolder {
     }
   }
   trackCell(cell, payload) {
+    let didTrack = false;
     for (const v of this.cellTracks) {
-      v.trackCell(cell, payload);
+      if (v.trackCell(cell, payload)) {
+        didTrack = true;
+      }
     }
+    return didTrack;
   }
   untrackCell(cellTag, payload) {
     for (const v of this.cellTracks) {
@@ -28141,7 +28145,13 @@ class Auxiliaries {
     forEach3(this.auxiliaries, (aux) => aux?.refresh?.(updatePayload));
   }
   trackCell(cell, updatePayload) {
-    forEach3(this.auxiliaries, (aux) => aux?.trackCell?.(cell, updatePayload));
+    let didTrack = false;
+    forEach3(this.auxiliaries, (aux) => {
+      if (aux?.trackCell?.(cell, updatePayload)) {
+        didTrack = true;
+      }
+    });
+    return didTrack;
   }
   untrackCell(cellTag2, updatePayload) {
     forEach3(this.auxiliaries, (aux) => aux?.untrackCell?.(cellTag2, updatePayload));
@@ -28377,6 +28387,9 @@ class DoubleLinkList {
     this.count++;
     this.moveTop(value);
   }
+  contains(value) {
+    return !!this.nodeMap[value];
+  }
   moveTop(value) {
     const entry = this.nodeMap[value];
     if (entry) {
@@ -28396,27 +28409,24 @@ class DoubleLinkList {
   remove(value) {
     const entry = this.nodeMap[value];
     if (entry) {
-      entry.prev.next = entry.next;
-      entry.next.prev = entry.prev;
-      entry.prev = entry.next = undefined;
-      this.pool.recycle(entry);
-      delete this.nodeMap[value];
-      this.count--;
+      this.removeEntry(entry);
       return true;
     } else {
       return false;
     }
   }
+  removeEntry(entry) {
+    entry.prev.next = entry.next;
+    entry.next.prev = entry.prev;
+    entry.prev = entry.next = undefined;
+    this.pool.recycle(entry);
+    delete this.nodeMap[entry.value];
+    this.count--;
+  }
   popBottom() {
     const entryToRemove = this.start.next;
     if (entryToRemove !== this.end) {
-      const newBottom = entryToRemove.next;
-      this.start.next = newBottom;
-      newBottom.prev = this.start;
-      delete this.nodeMap[entryToRemove.value];
-      this.count--;
-      entryToRemove.prev = entryToRemove.next = undefined;
-      this.pool.recycle(entryToRemove);
+      this.removeEntry(entryToRemove);
       return entryToRemove.value;
     }
     return;
@@ -28470,13 +28480,19 @@ class CellTracker {
     }
   }
   onCellVisit(cell, updatePayload) {
-    if (!this.cellTags.moveTop(cell.tag)) {
-      this.cellTags.pushTop(cell.tag);
-      this.cellTrack.trackCell?.(cell, updatePayload);
+    if (!this.cellTags.contains(cell.tag)) {
+      if (this.cellTrack.trackCell?.(cell, updatePayload)) {
+        this.cellTags.pushTop(cell.tag);
+      }
+    } else {
+      this.cellTags.moveTop(cell.tag);
     }
   }
   visitCell(visitedCell, updatePayload) {
     this.iterateCells(visitedCell, updatePayload, this.onCellVisit);
+    this.trimCells(updatePayload);
+  }
+  trimCells(updatePayload) {
     while (this.cellTags.size > this.cellLimit) {
       const removedTag = this.cellTags.popBottom();
       if (removedTag) {
@@ -28521,6 +28537,7 @@ class UpdatableMedias extends UpdatableList {
         medias.length--;
       }
     }, new UpdateRegistry((ids) => {
+      console.log("HERE");
       const imageIds = Array.from(ids);
       ids.clear();
       engine.updateTextures(imageIds, (index) => medias.at(index)).then((mediaInfos) => {
@@ -28701,18 +28718,22 @@ class SpriteGrid {
     const [[minX, maxX], [minY, maxY], [minZ, maxZ]] = this.ranges;
     const [x, y, z] = cell.pos;
     if (x < minX || maxX < x || y < minY || maxY < y || z < minZ || maxZ < z) {
-      return;
+      return false;
     }
+    let spriteCount = 0;
     const { tag } = cell;
-    forEach3(this.spriteFactory.getSpritesAtCell?.(cell, updatePayload), (sprite) => {
+    const sprites = this.spriteFactory.getSpritesAtCell?.(cell, updatePayload);
+    forEach3(sprites, (sprite) => {
       if (sprite) {
         const spriteId = this.slots.length;
         const slot = this.slotPool.create(sprite, tag);
         this.slots.push(slot);
         this.informUpdate(spriteId);
+        spriteCount++;
       }
     });
     this.spriteFactory.doneCellTracking?.(cell, updatePayload);
+    return !!spriteCount;
   }
   untrackCell(cellTag2) {
     for (let i = this.slots.length - 1;i >= 0; i--) {
@@ -29146,7 +29167,7 @@ class DemoWorld extends AuxiliaryHolder {
         const context = canvas.getContext("2d");
         if (context) {
           const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-          const data = imageData.data;
+          const { data } = imageData;
           for (let i = 0;i < data.length; i += 4) {
             data[i] = data[i + 1] = data[i + 2] = 0;
           }
@@ -29357,8 +29378,8 @@ class DemoWorld extends AuxiliaryHolder {
       heroSprites.informUpdate(1, SpriteUpdateType.TEX_SLOT);
     }));
     camera.position.addAuxiliary(new CellChangeAuxiliary({ cellSize: CELLSIZE }).addAuxiliary(new CellTracker(this, {
-      cellLimit: 20000,
-      range: [30, 3, 30],
+      cellLimit: 50,
+      range: [5, 3, 5],
       cellSize: CELLSIZE
     })));
     camera.distance.setValue(5);
@@ -29512,4 +29533,4 @@ export {
   hello
 };
 
-//# debugId=E1822966F977CCAA64756e2164756e21
+//# debugId=F6162624509C436764756e2164756e21

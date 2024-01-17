@@ -77,7 +77,7 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
         const context = canvas.getContext("2d");
         if (context) {
           const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-          const data = imageData.data;
+          const { data } = imageData;
           for (let i = 0; i < data.length; i += 4) {
             data[i] = data[i + 1] = data[i + 2] = 0;
           }
@@ -166,8 +166,6 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
         canvas.width = LOGO_SIZE;
         canvas.height = LOGO_SIZE;
         ctx.lineWidth = 8;
-        // ctx.fillStyle = "black";
-        // ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.setLineDash([5, 2]);
 
         ctx.strokeStyle = 'green';
@@ -379,8 +377,8 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
     camera.position.addAuxiliary(
       new CellChangeAuxiliary({ cellSize: CELLSIZE })
         .addAuxiliary(new CellTracker(this, {
-          cellLimit: 20000,
-          range: [30, 3, 30],
+          cellLimit: 50,
+          range: [5, 3, 5],
           cellSize: CELLSIZE,
         })));
 

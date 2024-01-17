@@ -24,8 +24,14 @@ export class Auxiliaries implements List<Auxiliary>, Auxiliary {
     forEach(this.auxiliaries, aux => aux?.refresh?.(updatePayload));
   }
 
-  trackCell(cell: Cell, updatePayload: UpdatePayload): void {
-    forEach(this.auxiliaries, aux => aux?.trackCell?.(cell, updatePayload));
+  trackCell(cell: Cell, updatePayload: UpdatePayload): boolean {
+    let didTrack = false;
+    forEach(this.auxiliaries, aux => {
+      if (aux?.trackCell?.(cell, updatePayload)) {
+        didTrack = true;
+      }
+    });
+    return didTrack;
   }
 
   untrackCell(cellTag: string, updatePayload: UpdatePayload): void {
