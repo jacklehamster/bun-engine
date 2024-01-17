@@ -17,9 +17,10 @@ layout(location = 1) in mat4 transform;
 //  1, 2, 3, 4 reserved for transform
 //  animation
 layout(location = 5) in vec4 slotSize_and_number;
+layout(location = 6) in vec4 animation;
 //  instance
-layout(location = 6) in float instance;
-layout(location = 7) in float spriteType;
+layout(location = 7) in float instance;
+layout(location = 8) in float spriteType;
 
 //  UNIFORM
 uniform float maxTextureSize;
@@ -29,6 +30,7 @@ uniform mat4 camTilt;
 uniform float camDist;
 uniform mat4 projection;
 uniform float curvature;
+uniform float time;
 
 //  OUT
 out float vTextureIndex;
@@ -41,9 +43,16 @@ void main() {
     pow(2.0, floor(slotSize_and_number.x / 16.0)),
     pow(2.0, mod(slotSize_and_number.x, 16.0)));
   float slotNumber = slotSize_and_number.y;
-  vec2 spriteSize = slotSize_and_number.zw;
-  vec2 tex = position.xy * vec2(0.49, -0.49) * sign(spriteSize) + 0.5; //  Texture corners 0..1
-  tex *= abs(spriteSize);
+  vec2 spriteSize = abs(slotSize_and_number.zw);
+  vec2 tex = position.xy * vec2(0.49, -0.49) * sign(slotSize_and_number.zw) + 0.5; //  Texture corners 0..1
+  float sheetCols = 1. / spriteSize.x;
+  float frameStart = animation[0];
+  float frameEnd = animation[1];
+  float fps = animation[2];
+  float frameOffset = floor(mod(time * fps / 1000., frameEnd + 1.));
+  float frame = frameStart + frameOffset;
+  tex += vec2(1., 0) * frame;//mod(frame, sheetCols) + vec2(0, 1.) * floor(frame / sheetCols);
+  tex *= spriteSize;
 
   float maxCols = maxTextureSize / slotSize.x;
   float maxRows = maxTextureSize / slotSize.y;

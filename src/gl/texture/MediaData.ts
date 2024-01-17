@@ -4,13 +4,14 @@ import { Schedule } from 'motor/Motor';
 
 export class MediaData extends Disposable implements Refresh {
   readonly texImgSrc: TexImageSource;
+  readonly canvasImgSrc?: CanvasImageSource;
   readonly width: number;
   readonly height: number;
   readonly isVideo: boolean;
   refreshCallback?(): void;
   schedule?: Partial<Schedule>;
 
-  constructor(image: TexImageSource, refreshRate?: number) {
+  constructor(image: TexImageSource, refreshRate?: number, canvasImgSrc?: CanvasImageSource) {
     super();
     this.texImgSrc = image;
     const img: any = image;
@@ -18,6 +19,7 @@ export class MediaData extends Disposable implements Refresh {
     this.width = img.naturalWidth ?? img.videoWidth ?? img.displayWidth ?? img.width?.baseValue?.value ?? img.width;
     this.height = img.naturalHeight ?? img.videoHeight ?? img.displayHeight ?? img.height?.baseValue?.value ?? img.height;
     this.schedule = refreshRate ? { period: 1000 / refreshRate } : undefined;
+    this.canvasImgSrc = canvasImgSrc;
     if (!this.width || !this.height) {
       throw new Error('Invalid image');
     }
@@ -40,7 +42,8 @@ export class MediaData extends Disposable implements Refresh {
       image.addEventListener('load', () => resolve(image), { once: true });
       image.src = src;
     });
-    return new MediaData(image);
+
+    return new MediaData(image, undefined, image);
   }
 
   static async loadVideo(src: string, volume?: number, fps: number = 30, playSpeed: number = 1, maxRefreshRate: number = Number.MAX_SAFE_INTEGER): Promise<MediaData> {

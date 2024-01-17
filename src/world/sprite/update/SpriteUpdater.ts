@@ -14,10 +14,9 @@ interface Props {
 }
 
 export class SpriteUpdater implements UpdateNotifier, Auxiliary<SpritesHolder> {
-  private readonly spriteTransformUpdate;
-  private readonly spriteAnimUpdate;
-  private readonly spriteTypeUpdate;
   private sprites?: Sprites;
+
+  private updateRegistries: Record<SpriteUpdateType, UpdateRegistry | undefined>;
 
   set holder(value: SpritesHolder) {
     this.sprites = value;
@@ -25,21 +24,29 @@ export class SpriteUpdater implements UpdateNotifier, Auxiliary<SpritesHolder> {
   }
 
   constructor({ engine, motor }: Props) {
-    this.spriteTransformUpdate = new UpdateRegistry((ids) => engine.updateSpriteTransforms(ids, this.sprites!), motor);
-    this.spriteAnimUpdate = new UpdateRegistry((ids) => engine.updateSpriteAnims(ids, this.sprites!), motor);
-    this.spriteTypeUpdate = new UpdateRegistry((ids) => engine.updateSpriteTypes(ids, this.sprites!), motor);
+    this.updateRegistries = {
+      [SpriteUpdateType.NONE]: undefined,
+      [SpriteUpdateType.TRANSFORM]: new UpdateRegistry((ids) => engine.updateSpriteTransforms(ids, this.sprites!), motor),
+      [SpriteUpdateType.TEX_SLOT]: new UpdateRegistry((ids) => engine.updateSpriteTexSlots(ids, this.sprites!), motor),
+      [SpriteUpdateType.TYPE]: new UpdateRegistry((ids) => engine.updateSpriteTypes(ids, this.sprites!), motor),
+      [SpriteUpdateType.ANIM]: new UpdateRegistry((ids) => engine.updateSpriteAnimations(ids, this.sprites!), motor),
+      [SpriteUpdateType.ALL]: undefined,
+    };
   }
 
   informUpdate(id: SpriteId, type: SpriteUpdateType = SpriteUpdateType.ALL): void {
     if (this.sprites && id < this.sprites.length) {
       if (type & SpriteUpdateType.TRANSFORM) {
-        this.spriteTransformUpdate.informUpdate(id);
+        this.updateRegistries[SpriteUpdateType.TRANSFORM]?.informUpdate(id);
       }
-      if (type & SpriteUpdateType.ANIM) {
-        this.spriteAnimUpdate.informUpdate(id);
+      if (type & SpriteUpdateType.TEX_SLOT) {
+        this.updateRegistries[SpriteUpdateType.TEX_SLOT]?.informUpdate(id);
       }
       if (type & SpriteUpdateType.TYPE) {
-        this.spriteTypeUpdate.informUpdate(id);
+        this.updateRegistries[SpriteUpdateType.TYPE]?.informUpdate(id);
+      }
+      if (type & SpriteUpdateType.ANIM) {
+        this.updateRegistries[SpriteUpdateType.ANIM]?.informUpdate(id);
       }
     }
   }

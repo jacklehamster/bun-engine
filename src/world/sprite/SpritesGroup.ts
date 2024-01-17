@@ -3,6 +3,7 @@ import { Sprites } from "./Sprites";
 import { Flippable, Sprite, copySprite } from "./Sprite";
 import { IMatrix } from "gl/transform/IMatrix";
 import { SpriteUpdateType } from "./update/SpriteUpdateType";
+import { UpdateNotifier } from "updates/UpdateNotifier";
 
 export class SpriteGroup implements Sprites, Flippable {
   flip: boolean = false;
@@ -12,7 +13,7 @@ export class SpriteGroup implements Sprites, Flippable {
     transform: Matrix.create(),
   };
 
-  constructor(private children: Sprites, public transforms: IMatrix[] = []) {
+  constructor(private children: Sprites | (Sprite[] & Partial<UpdateNotifier>), public transforms: IMatrix[] = []) {
   }
 
   get length(): number {

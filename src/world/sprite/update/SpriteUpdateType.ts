@@ -2,7 +2,8 @@
 export enum SpriteUpdateType {
   NONE = 0,
   TRANSFORM = 1,
-  ANIM = 2,
+  TEX_SLOT = 2,
   TYPE = 4,
-  ALL = 7,
+  ANIM = 8,
+  ALL = 15,
 }

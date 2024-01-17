@@ -6,6 +6,10 @@ interface BaseMedia {
   spriteSheet?: SpriteSheet;
 }
 
+export interface PostProcessable {
+  postProcessing?: (canvas: OffscreenCanvas) => Promise<OffscreenCanvas>;
+}
+
 export interface ImageMedia extends BaseMedia {
   type: "image";
   src: string;

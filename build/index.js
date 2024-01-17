@@ -22650,6 +22650,7 @@ var POSITION_LOC = "position";
 var INDEX_LOC = "index";
 var TRANSFORM_LOC = "transform";
 var SLOT_SIZE_LOC = "slotSize_and_number";
+var ANIM_LOC = "animation";
 var INSTANCE_LOC = "instance";
 var SPRITE_TYPE_LOC = "spriteType";
 var CAM_POS_LOC = "camPos";
@@ -25770,9 +25771,10 @@ layout(location = 1) in mat4 transform;
 //  1, 2, 3, 4 reserved for transform
 //  animation
 layout(location = 5) in vec4 slotSize_and_number;
+layout(location = 6) in vec4 animation;
 //  instance
-layout(location = 6) in float instance;
-layout(location = 7) in float spriteType;
+layout(location = 7) in float instance;
+layout(location = 8) in float spriteType;
 
 //  UNIFORM
 uniform float maxTextureSize;
@@ -25782,6 +25784,7 @@ uniform mat4 camTilt;
 uniform float camDist;
 uniform mat4 projection;
 uniform float curvature;
+uniform float time;
 
 //  OUT
 out float vTextureIndex;
@@ -25794,9 +25797,16 @@ void main() {
     pow(2.0, floor(slotSize_and_number.x / 16.0)),
     pow(2.0, mod(slotSize_and_number.x, 16.0)));
   float slotNumber = slotSize_and_number.y;
-  vec2 spriteSize = slotSize_and_number.zw;
-  vec2 tex = position.xy * vec2(0.49, -0.49) * sign(spriteSize) + 0.5; //  Texture corners 0..1
-  tex *= abs(spriteSize);
+  vec2 spriteSize = abs(slotSize_and_number.zw);
+  vec2 tex = position.xy * vec2(0.49, -0.49) * sign(slotSize_and_number.zw) + 0.5; //  Texture corners 0..1
+  float sheetCols = 1. / spriteSize.x;
+  float frameStart = animation[0];
+  float frameEnd = animation[1];
+  float fps = animation[2];
+  float frameOffset = floor(mod(time * fps / 1000., frameEnd + 1.));
+  float frame = frameStart + frameOffset;
+  tex += vec2(1., 0) * frame;//mod(frame, sheetCols) + vec2(0, 1.) * floor(frame / sheetCols);
+  tex *= spriteSize;
 
   float maxCols = maxTextureSize / slotSize.x;
   float maxRows = maxTextureSize / slotSize.y;
@@ -26889,11 +26899,12 @@ class TextureManager extends Disposable {
 // src/gl/texture/MediaData.ts
 class MediaData extends Disposable {
   texImgSrc;
+  canvasImgSrc;
   width;
   height;
   isVideo;
   schedule;
-  constructor(image, refreshRate) {
+  constructor(image, refreshRate, canvasImgSrc) {
     super();
     this.texImgSrc = image;
     const img = image;
@@ -26901,6 +26912,7 @@ class MediaData extends Disposable {
     this.width = img.naturalWidth ?? img.videoWidth ?? img.displayWidth ?? img.width?.baseValue?.value ?? img.width;
     this.height = img.naturalHeight ?? img.videoHeight ?? img.displayHeight ?? img.height?.baseValue?.value ?? img.height;
     this.schedule = refreshRate ? { period: 1000 / refreshRate } : undefined;
+    this.canvasImgSrc = canvasImgSrc;
     if (!this.width || !this.height) {
       throw new Error("Invalid image");
     }
@@ -26920,7 +26932,7 @@ class MediaData extends Disposable {
       image2.addEventListener("load", () => resolve(image2), { once: true });
       image2.src = src;
     });
-    return new MediaData(image);
+    return new MediaData(image, undefined, image);
   }
   static async loadVideo(src, volume, fps = 30, playSpeed = 1, maxRefreshRate = Number.MAX_SAFE_INTEGER) {
     const video = await new Promise((resolve, reject) => {
@@ -26983,6 +26995,15 @@ class ImageManager extends Disposable {
     canvas: createDrawProcedure((imageId, media) => this.loadCanvas(imageId, media.canvas)),
     webcam: createDrawProcedure((imageId, media) => this.loadWebCam(imageId, media.deviceId))
   };
+  async postProcess(mediaData, postProcessing) {
+    if (mediaData.canvasImgSrc) {
+      const canvas = new OffscreenCanvas(mediaData.width, mediaData.height);
+      const ctx = canvas.getContext("2d");
+      ctx?.drawImage(mediaData.canvasImgSrc, 0, 0);
+      return MediaData.createFromCanvas(await postProcessing(canvas));
+    }
+    return mediaData;
+  }
   hasImageId(imageId) {
     return !!this.getMedia(imageId);
   }
@@ -26993,7 +27014,9 @@ class ImageManager extends Disposable {
     this.images[imageId] = mediaInfo;
   }
   async renderMedia(imageId, media) {
-    return this.renderProcedures[media.type](imageId, media);
+    const mediaData = await this.renderProcedures[media.type](imageId, media);
+    const postProcessing = media.postProcessing;
+    return postProcessing ? this.postProcess(mediaData, postProcessing) : mediaData;
   }
   async drawImage(imageId, drawProcedure) {
     const canvas = new OffscreenCanvas(1, 1);
@@ -27060,7 +27083,10 @@ function copySprite(sprite, dest) {
       transform: Matrix_default.create().copy(sprite.transform),
       imageId: sprite.imageId,
       spriteType: sprite.spriteType,
-      flip: sprite.flip
+      flip: sprite.flip,
+      animation: {
+        ...sprite.animation
+      }
     };
   }
   dest.name = sprite.name;
@@ -27068,6 +27094,11 @@ function copySprite(sprite, dest) {
   dest.spriteType = sprite.spriteType;
   dest.transform.copy(sprite.transform);
   dest.flip = sprite.flip;
+  dest.animation = dest.animation ?? { frames: [0, 0] };
+  dest.animation.frames = dest.animation.frames ?? [0, 0];
+  dest.animation.frames[0] = sprite.animation?.frames?.[0] ?? 0;
+  dest.animation.frames[1] = sprite.animation?.frames?.[1] ?? dest.animation.frames[0];
+  dest.animation.fps = sprite.animation?.fps;
   return dest;
 }
 var SpriteType;
@@ -27105,6 +27136,7 @@ class GraphicsEngine extends Disposable {
   matrixUniforms;
   floatUniforms;
   vec3Uniforms;
+  tempBuffer = new Float32Array(4).fill(0);
   constructor(gl) {
     super();
     this.gl = gl;
@@ -27216,6 +27248,19 @@ class GraphicsEngine extends Disposable {
     } else {
       this.attributeBuffers.ensureSize(SLOT_SIZE_LOC, instanceCount);
     }
+    if (!this.attributeBuffers.hasBuffer(ANIM_LOC)) {
+      this.attributeBuffers.createBuffer({
+        location: ANIM_LOC,
+        target: GL.ARRAY_BUFFER,
+        usage: GL.DYNAMIC_DRAW,
+        vertexAttribPointerRows: 1,
+        elemCount: 4,
+        divisor: 1,
+        instanceCount
+      });
+    } else {
+      this.attributeBuffers.ensureSize(ANIM_LOC, instanceCount);
+    }
     if (!this.attributeBuffers.hasBuffer(INSTANCE_LOC)) {
       this.attributeBuffers.createBuffer({
         location: INSTANCE_LOC,
@@ -27296,8 +27341,7 @@ class GraphicsEngine extends Disposable {
     }
     this.spriteCount = Math.max(this.spriteCount, topVisibleSprite + 1);
   }
-  tempBuffer = new Float32Array(TEX_BUFFER_ELEMS).fill(0);
-  updateSpriteAnims(spriteIds, sprites) {
+  updateSpriteTexSlots(spriteIds, sprites) {
     const attributeBuffers = this.attributeBuffers;
     attributeBuffers.bindBuffer(SLOT_SIZE_LOC);
     spriteIds.forEach((spriteId) => {
@@ -27318,15 +27362,28 @@ class GraphicsEngine extends Disposable {
       }
     });
   }
-  static tempBuffer = new Float32Array(1);
   updateSpriteTypes(spriteIds, sprites) {
     const attributeBuffers = this.attributeBuffers;
     attributeBuffers.bindBuffer(SPRITE_TYPE_LOC);
     spriteIds.forEach((spriteId) => {
       const sprite = sprites.at(spriteId);
       const type = sprite?.spriteType ?? SpriteType.DEFAULT;
-      GraphicsEngine.tempBuffer[0] = type;
-      this.gl.bufferSubData(GL.ARRAY_BUFFER, 1 * Float32Array.BYTES_PER_ELEMENT * spriteId, GraphicsEngine.tempBuffer);
+      this.tempBuffer[0] = type;
+      this.gl.bufferSubData(GL.ARRAY_BUFFER, 1 * Float32Array.BYTES_PER_ELEMENT * spriteId, this.tempBuffer, 0, 1);
+    });
+    spriteIds.clear();
+  }
+  updateSpriteAnimations(spriteIds, sprites) {
+    const attributeBuffers = this.attributeBuffers;
+    attributeBuffers.bindBuffer(ANIM_LOC);
+    spriteIds.forEach((spriteId) => {
+      const sprite = sprites.at(spriteId);
+      if (sprite) {
+        this.tempBuffer[0] = sprite.animation?.frames?.[0] ?? 0;
+        this.tempBuffer[1] = sprite.animation?.frames?.[1] ?? this.tempBuffer[0];
+        this.tempBuffer[2] = sprite.animation?.fps ?? 0;
+        this.gl.bufferSubData(GL.ARRAY_BUFFER, 4 * Float32Array.BYTES_PER_ELEMENT * spriteId, this.tempBuffer);
+      }
     });
     spriteIds.clear();
   }
@@ -28463,7 +28520,7 @@ class UpdatableMedias extends UpdatableList {
     }, new UpdateRegistry((ids) => {
       const imageIds = Array.from(ids);
       ids.clear();
-      engine.updateTextures(imageIds, medias.at.bind(medias)).then((mediaInfos) => {
+      engine.updateTextures(imageIds, (index) => medias.at(index)).then((mediaInfos) => {
         mediaInfos.forEach((mediaInfo) => {
           if (mediaInfo.isVideo) {
             motor.registerUpdate(mediaInfo, mediaInfo.schedule);
@@ -28598,9 +28655,10 @@ var SpriteUpdateType;
 (function(SpriteUpdateType2) {
   SpriteUpdateType2[SpriteUpdateType2["NONE"] = 0] = "NONE";
   SpriteUpdateType2[SpriteUpdateType2["TRANSFORM"] = 1] = "TRANSFORM";
-  SpriteUpdateType2[SpriteUpdateType2["ANIM"] = 2] = "ANIM";
+  SpriteUpdateType2[SpriteUpdateType2["TEX_SLOT"] = 2] = "TEX_SLOT";
   SpriteUpdateType2[SpriteUpdateType2["TYPE"] = 4] = "TYPE";
-  SpriteUpdateType2[SpriteUpdateType2["ALL"] = 7] = "ALL";
+  SpriteUpdateType2[SpriteUpdateType2["ANIM"] = 8] = "ANIM";
+  SpriteUpdateType2[SpriteUpdateType2["ALL"] = 15] = "ALL";
 })(SpriteUpdateType || (SpriteUpdateType = {}));
 
 // src/world/sprite/aux/SpriteGrid.ts
@@ -28739,29 +28797,35 @@ class StaticSprites {
 
 // src/world/sprite/update/SpriteUpdater.ts
 class SpriteUpdater {
-  spriteTransformUpdate;
-  spriteAnimUpdate;
-  spriteTypeUpdate;
   sprites;
+  updateRegistries;
   set holder(value) {
     this.sprites = value;
     value.informUpdate = this.informUpdate.bind(this);
   }
   constructor({ engine, motor }) {
-    this.spriteTransformUpdate = new UpdateRegistry((ids) => engine.updateSpriteTransforms(ids, this.sprites), motor);
-    this.spriteAnimUpdate = new UpdateRegistry((ids) => engine.updateSpriteAnims(ids, this.sprites), motor);
-    this.spriteTypeUpdate = new UpdateRegistry((ids) => engine.updateSpriteTypes(ids, this.sprites), motor);
+    this.updateRegistries = {
+      [SpriteUpdateType.NONE]: undefined,
+      [SpriteUpdateType.TRANSFORM]: new UpdateRegistry((ids) => engine.updateSpriteTransforms(ids, this.sprites), motor),
+      [SpriteUpdateType.TEX_SLOT]: new UpdateRegistry((ids) => engine.updateSpriteTexSlots(ids, this.sprites), motor),
+      [SpriteUpdateType.TYPE]: new UpdateRegistry((ids) => engine.updateSpriteTypes(ids, this.sprites), motor),
+      [SpriteUpdateType.ANIM]: new UpdateRegistry((ids) => engine.updateSpriteAnimations(ids, this.sprites), motor),
+      [SpriteUpdateType.ALL]: undefined
+    };
   }
   informUpdate(id, type = SpriteUpdateType.ALL) {
     if (this.sprites && id < this.sprites.length) {
       if (type & SpriteUpdateType.TRANSFORM) {
-        this.spriteTransformUpdate.informUpdate(id);
+        this.updateRegistries[SpriteUpdateType.TRANSFORM]?.informUpdate(id);
       }
-      if (type & SpriteUpdateType.ANIM) {
-        this.spriteAnimUpdate.informUpdate(id);
+      if (type & SpriteUpdateType.TEX_SLOT) {
+        this.updateRegistries[SpriteUpdateType.TEX_SLOT]?.informUpdate(id);
       }
       if (type & SpriteUpdateType.TYPE) {
-        this.spriteTypeUpdate.informUpdate(id);
+        this.updateRegistries[SpriteUpdateType.TYPE]?.informUpdate(id);
+      }
+      if (type & SpriteUpdateType.ANIM) {
+        this.updateRegistries[SpriteUpdateType.ANIM]?.informUpdate(id);
       }
     }
   }
@@ -29039,6 +29103,7 @@ var WIREFRAME = 4;
 var GRASS = 5;
 var BRICK = 6;
 var DODO = 7;
+var DODO_SHADOW = 8;
 var LOGO_SIZE = 512;
 var CELLSIZE = 2;
 
@@ -29054,6 +29119,13 @@ class DemoWorld extends AuxiliaryHolder {
       src: "dobuki.png"
     });
     medias.set(DODO, {
+      type: "image",
+      src: "dodo.png",
+      spriteSheet: {
+        spriteSize: [190, 290]
+      }
+    });
+    medias.set(DODO_SHADOW, {
       type: "image",
       src: "dodo.png",
       spriteSheet: {
@@ -29213,11 +29285,11 @@ class DemoWorld extends AuxiliaryHolder {
       {
         imageId: DODO,
         spriteType: SpriteType.SPRITE,
-        transform: Matrix_default.create().translate(0, -0.68, 0)
-      },
-      {
-        imageId: DODO,
-        transform: Matrix_default.create().translate(0, -0.9, 0).rotateX(-Math.PI / 2)
+        transform: Matrix_default.create().translate(0, -0.68, 0),
+        animation: {
+          frames: [1, 5],
+          fps: 24
+        }
       }
     ], [heroPos]);
     const heroSprites = new StaticSprites(spriteGroup);
@@ -29251,8 +29323,8 @@ class DemoWorld extends AuxiliaryHolder {
     }));
     this.addAuxiliary(keyboard);
     this.addAuxiliary(new DirAuxiliary({ flippable: spriteGroup, controls }, () => {
-      heroSprites.informUpdate(0, SpriteUpdateType.ANIM);
-      heroSprites.informUpdate(1, SpriteUpdateType.ANIM);
+      heroSprites.informUpdate(0, SpriteUpdateType.TEX_SLOT);
+      heroSprites.informUpdate(1, SpriteUpdateType.TEX_SLOT);
     }));
     camera.position.addAuxiliary(new CellChangeAuxiliary({ cellSize: CELLSIZE }).addAuxiliary(new CellTracker(this, {
       cellLimit: 20000,
@@ -29410,4 +29482,4 @@ export {
   hello
 };
 
-//# debugId=6B6D5F24399703D464756e2164756e21
+//# debugId=8C59F1A63167547864756e2164756e21

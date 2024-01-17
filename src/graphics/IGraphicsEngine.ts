@@ -13,8 +13,9 @@ export interface IGraphicsEngine extends Auxiliary {
   setBgColor(rgb: Vector): void;
   updateTextures(imageIds: MediaId[], getMedia: (imageId: MediaId) => Media | undefined): Promise<MediaData[]>;
   updateSpriteTransforms(spriteIds: Set<SpriteId>, sprites: Sprites): void;
-  updateSpriteAnims(spriteIds: Set<SpriteId>, sprites: Sprites): void;
+  updateSpriteTexSlots(spriteIds: Set<SpriteId>, sprites: Sprites): void;
   updateSpriteTypes(spriteIds: Set<SpriteId>, sprites: Sprites): void;
+  updateSpriteAnimations(spriteIds: Set<SpriteId>, sprites: Sprites): void;
   updateUniformMatrix(type: MatrixUniform, matrix: IMatrix): void;
   updateUniformFloat(type: FloatUniform, value: number): void;
   updateUniformVector(type: VectorUniform, value: Vector): void;

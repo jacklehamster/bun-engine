@@ -34,7 +34,7 @@ import { SmoothFollowAuxiliary } from "world/aux/SmoothFollowAuxiliary";
 import { DirAuxiliary } from "world/aux/DirAuxiliary";
 import { SpriteUpdateType } from "world/sprite/update/SpriteUpdateType";
 
-const DOBUKI = 0, LOGO = 1, GROUND = 2, VIDEO = 3, WIREFRAME = 4, GRASS = 5, BRICK = 6, DODO = 7;
+const DOBUKI = 0, LOGO = 1, GROUND = 2, VIDEO = 3, WIREFRAME = 4, GRASS = 5, BRICK = 6, DODO = 7, DODO_SHADOW = 8;
 const LOGO_SIZE = 512;
 const CELLSIZE = 2;
 
@@ -63,6 +63,12 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
       type: "image", src: "dobuki.png",
     });
     medias.set(DODO, {
+      type: "image", src: "dodo.png",
+      spriteSheet: {
+        spriteSize: [190, 290],
+      },
+    });
+    medias.set(DODO_SHADOW, {
       type: "image", src: "dodo.png",
       spriteSheet: {
         spriteSize: [190, 290],
@@ -260,10 +266,18 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
         imageId: DODO,
         spriteType: SpriteType.SPRITE,
         transform: Matrix.create().translate(0, -.68, 0),
+        animation: {
+          frames: [1, 5],
+          fps: 24,
+        },
       },
       {
         imageId: DODO,
-        transform: Matrix.create().translate(0, -0.9, 0).rotateX(-Math.PI / 2),
+        transform: Matrix.create().translate(0, -0.9, 0).rotateX(-Math.PI / 2).scale(1, .3, 1),
+        animation: {
+          frames: [1, 5],
+          fps: 24,
+        },
       },
     ], [heroPos]);
     const heroSprites = new StaticSprites(spriteGroup);
@@ -336,8 +350,8 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
     this.addAuxiliary(keyboard);
 
     this.addAuxiliary(new DirAuxiliary({ flippable: spriteGroup, controls }, () => {
-      heroSprites.informUpdate(0, SpriteUpdateType.ANIM);
-      heroSprites.informUpdate(1, SpriteUpdateType.ANIM);
+      heroSprites.informUpdate(0, SpriteUpdateType.TEX_SLOT);
+      heroSprites.informUpdate(1, SpriteUpdateType.TEX_SLOT);
     }));
 
     // heroPos.addChangeListener((dx, dy, dz) => {

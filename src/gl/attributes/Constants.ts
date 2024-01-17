@@ -13,6 +13,7 @@ export const POSITION_LOC: LocationName = 'position';
 export const INDEX_LOC: LocationName = 'index';
 export const TRANSFORM_LOC: LocationName = 'transform';
 export const SLOT_SIZE_LOC: LocationName = 'slotSize_and_number';
+export const ANIM_LOC: LocationName = 'animation';
 export const INSTANCE_LOC: LocationName = 'instance';
 export const SPRITE_TYPE_LOC: LocationName = 'spriteType';
 

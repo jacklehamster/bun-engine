@@ -23,6 +23,7 @@ import {
   BG_BLUR_LOC,
   SPRITE_TYPE_LOC,
   TIME_LOC,
+  ANIM_LOC,
 } from '../gl/attributes/Constants';
 import Matrix from 'gl/transform/Matrix';
 import vertexShader from 'generated/src/gl/resources/vertexShader.txt';
@@ -68,6 +69,8 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
   private matrixUniforms: Record<MatrixUniform, WebGLUniformLocation>;
   private floatUniforms: Record<FloatUniform, WebGLUniformLocation>;
   private vec3Uniforms: Record<VectorUniform, WebGLUniformLocation>;
+
+  private tempBuffer = new Float32Array(4).fill(0);
 
   constructor(private gl: GL) {
     super();
@@ -204,6 +207,19 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
     } else {
       this.attributeBuffers.ensureSize(SLOT_SIZE_LOC, instanceCount);
     }
+    if (!this.attributeBuffers.hasBuffer(ANIM_LOC)) {
+      this.attributeBuffers.createBuffer({
+        location: ANIM_LOC,
+        target: GL.ARRAY_BUFFER,
+        usage: GL.DYNAMIC_DRAW,
+        vertexAttribPointerRows: 1,
+        elemCount: 4,
+        divisor: 1,
+        instanceCount,
+      });
+    } else {
+      this.attributeBuffers.ensureSize(ANIM_LOC, instanceCount);
+    }
     if (!this.attributeBuffers.hasBuffer(INSTANCE_LOC)) {
       this.attributeBuffers.createBuffer({
         location: INSTANCE_LOC,
@@ -294,8 +310,7 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
     this.spriteCount = Math.max(this.spriteCount, topVisibleSprite + 1);
   }
 
-  private tempBuffer = new Float32Array(TEX_BUFFER_ELEMS).fill(0);
-  updateSpriteAnims(spriteIds: Set<SpriteId>, sprites: Sprites) {
+  updateSpriteTexSlots(spriteIds: Set<SpriteId>, sprites: Sprites) {
     const attributeBuffers = this.attributeBuffers;
     attributeBuffers.bindBuffer(SLOT_SIZE_LOC);
     spriteIds.forEach(spriteId => {
@@ -317,15 +332,29 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
     });
   }
 
-  private static tempBuffer: Float32Array = new Float32Array(1);
   updateSpriteTypes(spriteIds: Set<SpriteId>, sprites: Sprites) {
     const attributeBuffers = this.attributeBuffers;
     attributeBuffers.bindBuffer(SPRITE_TYPE_LOC);
     spriteIds.forEach(spriteId => {
       const sprite = sprites.at(spriteId);
       const type = sprite?.spriteType ?? SpriteType.DEFAULT;
-      GraphicsEngine.tempBuffer[0] = type;
-      this.gl.bufferSubData(GL.ARRAY_BUFFER, 1 * Float32Array.BYTES_PER_ELEMENT * spriteId, GraphicsEngine.tempBuffer);
+      this.tempBuffer[0] = type;
+      this.gl.bufferSubData(GL.ARRAY_BUFFER, 1 * Float32Array.BYTES_PER_ELEMENT * spriteId, this.tempBuffer, 0, 1);
+    });
+    spriteIds.clear();
+  }
+
+  updateSpriteAnimations(spriteIds: Set<SpriteId>, sprites: Sprites) {
+    const attributeBuffers = this.attributeBuffers;
+    attributeBuffers.bindBuffer(ANIM_LOC);
+    spriteIds.forEach(spriteId => {
+      const sprite = sprites.at(spriteId);
+      if (sprite) {
+        this.tempBuffer[0] = sprite.animation?.frames?.[0] ?? 0;
+        this.tempBuffer[1] = sprite.animation?.frames?.[1] ?? this.tempBuffer[0];
+        this.tempBuffer[2] = sprite.animation?.fps ?? 0;
+        this.gl.bufferSubData(GL.ARRAY_BUFFER, 4 * Float32Array.BYTES_PER_ELEMENT * spriteId, this.tempBuffer);
+      }
     });
     spriteIds.clear();
   }

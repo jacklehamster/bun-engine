@@ -14,22 +14,24 @@ interface Props {
 
 export class UpdatableMedias extends UpdatableList<Media> {
   constructor({ motor, engine }: Props, medias: (Media | undefined)[] = []) {
-    super(medias, (index, value) => {
-      medias[index] = value;
-      while (!medias[medias.length - 1]) {
-        medias.length--;
-      }
-    },
+    super(medias,
+      (index, value) => {
+        medias[index] = value;
+        while (!medias[medias.length - 1]) {
+          medias.length--;
+        }
+      },
       new UpdateRegistry(ids => {
         const imageIds = Array.from(ids);
         ids.clear();
-        engine.updateTextures(imageIds, medias.at.bind(medias)).then((mediaInfos) => {
-          mediaInfos.forEach(mediaInfo => {
-            if (mediaInfo.isVideo) {
-              motor.registerUpdate(mediaInfo, mediaInfo.schedule);
-            }
+        engine.updateTextures(imageIds, index => medias.at(index))
+          .then((mediaInfos) => {
+            mediaInfos.forEach(mediaInfo => {
+              if (mediaInfo.isVideo) {
+                motor.registerUpdate(mediaInfo, mediaInfo.schedule);
+              }
+            });
           });
-        });
       }, motor),
     );
   }
