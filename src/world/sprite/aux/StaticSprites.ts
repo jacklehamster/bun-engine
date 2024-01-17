@@ -24,7 +24,7 @@ export class StaticSprites implements Sprites, Auxiliary<SpritesHolder> {
   }
 
   activate(): void {
-    this.holder?.addSprites(this);
+    this.holder?.add(this);
     forEach(this.sprites, (_, index) => this.informUpdate(index));
   }
 }

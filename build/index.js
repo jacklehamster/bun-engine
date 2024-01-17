@@ -26787,6 +26787,7 @@ class TextureManager extends Disposable {
   textureSlotAllocatorForVideo = new TextureSlotAllocator2({
     excludeTexture: (tex) => tex !== TEXTURE_INDEX_FOR_VIDEO
   });
+  activeMedias = new Set;
   constructor(gl, uniforms) {
     super();
     this.gl = gl;
@@ -26857,11 +26858,11 @@ class TextureManager extends Disposable {
       this.gl.bindTexture(GL.TEXTURE_2D, texture);
       this.applyTexImage2d(imageInfo, srcRect, dstRect);
     };
-    if (imageInfo.active) {
+    if (this.activeMedias.has(imageInfo)) {
       refreshTexture();
     } else {
       this.loadTexture(imageInfo, textureId, texture, srcRect, dstRect);
-      imageInfo.active = true;
+      this.activeMedias.add(imageInfo);
     }
     return refreshTexture;
   }
@@ -26898,14 +26899,16 @@ class TextureManager extends Disposable {
 
 // src/gl/texture/MediaData.ts
 class MediaData extends Disposable {
+  id;
   texImgSrc;
   canvasImgSrc;
   width;
   height;
   isVideo;
   schedule;
-  constructor(image, refreshRate, canvasImgSrc) {
+  constructor(id, image, refreshRate, canvasImgSrc) {
     super();
+    this.id = id;
     this.texImgSrc = image;
     const img = image;
     this.isVideo = !!(img.videoWidth || img.videoHeight);
@@ -26920,10 +26923,10 @@ class MediaData extends Disposable {
   refresh() {
     this.refreshCallback?.();
   }
-  static createFromCanvas(canvas) {
-    return new MediaData(canvas);
+  static createFromCanvas(mediaId, canvas) {
+    return new MediaData(mediaId, canvas);
   }
-  static async loadImage(src) {
+  static async loadImage(mediaID, src) {
     const image = await new Promise((resolve, reject) => {
       const image2 = new Image;
       image2.crossOrigin = "anonymous";
@@ -26932,9 +26935,9 @@ class MediaData extends Disposable {
       image2.addEventListener("load", () => resolve(image2), { once: true });
       image2.src = src;
     });
-    return new MediaData(image, undefined, image);
+    return new MediaData(mediaID, image, undefined, image);
   }
-  static async loadVideo(src, volume, fps = 30, playSpeed = 1, maxRefreshRate = Number.MAX_SAFE_INTEGER) {
+  static async loadVideo(mediaId, src, volume, fps = 30, playSpeed = 1, maxRefreshRate = Number.MAX_SAFE_INTEGER) {
     const video = await new Promise((resolve, reject) => {
       const video2 = document.createElement("video");
       video2.loop = true;
@@ -26950,11 +26953,11 @@ class MediaData extends Disposable {
       video2.addEventListener("error", (e) => reject(e.error));
       video2.src = src;
     });
-    const videoInfo = new MediaData(video, Math.min(fps * playSpeed, maxRefreshRate));
+    const videoInfo = new MediaData(mediaId, video, Math.min(fps * playSpeed, maxRefreshRate));
     videoInfo.addOnDestroy(() => video.pause());
     return videoInfo;
   }
-  static async loadWebcam(deviceId) {
+  static async loadWebcam(mediaId, deviceId) {
     const video = await new Promise((resolve, reject) => {
       const video2 = document.createElement("video");
       video2.loop = true;
@@ -26962,7 +26965,7 @@ class MediaData extends Disposable {
       video2.addEventListener("playing", () => resolve(video2), { once: true });
       video2.addEventListener("error", (e) => reject(e.error));
     });
-    const videoInfo = new MediaData(video);
+    const videoInfo = new MediaData(mediaId, video);
     let cancelled = false;
     navigator.mediaDevices.getUserMedia({ video: { deviceId } }).then((stream) => {
       if (!cancelled) {
@@ -26987,7 +26990,6 @@ class ImageManager extends Disposable {
   constructor() {
     super(...arguments);
   }
-  images = {};
   renderProcedures = {
     image: createDrawProcedure((imageId, media) => this.loadImage(imageId, media.src)),
     video: createDrawProcedure((imageId, media) => this.loadVideo(imageId, media.src, media.volume, media.fps, media.playSpeed)),
@@ -26999,19 +27001,13 @@ class ImageManager extends Disposable {
     if (mediaData.canvasImgSrc) {
       const canvas = new OffscreenCanvas(mediaData.width, mediaData.height);
       const ctx = canvas.getContext("2d");
-      ctx?.drawImage(mediaData.canvasImgSrc, 0, 0);
-      return MediaData.createFromCanvas(await postProcessing(canvas) ?? canvas);
+      if (ctx) {
+        ctx.drawImage(mediaData.canvasImgSrc, 0, 0);
+        await postProcessing(ctx);
+      }
+      return MediaData.createFromCanvas(mediaData.id, canvas);
     }
     return mediaData;
-  }
-  hasImageId(imageId) {
-    return !!this.getMedia(imageId);
-  }
-  getMedia(imageId) {
-    return this.images[imageId];
-  }
-  setImage(imageId, mediaInfo) {
-    this.images[imageId] = mediaInfo;
   }
   async renderMedia(imageId, media) {
     const mediaData = await this.renderProcedures[media.type](imageId, media);
@@ -27021,29 +27017,24 @@ class ImageManager extends Disposable {
   async drawImage(imageId, drawProcedure) {
     const canvas = new OffscreenCanvas(1, 1);
     drawProcedure(canvas.getContext("2d"));
-    const imageInfo = MediaData.createFromCanvas(canvas);
-    this.images[imageId] = this.own(imageInfo);
+    const imageInfo = MediaData.createFromCanvas(imageId, canvas);
     return imageInfo;
   }
   async loadCanvas(imageId, canvas) {
-    const imageInfo = MediaData.createFromCanvas(canvas);
+    const imageInfo = MediaData.createFromCanvas(imageId, canvas);
     canvas.getContext("2d");
-    this.images[imageId] = this.own(imageInfo);
     return imageInfo;
   }
   async loadImage(imageId, src) {
-    const imageInfo = await MediaData.loadImage(src);
-    this.images[imageId] = this.own(imageInfo);
+    const imageInfo = await MediaData.loadImage(imageId, src);
     return imageInfo;
   }
   async loadVideo(imageId, src, volume, fps, playSpeed, maxRefreshRate) {
-    const videoInfo = await MediaData.loadVideo(src, volume, fps, playSpeed, maxRefreshRate);
-    this.images[imageId] = this.own(videoInfo);
+    const videoInfo = await MediaData.loadVideo(imageId, src, volume, fps, playSpeed, maxRefreshRate);
     return videoInfo;
   }
   async loadWebCam(imageId, deviceId) {
-    const videoInfo = await MediaData.loadWebcam(deviceId);
-    this.images[imageId] = this.own(videoInfo);
+    const videoInfo = await MediaData.loadWebcam(imageId, deviceId);
     return videoInfo;
   }
 }
@@ -27118,6 +27109,24 @@ var Priority;
   Priority2[Priority2["LAST"] = 1] = "LAST";
 })(Priority || (Priority = {}));
 
+// src/world/sprite/List.ts
+function forEach3(list, callback) {
+  if (list) {
+    for (let i = 0;i < list.length; i++) {
+      const elem = list.at(i);
+      callback(elem, i);
+    }
+  }
+}
+function map(list, callback) {
+  const r = [];
+  for (let i = 0;i < list.length; i++) {
+    const elem = list.at(i);
+    r.push(callback(elem, i));
+  }
+  return r;
+}
+
 // src/graphics/GraphicsEngine.ts
 var VERTICES_PER_SPRITE = 6;
 var TEX_BUFFER_ELEMS = 4;
@@ -27131,7 +27140,7 @@ class GraphicsEngine extends Disposable {
   uniforms;
   textureManager;
   imageManager;
-  textureSlots = {};
+  textureSlots = new Map;
   pixelListener;
   spriteCount = 0;
   maxSpriteCount = 0;
@@ -27170,9 +27179,7 @@ class GraphicsEngine extends Disposable {
     this.initialize(PROGRAM_NAME);
   }
   clearTextureSlots() {
-    for (let i in this.textureSlots) {
-      delete this.textureSlots[i];
-    }
+    this.textureSlots.clear();
   }
   resetViewportSize() {
     this.gl.viewport(0, 0, this.gl.drawingBufferWidth, this.gl.drawingBufferHeight);
@@ -27204,7 +27211,9 @@ class GraphicsEngine extends Disposable {
     this.gl.clear(this.gl.COLOR_BUFFER_BIT);
   }
   ensureBuffers(instanceCount) {
-    console.log("Sprite limit", instanceCount);
+    if (instanceCount >= 1e4) {
+      console.warn("Sprite limit has already reached:", instanceCount);
+    }
     if (!this.attributeBuffers.hasBuffer(INDEX_LOC)) {
       this.attributeBuffers.createBuffer({
         location: INDEX_LOC,
@@ -27293,23 +27302,27 @@ class GraphicsEngine extends Disposable {
     return this.attributeBuffers;
   }
   async updateTextures(imageIds, getMedia) {
-    const mediaInfos = (await Promise.all(imageIds.map(async (imageId) => {
+    const mediaInfos = (await Promise.all(map(imageIds, async (imageId) => {
+      if (imageId === undefined) {
+        console.warn(`Undefined imageId`);
+        return;
+      }
       const media = getMedia(imageId);
-      if (!media) {
+      if (!media || media.id === undefined) {
         console.warn(`No media for imageId ${imageId}`);
         return;
       }
-      const mediaData = await this.imageManager.renderMedia(imageId, media);
-      return { mediaData, imageId, spriteSheet: media.spriteSheet };
+      const mediaData = await this.imageManager.renderMedia(media.id, media);
+      return { mediaData, mediaId: media.id, spriteSheet: media.spriteSheet };
     }))).filter((data) => !!data);
-    const textureIndices = await Promise.all(mediaInfos.map(async ({ mediaData, imageId, spriteSheet }) => {
+    const textureIndices = await Promise.all(mediaInfos.map(async ({ mediaData, mediaId, spriteSheet }) => {
       const { slot, refreshCallback } = this.textureManager.allocateSlotForImage(mediaData);
       const slotW = Math.log2(slot.size[0]), slotH = Math.log2(slot.size[1]);
       const wh = slotW * 16 + slotH;
       const [spriteWidth, spriteHeight] = spriteSheet?.spriteSize ?? [mediaData.width, mediaData.height];
-      this.textureSlots[imageId] = {
+      this.textureSlots.set(mediaId, {
         buffer: Float32Array.from([wh, slot.slotNumber, spriteWidth / mediaData.width, spriteHeight / mediaData.height])
-      };
+      });
       mediaData.refreshCallback = refreshCallback;
       return slot.textureIndex;
     }));
@@ -27348,7 +27361,7 @@ class GraphicsEngine extends Disposable {
     attributeBuffers.bindBuffer(SLOT_SIZE_LOC);
     spriteIds.forEach((spriteId) => {
       const sprite = sprites.at(spriteId);
-      const slotObj = sprite ? this.textureSlots[sprite.imageId] : undefined;
+      const slotObj = sprite ? this.textureSlots.get(sprite.imageId) : undefined;
       let buffer = slotObj?.buffer ?? EMPTY_TEX;
       if (sprite?.flip) {
         this.tempBuffer[0] = buffer[0];
@@ -27855,24 +27868,6 @@ class TurnMatrix {
   getMatrix() {
     return this.matrix.getMatrix();
   }
-}
-
-// src/world/sprite/List.ts
-function forEach3(list, callback) {
-  if (list) {
-    for (let i = 0;i < list.length; i++) {
-      const elem = list.at(i);
-      callback(elem, i);
-    }
-  }
-}
-function map(list, callback) {
-  const r = [];
-  for (let i = 0;i < list.length; i++) {
-    const elem = list.at(i);
-    r.push(elem ? callback(elem, i) : undefined);
-  }
-  return r;
 }
 
 // src/world/grid/Position.ts
@@ -28502,136 +28497,95 @@ class CellTracker {
   }
 }
 
-// src/updates/UpdatableList.ts
-class UpdatableList {
-  array;
-  updateValue;
-  notifier;
-  constructor(array, updateValue, notifier) {
-    this.array = array;
-    this.updateValue = updateValue;
-    this.notifier = notifier;
-  }
-  at(index) {
-    return this.array.at(index);
-  }
-  get length() {
-    return this.array.length;
-  }
-  set(index, value) {
-    this.updateValue(index, value);
-    this.notifier?.informUpdate(index);
-  }
-  remove(index) {
-    this.updateValue(index, undefined);
-    this.notifier?.informUpdate(index);
-  }
-}
-
-// src/world/sprite/Medias.ts
-class UpdatableMedias extends UpdatableList {
-  constructor({ motor, engine }, medias = []) {
-    super(medias, (index, value) => {
-      medias[index] = value;
-      while (!medias[medias.length - 1]) {
-        medias.length--;
-      }
-    }, new UpdateRegistry((ids) => {
-      console.log("HERE");
-      const imageIds = Array.from(ids);
-      ids.clear();
-      engine.updateTextures(imageIds, (index) => medias.at(index)).then((mediaInfos) => {
-        mediaInfos.forEach((mediaInfo) => {
-          if (mediaInfo.isVideo) {
-            motor.registerUpdate(mediaInfo, mediaInfo.schedule);
-          }
-        });
-      });
-    }, motor));
-  }
-}
-
-// src/world/sprite/SpritesAccumulator.ts
-class SpritesAccumulator extends AuxiliaryHolder {
+// src/world/sprite/aux/Accumulator.ts
+class Accumulator extends AuxiliaryHolder {
   constructor() {
     super(...arguments);
   }
-  spritesIndices = [];
-  newSpritesListener = new Set;
-  pool = new ObjectPool((elem, sprites, index) => {
-    if (!elem) {
-      return { sprites, index };
+  indices = [];
+  newElemsListener = new Set;
+  pool = new ObjectPool((slot, elems, index) => {
+    if (!slot) {
+      return { elems, index };
     }
-    elem.sprites = sprites;
-    elem.index = index;
-    return elem;
+    slot.elems = elems;
+    slot.index = index;
+    slot.id = undefined;
+    return slot;
   });
-  addNewSpritesListener(listener) {
-    this.newSpritesListener.add(listener);
-  }
-  at(spriteId) {
-    const slot = this.spritesIndices[spriteId];
-    return slot?.sprites.at(slot.index);
+  at(id) {
+    const slot = this.indices[id];
+    return slot?.elems.at(slot.index);
   }
   get length() {
-    return this.spritesIndices.length;
+    return this.indices.length;
   }
   activate() {
     super.activate();
-    this.spritesIndices.forEach((slot) => {
-      if (slot.spriteId !== undefined) {
-        this.informUpdate?.(slot.spriteId);
+    this.indices.forEach((slot) => {
+      if (slot.id !== undefined) {
+        this.informUpdate?.(slot.id);
       }
     });
   }
-  addSprites(...spritesList) {
-    spritesList.forEach((sprites) => {
+  add(...elemsList) {
+    elemsList.forEach((elems) => {
       const slots = [];
-      if (sprites.informUpdate) {
-        sprites.informUpdate = (index, type) => {
-          const slot = slots[index] ?? (slots[index] = this.pool.create(sprites, index));
-          const sprite = slot.sprites.at(index);
-          if (sprite) {
-            if (slot.spriteId === undefined) {
-              slot.spriteId = this.spritesIndices.length;
-              this.spritesIndices.push(slot);
+      if (elems.informUpdate) {
+        elems.informUpdate = (index, type) => {
+          const slot = slots[index] ?? (slots[index] = this.pool.create(elems, index));
+          const elem = slot.elems.at(index);
+          if (elem) {
+            if (slot.id === undefined) {
+              slot.id = this.indices.length;
+              this.indices.push(slot);
               this.onSizeChange();
             }
-            this.informUpdate?.(slot.spriteId, type);
+            this.informUpdate?.(slot.id, type);
           } else {
-            if (slot.spriteId !== undefined) {
-              const spriteId = slot.spriteId;
-              slot.spriteId = undefined;
-              const lastSlotId = this.spritesIndices.length - 1;
-              if (spriteId !== lastSlotId) {
-                this.spritesIndices[spriteId] = this.spritesIndices[lastSlotId];
-                this.spritesIndices[spriteId].spriteId = spriteId;
+            if (slot.id !== undefined) {
+              const id = slot.id;
+              slot.id = undefined;
+              const lastSlotId = this.indices.length - 1;
+              if (id !== lastSlotId) {
+                this.indices[id] = this.indices[lastSlotId];
+                this.indices[id].id = id;
               }
-              this.spritesIndices.pop();
-              this.informUpdate?.(spriteId);
+              this.indices.pop();
+              this.informUpdate?.(id);
               this.informUpdate?.(lastSlotId);
               this.onSizeChange();
             }
           }
         };
       } else {
-        forEach3(sprites, (_, index) => {
-          const slot = this.pool.create(sprites, index);
-          slot.spriteId = this.spritesIndices.length;
-          this.spritesIndices.push(slot);
+        forEach3(elems, (_, index) => {
+          const slot = this.pool.create(elems, index);
+          slot.id = this.indices.length;
+          this.indices.push(slot);
         });
       }
     });
   }
   onSizeChange() {
-    this.newSpritesListener.forEach((listener) => listener(this));
+    this.newElemsListener.forEach((listener) => listener(this));
+  }
+  addNewElemsListener(listener) {
+    this.newElemsListener.add(listener);
   }
   deactivate() {
     super.deactivate();
-    this.spritesIndices.forEach((slot) => {
+    this.indices.forEach((slot) => {
       this.pool.recycle(slot);
     });
-    this.spritesIndices.length = 0;
+    this.indices.length = 0;
+  }
+}
+
+// src/world/sprite/aux/SpritesAccumulator.ts
+class SpritesAccumulator extends Accumulator {
+  constructor() {
+    super(...arguments);
   }
 }
 
@@ -28698,7 +28652,7 @@ class SpriteGrid {
   informUpdate(_id, _type) {
   }
   activate() {
-    this.holder?.addSprites(this);
+    this.holder?.add(this);
   }
   constructor(config, spriteFactory = {}) {
     this.spriteFactory = spriteFactory;
@@ -28788,7 +28742,7 @@ class MaxSpriteCountAuxiliary {
   }
   set holder(value) {
     this.sprites = value;
-    value.addNewSpritesListener(this.updateCount.bind(this));
+    value.addNewElemsListener(this.updateCount.bind(this));
   }
   updateCount() {
     this.engine.setMaxSpriteCount(this.sprites?.length ?? 0);
@@ -28814,7 +28768,7 @@ class StaticSprites {
   informUpdate(_id, _type) {
   }
   activate() {
-    this.holder?.addSprites(this);
+    this.holder?.add(this);
     forEach3(this.sprites, (_, index) => this.informUpdate(index));
   }
 }
@@ -29126,16 +29080,52 @@ class DirAuxiliary {
   }
 }
 
+// src/gl/texture/MediasAccumulator.ts
+class MediasAccumulator extends Accumulator {
+  constructor() {
+    super(...arguments);
+  }
+}
+
+// src/world/sprite/update/MediaUpdater.ts
+class MediaUpdater {
+  medias;
+  mediaRegistry;
+  constructor({ engine, motor }) {
+    this.mediaRegistry = new UpdateRegistry((ids) => {
+      const imageIds = Array.from(ids).map((index) => this.medias?.at(index)?.id);
+      ids.clear();
+      engine.updateTextures(imageIds, (index) => this.medias?.at(index)).then((mediaInfos) => {
+        mediaInfos.forEach((mediaInfo) => {
+          if (mediaInfo.isVideo) {
+            motor.registerUpdate(mediaInfo, mediaInfo.schedule);
+          }
+        });
+      });
+    }, motor);
+  }
+  set holder(value) {
+    this.medias = value;
+    value.informUpdate = this.informUpdate.bind(this);
+  }
+  informUpdate(index) {
+    this.mediaRegistry.informUpdate(index);
+  }
+}
+
 // src/demo/DemoWorld.ts
-var DOBUKI = 0;
-var LOGO = 1;
-var GROUND = 2;
-var VIDEO = 3;
-var WIREFRAME = 4;
-var GRASS = 5;
-var BRICK = 6;
-var DODO = 7;
-var DODO_SHADOW = 8;
+var Assets;
+(function(Assets2) {
+  Assets2[Assets2["DOBUKI"] = 0] = "DOBUKI";
+  Assets2[Assets2["LOGO"] = 1] = "LOGO";
+  Assets2[Assets2["GROUND"] = 2] = "GROUND";
+  Assets2[Assets2["VIDEO"] = 3] = "VIDEO";
+  Assets2[Assets2["WIREFRAME"] = 4] = "WIREFRAME";
+  Assets2[Assets2["GRASS"] = 5] = "GRASS";
+  Assets2[Assets2["BRICK"] = 6] = "BRICK";
+  Assets2[Assets2["DODO"] = 7] = "DODO";
+  Assets2[Assets2["DODO_SHADOW"] = 8] = "DODO_SHADOW";
+})(Assets || (Assets = {}));
 var LOGO_SIZE = 512;
 var CELLSIZE = 2;
 
@@ -29145,135 +29135,146 @@ class DemoWorld extends AuxiliaryHolder {
     super();
     const spritesAccumulator = new SpritesAccumulator().addAuxiliary(new SpriteUpdater({ engine, motor }), new MaxSpriteCountAuxiliary({ engine }));
     this.addAuxiliary(spritesAccumulator);
-    const medias = new UpdatableMedias({ engine, motor });
-    medias.set(DOBUKI, {
-      type: "image",
-      src: "dobuki.png"
-    });
-    medias.set(DODO, {
-      type: "image",
-      src: "dodo.png",
-      spriteSheet: {
-        spriteSize: [190, 209]
-      }
-    });
-    medias.set(DODO_SHADOW, {
-      type: "image",
-      src: "dodo.png",
-      spriteSheet: {
-        spriteSize: [190, 209]
+    const mediasAccumulator = new MediasAccumulator().addAuxiliary(new MediaUpdater({ engine, motor }));
+    mediasAccumulator.add([
+      {
+        id: Assets.DOBUKI,
+        type: "image",
+        src: "dobuki.png"
       },
-      postProcessing(canvas) {
-        const context = canvas.getContext("2d");
-        if (context) {
-          const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-          const { data } = imageData;
-          for (let i = 0;i < data.length; i += 4) {
-            data[i] = data[i + 1] = data[i + 2] = 0;
+      {
+        id: Assets.DODO,
+        type: "image",
+        src: "dodo.png",
+        spriteSheet: {
+          spriteSize: [190, 209]
+        }
+      },
+      {
+        id: Assets.DODO_SHADOW,
+        type: "image",
+        src: "dodo.png",
+        spriteSheet: {
+          spriteSize: [190, 209]
+        },
+        postProcessing(context) {
+          if (context) {
+            const imageData = context.getImageData(0, 0, context.canvas.width, context.canvas.height);
+            const { data } = imageData;
+            for (let i = 0;i < data.length; i += 4) {
+              data[i] = data[i + 1] = data[i + 2] = 0;
+            }
+            context.putImageData(imageData, 0, 0);
           }
-          context.putImageData(imageData, 0, 0);
+        }
+      },
+      {
+        id: Assets.LOGO,
+        type: "draw",
+        draw: (ctx) => {
+          const { canvas } = ctx;
+          canvas.width = LOGO_SIZE;
+          canvas.height = LOGO_SIZE;
+          const centerX = canvas.width / 2, centerY = canvas.height / 2;
+          const halfSize = canvas.width / 2;
+          ctx.imageSmoothingEnabled = true;
+          ctx.fillStyle = "#ddd";
+          ctx.lineWidth = canvas.width / 50;
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.strokeStyle = "black";
+          ctx.fillStyle = "gold";
+          ctx.beginPath();
+          ctx.arc(centerX, centerY, halfSize * 0.8, 0, 2 * Math.PI);
+          ctx.fill();
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.arc(centerX, centerY, halfSize * 0.5, 0, Math.PI);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.arc(canvas.width / 3, canvas.height / 3, halfSize * 0.1, 0, Math.PI, true);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.arc(canvas.width / 3 * 2, canvas.height / 3, halfSize * 0.1, 0, Math.PI * 2, true);
+          ctx.stroke();
+        }
+      },
+      {
+        id: Assets.GROUND,
+        type: "draw",
+        draw: (ctx) => {
+          const { canvas } = ctx;
+          canvas.width = LOGO_SIZE;
+          canvas.height = LOGO_SIZE;
+          ctx.fillStyle = "#ddd";
+          ctx.lineWidth = canvas.width / 50;
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.strokeStyle = "black";
+          ctx.fillStyle = "silver";
+          ctx.beginPath();
+          ctx.rect(canvas.width * 0.2, canvas.height * 0.2, canvas.width * 0.6, canvas.height * 0.6);
+          ctx.fill();
+          ctx.stroke();
+        }
+      },
+      {
+        id: Assets.BRICK,
+        type: "draw",
+        draw: (ctx) => {
+          const { canvas } = ctx;
+          canvas.width = LOGO_SIZE;
+          canvas.height = LOGO_SIZE;
+          ctx.fillStyle = "#ddd";
+          ctx.lineWidth = canvas.width / 50;
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+      },
+      {
+        id: Assets.VIDEO,
+        type: "video",
+        src: "sample.mp4",
+        volume: 0,
+        fps: 30,
+        playSpeed: 0.1,
+        maxRefreshRate: 30
+      },
+      {
+        id: Assets.WIREFRAME,
+        type: "draw",
+        draw: (ctx) => {
+          const { canvas } = ctx;
+          canvas.width = LOGO_SIZE;
+          canvas.height = LOGO_SIZE;
+          ctx.lineWidth = 8;
+          ctx.setLineDash([5, 2]);
+          ctx.strokeStyle = "green";
+          ctx.beginPath();
+          ctx.rect(10, 10, canvas.width - 20, canvas.height - 20);
+          ctx.stroke();
+        }
+      },
+      {
+        id: Assets.GRASS,
+        type: "draw",
+        draw: (ctx) => {
+          const { canvas } = ctx;
+          canvas.width = LOGO_SIZE;
+          canvas.height = LOGO_SIZE;
+          ctx.fillStyle = "green";
+          ctx.lineWidth = canvas.width / 50;
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.strokeStyle = "black";
+          ctx.fillStyle = "#4f8";
+          ctx.beginPath();
+          ctx.rect(canvas.width * 0.2, canvas.height * 0.2, canvas.width * 0.6, canvas.height * 0.6);
+          ctx.fill();
+          ctx.stroke();
         }
       }
-    });
-    medias.set(LOGO, {
-      type: "draw",
-      draw: (ctx) => {
-        const { canvas } = ctx;
-        canvas.width = LOGO_SIZE;
-        canvas.height = LOGO_SIZE;
-        const centerX = canvas.width / 2, centerY = canvas.height / 2;
-        const halfSize = canvas.width / 2;
-        ctx.imageSmoothingEnabled = true;
-        ctx.fillStyle = "#ddd";
-        ctx.lineWidth = canvas.width / 50;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.strokeStyle = "black";
-        ctx.fillStyle = "gold";
-        ctx.beginPath();
-        ctx.arc(centerX, centerY, halfSize * 0.8, 0, 2 * Math.PI);
-        ctx.fill();
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.arc(centerX, centerY, halfSize * 0.5, 0, Math.PI);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.arc(canvas.width / 3, canvas.height / 3, halfSize * 0.1, 0, Math.PI, true);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.arc(canvas.width / 3 * 2, canvas.height / 3, halfSize * 0.1, 0, Math.PI * 2, true);
-        ctx.stroke();
-      }
-    });
-    medias.set(GROUND, {
-      type: "draw",
-      draw: (ctx) => {
-        const { canvas } = ctx;
-        canvas.width = LOGO_SIZE;
-        canvas.height = LOGO_SIZE;
-        ctx.fillStyle = "#ddd";
-        ctx.lineWidth = canvas.width / 50;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.strokeStyle = "black";
-        ctx.fillStyle = "silver";
-        ctx.beginPath();
-        ctx.rect(canvas.width * 0.2, canvas.height * 0.2, canvas.width * 0.6, canvas.height * 0.6);
-        ctx.fill();
-        ctx.stroke();
-      }
-    });
-    medias.set(BRICK, {
-      type: "draw",
-      draw: (ctx) => {
-        const { canvas } = ctx;
-        canvas.width = LOGO_SIZE;
-        canvas.height = LOGO_SIZE;
-        ctx.fillStyle = "#ddd";
-        ctx.lineWidth = canvas.width / 50;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-      }
-    });
-    medias.set(VIDEO, {
-      type: "video",
-      src: "sample.mp4",
-      volume: 0,
-      fps: 30,
-      playSpeed: 0.1,
-      maxRefreshRate: 30
-    });
-    medias.set(WIREFRAME, {
-      type: "draw",
-      draw: (ctx) => {
-        const { canvas } = ctx;
-        canvas.width = LOGO_SIZE;
-        canvas.height = LOGO_SIZE;
-        ctx.lineWidth = 8;
-        ctx.setLineDash([5, 2]);
-        ctx.strokeStyle = "green";
-        ctx.beginPath();
-        ctx.rect(10, 10, canvas.width - 20, canvas.height - 20);
-        ctx.stroke();
-      }
-    });
-    medias.set(GRASS, {
-      type: "draw",
-      draw: (ctx) => {
-        const { canvas } = ctx;
-        canvas.width = LOGO_SIZE;
-        canvas.height = LOGO_SIZE;
-        ctx.fillStyle = "green";
-        ctx.lineWidth = canvas.width / 50;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.strokeStyle = "black";
-        ctx.fillStyle = "#4f8";
-        ctx.beginPath();
-        ctx.rect(canvas.width * 0.2, canvas.height * 0.2, canvas.width * 0.6, canvas.height * 0.6);
-        ctx.fill();
-        ctx.stroke();
-      }
-    });
+    ]);
+    this.addAuxiliary(mediasAccumulator);
     spritesAccumulator.addAuxiliary(new FixedSpriteGrid({ cellSize: CELLSIZE }, [
       {
-        imageId: DOBUKI,
+        imageId: Assets.DOBUKI,
         spriteType: SpriteType.SPRITE,
         transform: Matrix_default.create().translate(0, 0, -1)
       }
@@ -29283,13 +29284,13 @@ class DemoWorld extends AuxiliaryHolder {
         Matrix_default.create().translate(-1, 0, 0).rotateY(-Math.PI / 2),
         Matrix_default.create().translate(1, 0, 0).rotateY(-Math.PI / 2),
         Matrix_default.create().translate(1, 0, 0).rotateY(Math.PI / 2)
-      ].map((transform) => ({ imageId: LOGO, transform })),
+      ].map((transform) => ({ imageId: Assets.LOGO, transform })),
       ...[
         Matrix_default.create().translate(0, -1, 0).rotateX(-Math.PI / 2),
         Matrix_default.create().translate(0, -1, 2).rotateX(-Math.PI / 2),
         Matrix_default.create().translate(-2, -1, 2).rotateX(-Math.PI / 2),
         Matrix_default.create().translate(2, -1, 2).rotateX(-Math.PI / 2)
-      ].map((transform) => ({ imageId: GROUND, transform }))
+      ].map((transform) => ({ imageId: Assets.GROUND, transform }))
     ], new SpriteGroup([
       ...[
         Matrix_default.create().translate(0, -1, 0).rotateX(Math.PI / 2),
@@ -29298,7 +29299,7 @@ class DemoWorld extends AuxiliaryHolder {
         Matrix_default.create().translate(1, 0, 0).rotateY(Math.PI / 2),
         Matrix_default.create().translate(0, 0, 1).rotateY(0),
         Matrix_default.create().translate(0, 0, -1).rotateY(Math.PI)
-      ].map((transform) => ({ imageId: GROUND, transform })),
+      ].map((transform) => ({ imageId: Assets.GROUND, transform })),
       ...[
         Matrix_default.create().translate(0, -1, 0).rotateX(-Math.PI / 2),
         Matrix_default.create().translate(0, 1, 0).rotateX(Math.PI / 2),
@@ -29306,16 +29307,16 @@ class DemoWorld extends AuxiliaryHolder {
         Matrix_default.create().translate(1, 0, 0).rotateY(-Math.PI / 2),
         Matrix_default.create().translate(0, 0, 1).rotateY(Math.PI),
         Matrix_default.create().translate(0, 0, -1).rotateY(0)
-      ].map((transform) => ({ imageId: BRICK, transform }))
+      ].map((transform) => ({ imageId: Assets.BRICK, transform }))
     ], [Matrix_default.create().setPosition(...positionFromCell([0, 0, -3, CELLSIZE]))])));
     const camera = new Camera({ engine, motor });
     this.addAuxiliary(camera);
     this.camera = camera;
     spritesAccumulator.addAuxiliary(new SpriteGrid({ yRange: [0, 0] }, new SpriteFactory({
       fillSpriteBag({ pos }, _, bag) {
-        const ground = bag.createSprite(GRASS);
+        const ground = bag.createSprite(Assets.GRASS);
         ground.transform.translate(pos[0] * pos[3], -1, pos[2] * pos[3]).rotateX(-Math.PI / 2);
-        const ceiling = bag.createSprite(WIREFRAME);
+        const ceiling = bag.createSprite(Assets.WIREFRAME);
         ceiling.transform.translate(pos[0] * pos[3], 2, pos[2] * pos[3]).rotateX(Math.PI / 2);
         bag.addSprite(ground, ceiling);
       }
@@ -29326,7 +29327,7 @@ class DemoWorld extends AuxiliaryHolder {
     });
     const spriteGroup = new SpriteGroup([
       {
-        imageId: DODO,
+        imageId: Assets.DODO,
         spriteType: SpriteType.SPRITE,
         transform: Matrix_default.create().translate(0, -0.5, 0),
         animation: {
@@ -29335,7 +29336,7 @@ class DemoWorld extends AuxiliaryHolder {
         }
       },
       {
-        imageId: DODO_SHADOW,
+        imageId: Assets.DODO_SHADOW,
         transform: Matrix_default.create().translate(0, -0.7, 0).rotateX(-Math.PI / 2).scale(1, 0.3, 1),
         animation: {
           frames: [1, 5],
@@ -29353,7 +29354,7 @@ class DemoWorld extends AuxiliaryHolder {
     };
     spritesAccumulator.addAuxiliary(new StaticSprites([
       {
-        imageId: VIDEO,
+        imageId: Assets.VIDEO,
         spriteType: SpriteType.DISTANT,
         transform: Matrix_default.create().translate(3000, 1000, -5000).scale(480, 270, 1)
       }
@@ -29533,4 +29534,4 @@ export {
   hello
 };
 
-//# debugId=F6162624509C436764756e2164756e21
+//# debugId=B953E7FC587D8A1764756e2164756e21

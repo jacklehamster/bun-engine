@@ -5,13 +5,14 @@ import { Media } from "gl/texture/Media";
 import { MediaData } from "gl/texture/MediaData";
 import { IMatrix, Vector } from "gl/transform/IMatrix";
 import { Auxiliary } from "world/aux/Auxiliary";
+import { List } from "world/sprite/List";
 import { SpriteId } from "world/sprite/Sprite";
 import { Sprites } from "world/sprite/Sprites";
 
 export interface IGraphicsEngine extends Auxiliary {
   setMaxSpriteCount(spriteCount: number): void;
   setBgColor(rgb: Vector): void;
-  updateTextures(imageIds: MediaId[], getMedia: (imageId: MediaId) => Media | undefined): Promise<MediaData[]>;
+  updateTextures(imageIds: List<MediaId>, getMedia: (imageId: MediaId) => Media | undefined): Promise<MediaData[]>;
   updateSpriteTransforms(spriteIds: Set<SpriteId>, sprites: Sprites): void;
   updateSpriteTexSlots(spriteIds: Set<SpriteId>, sprites: Sprites): void;
   updateSpriteTypes(spriteIds: Set<SpriteId>, sprites: Sprites): void;

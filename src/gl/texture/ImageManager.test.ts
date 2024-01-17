@@ -10,19 +10,7 @@ describe('ImageManager', () => {
 
   beforeEach(() => {
     imageManager = new ImageManager();
-    mockMediaInfo = new MediaData(new Image(100, 100));
-  });
-
-  it('should check if imageId exists', () => {
-    imageManager.setImage(1, mockMediaInfo);
-    expect(imageManager.hasImageId(1)).toBe(true);
-    expect(imageManager.hasImageId(2)).toBe(false);
-  });
-
-  it('should get media by imageId', () => {
-    imageManager.setImage(1, mockMediaInfo);
-    expect(imageManager.getMedia(1)).toBe(mockMediaInfo);
-    expect(imageManager.getMedia(2)).toBeUndefined();
+    mockMediaInfo = new MediaData(0, new Image(100, 100));
   });
 
   it('should draw image and add to images', async () => {
@@ -31,7 +19,6 @@ describe('ImageManager', () => {
 
     expect(drawProcedure).toHaveBeenCalled();
     expect(imageInfo).toBeInstanceOf(MediaData);
-    expect(imageManager.getMedia(1)).toBe(imageInfo);
   });
 
   it('should load canvas and add to images', async () => {
@@ -39,6 +26,5 @@ describe('ImageManager', () => {
     const imageInfo = await imageManager.loadCanvas(1, canvas);
 
     expect(imageInfo).toBeInstanceOf(MediaData);
-    expect(imageManager.getMedia(1)).toBe(imageInfo);
   });
 });

@@ -1,6 +1,7 @@
 import { Refresh } from 'updates/Refresh';
 import { Disposable } from '../lifecycle/Disposable';
 import { Schedule } from 'motor/Motor';
+import { MediaId } from './ImageManager';
 
 export class MediaData extends Disposable implements Refresh {
   readonly texImgSrc: TexImageSource;
@@ -11,7 +12,7 @@ export class MediaData extends Disposable implements Refresh {
   refreshCallback?(): void;
   schedule?: Partial<Schedule>;
 
-  constructor(image: TexImageSource, refreshRate?: number, canvasImgSrc?: CanvasImageSource) {
+  constructor(readonly id: MediaId, image: TexImageSource, refreshRate?: number, canvasImgSrc?: CanvasImageSource) {
     super();
     this.texImgSrc = image;
     const img: any = image;
@@ -29,11 +30,11 @@ export class MediaData extends Disposable implements Refresh {
     this.refreshCallback?.();
   }
 
-  static createFromCanvas(canvas: OffscreenCanvas | HTMLCanvasElement): MediaData {
-    return new MediaData(canvas);
+  static createFromCanvas(mediaId: MediaId, canvas: OffscreenCanvas | HTMLCanvasElement): MediaData {
+    return new MediaData(mediaId, canvas);
   }
 
-  static async loadImage(src: string): Promise<MediaData> {
+  static async loadImage(mediaID: MediaId, src: string): Promise<MediaData> {
     const image = await new Promise<HTMLImageElement>((resolve, reject) => {
       const image = new Image();
       image.crossOrigin = "anonymous";
@@ -43,10 +44,10 @@ export class MediaData extends Disposable implements Refresh {
       image.src = src;
     });
 
-    return new MediaData(image, undefined, image);
+    return new MediaData(mediaID, image, undefined, image);
   }
 
-  static async loadVideo(src: string, volume?: number, fps: number = 30, playSpeed: number = 1, maxRefreshRate: number = Number.MAX_SAFE_INTEGER): Promise<MediaData> {
+  static async loadVideo(mediaId: MediaId, src: string, volume?: number, fps: number = 30, playSpeed: number = 1, maxRefreshRate: number = Number.MAX_SAFE_INTEGER): Promise<MediaData> {
     const video = await new Promise<HTMLVideoElement>((resolve, reject) => {
       const video = document.createElement('video');
       video.loop = true;
@@ -64,12 +65,12 @@ export class MediaData extends Disposable implements Refresh {
       video.src = src;
 
     });
-    const videoInfo = new MediaData(video, Math.min(fps * playSpeed, maxRefreshRate));
+    const videoInfo = new MediaData(mediaId, video, Math.min(fps * playSpeed, maxRefreshRate));
     videoInfo.addOnDestroy(() => video.pause());
     return videoInfo;
   }
 
-  static async loadWebcam(deviceId?: string): Promise<MediaData> {
+  static async loadWebcam(mediaId: MediaId, deviceId?: string): Promise<MediaData> {
     const video = await new Promise<HTMLVideoElement>((resolve, reject) => {
       const video = document.createElement('video');
       video.loop = true;
@@ -78,7 +79,7 @@ export class MediaData extends Disposable implements Refresh {
       video.addEventListener('playing', () => resolve(video), { once: true });
       video.addEventListener('error', (e: ErrorEvent) => reject(e.error));
     });
-    const videoInfo = new MediaData(video);
+    const videoInfo = new MediaData(mediaId, video);
     let cancelled = false;
     navigator.mediaDevices
       .getUserMedia({ video: { deviceId } })

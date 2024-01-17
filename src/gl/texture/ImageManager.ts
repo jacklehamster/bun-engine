@@ -12,7 +12,6 @@ function createDrawProcedure<T extends Media>(procedure: DrawProcedure<T>): Draw
 }
 
 export class ImageManager extends Disposable {
-  private images: Record<MediaId, MediaData> = {};
   private readonly renderProcedures: Record<MediaType, DrawProcedure<Media>> = {
     image: createDrawProcedure<ImageMedia>((imageId, media) => this.loadImage(imageId, media.src)) as DrawProcedure<Media>,
     video: createDrawProcedure<VideoMedia>((imageId, media) => this.loadVideo(imageId, media.src, media.volume, media.fps, media.playSpeed)) as DrawProcedure<Media>,
@@ -21,27 +20,17 @@ export class ImageManager extends Disposable {
     webcam: createDrawProcedure<WebcamMedia>((imageId, media) => this.loadWebCam(imageId, media.deviceId)) as DrawProcedure<Media>,
   };
 
-  private async postProcess(mediaData: MediaData, postProcessing: (canvas: OffscreenCanvas) => Promise<OffscreenCanvas> | OffscreenCanvas | void) {
+  private async postProcess(mediaData: MediaData, postProcessing: (context: OffscreenCanvasRenderingContext2D) => Promise<void>) {
     if (mediaData.canvasImgSrc) {
       const canvas = new OffscreenCanvas(mediaData.width, mediaData.height);
       const ctx = canvas.getContext("2d");
-      ctx?.drawImage(mediaData.canvasImgSrc, 0, 0);
-      return MediaData.createFromCanvas(await postProcessing(canvas) ?? canvas);
+      if (ctx) {
+        ctx.drawImage(mediaData.canvasImgSrc, 0, 0);
+        await postProcessing(ctx);
+      }
+      return MediaData.createFromCanvas(mediaData.id, canvas);
     }
     return mediaData;
-  }
-
-  hasImageId(imageId: MediaId): boolean {
-    return !!this.getMedia(imageId);
-  }
-
-
-  getMedia(imageId: MediaId): MediaData {
-    return this.images[imageId];
-  }
-
-  setImage(imageId: MediaId, mediaInfo: MediaData): void {
-    this.images[imageId] = mediaInfo;
   }
 
   async renderMedia(imageId: MediaId, media: Media): Promise<MediaData> {
@@ -56,8 +45,7 @@ export class ImageManager extends Disposable {
   ): Promise<MediaData> {
     const canvas = new OffscreenCanvas(1, 1);
     drawProcedure(canvas.getContext('2d')!);
-    const imageInfo = MediaData.createFromCanvas(canvas);
-    this.images[imageId] = this.own(imageInfo);
+    const imageInfo = MediaData.createFromCanvas(imageId, canvas);
     return imageInfo;
   }
 
@@ -65,15 +53,13 @@ export class ImageManager extends Disposable {
     imageId: MediaId,
     canvas: HTMLCanvasElement | OffscreenCanvas,
   ): Promise<MediaData> {
-    const imageInfo = MediaData.createFromCanvas(canvas);
+    const imageInfo = MediaData.createFromCanvas(imageId, canvas);
     canvas.getContext('2d');
-    this.images[imageId] = this.own(imageInfo);
     return imageInfo;
   }
 
   async loadImage(imageId: MediaId, src: Url): Promise<MediaData> {
-    const imageInfo = await MediaData.loadImage(src);
-    this.images[imageId] = this.own(imageInfo);
+    const imageInfo = await MediaData.loadImage(imageId, src);
     return imageInfo;
   }
 
@@ -85,8 +71,7 @@ export class ImageManager extends Disposable {
     playSpeed?: number,
     maxRefreshRate?: number,
   ): Promise<MediaData> {
-    const videoInfo = await MediaData.loadVideo(src, volume, fps, playSpeed, maxRefreshRate);
-    this.images[imageId] = this.own(videoInfo);
+    const videoInfo = await MediaData.loadVideo(imageId, src, volume, fps, playSpeed, maxRefreshRate);
     return videoInfo;
   }
 
@@ -94,8 +79,7 @@ export class ImageManager extends Disposable {
     imageId: MediaId,
     deviceId: string | undefined,
   ): Promise<MediaData> {
-    const videoInfo = await MediaData.loadWebcam(deviceId);
-    this.images[imageId] = this.own(videoInfo);
+    const videoInfo = await MediaData.loadWebcam(imageId, deviceId);
     return videoInfo;
   }
 }

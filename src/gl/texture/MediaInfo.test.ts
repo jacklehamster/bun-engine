@@ -6,7 +6,7 @@ import { MediaData } from './MediaData';
 describe('MediaInfo', () => {
   it('should construct properly with HTMLImageElement', () => {
     const image = new Image(100, 200);
-    const mediaInfo = new MediaData(image);
+    const mediaInfo = new MediaData(0, image);
 
     expect(mediaInfo.texImgSrc).toBe(image);
     expect(mediaInfo.width).toBe(100);
@@ -15,7 +15,7 @@ describe('MediaInfo', () => {
 
   it('should construct properly with VideoFrame', () => {
     const videoFrame = new VideoFrame(new Image(300, 400));
-    const mediaInfo = new MediaData(videoFrame as any);
+    const mediaInfo = new MediaData(0, videoFrame as any);
 
     expect(mediaInfo.texImgSrc).toBe(videoFrame);
     expect(mediaInfo.width).toBe(300);
@@ -27,7 +27,7 @@ describe('MediaInfo', () => {
       width: 600,
       height: 700,
     };
-    const mediaInfo = new MediaData(texImageSource as any);
+    const mediaInfo = new MediaData(0, texImageSource as any);
 
     expect(mediaInfo.texImgSrc).toBe(texImageSource);
     expect(mediaInfo.width).toBe(600);
@@ -36,7 +36,7 @@ describe('MediaInfo', () => {
 
   it('should throw error for invalid image', () => {
     const invalidImage = {};
-    expect(() => new MediaData(invalidImage as any)).toThrow('Invalid image');
+    expect(() => new MediaData(0, invalidImage as any)).toThrow('Invalid image');
   });
 
 
@@ -45,7 +45,7 @@ describe('MediaInfo', () => {
       width: 100,
       height: 200,
     };
-    const mediaInfo = MediaData.createFromCanvas(canvas as any);
+    const mediaInfo = MediaData.createFromCanvas(0, canvas as any);
 
     expect(mediaInfo.texImgSrc).toBe(canvas);
     expect(mediaInfo.width).toBe(100);

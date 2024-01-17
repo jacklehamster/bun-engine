@@ -37,7 +37,7 @@ export class SpriteGrid implements Auxiliary<SpritesHolder>, UpdateNotifier {
   }
 
   activate(): void {
-    this.holder?.addSprites(this);
+    this.holder?.add(this);
   }
 
   constructor(config?: Config, private spriteFactory: ISpriteFactory = {}) {

@@ -12,8 +12,7 @@ import { PositionStepAuxiliary } from "world/aux/PositionStepAuxiliary";
 import { TiltResetAuxiliary } from "world/aux/TiltResetAuxiliary";
 import { ToggleAuxiliary } from "world/aux/ToggleAuxiliary";
 import { CellTracker } from "world/grid/CellTracker";
-import { UpdatableMedias } from "world/sprite/Medias";
-import { SpritesAccumulator } from "world/sprite/SpritesAccumulator";
+import { SpritesAccumulator } from "world/sprite/aux/SpritesAccumulator";
 import { SpriteGroup } from "world/sprite/SpritesGroup";
 import { FixedSpriteGrid } from "world/sprite/aux/FixedSpriteGrid";
 import { MaxSpriteCountAuxiliary } from "world/sprite/aux/MaxSpriteCountAuxiliary";
@@ -33,8 +32,21 @@ import { TiltAuxiliary } from "world/aux/TiltAuxiliary";
 import { SmoothFollowAuxiliary } from "world/aux/SmoothFollowAuxiliary";
 import { DirAuxiliary } from "world/aux/DirAuxiliary";
 import { SpriteUpdateType } from "world/sprite/update/SpriteUpdateType";
+import { MediasAccumulator } from "gl/texture/MediasAccumulator";
+import { MediaUpdater } from "world/sprite/update/MediaUpdater";
 
-const DOBUKI = 0, LOGO = 1, GROUND = 2, VIDEO = 3, WIREFRAME = 4, GRASS = 5, BRICK = 6, DODO = 7, DODO_SHADOW = 8;
+enum Assets {
+  DOBUKI = 0,
+  LOGO = 1,
+  GROUND = 2,
+  VIDEO = 3,
+  WIREFRAME = 4,
+  GRASS = 5,
+  BRICK = 6,
+  DODO = 7,
+  DODO_SHADOW = 8,
+}
+
 const LOGO_SIZE = 512;
 const CELLSIZE = 2;
 
@@ -58,142 +70,292 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
     //  Add medias
     //  * Each media is a texture that can be shown on a sprite.
     //  * You can show videos, images, or you can have instructions to draw on a canvas.
-    const medias = new UpdatableMedias({ engine, motor });
-    medias.set(DOBUKI, {
-      type: "image", src: "dobuki.png",
-    });
-    medias.set(DODO, {
-      type: "image", src: "dodo.png",
-      spriteSheet: {
-        spriteSize: [190, 209],
+    const mediasAccumulator = new MediasAccumulator().addAuxiliary(
+      new MediaUpdater({ engine, motor }));
+    mediasAccumulator.add([
+      {
+        id: Assets.DOBUKI,
+        type: "image",
+        src: "dobuki.png",
       },
-    });
-    medias.set(DODO_SHADOW, {
-      type: "image", src: "dodo.png",
-      spriteSheet: {
-        spriteSize: [190, 209],
+      {
+        id: Assets.DODO,
+        type: "image", src: "dodo.png",
+        spriteSheet: {
+          spriteSize: [190, 209],
+        },
       },
-      postProcessing(canvas) {
-        const context = canvas.getContext("2d");
-        if (context) {
-          const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-          const { data } = imageData;
-          for (let i = 0; i < data.length; i += 4) {
-            data[i] = data[i + 1] = data[i + 2] = 0;
+      {
+        id: Assets.DODO_SHADOW,
+        type: "image", src: "dodo.png",
+        spriteSheet: {
+          spriteSize: [190, 209],
+        },
+        postProcessing(context) {
+          if (context) {
+            const imageData = context.getImageData(0, 0, context.canvas.width, context.canvas.height);
+            const { data } = imageData;
+            for (let i = 0; i < data.length; i += 4) {
+              data[i] = data[i + 1] = data[i + 2] = 0;
+            }
+            context.putImageData(imageData, 0, 0);
           }
-          context.putImageData(imageData, 0, 0);
-        }
+        },
       },
-    });
-    medias.set(LOGO, {
-      type: "draw",
-      draw: ctx => {
-        const { canvas } = ctx;
-        canvas.width = LOGO_SIZE;
-        canvas.height = LOGO_SIZE;
-        const centerX = canvas.width / 2, centerY = canvas.height / 2;
-        const halfSize = canvas.width / 2;
-        ctx.imageSmoothingEnabled = true;
-        ctx.fillStyle = '#ddd';
-        ctx.lineWidth = canvas.width / 50;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      {
+        id: Assets.LOGO,
+        type: "draw",
+        draw: ctx => {
+          const { canvas } = ctx;
+          canvas.width = LOGO_SIZE;
+          canvas.height = LOGO_SIZE;
+          const centerX = canvas.width / 2, centerY = canvas.height / 2;
+          const halfSize = canvas.width / 2;
+          ctx.imageSmoothingEnabled = true;
+          ctx.fillStyle = '#ddd';
+          ctx.lineWidth = canvas.width / 50;
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        ctx.strokeStyle = 'black';
-        ctx.fillStyle = 'gold';
+          ctx.strokeStyle = 'black';
+          ctx.fillStyle = 'gold';
 
-        //  face
-        ctx.beginPath();
-        ctx.arc(centerX, centerY, halfSize * 0.8, 0, 2 * Math.PI);
-        ctx.fill();
-        ctx.stroke();
+          //  face
+          ctx.beginPath();
+          ctx.arc(centerX, centerY, halfSize * 0.8, 0, 2 * Math.PI);
+          ctx.fill();
+          ctx.stroke();
 
-        //  smile
-        ctx.beginPath();
-        ctx.arc(centerX, centerY, halfSize * 0.5, 0, Math.PI);
-        ctx.stroke();
+          //  smile
+          ctx.beginPath();
+          ctx.arc(centerX, centerY, halfSize * 0.5, 0, Math.PI);
+          ctx.stroke();
 
-        //  left eye
-        ctx.beginPath();
-        ctx.arc(canvas.width / 3, canvas.height / 3, halfSize * 0.1, 0, Math.PI, true);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.arc((canvas.width / 3) * 2, canvas.height / 3, halfSize * 0.1, 0, Math.PI * 2, true);
-        ctx.stroke();
+          //  left eye
+          ctx.beginPath();
+          ctx.arc(canvas.width / 3, canvas.height / 3, halfSize * 0.1, 0, Math.PI, true);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.arc((canvas.width / 3) * 2, canvas.height / 3, halfSize * 0.1, 0, Math.PI * 2, true);
+          ctx.stroke();
+        },
       },
-    });
-    medias.set(GROUND, {
-      type: "draw",
-      draw: ctx => {
-        const { canvas } = ctx;
-        canvas.width = LOGO_SIZE;
-        canvas.height = LOGO_SIZE;
-        ctx.fillStyle = '#ddd';
-        ctx.lineWidth = canvas.width / 50;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      {
+        id: Assets.GROUND,
+        type: "draw",
+        draw: ctx => {
+          const { canvas } = ctx;
+          canvas.width = LOGO_SIZE;
+          canvas.height = LOGO_SIZE;
+          ctx.fillStyle = '#ddd';
+          ctx.lineWidth = canvas.width / 50;
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        ctx.strokeStyle = 'black';
-        ctx.fillStyle = 'silver';
+          ctx.strokeStyle = 'black';
+          ctx.fillStyle = 'silver';
 
-        ctx.beginPath();
-        ctx.rect(canvas.width * .2, canvas.height * .2, canvas.width * .6, canvas.height * .6);
-        ctx.fill();
-        ctx.stroke();
+          ctx.beginPath();
+          ctx.rect(canvas.width * .2, canvas.height * .2, canvas.width * .6, canvas.height * .6);
+          ctx.fill();
+          ctx.stroke();
+        },
       },
-    });
-    medias.set(BRICK, {
-      type: "draw",
-      draw: ctx => {
-        const { canvas } = ctx;
-        canvas.width = LOGO_SIZE;
-        canvas.height = LOGO_SIZE;
-        ctx.fillStyle = '#ddd';
-        ctx.lineWidth = canvas.width / 50;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      {
+        id: Assets.BRICK,
+        type: "draw",
+        draw: ctx => {
+          const { canvas } = ctx;
+          canvas.width = LOGO_SIZE;
+          canvas.height = LOGO_SIZE;
+          ctx.fillStyle = '#ddd';
+          ctx.lineWidth = canvas.width / 50;
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+        },
       },
-    });
-    medias.set(VIDEO, {
-      type: "video",
-      src: 'sample.mp4',
-      volume: 0,
-      fps: 30,
-      playSpeed: .1,
-      maxRefreshRate: 30,
-    });
-    medias.set(WIREFRAME, {
-      type: "draw",
-      draw: ctx => {
-        const { canvas } = ctx;
-        canvas.width = LOGO_SIZE;
-        canvas.height = LOGO_SIZE;
-        ctx.lineWidth = 8;
-        ctx.setLineDash([5, 2]);
-
-        ctx.strokeStyle = 'green';
-
-        ctx.beginPath();
-        ctx.rect(10, 10, canvas.width - 20, canvas.height - 20);
-        ctx.stroke();
+      {
+        id: Assets.VIDEO,
+        type: "video",
+        src: 'sample.mp4',
+        volume: 0,
+        fps: 30,
+        playSpeed: .1,
+        maxRefreshRate: 30,
       },
-    });
-    medias.set(GRASS, {
-      type: "draw",
-      draw: ctx => {
-        const { canvas } = ctx;
-        canvas.width = LOGO_SIZE;
-        canvas.height = LOGO_SIZE;
-        ctx.fillStyle = 'green';
-        ctx.lineWidth = canvas.width / 50;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      {
+        id: Assets.WIREFRAME,
+        type: "draw",
+        draw: ctx => {
+          const { canvas } = ctx;
+          canvas.width = LOGO_SIZE;
+          canvas.height = LOGO_SIZE;
+          ctx.lineWidth = 8;
+          ctx.setLineDash([5, 2]);
 
-        ctx.strokeStyle = 'black';
-        ctx.fillStyle = '#4f8';
+          ctx.strokeStyle = 'green';
 
-        ctx.beginPath();
-        ctx.rect(canvas.width * .2, canvas.height * .2, canvas.width * .6, canvas.height * .6);
-        ctx.fill();
-        ctx.stroke();
+          ctx.beginPath();
+          ctx.rect(10, 10, canvas.width - 20, canvas.height - 20);
+          ctx.stroke();
+        },
       },
-    });
+      {
+        id: Assets.GRASS,
+        type: "draw",
+        draw: ctx => {
+          const { canvas } = ctx;
+          canvas.width = LOGO_SIZE;
+          canvas.height = LOGO_SIZE;
+          ctx.fillStyle = 'green';
+          ctx.lineWidth = canvas.width / 50;
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+          ctx.strokeStyle = 'black';
+          ctx.fillStyle = '#4f8';
+
+          ctx.beginPath();
+          ctx.rect(canvas.width * .2, canvas.height * .2, canvas.width * .6, canvas.height * .6);
+          ctx.fill();
+          ctx.stroke();
+        },
+      },
+    ]);
+    this.addAuxiliary(mediasAccumulator);
+
+    // const medias = new UpdatableMedias({ engine, motor });
+    // medias.set(Assets.DOBUKI, {
+    //   type: "image", src: "dobuki.png",
+    // });
+    // medias.set(Assets.DODO, {
+    //   type: "image", src: "dodo.png",
+    //   spriteSheet: {
+    //     spriteSize: [190, 209],
+    //   },
+    // });
+    // medias.set(Assets.DODO_SHADOW, {
+    //   type: "image", src: "dodo.png",
+    //   spriteSheet: {
+    //     spriteSize: [190, 209],
+    //   },
+    //   postProcessing(canvas) {
+    //     const context = canvas.getContext("2d");
+    //     if (context) {
+    //       const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+    //       const { data } = imageData;
+    //       for (let i = 0; i < data.length; i += 4) {
+    //         data[i] = data[i + 1] = data[i + 2] = 0;
+    //       }
+    //       context.putImageData(imageData, 0, 0);
+    //     }
+    //   },
+    // });
+    // medias.set(Assets.LOGO, {
+    //   type: "draw",
+    //   draw: ctx => {
+    //     const { canvas } = ctx;
+    //     canvas.width = LOGO_SIZE;
+    //     canvas.height = LOGO_SIZE;
+    //     const centerX = canvas.width / 2, centerY = canvas.height / 2;
+    //     const halfSize = canvas.width / 2;
+    //     ctx.imageSmoothingEnabled = true;
+    //     ctx.fillStyle = '#ddd';
+    //     ctx.lineWidth = canvas.width / 50;
+    //     ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    //     ctx.strokeStyle = 'black';
+    //     ctx.fillStyle = 'gold';
+
+    //     //  face
+    //     ctx.beginPath();
+    //     ctx.arc(centerX, centerY, halfSize * 0.8, 0, 2 * Math.PI);
+    //     ctx.fill();
+    //     ctx.stroke();
+
+    //     //  smile
+    //     ctx.beginPath();
+    //     ctx.arc(centerX, centerY, halfSize * 0.5, 0, Math.PI);
+    //     ctx.stroke();
+
+    //     //  left eye
+    //     ctx.beginPath();
+    //     ctx.arc(canvas.width / 3, canvas.height / 3, halfSize * 0.1, 0, Math.PI, true);
+    //     ctx.stroke();
+    //     ctx.beginPath();
+    //     ctx.arc((canvas.width / 3) * 2, canvas.height / 3, halfSize * 0.1, 0, Math.PI * 2, true);
+    //     ctx.stroke();
+    //   },
+    // });
+    // medias.set(Assets.GROUND, {
+    //   type: "draw",
+    //   draw: ctx => {
+    //     const { canvas } = ctx;
+    //     canvas.width = LOGO_SIZE;
+    //     canvas.height = LOGO_SIZE;
+    //     ctx.fillStyle = '#ddd';
+    //     ctx.lineWidth = canvas.width / 50;
+    //     ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    //     ctx.strokeStyle = 'black';
+    //     ctx.fillStyle = 'silver';
+
+    //     ctx.beginPath();
+    //     ctx.rect(canvas.width * .2, canvas.height * .2, canvas.width * .6, canvas.height * .6);
+    //     ctx.fill();
+    //     ctx.stroke();
+    //   },
+    // });
+    // medias.set(Assets.BRICK, {
+    //   type: "draw",
+    //   draw: ctx => {
+    //     const { canvas } = ctx;
+    //     canvas.width = LOGO_SIZE;
+    //     canvas.height = LOGO_SIZE;
+    //     ctx.fillStyle = '#ddd';
+    //     ctx.lineWidth = canvas.width / 50;
+    //     ctx.fillRect(0, 0, canvas.width, canvas.height);
+    //   },
+    // });
+    // medias.set(Assets.VIDEO, {
+    //   type: "video",
+    //   src: 'sample.mp4',
+    //   volume: 0,
+    //   fps: 30,
+    //   playSpeed: .1,
+    //   maxRefreshRate: 30,
+    // });
+    // medias.set(Assets.WIREFRAME, {
+    //   type: "draw",
+    //   draw: ctx => {
+    //     const { canvas } = ctx;
+    //     canvas.width = LOGO_SIZE;
+    //     canvas.height = LOGO_SIZE;
+    //     ctx.lineWidth = 8;
+    //     ctx.setLineDash([5, 2]);
+
+    //     ctx.strokeStyle = 'green';
+
+    //     ctx.beginPath();
+    //     ctx.rect(10, 10, canvas.width - 20, canvas.height - 20);
+    //     ctx.stroke();
+    //   },
+    // });
+    // medias.set(Assets.GRASS, {
+    //   type: "draw",
+    //   draw: ctx => {
+    //     const { canvas } = ctx;
+    //     canvas.width = LOGO_SIZE;
+    //     canvas.height = LOGO_SIZE;
+    //     ctx.fillStyle = 'green';
+    //     ctx.lineWidth = canvas.width / 50;
+    //     ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    //     ctx.strokeStyle = 'black';
+    //     ctx.fillStyle = '#4f8';
+
+    //     ctx.beginPath();
+    //     ctx.rect(canvas.width * .2, canvas.height * .2, canvas.width * .6, canvas.height * .6);
+    //     ctx.fill();
+    //     ctx.stroke();
+    //   },
+    // });
 
     //  Adding a FixedSpriteGrid to the sprite accumulator.
     //  * You add sprite collections as "SpriteGrid". That way, the engine
@@ -203,7 +365,7 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
       //  Dobuki logo
       [
         {
-          imageId: DOBUKI,
+          imageId: Assets.DOBUKI,
           spriteType: SpriteType.SPRITE,
           transform: Matrix.create().translate(0, 0, -1),
         },
@@ -216,14 +378,14 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
           Matrix.create().translate(-1, 0, 0).rotateY(-Math.PI / 2),
           Matrix.create().translate(1, 0, 0).rotateY(-Math.PI / 2),
           Matrix.create().translate(1, 0, 0).rotateY(Math.PI / 2),
-        ].map(transform => ({ imageId: LOGO, transform })),
+        ].map(transform => ({ imageId: Assets.LOGO, transform })),
         //  floor
         ...[
           Matrix.create().translate(0, -1, 0).rotateX(-Math.PI / 2),
           Matrix.create().translate(0, -1, 2).rotateX(-Math.PI / 2),
           Matrix.create().translate(-2, -1, 2).rotateX(-Math.PI / 2),
           Matrix.create().translate(2, -1, 2).rotateX(-Math.PI / 2),
-        ].map(transform => ({ imageId: GROUND, transform })),
+        ].map(transform => ({ imageId: Assets.GROUND, transform })),
       ],
       //  This is a block, moved 3 spaces back
       new SpriteGroup([
@@ -235,7 +397,7 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
           Matrix.create().translate(1, 0, 0).rotateY(Math.PI / 2),
           Matrix.create().translate(0, 0, 1).rotateY(0),  //  front
           Matrix.create().translate(0, 0, -1).rotateY(Math.PI), //  back
-        ].map(transform => ({ imageId: GROUND, transform })),
+        ].map(transform => ({ imageId: Assets.GROUND, transform })),
         //  Inside
         ...[
           Matrix.create().translate(0, -1, 0).rotateX(-Math.PI / 2),
@@ -244,7 +406,7 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
           Matrix.create().translate(1, 0, 0).rotateY(-Math.PI / 2),
           Matrix.create().translate(0, 0, 1).rotateY(Math.PI),  //  front
           Matrix.create().translate(0, 0, -1).rotateY(0), //  back
-        ].map(transform => ({ imageId: BRICK, transform })),
+        ].map(transform => ({ imageId: Assets.BRICK, transform })),
       ], [Matrix.create().setPosition(...positionFromCell([0, 0, -3, CELLSIZE]))]),
     ));
 
@@ -258,9 +420,9 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
     spritesAccumulator.addAuxiliary(new SpriteGrid(
       { yRange: [0, 0] }, new SpriteFactory({
         fillSpriteBag({ pos }, _, bag) {
-          const ground = bag.createSprite(GRASS);
+          const ground = bag.createSprite(Assets.GRASS);
           ground.transform.translate(pos[0] * pos[3], -1, pos[2] * pos[3]).rotateX(-Math.PI / 2);
-          const ceiling = bag.createSprite(WIREFRAME);
+          const ceiling = bag.createSprite(Assets.WIREFRAME);
           ceiling.transform.translate(pos[0] * pos[3], 2, pos[2] * pos[3]).rotateX(Math.PI / 2);
           bag.addSprite(ground, ceiling);
         },
@@ -272,7 +434,7 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
     });
     const spriteGroup = new SpriteGroup([
       {
-        imageId: DODO,
+        imageId: Assets.DODO,
         spriteType: SpriteType.SPRITE,
         transform: Matrix.create().translate(0, -.5, 0),
         animation: {
@@ -281,7 +443,7 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
         },
       },
       {
-        imageId: DODO_SHADOW,
+        imageId: Assets.DODO_SHADOW,
         transform: Matrix.create().translate(0, -0.7, 0).rotateX(-Math.PI / 2).scale(1, .3, 1),
         animation: {
           frames: [1, 5],
@@ -306,24 +468,13 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
     //  * you are in the scene.
     spritesAccumulator.addAuxiliary(new StaticSprites([
       {
-        imageId: VIDEO,
+        imageId: Assets.VIDEO,
         spriteType: SpriteType.DISTANT,
         transform: Matrix.create()
           .translate(3000, 1000, -5000)
           .scale(480, 270, 1),
       },
     ]));
-
-    //  Note that you don't need a StaticSprites auxiliary for adding simple permanent
-    //  sprites. You can just do this directly.
-    //  That said, StaticSprites is a better use, for its ability to be switched on/off
-    // spritesAccumulator.addSprites([
-    //   {
-    //     imageId: DOBUKI,
-    //     spriteType: SpriteType.HUD,
-    //     transform: Matrix.create().translate(-.45, .45, -.5).scale(.05),
-    //   },
-    // ]);
 
     //  Toggle auxiliary
     //  * Pressing the "Tab" button switches between two modes of movement below
@@ -361,14 +512,6 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
       heroSprites.informUpdate(0, SpriteUpdateType.TEX_SLOT);
       heroSprites.informUpdate(1, SpriteUpdateType.TEX_SLOT);
     }));
-
-    // heroPos.addChangeListener((dx, dy, dz) => {
-    //   console.log("heropos change", heroPos.position);
-    //   camera.position.moveBy(dx, dy, dz);
-    // });
-    // camera.position.addChangeListener(() => {
-    //   console.log("camera change", heroPos.position);
-    // })
 
     //  CellChangeAuxiliary
     //  * This is needed to indicate when the player is changing cell

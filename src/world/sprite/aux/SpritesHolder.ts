@@ -1,7 +1,6 @@
-import { Holder } from "world/aux/Holder";
+import { Sprite } from "../Sprite";
 import { Sprites } from "../Sprites";
+import { ElemsHolder } from "./ElemsHolder";
 
-export interface SpritesHolder extends Sprites, Holder<SpritesHolder> {
-  addSprites(...sprites: Sprites[]): void;
-  addNewSpritesListener(listener: (holder: SpritesHolder) => void): void;
+export interface SpritesHolder extends Sprites, ElemsHolder<Sprite> {
 }

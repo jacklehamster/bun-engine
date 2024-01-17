@@ -26,10 +26,10 @@ export class SpriteUpdater implements UpdateNotifier, Auxiliary<SpritesHolder> {
   constructor({ engine, motor }: Props) {
     this.updateRegistries = {
       [SpriteUpdateType.NONE]: undefined,
-      [SpriteUpdateType.TRANSFORM]: new UpdateRegistry((ids) => engine.updateSpriteTransforms(ids, this.sprites!), motor),
-      [SpriteUpdateType.TEX_SLOT]: new UpdateRegistry((ids) => engine.updateSpriteTexSlots(ids, this.sprites!), motor),
-      [SpriteUpdateType.TYPE]: new UpdateRegistry((ids) => engine.updateSpriteTypes(ids, this.sprites!), motor),
-      [SpriteUpdateType.ANIM]: new UpdateRegistry((ids) => engine.updateSpriteAnimations(ids, this.sprites!), motor),
+      [SpriteUpdateType.TRANSFORM]: new UpdateRegistry(ids => engine.updateSpriteTransforms(ids, this.sprites!), motor),
+      [SpriteUpdateType.TEX_SLOT]: new UpdateRegistry(ids => engine.updateSpriteTexSlots(ids, this.sprites!), motor),
+      [SpriteUpdateType.TYPE]: new UpdateRegistry(ids => engine.updateSpriteTypes(ids, this.sprites!), motor),
+      [SpriteUpdateType.ANIM]: new UpdateRegistry(ids => engine.updateSpriteAnimations(ids, this.sprites!), motor),
       [SpriteUpdateType.ALL]: undefined,
     };
   }

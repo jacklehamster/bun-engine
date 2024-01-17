@@ -21,6 +21,7 @@ export class TextureManager extends Disposable {
   private textureSlotAllocatorForVideo = new TextureSlotAllocator({
     excludeTexture: (tex) => tex !== TEXTURE_INDEX_FOR_VIDEO
   });
+  private activeMedias: Set<MediaData> = new Set();
 
   constructor(gl: GL, uniforms: GLUniforms) {
     super();
@@ -163,11 +164,11 @@ export class TextureManager extends Disposable {
       this.applyTexImage2d(imageInfo, srcRect, dstRect);
     };
 
-    if (imageInfo.active) {
+    if (this.activeMedias.has(imageInfo)) {
       refreshTexture();
     } else {
       this.loadTexture(imageInfo, textureId, texture, srcRect, dstRect);
-      imageInfo.active = true;
+      this.activeMedias.add(imageInfo);
     }
     return refreshTexture;
   }

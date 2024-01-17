@@ -41,6 +41,7 @@ import { Sprites } from 'world/sprite/Sprites';
 import { IMatrix, Vector } from 'gl/transform/IMatrix';
 import { SpriteSheet } from 'gl/texture/spritesheet/SpriteSheet';
 import { Priority } from 'updates/Refresh';
+import { List, map } from 'world/sprite/List';
 
 const VERTICES_PER_SPRITE = 6;
 
@@ -61,7 +62,7 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
   private textureManager: TextureManager;
   private imageManager: ImageManager;
 
-  private textureSlots: Record<MediaId, { buffer: Float32Array }> = {};
+  private textureSlots: Map<MediaId, { buffer: Float32Array }> = new Map();
 
   private pixelListener?: { x: number; y: number; setPixel(value: number): void };
   private spriteCount = 0;
@@ -111,9 +112,7 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
   }
 
   private clearTextureSlots(): void {
-    for (let i in this.textureSlots) {
-      delete this.textureSlots[i];
-    }
+    this.textureSlots.clear();
   }
 
   resetViewportSize() {
@@ -160,7 +159,9 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
   }
 
   private ensureBuffers(instanceCount: number) {
-    console.log("Sprite limit", instanceCount);
+    if (instanceCount >= 10000) {
+      console.warn("Sprite limit has already reached:", instanceCount);
+    }
 
     if (!this.attributeBuffers.hasBuffer(INDEX_LOC)) {
       this.attributeBuffers.createBuffer({
@@ -250,24 +251,28 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
     return this.attributeBuffers;
   }
 
-  async updateTextures(imageIds: MediaId[], getMedia: (imageId: MediaId) => Media | undefined): Promise<MediaData[]> {
-    const mediaInfos = (await Promise.all(imageIds.map(async imageId => {
+  async updateTextures(imageIds: List<MediaId>, getMedia: (imageId: MediaId) => Media | undefined): Promise<MediaData[]> {
+    const mediaInfos = (await Promise.all(map(imageIds, async imageId => {
+      if (imageId === undefined) {
+        console.warn(`Undefined imageId`);
+        return;
+      }
       const media = getMedia(imageId);
-      if (!media) {
+      if (!media || media.id === undefined) {
         console.warn(`No media for imageId ${imageId}`);
         return;
       }
-      const mediaData = await this.imageManager.renderMedia(imageId, media);
-      return { mediaData, imageId, spriteSheet: media.spriteSheet };
-    }))).filter((data): data is { mediaData: MediaData, imageId: MediaId, spriteSheet: SpriteSheet | undefined } => !!data);
-    const textureIndices = await Promise.all(mediaInfos.map(async ({ mediaData, imageId, spriteSheet }) => {
+      const mediaData = await this.imageManager.renderMedia(media.id, media);
+      return { mediaData, mediaId: media.id, spriteSheet: media.spriteSheet };
+    }))).filter((data): data is { mediaData: MediaData, mediaId: MediaId, spriteSheet: SpriteSheet | undefined } => !!data);
+    const textureIndices = await Promise.all(mediaInfos.map(async ({ mediaData, mediaId, spriteSheet }) => {
       const { slot, refreshCallback } = this.textureManager.allocateSlotForImage(mediaData);
       const slotW = Math.log2(slot.size[0]), slotH = Math.log2(slot.size[1]);
       const wh = slotW * 16 + slotH;
       const [spriteWidth, spriteHeight] = spriteSheet?.spriteSize ?? [mediaData.width, mediaData.height];
-      this.textureSlots[imageId] = {
+      this.textureSlots.set(mediaId, {
         buffer: Float32Array.from([wh, slot.slotNumber, spriteWidth / mediaData.width, spriteHeight / mediaData.height]),
-      };
+      });
       mediaData.refreshCallback = refreshCallback;
       return slot.textureIndex;
     }));
@@ -315,7 +320,7 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
     attributeBuffers.bindBuffer(SLOT_SIZE_LOC);
     spriteIds.forEach(spriteId => {
       const sprite = sprites.at(spriteId);
-      const slotObj = sprite ? this.textureSlots[sprite.imageId] : undefined;
+      const slotObj = sprite ? this.textureSlots.get(sprite.imageId) : undefined;
       let buffer = slotObj?.buffer ?? EMPTY_TEX;
       if (sprite?.flip) {
         this.tempBuffer[0] = buffer[0];

@@ -1,12 +1,16 @@
+import { List } from "world/sprite/List";
+import { MediaId } from "./ImageManager";
 import { SpriteSheet } from "./spritesheet/SpriteSheet";
+import { UpdateNotifier } from "updates/UpdateNotifier";
 
 export type MediaType = "image" | "video" | "canvas" | "draw" | "webcam" | string;
 
 interface PostProcessable {
-  postProcessing?: (canvas: OffscreenCanvas) => Promise<OffscreenCanvas> | OffscreenCanvas | void;
+  postProcessing?: (ctx: OffscreenCanvasRenderingContext2D) => Promise<void> | void;
 }
 
 interface BaseMedia extends PostProcessable {
+  id?: MediaId;
   spriteSheet?: SpriteSheet;
 }
 
@@ -40,3 +44,4 @@ export interface WebcamMedia extends BaseMedia {
 }
 
 export type Media = ImageMedia | VideoMedia | CanvasMedia | DrawMedia | WebcamMedia;
+export type Medias = List<Media> & Partial<UpdateNotifier>;
