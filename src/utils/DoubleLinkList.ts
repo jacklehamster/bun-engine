@@ -11,9 +11,8 @@ interface DoubleLinkListNode<T> {
 export class DoubleLinkList<T extends string | number | symbol> implements FreeStack<T> {
   private readonly start: DoubleLinkListNode<T>;
   private readonly end: DoubleLinkListNode<T>;
-  private readonly nodeMap: Record<T, DoubleLinkListNode<T>> = {} as Record<T, DoubleLinkListNode<T>>;
+  private readonly nodeMap: Map<T, DoubleLinkListNode<T>> = new Map();
   private readonly pool: ObjectPool<DoubleLinkListNode<T>, [T]>;
-  private count: number = 0;
 
   constructor(edgeValue: T) {
     this.start = { value: edgeValue };
@@ -31,8 +30,13 @@ export class DoubleLinkList<T extends string | number | symbol> implements FreeS
     });
   }
 
+  clear(): void {
+    while (this.removeEntry(this.start.next!)) {
+    }
+  }
+
   get size(): number {
-    return this.count;
+    return this.nodeMap.size;
   }
 
   private tags: T[] = [];
@@ -47,17 +51,16 @@ export class DoubleLinkList<T extends string | number | symbol> implements FreeS
   pushTop(value: T): void {
     // const formerTop = this.end.prev!;
     const newTop: DoubleLinkListNode<T> = this.pool.create(value);
-    this.nodeMap[value] = newTop;
-    this.count++;
+    this.nodeMap.set(value, newTop);
     this.moveTop(value);
   }
 
   contains(value: T): boolean {
-    return !!this.nodeMap[value];
+    return this.nodeMap.has(value);
   }
 
   moveTop(value: T): boolean {
-    const entry = this.nodeMap[value];
+    const entry = this.nodeMap.get(value);
     if (entry) {
       //  remove entry
       if (entry.prev && entry.next) {
@@ -77,7 +80,7 @@ export class DoubleLinkList<T extends string | number | symbol> implements FreeS
   }
 
   remove(value: T): boolean {
-    const entry = this.nodeMap[value];
+    const entry = this.nodeMap.get(value);
     if (entry) {
       this.removeEntry(entry);
       return true;
@@ -86,13 +89,16 @@ export class DoubleLinkList<T extends string | number | symbol> implements FreeS
     }
   }
 
-  private removeEntry(entry: DoubleLinkListNode<T>) {
+  private removeEntry(entry: DoubleLinkListNode<T>): boolean {
+    if (entry === this.end || entry === this.start) {
+      return false;
+    }
     entry.prev!.next = entry.next;
     entry.next!.prev = entry.prev;
     entry.prev = entry.next = undefined;
     this.pool.recycle(entry);
-    delete this.nodeMap[entry.value];
-    this.count--;
+    this.nodeMap.delete(entry.value);
+    return true;
   }
 
   popBottom(): T | undefined {

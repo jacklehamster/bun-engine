@@ -45,7 +45,18 @@ export class Accumulator<T> extends AuxiliaryHolder implements ElemsHolder<T>, I
     });
   }
 
-  add(...elemsList: (ListNotifier<T> | T[] & { informUpdate: undefined })[]): void {
+  deactivate(): void {
+    this.indices.forEach(slot => {
+      if (slot.id) {
+        this.informUpdate?.(slot.id);
+      }
+      this.pool.recycle(slot);
+    });
+    this.indices.length = 0;
+    super.deactivate();
+  }
+
+  add(...elemsList: (ListNotifier<T> | T[] & { informUpdate: undefined, activate: undefined })[]): void {
     elemsList.forEach(elems => {
       const slots: Slot<T>[] = [];
       if (elems.informUpdate) {
@@ -64,15 +75,17 @@ export class Accumulator<T> extends AuxiliaryHolder implements ElemsHolder<T>, I
             if (slot.id !== undefined) {
               const id = slot.id;
               slot.id = undefined;
-              const lastSlotId = this.indices.length - 1;
-              if (id !== lastSlotId) {
-                this.indices[id] = this.indices[lastSlotId];
-                this.indices[id].id = id;
+              if (this.indices.length) {
+                const lastSlotId = this.indices.length - 1;
+                if (id !== lastSlotId) {
+                  this.indices[id] = this.indices[lastSlotId];
+                  this.indices[id].id = id;
+                }
+                this.indices.pop();
+                this.informUpdate?.(lastSlotId);
+                this.onSizeChange();
               }
-              this.indices.pop();
               this.informUpdate?.(id);
-              this.informUpdate?.(lastSlotId);
-              this.onSizeChange();
             }
           }
         };
@@ -92,13 +105,5 @@ export class Accumulator<T> extends AuxiliaryHolder implements ElemsHolder<T>, I
 
   addNewElemsListener(listener: (holder: ElemsHolder<T>) => void): void {
     this.newElemsListener.add(listener);
-  }
-
-  deactivate(): void {
-    super.deactivate();
-    this.indices.forEach(slot => {
-      this.pool.recycle(slot);
-    });
-    this.indices.length = 0;
   }
 }

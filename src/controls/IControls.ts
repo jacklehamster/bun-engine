@@ -19,6 +19,6 @@ export interface IControls {
   get turnLeft(): boolean;
   get turnRight(): boolean;
   get action(): boolean;
-  addListener(listener: ControlsListener): () => void;
+  addListener(listener: ControlsListener): void;
   removeListener(listener: ControlsListener): void;
 }

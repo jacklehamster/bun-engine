@@ -28,12 +28,8 @@ export class SpriteFactory implements ISpriteFactory {
   });
 
   private spriteBag: SpriteBag = {
-    createSprite: (imageId?: MediaId): Sprite => {
-      return this.pool.create(imageId ?? 0);
-    },
-    addSprite: (...sprites: Sprite[]) => {
-      this.sprites.push(...sprites);
-    },
+    createSprite: (imageId?: MediaId): Sprite => this.pool.create(imageId ?? 0),
+    addSprite: (...sprites: Sprite[]) => this.sprites.push(...sprites),
   };
 
   constructor(private filler: CellSpriteFiller) {

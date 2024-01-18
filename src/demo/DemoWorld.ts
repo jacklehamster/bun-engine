@@ -12,14 +12,12 @@ import { PositionStepAuxiliary } from "world/aux/PositionStepAuxiliary";
 import { TiltResetAuxiliary } from "world/aux/TiltResetAuxiliary";
 import { ToggleAuxiliary } from "world/aux/ToggleAuxiliary";
 import { CellTracker } from "world/grid/CellTracker";
-import { SpritesAccumulator } from "world/sprite/aux/SpritesAccumulator";
-import { SpriteGroup } from "world/sprite/SpritesGroup";
+import { SpriteGroup } from "world/sprite/aux/SpritesGroup";
 import { FixedSpriteGrid } from "world/sprite/aux/FixedSpriteGrid";
 import { MaxSpriteCountAuxiliary } from "world/sprite/aux/MaxSpriteCountAuxiliary";
 import { SpriteGrid } from "world/sprite/aux/SpriteGrid";
-import { StaticSprites } from "world/sprite/aux/StaticSprites";
 import { SpriteUpdater } from "world/sprite/update/SpriteUpdater";
-import { SpriteType } from "world/sprite/Sprite";
+import { Sprite, SpriteType } from "world/sprite/Sprite";
 import { ICamera } from "camera/ICamera";
 import { KeyboardControls } from "controls/KeyboardControls";
 import { SpriteFactory } from "world/sprite/SpritesFactory";
@@ -32,8 +30,13 @@ import { TiltAuxiliary } from "world/aux/TiltAuxiliary";
 import { SmoothFollowAuxiliary } from "world/aux/SmoothFollowAuxiliary";
 import { DirAuxiliary } from "world/aux/DirAuxiliary";
 import { SpriteUpdateType } from "world/sprite/update/SpriteUpdateType";
-import { MediasAccumulator } from "gl/texture/MediasAccumulator";
 import { MediaUpdater } from "world/sprite/update/MediaUpdater";
+import { Accumulator } from "world/sprite/aux/Accumulator";
+import { Media } from "gl/texture/Media";
+import { AnimationUpdater } from "world/sprite/update/AnimationUpdater";
+import { Animation } from "animation/Animation";
+import { MotionAuxiliary } from "world/aux/MotionAuxiliary";
+import { forEach } from "world/sprite/List";
 
 enum Assets {
   DOBUKI = 0,
@@ -45,6 +48,11 @@ enum Assets {
   BRICK = 6,
   DODO = 7,
   DODO_SHADOW = 8,
+}
+
+enum Anims {
+  STILL = 0,
+  RUN = 1,
 }
 
 const LOGO_SIZE = 512;
@@ -62,7 +70,7 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
 
     //  Add a sprite accumulator.
     //  * Sprite accumulators are used to collect sprite definitions, so that the engine can display them.
-    const spritesAccumulator = new SpritesAccumulator().addAuxiliary(
+    const spritesAccumulator = new Accumulator<Sprite>().addAuxiliary(
       new SpriteUpdater({ engine, motor }),
       new MaxSpriteCountAuxiliary({ engine }));
     this.addAuxiliary(spritesAccumulator);
@@ -70,7 +78,7 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
     //  Add medias
     //  * Each media is a texture that can be shown on a sprite.
     //  * You can show videos, images, or you can have instructions to draw on a canvas.
-    const mediasAccumulator = new MediasAccumulator().addAuxiliary(
+    const mediasAccumulator = new Accumulator<Media>().addAuxiliary(
       new MediaUpdater({ engine, motor }));
     mediasAccumulator.add([
       {
@@ -220,142 +228,21 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
     ]);
     this.addAuxiliary(mediasAccumulator);
 
-    // const medias = new UpdatableMedias({ engine, motor });
-    // medias.set(Assets.DOBUKI, {
-    //   type: "image", src: "dobuki.png",
-    // });
-    // medias.set(Assets.DODO, {
-    //   type: "image", src: "dodo.png",
-    //   spriteSheet: {
-    //     spriteSize: [190, 209],
-    //   },
-    // });
-    // medias.set(Assets.DODO_SHADOW, {
-    //   type: "image", src: "dodo.png",
-    //   spriteSheet: {
-    //     spriteSize: [190, 209],
-    //   },
-    //   postProcessing(canvas) {
-    //     const context = canvas.getContext("2d");
-    //     if (context) {
-    //       const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-    //       const { data } = imageData;
-    //       for (let i = 0; i < data.length; i += 4) {
-    //         data[i] = data[i + 1] = data[i + 2] = 0;
-    //       }
-    //       context.putImageData(imageData, 0, 0);
-    //     }
-    //   },
-    // });
-    // medias.set(Assets.LOGO, {
-    //   type: "draw",
-    //   draw: ctx => {
-    //     const { canvas } = ctx;
-    //     canvas.width = LOGO_SIZE;
-    //     canvas.height = LOGO_SIZE;
-    //     const centerX = canvas.width / 2, centerY = canvas.height / 2;
-    //     const halfSize = canvas.width / 2;
-    //     ctx.imageSmoothingEnabled = true;
-    //     ctx.fillStyle = '#ddd';
-    //     ctx.lineWidth = canvas.width / 50;
-    //     ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const animsAccumulator = new Accumulator<Animation>().addAuxiliary(
+      new AnimationUpdater({ engine, motor }));
+    this.addAuxiliary(animsAccumulator);
 
-    //     ctx.strokeStyle = 'black';
-    //     ctx.fillStyle = 'gold';
-
-    //     //  face
-    //     ctx.beginPath();
-    //     ctx.arc(centerX, centerY, halfSize * 0.8, 0, 2 * Math.PI);
-    //     ctx.fill();
-    //     ctx.stroke();
-
-    //     //  smile
-    //     ctx.beginPath();
-    //     ctx.arc(centerX, centerY, halfSize * 0.5, 0, Math.PI);
-    //     ctx.stroke();
-
-    //     //  left eye
-    //     ctx.beginPath();
-    //     ctx.arc(canvas.width / 3, canvas.height / 3, halfSize * 0.1, 0, Math.PI, true);
-    //     ctx.stroke();
-    //     ctx.beginPath();
-    //     ctx.arc((canvas.width / 3) * 2, canvas.height / 3, halfSize * 0.1, 0, Math.PI * 2, true);
-    //     ctx.stroke();
-    //   },
-    // });
-    // medias.set(Assets.GROUND, {
-    //   type: "draw",
-    //   draw: ctx => {
-    //     const { canvas } = ctx;
-    //     canvas.width = LOGO_SIZE;
-    //     canvas.height = LOGO_SIZE;
-    //     ctx.fillStyle = '#ddd';
-    //     ctx.lineWidth = canvas.width / 50;
-    //     ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    //     ctx.strokeStyle = 'black';
-    //     ctx.fillStyle = 'silver';
-
-    //     ctx.beginPath();
-    //     ctx.rect(canvas.width * .2, canvas.height * .2, canvas.width * .6, canvas.height * .6);
-    //     ctx.fill();
-    //     ctx.stroke();
-    //   },
-    // });
-    // medias.set(Assets.BRICK, {
-    //   type: "draw",
-    //   draw: ctx => {
-    //     const { canvas } = ctx;
-    //     canvas.width = LOGO_SIZE;
-    //     canvas.height = LOGO_SIZE;
-    //     ctx.fillStyle = '#ddd';
-    //     ctx.lineWidth = canvas.width / 50;
-    //     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    //   },
-    // });
-    // medias.set(Assets.VIDEO, {
-    //   type: "video",
-    //   src: 'sample.mp4',
-    //   volume: 0,
-    //   fps: 30,
-    //   playSpeed: .1,
-    //   maxRefreshRate: 30,
-    // });
-    // medias.set(Assets.WIREFRAME, {
-    //   type: "draw",
-    //   draw: ctx => {
-    //     const { canvas } = ctx;
-    //     canvas.width = LOGO_SIZE;
-    //     canvas.height = LOGO_SIZE;
-    //     ctx.lineWidth = 8;
-    //     ctx.setLineDash([5, 2]);
-
-    //     ctx.strokeStyle = 'green';
-
-    //     ctx.beginPath();
-    //     ctx.rect(10, 10, canvas.width - 20, canvas.height - 20);
-    //     ctx.stroke();
-    //   },
-    // });
-    // medias.set(Assets.GRASS, {
-    //   type: "draw",
-    //   draw: ctx => {
-    //     const { canvas } = ctx;
-    //     canvas.width = LOGO_SIZE;
-    //     canvas.height = LOGO_SIZE;
-    //     ctx.fillStyle = 'green';
-    //     ctx.lineWidth = canvas.width / 50;
-    //     ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    //     ctx.strokeStyle = 'black';
-    //     ctx.fillStyle = '#4f8';
-
-    //     ctx.beginPath();
-    //     ctx.rect(canvas.width * .2, canvas.height * .2, canvas.width * .6, canvas.height * .6);
-    //     ctx.fill();
-    //     ctx.stroke();
-    //   },
-    // });
+    animsAccumulator.add([
+      {
+        id: Anims.STILL,
+        frames: [0],
+      },
+      {
+        id: Anims.RUN,
+        frames: [1, 5],
+        fps: 24,
+      },
+    ]);
 
     //  Adding a FixedSpriteGrid to the sprite accumulator.
     //  * You add sprite collections as "SpriteGrid". That way, the engine
@@ -381,10 +268,10 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
         ].map(transform => ({ imageId: Assets.LOGO, transform })),
         //  floor
         ...[
-          Matrix.create().translate(0, -1, 0).rotateX(-Math.PI / 2),
-          Matrix.create().translate(0, -1, 2).rotateX(-Math.PI / 2),
-          Matrix.create().translate(-2, -1, 2).rotateX(-Math.PI / 2),
-          Matrix.create().translate(2, -1, 2).rotateX(-Math.PI / 2),
+          Matrix.create().translate(0, -.9, 0).rotateX(-Math.PI / 2),
+          Matrix.create().translate(0, -.9, 2).rotateX(-Math.PI / 2),
+          Matrix.create().translate(-2, -.9, 2).rotateX(-Math.PI / 2),
+          Matrix.create().translate(2, -.9, 2).rotateX(-Math.PI / 2),
         ].map(transform => ({ imageId: Assets.GROUND, transform })),
       ],
       //  This is a block, moved 3 spaces back
@@ -426,32 +313,25 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
           ceiling.transform.translate(pos[0] * pos[3], 2, pos[2] * pos[3]).rotateX(Math.PI / 2);
           bag.addSprite(ground, ceiling);
         },
-      })));
+      })
+    ));
 
     const heroPos: PositionMatrix = new PositionMatrix().onChange(() => {
-      heroSprites.informUpdate(0, SpriteUpdateType.TRANSFORM);
-      heroSprites.informUpdate(1, SpriteUpdateType.TRANSFORM);
+      forEach(heroSprites, (_, index) => heroSprites.informUpdate(index, SpriteUpdateType.TRANSFORM));
     });
-    const spriteGroup = new SpriteGroup([
+    const heroSprites = new SpriteGroup([
       {
         imageId: Assets.DODO,
         spriteType: SpriteType.SPRITE,
         transform: Matrix.create().translate(0, -.5, 0),
-        animation: {
-          frames: [1, 5],
-          fps: 24,
-        },
+        animationId: Anims.STILL,
       },
       {
         imageId: Assets.DODO_SHADOW,
         transform: Matrix.create().translate(0, -0.7, 0).rotateX(-Math.PI / 2).scale(1, .3, 1),
-        animation: {
-          frames: [1, 5],
-          fps: 24,
-        },
+        animationId: Anims.STILL,
       },
     ], [heroPos]);
-    const heroSprites = new StaticSprites(spriteGroup);
     spritesAccumulator.addAuxiliary(heroSprites);
 
     //  * A move blocker just determines where you can or cannot move.
@@ -466,7 +346,7 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
     //  Static Sprites
     //  * Those are just sprites, which will appear regardless of where
     //  * you are in the scene.
-    spritesAccumulator.addAuxiliary(new StaticSprites([
+    spritesAccumulator.addAuxiliary(new SpriteGroup([
       {
         imageId: Assets.VIDEO,
         spriteType: SpriteType.DISTANT,
@@ -508,9 +388,9 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
     );
     this.addAuxiliary(keyboard);
 
-    this.addAuxiliary(new DirAuxiliary({ flippable: spriteGroup, controls }, () => {
-      heroSprites.informUpdate(0, SpriteUpdateType.TEX_SLOT);
-      heroSprites.informUpdate(1, SpriteUpdateType.TEX_SLOT);
+    this.addAuxiliary(new DirAuxiliary({ flippable: heroSprites, controls }));
+    this.addAuxiliary(new MotionAuxiliary({ controls }, moving => {
+      heroSprites.animationId = moving ? Anims.RUN : Anims.STILL;
     }));
 
     //  CellChangeAuxiliary
@@ -527,7 +407,7 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
 
     //  Hack some base settings
     camera.distance.setValue(5)
-    camera.tilt.angle.setValue(1.2);
+    camera.tilt.angle.setValue(1.1);
     camera.projection.zoom.setValue(.25);
     camera.projection.perspective.setValue(.05);
     this.addAuxiliary(new TimeAuxiliary(engine));

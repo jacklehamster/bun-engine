@@ -1,6 +1,6 @@
 import { PositionMatrix } from "gl/transform/PositionMatrix";
 import { Auxiliary } from "./Auxiliary";
-import { Flippable } from "world/sprite/Sprite";
+import { Flippable } from "world/sprite/Flippable";
 import { IControls } from "controls/IControls";
 
 interface Props {

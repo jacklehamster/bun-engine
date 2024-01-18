@@ -20,7 +20,7 @@ export class ImageManager extends Disposable {
     webcam: createDrawProcedure<WebcamMedia>((imageId, media) => this.loadWebCam(imageId, media.deviceId)) as DrawProcedure<Media>,
   };
 
-  private async postProcess(mediaData: MediaData, postProcessing: (context: OffscreenCanvasRenderingContext2D) => Promise<void>) {
+  private async postProcess(mediaData: MediaData, postProcessing: (context: OffscreenCanvasRenderingContext2D) => Promise<void> | void) {
     if (mediaData.canvasImgSrc) {
       const canvas = new OffscreenCanvas(mediaData.width, mediaData.height);
       const ctx = canvas.getContext("2d");

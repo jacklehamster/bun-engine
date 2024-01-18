@@ -25797,7 +25797,7 @@ void main() {
     pow(2.0, mod(slotSize_and_number.x, 16.0)));
   float slotNumber = slotSize_and_number.y;
   vec2 spriteSize = abs(slotSize_and_number.zw);
-  vec2 tex = position.xy * vec2(0.49, -0.49) * sign(slotSize_and_number.zw) + 0.5; //  Texture corners 0..1
+  vec2 tex = (position.xy) * vec2(0.49, -0.49) * sign(slotSize_and_number.zw) + 0.5; //  Texture corners 0..1
   float sheetCols = ceil(1. / spriteSize[0]);
   float frameStart = animation[0];
   float frameEnd = animation[1];
@@ -25826,11 +25826,12 @@ void main() {
   vec4 elemPosition = transform * basePosition;
   // elementPosition => relativePosition
   vec4 relativePosition = camTilt * camTurn * camPos * elemPosition;
-  relativePosition.z -= camDist;
 
   float actualCurvature = curvature * (1. - isDistant);
   relativePosition.y -= actualCurvature * ((relativePosition.z * relativePosition.z) + (relativePosition.x * relativePosition.x) / 4.) / 10.;
   relativePosition.x /= (1. + actualCurvature * 1.4);
+
+  relativePosition.z -= camDist;
 
   dist = max(isDistant, isHud) + (1. - max(isDistant, isHud)) * (relativePosition.z*relativePosition.z + relativePosition.x*relativePosition.x);
   // relativePosition => gl_Position
@@ -26901,20 +26902,21 @@ class TextureManager extends Disposable {
 class MediaData extends Disposable {
   id;
   texImgSrc;
+  refreshRate;
   canvasImgSrc;
   width;
   height;
   isVideo;
-  schedule;
-  constructor(id, image, refreshRate, canvasImgSrc) {
+  constructor(id, texImgSrc, refreshRate, canvasImgSrc) {
     super();
     this.id = id;
-    this.texImgSrc = image;
-    const img = image;
+    this.texImgSrc = texImgSrc;
+    this.refreshRate = refreshRate;
+    this.canvasImgSrc = canvasImgSrc;
+    const img = texImgSrc;
     this.isVideo = !!(img.videoWidth || img.videoHeight);
     this.width = img.naturalWidth ?? img.videoWidth ?? img.displayWidth ?? img.width?.baseValue?.value ?? img.width;
     this.height = img.naturalHeight ?? img.videoHeight ?? img.displayHeight ?? img.height?.baseValue?.value ?? img.height;
-    this.schedule = refreshRate ? { period: 1000 / refreshRate } : undefined;
     this.canvasImgSrc = canvasImgSrc;
     if (!this.width || !this.height) {
       throw new Error("Invalid image");
@@ -27075,9 +27077,7 @@ function copySprite(sprite, dest) {
       imageId: sprite.imageId,
       spriteType: sprite.spriteType,
       flip: sprite.flip,
-      animation: {
-        ...sprite.animation
-      }
+      animationId: sprite.animationId
     };
   }
   dest.name = sprite.name;
@@ -27085,12 +27085,7 @@ function copySprite(sprite, dest) {
   dest.spriteType = sprite.spriteType;
   dest.transform.copy(sprite.transform);
   dest.flip = sprite.flip;
-  dest.animation = dest.animation ?? { frames: [0, 0] };
-  dest.animation.frames = dest.animation.frames ?? [0, 0];
-  dest.animation.frames[0] = sprite.animation?.frames?.[0] ?? 0;
-  dest.animation.frames[1] = sprite.animation?.frames?.[1] ?? dest.animation.frames[0];
-  dest.animation.fps = sprite.animation?.fps;
-  dest.animation.maxFrameCount = sprite.animation?.maxFrameCount;
+  dest.animationId = sprite.animationId;
   return dest;
 }
 var SpriteType;
@@ -27141,13 +27136,14 @@ class GraphicsEngine extends Disposable {
   textureManager;
   imageManager;
   textureSlots = new Map;
+  animationSlots = new Map;
   pixelListener;
-  spriteCount = 0;
   maxSpriteCount = 0;
   matrixUniforms;
   floatUniforms;
   vec3Uniforms;
   tempBuffer = new Float32Array(4).fill(0);
+  visibleSprites = [];
   constructor(gl) {
     super();
     this.gl = gl;
@@ -27178,9 +27174,6 @@ class GraphicsEngine extends Disposable {
     this.attributeBuffers = this.own(new GLAttributeBuffers(this.gl, this.programs));
     this.initialize(PROGRAM_NAME);
   }
-  clearTextureSlots() {
-    this.textureSlots.clear();
-  }
   resetViewportSize() {
     this.gl.viewport(0, 0, this.gl.drawingBufferWidth, this.gl.drawingBufferHeight);
   }
@@ -27198,7 +27191,9 @@ class GraphicsEngine extends Disposable {
     this.textureManager.initialize();
   }
   deactivate() {
-    this.clearTextureSlots();
+    this.textureSlots.clear();
+    this.animationSlots.clear();
+    this.visibleSprites.length = 0;
   }
   setMaxSpriteCount(count) {
     if (count > this.maxSpriteCount) {
@@ -27301,15 +27296,11 @@ class GraphicsEngine extends Disposable {
     }
     return this.attributeBuffers;
   }
-  async updateTextures(imageIds, getMedia) {
-    const mediaInfos = (await Promise.all(map(imageIds, async (imageId) => {
-      if (imageId === undefined) {
-        console.warn(`Undefined imageId`);
-        return;
-      }
-      const media = getMedia(imageId);
-      if (!media || media.id === undefined) {
-        console.warn(`No media for imageId ${imageId}`);
+  async updateTextures(ids, medias) {
+    const mediaList = Array.from(ids).map((index) => medias.at(index));
+    ids.clear();
+    const mediaInfos = (await Promise.all(map(mediaList, async (media) => {
+      if (media?.id === undefined) {
         return;
       }
       const mediaData = await this.imageManager.renderMedia(media.id, media);
@@ -27342,28 +27333,31 @@ class GraphicsEngine extends Disposable {
   updateSpriteTransforms(spriteIds, sprites) {
     const attributeBuffers = this.attributeBuffers;
     attributeBuffers.bindBuffer(TRANSFORM_LOC);
-    let topVisibleSprite = this.spriteCount - 1;
     spriteIds.forEach((spriteId) => {
       const sprite = sprites.at(spriteId);
       this.gl.bufferSubData(GL.ARRAY_BUFFER, 16 * Float32Array.BYTES_PER_ELEMENT * spriteId, (sprite?.transform ?? Matrix_default.HIDDEN).getMatrix());
       if (sprite) {
-        topVisibleSprite = Math.max(topVisibleSprite, spriteId);
+        this.visibleSprites[spriteId] = true;
+      } else {
+        this.visibleSprites[spriteId] = false;
       }
     });
     spriteIds.clear();
-    while (topVisibleSprite >= 0 && !sprites.at(topVisibleSprite)) {
-      topVisibleSprite--;
+    while (this.visibleSprites.length && !this.visibleSprites[this.visibleSprites.length - 1]) {
+      this.visibleSprites.length--;
     }
-    this.spriteCount = Math.max(this.spriteCount, topVisibleSprite + 1);
   }
   updateSpriteTexSlots(spriteIds, sprites) {
     const attributeBuffers = this.attributeBuffers;
     attributeBuffers.bindBuffer(SLOT_SIZE_LOC);
     spriteIds.forEach((spriteId) => {
       const sprite = sprites.at(spriteId);
-      const slotObj = sprite ? this.textureSlots.get(sprite.imageId) : undefined;
+      if (!sprite) {
+        return;
+      }
+      const slotObj = this.textureSlots.get(sprite.imageId);
       let buffer = slotObj?.buffer ?? EMPTY_TEX;
-      if (sprite?.flip) {
+      if (sprite.flip) {
         this.tempBuffer[0] = buffer[0];
         this.tempBuffer[1] = buffer[1];
         this.tempBuffer[2] = -buffer[2];
@@ -27382,7 +27376,10 @@ class GraphicsEngine extends Disposable {
     attributeBuffers.bindBuffer(SPRITE_TYPE_LOC);
     spriteIds.forEach((spriteId) => {
       const sprite = sprites.at(spriteId);
-      const type = sprite?.spriteType ?? SpriteType.DEFAULT;
+      if (!sprite) {
+        return;
+      }
+      const type = sprite.spriteType ?? SpriteType.DEFAULT;
       this.tempBuffer[0] = type;
       this.gl.bufferSubData(GL.ARRAY_BUFFER, 1 * Float32Array.BYTES_PER_ELEMENT * spriteId, this.tempBuffer, 0, 1);
     });
@@ -27393,15 +27390,26 @@ class GraphicsEngine extends Disposable {
     attributeBuffers.bindBuffer(ANIM_LOC);
     spriteIds.forEach((spriteId) => {
       const sprite = sprites.at(spriteId);
-      if (sprite) {
-        this.tempBuffer[0] = sprite.animation?.frames?.[0] ?? 0;
-        this.tempBuffer[1] = sprite.animation?.frames?.[1] ?? this.tempBuffer[0];
-        this.tempBuffer[2] = sprite.animation?.fps ?? 0;
-        this.tempBuffer[3] = sprite.animation?.maxFrameCount ?? Number.MAX_SAFE_INTEGER;
-        this.gl.bufferSubData(GL.ARRAY_BUFFER, 4 * Float32Array.BYTES_PER_ELEMENT * spriteId, this.tempBuffer);
+      if (sprite?.animationId === undefined) {
+        return;
       }
+      const animation = this.animationSlots.get(sprite.animationId);
+      this.tempBuffer[0] = animation?.frames?.[0] ?? 0;
+      this.tempBuffer[1] = animation?.frames?.[1] ?? this.tempBuffer[0];
+      this.tempBuffer[2] = animation?.fps ?? 0;
+      this.tempBuffer[3] = animation?.maxFrameCount ?? Number.MAX_SAFE_INTEGER;
+      this.gl.bufferSubData(GL.ARRAY_BUFFER, 4 * Float32Array.BYTES_PER_ELEMENT * spriteId, this.tempBuffer);
     });
     spriteIds.clear();
+  }
+  updateAnimationDefinitions(ids, animations) {
+    for (let id of ids) {
+      const animation = animations.at(id);
+      if (animation?.id !== undefined) {
+        this.animationSlots.set(animation.id, animation);
+      }
+    }
+    ids.clear();
   }
   updateUniformMatrix(type, matrix) {
     this.gl.uniformMatrix4fv(this.matrixUniforms[type], false, matrix.getMatrix());
@@ -27423,11 +27431,40 @@ class GraphicsEngine extends Disposable {
   }
   static clearBit = GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT;
   refresh() {
-    if (this.spriteCount) {
-      this.gl.clear(GraphicsEngine.clearBit);
-      this.drawElementsInstanced(VERTICES_PER_SPRITE, this.spriteCount);
+    this.gl.clear(GraphicsEngine.clearBit);
+    if (this.visibleSprites.length) {
+      this.drawElementsInstanced(VERTICES_PER_SPRITE, this.visibleSprites.length);
       this.pixelListener?.setPixel(this.getPixel(this.pixelListener.x, this.pixelListener.y));
     }
+  }
+}
+
+// src/utils/ObjectPool.ts
+class ObjectPool {
+  initCall;
+  allObjectsCreated = [];
+  recycler = [];
+  constructor(initCall) {
+    this.initCall = initCall;
+  }
+  recycle(element) {
+    this.recycler.push(element);
+  }
+  create(...params) {
+    const recycledElem = this.recycler.pop();
+    if (recycledElem) {
+      return this.initCall(recycledElem, ...params);
+    }
+    const elem = this.initCall(undefined, ...params);
+    this.allObjectsCreated.push(elem);
+    if (this.allObjectsCreated.length === 1e5) {
+      console.warn("ObjectPool already created", this.allObjectsCreated.length);
+    }
+    return elem;
+  }
+  reset() {
+    this.recycler.length = 0;
+    this.recycler.push(...this.allObjectsCreated);
   }
 }
 
@@ -27439,21 +27476,32 @@ class Motor {
   updateSchedule = new Map;
   time = 0;
   holder;
+  pool = new ObjectPool((schedule, frameRate, expiration) => {
+    if (!schedule) {
+      return { triggerTime: 0, period: frameRate ? 1000 / frameRate : 1, expiration };
+    }
+    schedule.triggerTime = 0;
+    schedule.period = frameRate ? 1000 / frameRate : 0;
+    schedule.expiration = expiration;
+    return schedule;
+  });
   loop(update, frameRate, expirationTime) {
-    this.registerUpdate(update, { period: frameRate ? 1000 / frameRate : 1, expirationTime });
+    this.registerUpdate(update, frameRate ?? 1000, expirationTime);
   }
-  registerUpdate(update, schedule) {
-    if (!this.updateSchedule.has(update) || schedule) {
-      if (!schedule) {
-        schedule = {};
-      }
-      schedule.triggerTime = schedule.triggerTime ?? 0;
-      schedule.expirationTime = schedule.expirationTime ?? Infinity;
-      schedule.period = schedule.period;
-      this.updateSchedule.set(update, schedule);
+  registerUpdate(update, refreshRate = 0, expiration = Infinity) {
+    const schedule = this.updateSchedule.get(update);
+    if (!schedule) {
+      this.updateSchedule.set(update, this.pool.create(refreshRate, expiration));
+    } else {
+      schedule.period = refreshRate ? 1000 / refreshRate : 0;
+      schedule.expiration = expiration;
     }
   }
   deregisterUpdate(update) {
+    const schedule = this.updateSchedule.get(update);
+    if (schedule) {
+      this.pool.recycle(schedule);
+    }
     this.updateSchedule.delete(update);
   }
   deactivate() {
@@ -27485,10 +27533,10 @@ class Motor {
         if (time < schedule.triggerTime) {
           return;
         }
-        if (schedule.period && time < schedule.expirationTime) {
+        if (schedule.period && time < schedule.expiration) {
           schedule.triggerTime = Math.max(schedule.triggerTime + schedule.period, time);
         } else {
-          this.updateSchedule.delete(update);
+          this.deregisterUpdate(update);
         }
         updateGroups[update.priority ?? Priority.DEFAULT].push(update);
       });
@@ -27510,6 +27558,9 @@ class Motor {
 }
 
 // src/world/aux/AuxiliaryHolder.ts
+var EMPTY_REFRESH = [];
+var EMPTY_CELLTRACK = [];
+
 class AuxiliaryHolder {
   auxiliaries = [];
   refreshes = [];
@@ -27520,10 +27571,8 @@ class AuxiliaryHolder {
       return;
     }
     this.active = true;
-    if (this.auxiliaries) {
-      for (const a of this.auxiliaries) {
-        a.activate?.();
-      }
+    for (const a of this.auxiliaries) {
+      a.activate?.();
     }
   }
   deactivate() {
@@ -27531,14 +27580,14 @@ class AuxiliaryHolder {
       return;
     }
     this.active = false;
-    if (this.auxiliaries) {
-      for (const a of this.auxiliaries) {
-        a.deactivate?.();
-      }
-      this.removeAllAuxiliaries();
+    for (const a of this.auxiliaries) {
+      a.deactivate?.();
     }
   }
   refresh(updatePayload) {
+    if (!this.active) {
+      return;
+    }
     for (const r of this.refreshes) {
       r.refresh?.(updatePayload);
     }
@@ -27558,12 +27607,9 @@ class AuxiliaryHolder {
     }
   }
   addAuxiliary(...aux) {
-    if (!this.auxiliaries) {
-      this.auxiliaries = [];
-    }
     aux.forEach((a) => {
       a.holder = this;
-      this.auxiliaries?.push(a);
+      this.auxiliaries.push(a);
       if (this.active) {
         a.activate?.();
       }
@@ -27571,33 +27617,25 @@ class AuxiliaryHolder {
     this.onAuxiliariesChange();
     return this;
   }
-  removeAllAuxiliaries() {
-    this.removeAuxiliary(...this.auxiliaries ?? []);
-  }
   removeAuxiliary(...aux) {
-    if (this.auxiliaries) {
-      const removeSet = new Set(aux);
-      let j = 0;
-      for (let i = 0;i < this.auxiliaries.length; i++) {
-        const a = this.auxiliaries[i];
-        if (!removeSet.has(a)) {
-          this.auxiliaries[j] = a;
-          j++;
-        } else {
-          a.deactivate?.();
-          a.holder = undefined;
-        }
-      }
-      this.auxiliaries.length = j;
-      if (!this.auxiliaries.length) {
-        this.auxiliaries = undefined;
+    const removeSet = new Set(aux);
+    let j = 0;
+    for (let i = 0;i < this.auxiliaries.length; i++) {
+      const a = this.auxiliaries[i];
+      if (!removeSet.has(a)) {
+        this.auxiliaries[j] = a;
+        j++;
+      } else {
+        a.deactivate?.();
+        a.holder = undefined;
       }
     }
+    this.auxiliaries.length = j;
     this.onAuxiliariesChange();
   }
   onAuxiliariesChange() {
-    this.refreshes = this.auxiliaries?.filter((a) => !!a.refresh) ?? undefined;
-    this.cellTracks = this.auxiliaries?.filter((a) => !!a.trackCell || !!a.untrackCell) ?? undefined;
+    this.refreshes = this.auxiliaries?.filter((a) => !!a.refresh) ?? EMPTY_REFRESH;
+    this.cellTracks = this.auxiliaries?.filter((a) => !!a.trackCell || !!a.untrackCell) ?? EMPTY_CELLTRACK;
   }
 }
 
@@ -27662,35 +27700,6 @@ class Keyboard extends AuxiliaryHolder {
     this.keyDownListener.delete(listener);
     this.keyUpListener.delete(listener);
     this.quickTapListener.delete(listener);
-  }
-}
-
-// src/utils/ObjectPool.ts
-class ObjectPool {
-  initCall;
-  allObjectsCreated = [];
-  recycler = [];
-  constructor(initCall) {
-    this.initCall = initCall;
-  }
-  recycle(element) {
-    this.recycler.push(element);
-  }
-  create(...params) {
-    const recycledElem = this.recycler.pop();
-    if (recycledElem) {
-      return this.initCall(recycledElem, ...params);
-    }
-    const elem = this.initCall(undefined, ...params);
-    this.allObjectsCreated.push(elem);
-    if (this.allObjectsCreated.length === 1e5) {
-      console.warn("ObjectPool already created", this.allObjectsCreated.length);
-    }
-    return elem;
-  }
-  reset() {
-    this.recycler.length = 0;
-    this.recycler.push(...this.allObjectsCreated);
   }
 }
 
@@ -28105,7 +28114,7 @@ class CellChangeAuxiliary extends AuxiliaryHolder {
     this.matrix = value;
   }
   refresh(updatePayload) {
-    if (!this.matrix) {
+    if (!this.matrix || !this.visitCell) {
       return;
     }
     const pos = this.matrix.position;
@@ -28115,8 +28124,14 @@ class CellChangeAuxiliary extends AuxiliaryHolder {
       this.cell.pos[1] = y;
       this.cell.pos[2] = z;
       this.cell.tag = cellTag(...this.cell.pos);
-      this.visitCell?.visitCell(this.cell, updatePayload);
+      this.visitCell.visitCell(this.cell, updatePayload);
     }
+  }
+  deactivate() {
+    this.cell.pos[0] = Number.NaN;
+    this.cell.pos[1] = Number.NaN;
+    this.cell.pos[2] = Number.NaN;
+    super.deactivate();
   }
 }
 
@@ -28263,14 +28278,15 @@ class TiltResetAuxiliary {
     this._refresh = this._refresh.bind(this);
   }
   activate() {
-    const removeListener = this.controls.addListener({
+    const listener = {
       onQuickTiltReset: () => {
         this.refresh = this._refresh;
         this.tilt.angle.progressTowards(0, 0.0033333333333333335, this);
       }
-    });
+    };
+    this.controls.addListener(listener);
     this.deactivate = () => {
-      removeListener();
+      this.controls.removeListener(listener);
       this.deactivate = undefined;
     };
   }
@@ -28292,7 +28308,7 @@ class ToggleAuxiliary {
   auxiliaries;
   keyListener;
   constructor(config) {
-    this.keys = map(config.auxiliariesMapping, ({ key }) => key);
+    this.keys = map(config.auxiliariesMapping, (keyMap) => keyMap?.key);
     this.keyListener = {
       onKeyDown: (keyCode) => {
         if (this.keys.indexOf(keyCode) >= 0) {
@@ -28305,7 +28321,7 @@ class ToggleAuxiliary {
         }
       }
     };
-    this.auxiliaries = map(config.auxiliariesMapping, ({ aux }) => aux);
+    this.auxiliaries = map(config.auxiliariesMapping, (keyMap) => keyMap?.aux);
     this.toggleIndex = config.initialIndex ?? 0;
   }
   set holder(keyboard) {
@@ -28347,9 +28363,8 @@ class ToggleAuxiliary {
 class DoubleLinkList {
   start;
   end;
-  nodeMap = {};
+  nodeMap = new Map;
   pool;
-  count = 0;
   constructor(edgeValue) {
     this.start = { value: edgeValue };
     this.end = { value: edgeValue };
@@ -28365,8 +28380,12 @@ class DoubleLinkList {
       return elem;
     });
   }
+  clear() {
+    while (this.removeEntry(this.start.next)) {
+    }
+  }
   get size() {
-    return this.count;
+    return this.nodeMap.size;
   }
   tags = [];
   getList() {
@@ -28378,15 +28397,14 @@ class DoubleLinkList {
   }
   pushTop(value) {
     const newTop = this.pool.create(value);
-    this.nodeMap[value] = newTop;
-    this.count++;
+    this.nodeMap.set(value, newTop);
     this.moveTop(value);
   }
   contains(value) {
-    return !!this.nodeMap[value];
+    return this.nodeMap.has(value);
   }
   moveTop(value) {
-    const entry = this.nodeMap[value];
+    const entry = this.nodeMap.get(value);
     if (entry) {
       if (entry.prev && entry.next) {
         entry.prev.next = entry.next;
@@ -28402,7 +28420,7 @@ class DoubleLinkList {
     return false;
   }
   remove(value) {
-    const entry = this.nodeMap[value];
+    const entry = this.nodeMap.get(value);
     if (entry) {
       this.removeEntry(entry);
       return true;
@@ -28411,12 +28429,15 @@ class DoubleLinkList {
     }
   }
   removeEntry(entry) {
+    if (entry === this.end || entry === this.start) {
+      return false;
+    }
     entry.prev.next = entry.next;
     entry.next.prev = entry.prev;
     entry.prev = entry.next = undefined;
     this.pool.recycle(entry);
-    delete this.nodeMap[entry.value];
-    this.count--;
+    this.nodeMap.delete(entry.value);
+    return true;
   }
   popBottom() {
     const entryToRemove = this.start.next;
@@ -28495,132 +28516,8 @@ class CellTracker {
       }
     }
   }
-}
-
-// src/world/sprite/aux/Accumulator.ts
-class Accumulator extends AuxiliaryHolder {
-  constructor() {
-    super(...arguments);
-  }
-  indices = [];
-  newElemsListener = new Set;
-  pool = new ObjectPool((slot, elems, index) => {
-    if (!slot) {
-      return { elems, index };
-    }
-    slot.elems = elems;
-    slot.index = index;
-    slot.id = undefined;
-    return slot;
-  });
-  at(id) {
-    const slot = this.indices[id];
-    return slot?.elems.at(slot.index);
-  }
-  get length() {
-    return this.indices.length;
-  }
-  activate() {
-    super.activate();
-    this.indices.forEach((slot) => {
-      if (slot.id !== undefined) {
-        this.informUpdate?.(slot.id);
-      }
-    });
-  }
-  add(...elemsList) {
-    elemsList.forEach((elems) => {
-      const slots = [];
-      if (elems.informUpdate) {
-        elems.informUpdate = (index, type) => {
-          const slot = slots[index] ?? (slots[index] = this.pool.create(elems, index));
-          const elem = slot.elems.at(index);
-          if (elem) {
-            if (slot.id === undefined) {
-              slot.id = this.indices.length;
-              this.indices.push(slot);
-              this.onSizeChange();
-            }
-            this.informUpdate?.(slot.id, type);
-          } else {
-            if (slot.id !== undefined) {
-              const id = slot.id;
-              slot.id = undefined;
-              const lastSlotId = this.indices.length - 1;
-              if (id !== lastSlotId) {
-                this.indices[id] = this.indices[lastSlotId];
-                this.indices[id].id = id;
-              }
-              this.indices.pop();
-              this.informUpdate?.(id);
-              this.informUpdate?.(lastSlotId);
-              this.onSizeChange();
-            }
-          }
-        };
-      } else {
-        forEach3(elems, (_, index) => {
-          const slot = this.pool.create(elems, index);
-          slot.id = this.indices.length;
-          this.indices.push(slot);
-        });
-      }
-    });
-  }
-  onSizeChange() {
-    this.newElemsListener.forEach((listener) => listener(this));
-  }
-  addNewElemsListener(listener) {
-    this.newElemsListener.add(listener);
-  }
   deactivate() {
-    super.deactivate();
-    this.indices.forEach((slot) => {
-      this.pool.recycle(slot);
-    });
-    this.indices.length = 0;
-  }
-}
-
-// src/world/sprite/aux/SpritesAccumulator.ts
-class SpritesAccumulator extends Accumulator {
-  constructor() {
-    super(...arguments);
-  }
-}
-
-// src/world/sprite/SpritesGroup.ts
-class SpriteGroup {
-  children;
-  transforms;
-  flip = false;
-  spriteModel = {
-    imageId: 0,
-    transform: Matrix_default.create()
-  };
-  constructor(children, transforms = []) {
-    this.children = children;
-    this.transforms = transforms;
-  }
-  get length() {
-    return this.children.length;
-  }
-  at(index) {
-    const s = this.children.at(index);
-    if (!s) {
-      return;
-    }
-    copySprite(s, this.spriteModel);
-    for (let transform of this.transforms) {
-      this.spriteModel.transform.multiply2(transform, this.spriteModel.transform);
-    }
-    if (this.flip) {
-      this.spriteModel.flip = !this.spriteModel.flip;
-    }
-    return this.spriteModel;
-  }
-  informUpdate(id, type) {
-    this.children.informUpdate?.(id, type);
+    this.cellTags.clear();
   }
 }
 
@@ -28635,8 +28532,76 @@ var SpriteUpdateType;
   SpriteUpdateType2[SpriteUpdateType2["ALL"] = 15] = "ALL";
 })(SpriteUpdateType || (SpriteUpdateType = {}));
 
+// src/world/sprite/aux/SpritesGroup.ts
+class SpriteGroup {
+  children;
+  transforms;
+  _flip;
+  _animationId;
+  _active = false;
+  holder;
+  spriteModel = {
+    imageId: 0,
+    transform: Matrix_default.create()
+  };
+  constructor(children, transforms = []) {
+    this.children = children;
+    this.transforms = transforms;
+  }
+  get length() {
+    return this.children.length;
+  }
+  set flip(value) {
+    if (this._flip !== value) {
+      this._flip = value;
+      forEach3(this.children, (_, index) => this.informUpdate(index, SpriteUpdateType.TEX_SLOT));
+    }
+  }
+  set animationId(value) {
+    if (this._animationId !== value) {
+      this._animationId = value;
+      forEach3(this.children, (_, index) => this.informUpdate(index, SpriteUpdateType.ANIM));
+    }
+  }
+  get flip() {
+    return !!this._flip;
+  }
+  at(index) {
+    if (!this._active) {
+      return;
+    }
+    const s = this.children.at(index);
+    if (!s) {
+      return;
+    }
+    copySprite(s, this.spriteModel);
+    for (let transform of this.transforms) {
+      this.spriteModel.transform.multiply2(transform, this.spriteModel.transform);
+    }
+    this.spriteModel.flip = !!this.flip;
+    this.spriteModel.animationId = this._animationId ?? this.spriteModel.animationId;
+    return this.spriteModel;
+  }
+  informUpdate(id, type) {
+    this.children.informUpdate?.(id, type);
+  }
+  activate() {
+    if (!this._active) {
+      this._active = true;
+      this.holder?.add?.(this);
+      forEach3(this.children, (_, index) => this.informUpdate(index));
+    }
+  }
+  deactivate() {
+    if (this._active) {
+      this._active = false;
+      forEach3(this.children, (_, index) => this.informUpdate(index));
+    }
+  }
+}
+
 // src/world/sprite/aux/SpriteGrid.ts
-class SpriteGrid {
+class SpriteGrid extends AuxiliaryHolder {
   spriteFactory;
   slots = [];
   ranges;
@@ -28649,18 +28614,25 @@ class SpriteGrid {
     return slot;
   });
   holder;
-  informUpdate(_id, _type) {
-  }
-  activate() {
-    this.holder?.add(this);
-  }
   constructor(config, spriteFactory = {}) {
+    super();
     this.spriteFactory = spriteFactory;
     this.ranges = [
       config?.xRange ?? [Number.NEGATIVE_INFINITY, Number.POSITIVE_INFINITY],
       config?.yRange ?? [Number.NEGATIVE_INFINITY, Number.POSITIVE_INFINITY],
       config?.zRange ?? [Number.NEGATIVE_INFINITY, Number.POSITIVE_INFINITY]
     ];
+  }
+  informUpdate(_id, _type) {
+  }
+  activate() {
+    super.activate();
+    this.holder?.add(this);
+  }
+  deactivate() {
+    this.slots.forEach((slot) => this.slotPool.recycle(slot));
+    this.slots.length = 0;
+    super.deactivate();
   }
   get length() {
     return this.slots.length;
@@ -28693,7 +28665,7 @@ class SpriteGrid {
     for (let i = this.slots.length - 1;i >= 0; i--) {
       const slot = this.slots[i];
       if (slot.tag === cellTag2) {
-        this.informUpdate(i, SpriteUpdateType.ALL);
+        this.informUpdate(i);
         this.informUpdate(this.slots.length - 1, SpriteUpdateType.TRANSFORM);
         this.slots[i] = this.slots[this.slots.length - 1];
         this.slots.pop();
@@ -28708,14 +28680,15 @@ var EMPTY = [];
 
 class FixedSpriteGrid extends SpriteGrid {
   cellSize;
-  spritesPerCell = {};
+  spritesPerCell = new Map;
   spritesList;
   constructor(config, ...spritesList) {
     super({}, {
-      getSpritesAtCell: (cell) => this.spritesPerCell[cell.tag] ?? EMPTY
+      getSpritesAtCell: (cell) => this.spritesPerCell.get(cell.tag) ?? EMPTY
     });
     this.cellSize = config.cellSize ?? 1;
     this.spritesList = spritesList;
+    spritesList.forEach((sprites) => this.addAuxiliary(sprites));
   }
   activate() {
     super.activate();
@@ -28725,11 +28698,17 @@ class FixedSpriteGrid extends SpriteGrid {
           const pos = transformToPosition(sprite.transform);
           const cellPos2 = getCellPos(pos, this.cellSize);
           const tag = cellTag(...cellPos2);
-          this.spritesPerCell[tag] = this.spritesPerCell[tag] ?? [];
-          this.spritesPerCell[tag].push(copySprite(sprite));
+          if (!this.spritesPerCell.has(tag)) {
+            this.spritesPerCell.set(tag, []);
+          }
+          this.spritesPerCell.get(tag)?.push(copySprite(sprite));
         }
       });
     });
+  }
+  deactivate() {
+    this.spritesPerCell.clear();
+    super.deactivate();
   }
 }
 
@@ -28742,7 +28721,7 @@ class MaxSpriteCountAuxiliary {
   }
   set holder(value) {
     this.sprites = value;
-    value.addNewElemsListener(this.updateCount.bind(this));
+    this.sprites.addNewElemsListener(this.updateCount.bind(this));
   }
   updateCount() {
     this.engine.setMaxSpriteCount(this.sprites?.length ?? 0);
@@ -28752,34 +28731,13 @@ class MaxSpriteCountAuxiliary {
   }
 }
 
-// src/world/sprite/aux/StaticSprites.ts
-class StaticSprites {
-  sprites;
-  holder;
-  constructor(sprites) {
-    this.sprites = sprites;
-  }
-  get length() {
-    return this.sprites.length;
-  }
-  at(index) {
-    return this.sprites.at(index);
-  }
-  informUpdate(_id, _type) {
-  }
-  activate() {
-    this.holder?.add(this);
-    forEach3(this.sprites, (_, index) => this.informUpdate(index));
-  }
-}
-
 // src/world/sprite/update/SpriteUpdater.ts
 class SpriteUpdater {
   sprites;
   updateRegistries;
   set holder(value) {
     this.sprites = value;
-    value.informUpdate = this.informUpdate.bind(this);
+    this.sprites.informUpdate = this.informUpdate.bind(this);
   }
   constructor({ engine, motor }) {
     this.updateRegistries = {
@@ -28792,19 +28750,17 @@ class SpriteUpdater {
     };
   }
   informUpdate(id, type = SpriteUpdateType.ALL) {
-    if (this.sprites && id < this.sprites.length) {
-      if (type & SpriteUpdateType.TRANSFORM) {
-        this.updateRegistries[SpriteUpdateType.TRANSFORM]?.informUpdate(id);
-      }
-      if (type & SpriteUpdateType.TEX_SLOT) {
-        this.updateRegistries[SpriteUpdateType.TEX_SLOT]?.informUpdate(id);
-      }
-      if (type & SpriteUpdateType.TYPE) {
-        this.updateRegistries[SpriteUpdateType.TYPE]?.informUpdate(id);
-      }
-      if (type & SpriteUpdateType.ANIM) {
-        this.updateRegistries[SpriteUpdateType.ANIM]?.informUpdate(id);
-      }
+    if (type & SpriteUpdateType.TRANSFORM) {
+      this.updateRegistries[SpriteUpdateType.TRANSFORM]?.informUpdate(id);
+    }
+    if (type & SpriteUpdateType.TEX_SLOT) {
+      this.updateRegistries[SpriteUpdateType.TEX_SLOT]?.informUpdate(id);
+    }
+    if (type & SpriteUpdateType.TYPE) {
+      this.updateRegistries[SpriteUpdateType.TYPE]?.informUpdate(id);
+    }
+    if (type & SpriteUpdateType.ANIM) {
+      this.updateRegistries[SpriteUpdateType.ANIM]?.informUpdate(id);
     }
   }
 }
@@ -28819,11 +28775,12 @@ var ActionEnum;
 // src/controls/KeyboardControls.ts
 class KeyboardControls {
   keyboard;
+  onRemoveListener = new Map;
   constructor(keyboard) {
     this.keyboard = keyboard;
   }
   addListener(listener) {
-    return this.keyboard.addListener({
+    const onRemove = this.keyboard.addListener({
       onQuickTap(keyCode) {
         switch (keyCode) {
           case "Space":
@@ -28837,9 +28794,11 @@ class KeyboardControls {
       onKeyDown: () => listener.onAction?.(this, ActionEnum.PRESS_DOWN),
       onKeyUp: () => listener.onAction?.(this, ActionEnum.PRESS_UP)
     });
+    this.onRemoveListener.set(listener, onRemove);
   }
   removeListener(listener) {
-    throw new Error("Not implemented");
+    this.onRemoveListener.get(listener)?.();
+    this.onRemoveListener.delete(listener);
   }
   get forward() {
     const { keys } = this.keyboard;
@@ -28892,12 +28851,8 @@ class SpriteFactory {
     return sprite;
   });
   spriteBag = {
-    createSprite: (imageId) => {
-      return this.pool.create(imageId ?? 0);
-    },
-    addSprite: (...sprites) => {
-      this.sprites.push(...sprites);
-    }
+    createSprite: (imageId) => this.pool.create(imageId ?? 0),
+    addSprite: (...sprites) => this.sprites.push(...sprites)
   };
   constructor(filler) {
     this.filler = filler;
@@ -29080,36 +29035,157 @@ class DirAuxiliary {
   }
 }
 
-// src/gl/texture/MediasAccumulator.ts
-class MediasAccumulator extends Accumulator {
-  constructor() {
-    super(...arguments);
+// src/world/sprite/update/Updater.ts
+class Updater {
+  updateRegistry;
+  elems;
+  constructor(updateRegistry) {
+    this.updateRegistry = updateRegistry;
+  }
+  set holder(value) {
+    this.elems = value;
+    this.elems.informUpdate = this.informUpdate.bind(this);
+  }
+  informUpdate(id) {
+    this.updateRegistry.informUpdate(id);
   }
 }
 
 // src/world/sprite/update/MediaUpdater.ts
-class MediaUpdater {
-  medias;
-  mediaRegistry;
+class MediaUpdater extends Updater {
   constructor({ engine, motor }) {
-    this.mediaRegistry = new UpdateRegistry((ids) => {
-      const imageIds = Array.from(ids).map((index) => this.medias?.at(index)?.id);
-      ids.clear();
-      engine.updateTextures(imageIds, (index) => this.medias?.at(index)).then((mediaInfos) => {
-        mediaInfos.forEach((mediaInfo) => {
-          if (mediaInfo.isVideo) {
-            motor.registerUpdate(mediaInfo, mediaInfo.schedule);
+    super(new UpdateRegistry((ids) => {
+      if (!this.elems) {
+        return;
+      }
+      engine.updateTextures(ids, this.elems).then((mediaInfos) => mediaInfos.filter(({ isVideo }) => isVideo).forEach((mediaInfo) => motor.registerUpdate(mediaInfo, mediaInfo.refreshRate)));
+    }, motor));
+  }
+}
+
+// src/world/sprite/aux/Accumulator.ts
+class Accumulator extends AuxiliaryHolder {
+  constructor() {
+    super(...arguments);
+  }
+  indices = [];
+  newElemsListener = new Set;
+  pool = new ObjectPool((slot, elems, index) => {
+    if (!slot) {
+      return { elems, index };
+    }
+    slot.elems = elems;
+    slot.index = index;
+    slot.id = undefined;
+    return slot;
+  });
+  at(id) {
+    const slot = this.indices[id];
+    return slot?.elems.at(slot.index);
+  }
+  get length() {
+    return this.indices.length;
+  }
+  activate() {
+    super.activate();
+    this.indices.forEach((slot) => {
+      if (slot.id !== undefined) {
+        this.informUpdate?.(slot.id);
+      }
+    });
+  }
+  deactivate() {
+    this.indices.forEach((slot) => {
+      if (slot.id) {
+        this.informUpdate?.(slot.id);
+      }
+      this.pool.recycle(slot);
+    });
+    this.indices.length = 0;
+    super.deactivate();
+  }
+  add(...elemsList) {
+    elemsList.forEach((elems) => {
+      const slots = [];
+      if (elems.informUpdate) {
+        elems.informUpdate = (index, type) => {
+          const slot = slots[index] ?? (slots[index] = this.pool.create(elems, index));
+          const elem = slot.elems.at(index);
+          if (elem) {
+            if (slot.id === undefined) {
+              slot.id = this.indices.length;
+              this.indices.push(slot);
+              this.onSizeChange();
+            }
+            this.informUpdate?.(slot.id, type);
+          } else {
+            if (slot.id !== undefined) {
+              const id = slot.id;
+              slot.id = undefined;
+              if (this.indices.length) {
+                const lastSlotId = this.indices.length - 1;
+                if (id !== lastSlotId) {
+                  this.indices[id] = this.indices[lastSlotId];
+                  this.indices[id].id = id;
+                }
+                this.indices.pop();
+                this.informUpdate?.(lastSlotId);
+                this.onSizeChange();
+              }
+              this.informUpdate?.(id);
+            }
           }
+        };
+      } else {
+        forEach3(elems, (_, index) => {
+          const slot = this.pool.create(elems, index);
+          slot.id = this.indices.length;
+          this.indices.push(slot);
         });
-      });
-    }, motor);
+      }
+    });
   }
-  set holder(value) {
-    this.medias = value;
-    value.informUpdate = this.informUpdate.bind(this);
+  onSizeChange() {
+    this.newElemsListener.forEach((listener) => listener(this));
   }
-  informUpdate(index) {
-    this.mediaRegistry.informUpdate(index);
+  addNewElemsListener(listener) {
+    this.newElemsListener.add(listener);
+  }
+}
+
+// src/world/sprite/update/AnimationUpdater.ts
+class AnimationUpdater extends Updater {
+  constructor({ engine, motor }) {
+    super(new UpdateRegistry((ids) => {
+      if (this.elems) {
+        engine.updateAnimationDefinitions(ids, this.elems);
+      }
+    }, motor));
+  }
+}
+
+// src/world/aux/MotionAuxiliary.ts
+class MotionAuxiliary {
+  onChange;
+  controls;
+  _moving = false;
+  constructor({ controls }, onChange) {
+    this.onChange = onChange;
+    this.controls = controls;
+  }
+  onAction(controls) {
+    const { left, forward, backward, right } = controls;
+    const moving = left || forward || backward || right;
+    if (this._moving !== moving) {
+      this._moving = moving;
+      this.onChange?.(this._moving);
+    }
+  }
+  activate() {
+    this.controls.addListener(this);
+  }
+  deactivate() {
+    this.controls.removeListener(this);
   }
 }
 
@@ -29126,6 +29202,11 @@ var Assets;
   Assets2[Assets2["DODO"] = 7] = "DODO";
   Assets2[Assets2["DODO_SHADOW"] = 8] = "DODO_SHADOW";
 })(Assets || (Assets = {}));
+var Anims;
+(function(Anims2) {
+  Anims2[Anims2["STILL"] = 0] = "STILL";
+  Anims2[Anims2["RUN"] = 1] = "RUN";
+})(Anims || (Anims = {}));
 var LOGO_SIZE = 512;
 var CELLSIZE = 2;
 
@@ -29133,9 +29214,9 @@ class DemoWorld extends AuxiliaryHolder {
   camera;
   constructor({ engine, motor }) {
     super();
-    const spritesAccumulator = new SpritesAccumulator().addAuxiliary(new SpriteUpdater({ engine, motor }), new MaxSpriteCountAuxiliary({ engine }));
+    const spritesAccumulator = new Accumulator().addAuxiliary(new SpriteUpdater({ engine, motor }), new MaxSpriteCountAuxiliary({ engine }));
     this.addAuxiliary(spritesAccumulator);
-    const mediasAccumulator = new MediasAccumulator().addAuxiliary(new MediaUpdater({ engine, motor }));
+    const mediasAccumulator = new Accumulator().addAuxiliary(new MediaUpdater({ engine, motor }));
     mediasAccumulator.add([
       {
         id: Assets.DOBUKI,
@@ -29272,6 +29353,19 @@ class DemoWorld extends AuxiliaryHolder {
       }
     ]);
     this.addAuxiliary(mediasAccumulator);
+    const animsAccumulator = new Accumulator().addAuxiliary(new AnimationUpdater({ engine, motor }));
+    this.addAuxiliary(animsAccumulator);
+    animsAccumulator.add([
+      {
+        id: Anims.STILL,
+        frames: [0]
+      },
+      {
+        id: Anims.RUN,
+        frames: [1, 5],
+        fps: 24
+      }
+    ]);
     spritesAccumulator.addAuxiliary(new FixedSpriteGrid({ cellSize: CELLSIZE }, [
       {
         imageId: Assets.DOBUKI,
@@ -29286,10 +29380,10 @@ class DemoWorld extends AuxiliaryHolder {
         Matrix_default.create().translate(1, 0, 0).rotateY(Math.PI / 2)
       ].map((transform) => ({ imageId: Assets.LOGO, transform })),
       ...[
-        Matrix_default.create().translate(0, -1, 0).rotateX(-Math.PI / 2),
-        Matrix_default.create().translate(0, -1, 2).rotateX(-Math.PI / 2),
-        Matrix_default.create().translate(-2, -1, 2).rotateX(-Math.PI / 2),
-        Matrix_default.create().translate(2, -1, 2).rotateX(-Math.PI / 2)
+        Matrix_default.create().translate(0, -0.9, 0).rotateX(-Math.PI / 2),
+        Matrix_default.create().translate(0, -0.9, 2).rotateX(-Math.PI / 2),
+        Matrix_default.create().translate(-2, -0.9, 2).rotateX(-Math.PI / 2),
+        Matrix_default.create().translate(2, -0.9, 2).rotateX(-Math.PI / 2)
       ].map((transform) => ({ imageId: Assets.GROUND, transform }))
     ], new SpriteGroup([
       ...[
@@ -29322,29 +29416,21 @@ class DemoWorld extends AuxiliaryHolder {
       }
     })));
     const heroPos = new PositionMatrix().onChange(() => {
-      heroSprites.informUpdate(0, SpriteUpdateType.TRANSFORM);
-      heroSprites.informUpdate(1, SpriteUpdateType.TRANSFORM);
+      forEach3(heroSprites, (_, index) => heroSprites.informUpdate(index, SpriteUpdateType.TRANSFORM));
     });
-    const spriteGroup = new SpriteGroup([
+    const heroSprites = new SpriteGroup([
       {
         imageId: Assets.DODO,
         spriteType: SpriteType.SPRITE,
         transform: Matrix_default.create().translate(0, -0.5, 0),
-        animation: {
-          frames: [1, 5],
-          fps: 24
-        }
+        animationId: Anims.STILL
       },
       {
         imageId: Assets.DODO_SHADOW,
         transform: Matrix_default.create().translate(0, -0.7, 0).rotateX(-Math.PI / 2).scale(1, 0.3, 1),
-        animation: {
-          frames: [1, 5],
-          fps: 24
-        }
+        animationId: Anims.STILL
       }
     ], [heroPos]);
-    const heroSprites = new StaticSprites(spriteGroup);
     spritesAccumulator.addAuxiliary(heroSprites);
     heroPos.moveBlocker = {
       isBlocked(pos) {
@@ -29352,7 +29438,7 @@ class DemoWorld extends AuxiliaryHolder {
         return cx === 0 && cy === 0 && cz === -3;
       }
     };
-    spritesAccumulator.addAuxiliary(new StaticSprites([
+    spritesAccumulator.addAuxiliary(new SpriteGroup([
       {
         imageId: Assets.VIDEO,
         spriteType: SpriteType.DISTANT,
@@ -29374,9 +29460,9 @@ class DemoWorld extends AuxiliaryHolder {
       ]
     }));
     this.addAuxiliary(keyboard);
-    this.addAuxiliary(new DirAuxiliary({ flippable: spriteGroup, controls }, () => {
-      heroSprites.informUpdate(0, SpriteUpdateType.TEX_SLOT);
-      heroSprites.informUpdate(1, SpriteUpdateType.TEX_SLOT);
+    this.addAuxiliary(new DirAuxiliary({ flippable: heroSprites, controls }));
+    this.addAuxiliary(new MotionAuxiliary({ controls }, (moving) => {
+      heroSprites.animationId = moving ? Anims.RUN : Anims.STILL;
     }));
     camera.position.addAuxiliary(new CellChangeAuxiliary({ cellSize: CELLSIZE }).addAuxiliary(new CellTracker(this, {
       cellLimit: 50,
@@ -29384,7 +29470,7 @@ class DemoWorld extends AuxiliaryHolder {
       cellSize: CELLSIZE
     })));
     camera.distance.setValue(5);
-    camera.tilt.angle.setValue(1.2);
+    camera.tilt.angle.setValue(1.1);
     camera.projection.zoom.setValue(0.25);
     camera.projection.perspective.setValue(0.05);
     this.addAuxiliary(new TimeAuxiliary(engine));
@@ -29534,4 +29620,4 @@ export {
   hello
 };
 
-//# debugId=B953E7FC587D8A1764756e2164756e21
+//# debugId=8E6C427C241F7ED964756e2164756e21

@@ -1,4 +1,4 @@
-import { Animation } from "animation/Animation";
+import { AnimationId } from "animation/Animation";
 import { MediaId } from "gl/texture/ImageManager";
 import Matrix from "gl/transform/Matrix";
 
@@ -22,7 +22,7 @@ export interface Sprite extends Flippable {
   imageId: MediaId;
   readonly transform: Matrix;
   spriteType?: SpriteType;
-  animation?: Animation;
+  animationId?: AnimationId;
 }
 
 export function copySprite(sprite: Sprite, dest?: Sprite): Sprite {
@@ -33,9 +33,7 @@ export function copySprite(sprite: Sprite, dest?: Sprite): Sprite {
       imageId: sprite.imageId,
       spriteType: sprite.spriteType,
       flip: sprite.flip,
-      animation: {
-        ...sprite.animation,
-      },
+      animationId: sprite.animationId,
     };
   }
   dest.name = sprite.name;
@@ -43,11 +41,6 @@ export function copySprite(sprite: Sprite, dest?: Sprite): Sprite {
   dest.spriteType = sprite.spriteType;
   dest.transform.copy(sprite.transform);
   dest.flip = sprite.flip;
-  dest.animation = dest.animation ?? { frames: [0, 0] };
-  dest.animation.frames = dest.animation.frames ?? [0, 0];
-  dest.animation.frames[0] = sprite.animation?.frames?.[0] ?? 0;
-  dest.animation.frames[1] = sprite.animation?.frames?.[1] ?? dest.animation.frames[0];
-  dest.animation.fps = sprite.animation?.fps;
-  dest.animation.maxFrameCount = sprite.animation?.maxFrameCount;
+  dest.animationId = sprite.animationId;
   return dest;
 }

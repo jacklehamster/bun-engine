@@ -19,16 +19,17 @@ export class TiltResetAuxiliary implements Auxiliary {
   }
 
   activate(): void | (() => void) {
-    const removeListener = this.controls.addListener({
+    const listener = {
       onQuickTiltReset: () => {
         this.refresh = this._refresh;
         this.tilt.angle.progressTowards(
           0, 1 / 300, this
         );
       },
-    });
+    };
+    this.controls.addListener(listener);
     this.deactivate = () => {
-      removeListener();
+      this.controls.removeListener(listener);
       this.deactivate = undefined;
     };
   }

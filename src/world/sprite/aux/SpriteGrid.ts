@@ -1,13 +1,13 @@
 import { Sprite, copySprite } from "../Sprite";
 import { Cell } from "world/grid/CellPos";
 import { SpriteUpdateType } from "../update/SpriteUpdateType";
-import { Auxiliary } from "world/aux/Auxiliary";
 import { forEach } from "../List";
 import { UpdateNotifier } from "updates/UpdateNotifier";
 import { ISpriteFactory } from "./ISpriteFactory";
 import { ObjectPool } from "utils/ObjectPool";
 import { SpritesHolder } from "./SpritesHolder";
 import { UpdatePayload } from "updates/Refresh";
+import { AuxiliaryHolder } from "world/aux/AuxiliaryHolder";
 
 interface Config {
   xRange?: [number, number],
@@ -20,7 +20,7 @@ interface Slot {
   tag: string;
 }
 
-export class SpriteGrid implements Auxiliary<SpritesHolder>, UpdateNotifier {
+export class SpriteGrid extends AuxiliaryHolder<SpritesHolder> implements UpdateNotifier {
   private slots: Slot[] = [];
   private ranges: [[number, number], [number, number], [number, number]];
   private slotPool: ObjectPool<Slot, [Sprite, string]> = new ObjectPool<Slot, [Sprite, string]>((slot, sprite: Sprite, tag: string) => {
@@ -33,19 +33,27 @@ export class SpriteGrid implements Auxiliary<SpritesHolder>, UpdateNotifier {
   });
   holder?: SpritesHolder;
 
-  informUpdate(_id: number, _type?: number | undefined): void {
-  }
-
-  activate(): void {
-    this.holder?.add(this);
-  }
-
   constructor(config?: Config, private spriteFactory: ISpriteFactory = {}) {
+    super();
     this.ranges = [
       config?.xRange ?? [Number.NEGATIVE_INFINITY, Number.POSITIVE_INFINITY],
       config?.yRange ?? [Number.NEGATIVE_INFINITY, Number.POSITIVE_INFINITY],
       config?.zRange ?? [Number.NEGATIVE_INFINITY, Number.POSITIVE_INFINITY],
     ];
+  }
+
+  informUpdate(_id: number, _type?: number | undefined): void {
+  }
+
+  activate(): void {
+    super.activate();
+    this.holder?.add(this);
+  }
+
+  deactivate(): void {
+    this.slots.forEach(slot => this.slotPool.recycle(slot));
+    this.slots.length = 0;
+    super.deactivate();
   }
 
   get length(): number {
@@ -82,7 +90,7 @@ export class SpriteGrid implements Auxiliary<SpritesHolder>, UpdateNotifier {
     for (let i = this.slots.length - 1; i >= 0; i--) {
       const slot = this.slots[i];
       if (slot.tag === cellTag) {
-        this.informUpdate(i, SpriteUpdateType.ALL);
+        this.informUpdate(i);
         this.informUpdate(this.slots.length - 1, SpriteUpdateType.TRANSFORM);
         this.slots[i] = this.slots[this.slots.length - 1];
         this.slots.pop();

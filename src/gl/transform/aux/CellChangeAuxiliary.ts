@@ -21,12 +21,12 @@ export class CellChangeAuxiliary extends AuxiliaryHolder implements Auxiliary<IP
     this.cell = { pos: [Number.NaN, Number.NaN, Number.NaN, this.cellSize], tag: "" };
   }
 
-  set holder(value: IPositionMatrix | undefined) {
+  set holder(value: IPositionMatrix) {
     this.matrix = value;
   }
 
   refresh(updatePayload: UpdatePayload): void {
-    if (!this.matrix) {
+    if (!this.matrix || !this.visitCell) {
       return;
     }
     const pos = this.matrix.position;
@@ -36,7 +36,14 @@ export class CellChangeAuxiliary extends AuxiliaryHolder implements Auxiliary<IP
       this.cell.pos[1] = y;
       this.cell.pos[2] = z;
       this.cell.tag = cellTag(...this.cell.pos);
-      this.visitCell?.visitCell(this.cell, updatePayload);
+      this.visitCell.visitCell(this.cell, updatePayload);
     }
+  }
+
+  deactivate(): void {
+    this.cell.pos[0] = Number.NaN;
+    this.cell.pos[1] = Number.NaN;
+    this.cell.pos[2] = Number.NaN;
+    super.deactivate();
   }
 }

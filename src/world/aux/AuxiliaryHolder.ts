@@ -4,10 +4,13 @@ import { Cell } from "world/grid/CellPos";
 import { CellTrack } from "world/grid/CellTrack";
 import { Holder } from "./Holder";
 
+const EMPTY_REFRESH: Refresh[] = [];
+const EMPTY_CELLTRACK: CellTrack[] = [];
+
 export class AuxiliaryHolder<H extends Holder = any> implements Holder<AuxiliaryHolder<H>>, Auxiliary<H> {
-  private auxiliaries?: Auxiliary[] = [];
-  private refreshes?: Refresh[] = [];
-  private cellTracks?: CellTrack[] = [];
+  private auxiliaries: Auxiliary[] = [];
+  private refreshes: Refresh[] = [];
+  private cellTracks: CellTrack[] = [];
   active: boolean = false;
 
   activate(): void {
@@ -15,10 +18,8 @@ export class AuxiliaryHolder<H extends Holder = any> implements Holder<Auxiliary
       return;
     }
     this.active = true;
-    if (this.auxiliaries) {
-      for (const a of this.auxiliaries) {
-        a.activate?.();
-      }
+    for (const a of this.auxiliaries) {
+      a.activate?.();
     }
   }
 
@@ -27,15 +28,15 @@ export class AuxiliaryHolder<H extends Holder = any> implements Holder<Auxiliary
       return;
     }
     this.active = false;
-    if (this.auxiliaries) {
-      for (const a of this.auxiliaries) {
-        a.deactivate?.();
-      }
-      this.removeAllAuxiliaries();
+    for (const a of this.auxiliaries) {
+      a.deactivate?.();
     }
   }
 
   refresh(updatePayload: UpdatePayload): void {
+    if (!this.active) {
+      return;
+    }
     for (const r of this.refreshes!) {
       r.refresh?.(updatePayload);
     }
@@ -58,12 +59,9 @@ export class AuxiliaryHolder<H extends Holder = any> implements Holder<Auxiliary
   }
 
   addAuxiliary(...aux: Auxiliary<any>[]): this {
-    if (!this.auxiliaries) {
-      this.auxiliaries = [];
-    }
     aux.forEach(a => {
       a.holder = this;
-      this.auxiliaries?.push(a);
+      this.auxiliaries.push(a);
       if (this.active) {
         a.activate?.();
       }
@@ -72,34 +70,25 @@ export class AuxiliaryHolder<H extends Holder = any> implements Holder<Auxiliary
     return this;
   }
 
-  removeAllAuxiliaries() {
-    this.removeAuxiliary(...(this.auxiliaries ?? []));
-  }
-
   removeAuxiliary(...aux: Auxiliary[]) {
-    if (this.auxiliaries) {
-      const removeSet = new Set(aux);
-      let j = 0;
-      for (let i = 0; i < this.auxiliaries.length; i++) {
-        const a = this.auxiliaries[i];
-        if (!removeSet.has(a)) {
-          this.auxiliaries[j] = a;
-          j++;
-        } else {
-          a.deactivate?.();
-          a.holder = undefined;
-        }
-      }
-      this.auxiliaries.length = j;
-      if (!this.auxiliaries.length) {
-        this.auxiliaries = undefined;
+    const removeSet = new Set(aux);
+    let j = 0;
+    for (let i = 0; i < this.auxiliaries.length; i++) {
+      const a = this.auxiliaries[i];
+      if (!removeSet.has(a)) {
+        this.auxiliaries[j] = a;
+        j++;
+      } else {
+        a.deactivate?.();
+        a.holder = undefined;
       }
     }
+    this.auxiliaries.length = j;
     this.onAuxiliariesChange();
   }
 
   private onAuxiliariesChange() {
-    this.refreshes = this.auxiliaries?.filter((a): a is Refresh => !!a.refresh) ?? undefined;
-    this.cellTracks = this.auxiliaries?.filter((a): a is CellTrack => !!a.trackCell || !!a.untrackCell) ?? undefined;
+    this.refreshes = this.auxiliaries?.filter((a): a is Refresh => !!a.refresh) ?? EMPTY_REFRESH;
+    this.cellTracks = this.auxiliaries?.filter((a): a is CellTrack => !!a.trackCell || !!a.untrackCell) ?? EMPTY_CELLTRACK;
   }
 }

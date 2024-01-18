@@ -43,7 +43,7 @@ void main() {
     pow(2.0, mod(slotSize_and_number.x, 16.0)));
   float slotNumber = slotSize_and_number.y;
   vec2 spriteSize = abs(slotSize_and_number.zw);
-  vec2 tex = position.xy * vec2(0.49, -0.49) * sign(slotSize_and_number.zw) + 0.5; //  Texture corners 0..1
+  vec2 tex = (position.xy) * vec2(0.49, -0.49) * sign(slotSize_and_number.zw) + 0.5; //  Texture corners 0..1
   float sheetCols = ceil(1. / spriteSize[0]);
   float frameStart = animation[0];
   float frameEnd = animation[1];
@@ -72,11 +72,12 @@ void main() {
   vec4 elemPosition = transform * basePosition;
   // elementPosition => relativePosition
   vec4 relativePosition = camTilt * camTurn * camPos * elemPosition;
-  relativePosition.z -= camDist;
 
   float actualCurvature = curvature * (1. - isDistant);
   relativePosition.y -= actualCurvature * ((relativePosition.z * relativePosition.z) + (relativePosition.x * relativePosition.x) / 4.) / 10.;
   relativePosition.x /= (1. + actualCurvature * 1.4);
+
+  relativePosition.z -= camDist;
 
   dist = max(isDistant, isHud) + (1. - max(isDistant, isHud)) * (relativePosition.z*relativePosition.z + relativePosition.x*relativePosition.x);
   // relativePosition => gl_Position

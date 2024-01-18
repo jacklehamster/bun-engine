@@ -2,11 +2,13 @@ import { ActionEnum, ControlsListener, IControls } from "./IControls";
 import { IKeyboard } from "./IKeyboard";
 
 export class KeyboardControls implements IControls {
+  private onRemoveListener: Map<ControlsListener, () => void> = new Map();
+
   constructor(private keyboard: IKeyboard) {
   }
 
-  addListener(listener: ControlsListener): () => void {
-    return this.keyboard.addListener({
+  addListener(listener: ControlsListener): void {
+    const onRemove = this.keyboard.addListener({
       onQuickTap(keyCode) {
         switch (keyCode) {
           case 'Space':
@@ -20,10 +22,12 @@ export class KeyboardControls implements IControls {
       onKeyDown: () => listener.onAction?.(this, ActionEnum.PRESS_DOWN),
       onKeyUp: () => listener.onAction?.(this, ActionEnum.PRESS_UP),
     });
+    this.onRemoveListener.set(listener, onRemove);
   }
 
   removeListener(listener: ControlsListener): void {
-    throw new Error("Not implemented");
+    this.onRemoveListener.get(listener)?.();
+    this.onRemoveListener.delete(listener);
   }
 
   get forward(): boolean {

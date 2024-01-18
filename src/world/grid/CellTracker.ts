@@ -88,4 +88,8 @@ export class CellTracker implements VisitableCell, Auxiliary<CellChangeAuxiliary
       }
     }
   }
+
+  deactivate(): void {
+    this.cellTags.clear();
+  }
 }

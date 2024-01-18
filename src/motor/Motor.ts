@@ -2,6 +2,7 @@ import { Time } from "core/Time";
 import { Priority, Refresh, UpdatePayload } from "../updates/Refresh";
 import { IMotor } from "./IMotor";
 import { Duration } from "core/Time";
+import { ObjectPool } from "utils/ObjectPool";
 
 /**
  * Continously runs a loop which feeds a world into the GL Engine.
@@ -13,31 +14,42 @@ const FRAME_PERIOD = 16.6;
 export interface Schedule {
   triggerTime: Time;
   period: Duration;
-  expirationTime: Time;
+  expiration: Time;
 }
 
 export class Motor implements IMotor {
   private readonly updateSchedule: Map<Refresh, Schedule> = new Map();
   time: Time = 0;
   holder?: Refresh;
+  private pool: ObjectPool<Schedule, [number, Time]> = new ObjectPool((schedule, frameRate, expiration) => {
+    if (!schedule) {
+      return { triggerTime: 0, period: frameRate ? 1000 / frameRate : 1, expiration: expiration }
+    }
+    schedule.triggerTime = 0;
+    schedule.period = frameRate ? 1000 / frameRate : 0;
+    schedule.expiration = expiration;
+    return schedule;
+  });
 
   loop(update: Refresh, frameRate?: number, expirationTime?: Time) {
-    this.registerUpdate(update, { period: frameRate ? 1000 / frameRate : 1, expirationTime });
+    this.registerUpdate(update, frameRate ?? 1000, expirationTime);
   }
 
-  registerUpdate(update: Refresh, schedule?: Partial<Schedule>) {
-    if (!this.updateSchedule.has(update) || schedule) {
-      if (!schedule) {
-        schedule = {};
-      }
-      schedule.triggerTime = schedule.triggerTime ?? 0;
-      schedule.expirationTime = schedule.expirationTime ?? Infinity;
-      schedule.period = schedule.period;
-      this.updateSchedule.set(update, schedule as Schedule);
+  registerUpdate(update: Refresh, refreshRate: number = 0, expiration: Time = Infinity) {
+    const schedule = this.updateSchedule.get(update);
+    if (!schedule) {
+      this.updateSchedule.set(update, this.pool.create(refreshRate, expiration));
+    } else {
+      schedule.period = refreshRate ? 1000 / refreshRate : 0;
+      schedule.expiration = expiration;
     }
   }
 
   deregisterUpdate(update: Refresh) {
+    const schedule = this.updateSchedule.get(update);
+    if (schedule) {
+      this.pool.recycle(schedule);
+    }
     this.updateSchedule.delete(update);
   }
 
@@ -67,7 +79,7 @@ export class Motor implements IMotor {
     const loop: FrameRequestCallback = () => {
       handle = requestAnimationFrame(loop);
       // counter++;
-      // if (counter > 30) {
+      // if (counter > 10) {
       //   counter = 0;
       // } else {
       //   return;
@@ -80,10 +92,10 @@ export class Motor implements IMotor {
         if (time < schedule.triggerTime) {
           return;
         }
-        if (schedule.period && time < schedule.expirationTime) {
+        if (schedule.period && time < schedule.expiration) {
           schedule.triggerTime = Math.max(schedule.triggerTime + schedule.period, time);
         } else {
-          this.updateSchedule.delete(update);
+          this.deregisterUpdate(update);
         }
         updateGroups[update.priority ?? Priority.DEFAULT].push(update);
       });

@@ -19,7 +19,7 @@ export class ToggleAuxiliary implements Auxiliary<IKeyboard> {
   private keyListener: KeyListener;
 
   constructor(config: Config) {
-    this.keys = map(config.auxiliariesMapping, (({ key }) => key));
+    this.keys = map(config.auxiliariesMapping, (keyMap => keyMap?.key));
     this.keyListener = {
       onKeyDown: (keyCode: string) => {
         if (this.keys.indexOf(keyCode) >= 0) {
@@ -32,11 +32,11 @@ export class ToggleAuxiliary implements Auxiliary<IKeyboard> {
         }
       },
     };
-    this.auxiliaries = map(config.auxiliariesMapping, (({ aux }) => aux));
+    this.auxiliaries = map(config.auxiliariesMapping, ((keyMap) => keyMap?.aux));
     this.toggleIndex = (config.initialIndex ?? 0);
   }
 
-  set holder(keyboard: IKeyboard | undefined) {
+  set holder(keyboard: IKeyboard) {
     this.keyboard = keyboard;
   }
 

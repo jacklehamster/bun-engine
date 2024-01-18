@@ -1,25 +1,24 @@
 import { Refresh } from 'updates/Refresh';
 import { Disposable } from '../lifecycle/Disposable';
-import { Schedule } from 'motor/Motor';
 import { MediaId } from './ImageManager';
 
 export class MediaData extends Disposable implements Refresh {
-  readonly texImgSrc: TexImageSource;
-  readonly canvasImgSrc?: CanvasImageSource;
   readonly width: number;
   readonly height: number;
   readonly isVideo: boolean;
   refreshCallback?(): void;
-  schedule?: Partial<Schedule>;
 
-  constructor(readonly id: MediaId, image: TexImageSource, refreshRate?: number, canvasImgSrc?: CanvasImageSource) {
+  constructor(
+    readonly id: MediaId,
+    readonly texImgSrc: TexImageSource,
+    readonly refreshRate?: number,
+    readonly canvasImgSrc?: CanvasImageSource
+  ) {
     super();
-    this.texImgSrc = image;
-    const img: any = image;
+    const img: any = texImgSrc;
     this.isVideo = !!(img.videoWidth || img.videoHeight);
     this.width = img.naturalWidth ?? img.videoWidth ?? img.displayWidth ?? img.width?.baseValue?.value ?? img.width;
     this.height = img.naturalHeight ?? img.videoHeight ?? img.displayHeight ?? img.height?.baseValue?.value ?? img.height;
-    this.schedule = refreshRate ? { period: 1000 / refreshRate } : undefined;
     this.canvasImgSrc = canvasImgSrc;
     if (!this.width || !this.height) {
       throw new Error('Invalid image');

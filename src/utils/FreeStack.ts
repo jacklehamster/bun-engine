@@ -7,5 +7,6 @@ export interface FreeStack<T> {
   pushTop(value: T): void;
   moveTop(value: T): boolean;
   popBottom(): T | undefined;
+  clear(): void;
   get size(): number;
 }

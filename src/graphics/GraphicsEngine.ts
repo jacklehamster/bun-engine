@@ -34,14 +34,15 @@ import { replaceTilda } from 'gl/utils/replaceTilda';
 import { FloatUniform, VectorUniform } from "./Uniforms";
 import { MatrixUniform } from "./Uniforms";
 import { MediaData } from 'gl/texture/MediaData';
-import { Media } from 'gl/texture/Media';
+import { Medias } from 'gl/texture/Media';
 import { SpriteId, SpriteType } from 'world/sprite/Sprite';
 import { IGraphicsEngine } from './IGraphicsEngine';
 import { Sprites } from 'world/sprite/Sprites';
 import { IMatrix, Vector } from 'gl/transform/IMatrix';
 import { SpriteSheet } from 'gl/texture/spritesheet/SpriteSheet';
 import { Priority } from 'updates/Refresh';
-import { List, map } from 'world/sprite/List';
+import { map } from 'world/sprite/List';
+import { Animation, AnimationId, Animations } from 'animation/Animation';
 
 const VERTICES_PER_SPRITE = 6;
 
@@ -63,15 +64,16 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
   private imageManager: ImageManager;
 
   private textureSlots: Map<MediaId, { buffer: Float32Array }> = new Map();
+  private animationSlots: Map<AnimationId, Animation> = new Map();
 
   private pixelListener?: { x: number; y: number; setPixel(value: number): void };
-  private spriteCount = 0;
   private maxSpriteCount = 0;
   private matrixUniforms: Record<MatrixUniform, WebGLUniformLocation>;
   private floatUniforms: Record<FloatUniform, WebGLUniformLocation>;
   private vec3Uniforms: Record<VectorUniform, WebGLUniformLocation>;
 
   private tempBuffer = new Float32Array(4).fill(0);
+  private visibleSprites: boolean[] = [];
 
   constructor(private gl: GL) {
     super();
@@ -111,10 +113,6 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
     this.initialize(PROGRAM_NAME);
   }
 
-  private clearTextureSlots(): void {
-    this.textureSlots.clear();
-  }
-
   resetViewportSize() {
     this.gl.viewport(0, 0, this.gl.drawingBufferWidth, this.gl.drawingBufferHeight);
   }
@@ -143,7 +141,9 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
   }
 
   deactivate(): void {
-    this.clearTextureSlots();
+    this.textureSlots.clear();
+    this.animationSlots.clear();
+    this.visibleSprites.length = 0;
   }
 
   setMaxSpriteCount(count: number): void {
@@ -251,15 +251,11 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
     return this.attributeBuffers;
   }
 
-  async updateTextures(imageIds: List<MediaId>, getMedia: (imageId: MediaId) => Media | undefined): Promise<MediaData[]> {
-    const mediaInfos = (await Promise.all(map(imageIds, async imageId => {
-      if (imageId === undefined) {
-        console.warn(`Undefined imageId`);
-        return;
-      }
-      const media = getMedia(imageId);
-      if (!media || media.id === undefined) {
-        console.warn(`No media for imageId ${imageId}`);
+  async updateTextures(ids: Set<MediaId>, medias: Medias): Promise<MediaData[]> {
+    const mediaList = Array.from(ids).map(index => medias.at(index));
+    ids.clear();
+    const mediaInfos = (await Promise.all(map(mediaList, async media => {
+      if (media?.id === undefined) {
         return;
       }
       const mediaData = await this.imageManager.renderMedia(media.id, media);
@@ -299,20 +295,20 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
   updateSpriteTransforms(spriteIds: Set<SpriteId>, sprites: Sprites) {
     const attributeBuffers = this.attributeBuffers;
     attributeBuffers.bindBuffer(TRANSFORM_LOC);
-    let topVisibleSprite = this.spriteCount - 1;
     spriteIds.forEach(spriteId => {
       const sprite = sprites.at(spriteId);
       this.gl.bufferSubData(GL.ARRAY_BUFFER, 4 * 4 * Float32Array.BYTES_PER_ELEMENT * spriteId, (sprite?.transform ?? Matrix.HIDDEN).getMatrix());
       if (sprite) {
-        topVisibleSprite = Math.max(topVisibleSprite, spriteId);
+        this.visibleSprites[spriteId] = true;
+      } else {
+        this.visibleSprites[spriteId] = false;
       }
     });
     spriteIds.clear();
 
-    while (topVisibleSprite >= 0 && !sprites.at(topVisibleSprite)) {
-      topVisibleSprite--;
+    while (this.visibleSprites.length && !this.visibleSprites[this.visibleSprites.length - 1]) {
+      this.visibleSprites.length--;
     }
-    this.spriteCount = Math.max(this.spriteCount, topVisibleSprite + 1);
   }
 
   updateSpriteTexSlots(spriteIds: Set<SpriteId>, sprites: Sprites) {
@@ -320,9 +316,12 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
     attributeBuffers.bindBuffer(SLOT_SIZE_LOC);
     spriteIds.forEach(spriteId => {
       const sprite = sprites.at(spriteId);
-      const slotObj = sprite ? this.textureSlots.get(sprite.imageId) : undefined;
+      if (!sprite) {
+        return;
+      }
+      const slotObj = this.textureSlots.get(sprite.imageId);
       let buffer = slotObj?.buffer ?? EMPTY_TEX;
-      if (sprite?.flip) {
+      if (sprite.flip) {
         this.tempBuffer[0] = buffer[0];
         this.tempBuffer[1] = buffer[1];
         this.tempBuffer[2] = -buffer[2];
@@ -342,7 +341,10 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
     attributeBuffers.bindBuffer(SPRITE_TYPE_LOC);
     spriteIds.forEach(spriteId => {
       const sprite = sprites.at(spriteId);
-      const type = sprite?.spriteType ?? SpriteType.DEFAULT;
+      if (!sprite) {
+        return;
+      }
+      const type = sprite.spriteType ?? SpriteType.DEFAULT;
       this.tempBuffer[0] = type;
       this.gl.bufferSubData(GL.ARRAY_BUFFER, 1 * Float32Array.BYTES_PER_ELEMENT * spriteId, this.tempBuffer, 0, 1);
     });
@@ -354,15 +356,27 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
     attributeBuffers.bindBuffer(ANIM_LOC);
     spriteIds.forEach(spriteId => {
       const sprite = sprites.at(spriteId);
-      if (sprite) {
-        this.tempBuffer[0] = sprite.animation?.frames?.[0] ?? 0;
-        this.tempBuffer[1] = sprite.animation?.frames?.[1] ?? this.tempBuffer[0];
-        this.tempBuffer[2] = sprite.animation?.fps ?? 0;
-        this.tempBuffer[3] = sprite.animation?.maxFrameCount ?? Number.MAX_SAFE_INTEGER;
-        this.gl.bufferSubData(GL.ARRAY_BUFFER, 4 * Float32Array.BYTES_PER_ELEMENT * spriteId, this.tempBuffer);
+      if (sprite?.animationId === undefined) {
+        return;
       }
+      const animation = this.animationSlots.get(sprite.animationId);
+      this.tempBuffer[0] = animation?.frames?.[0] ?? 0;
+      this.tempBuffer[1] = animation?.frames?.[1] ?? this.tempBuffer[0];
+      this.tempBuffer[2] = animation?.fps ?? 0;
+      this.tempBuffer[3] = animation?.maxFrameCount ?? Number.MAX_SAFE_INTEGER;
+      this.gl.bufferSubData(GL.ARRAY_BUFFER, 4 * Float32Array.BYTES_PER_ELEMENT * spriteId, this.tempBuffer);
     });
     spriteIds.clear();
+  }
+
+  updateAnimationDefinitions(ids: Set<AnimationId>, animations: Animations) {
+    for (let id of ids) {
+      const animation = animations.at(id);
+      if (animation?.id !== undefined) {
+        this.animationSlots.set(animation.id, animation);
+      }
+    }
+    ids.clear();
   }
 
   updateUniformMatrix(type: MatrixUniform, matrix: IMatrix) {
@@ -390,10 +404,9 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
 
   private static clearBit = GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT;
   refresh(): void {
-    if (this.spriteCount) {
-      this.gl.clear(GraphicsEngine.clearBit);
-      this.drawElementsInstanced(VERTICES_PER_SPRITE, this.spriteCount);
-
+    this.gl.clear(GraphicsEngine.clearBit);
+    if (this.visibleSprites.length) {
+      this.drawElementsInstanced(VERTICES_PER_SPRITE, this.visibleSprites.length);
       this.pixelListener?.setPixel(this.getPixel(this.pixelListener.x, this.pixelListener.y));
     }
   }

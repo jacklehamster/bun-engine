@@ -20,7 +20,7 @@ export class SpriteUpdater implements UpdateNotifier, Auxiliary<SpritesHolder> {
 
   set holder(value: SpritesHolder) {
     this.sprites = value;
-    value.informUpdate = this.informUpdate.bind(this);
+    this.sprites.informUpdate = this.informUpdate.bind(this);
   }
 
   constructor({ engine, motor }: Props) {
@@ -35,19 +35,17 @@ export class SpriteUpdater implements UpdateNotifier, Auxiliary<SpritesHolder> {
   }
 
   informUpdate(id: SpriteId, type: SpriteUpdateType = SpriteUpdateType.ALL): void {
-    if (this.sprites && id < this.sprites.length) {
-      if (type & SpriteUpdateType.TRANSFORM) {
-        this.updateRegistries[SpriteUpdateType.TRANSFORM]?.informUpdate(id);
-      }
-      if (type & SpriteUpdateType.TEX_SLOT) {
-        this.updateRegistries[SpriteUpdateType.TEX_SLOT]?.informUpdate(id);
-      }
-      if (type & SpriteUpdateType.TYPE) {
-        this.updateRegistries[SpriteUpdateType.TYPE]?.informUpdate(id);
-      }
-      if (type & SpriteUpdateType.ANIM) {
-        this.updateRegistries[SpriteUpdateType.ANIM]?.informUpdate(id);
-      }
+    if (type & SpriteUpdateType.TRANSFORM) {
+      this.updateRegistries[SpriteUpdateType.TRANSFORM]?.informUpdate(id);
+    }
+    if (type & SpriteUpdateType.TEX_SLOT) {
+      this.updateRegistries[SpriteUpdateType.TEX_SLOT]?.informUpdate(id);
+    }
+    if (type & SpriteUpdateType.TYPE) {
+      this.updateRegistries[SpriteUpdateType.TYPE]?.informUpdate(id);
+    }
+    if (type & SpriteUpdateType.ANIM) {
+      this.updateRegistries[SpriteUpdateType.ANIM]?.informUpdate(id);
     }
   }
 }
