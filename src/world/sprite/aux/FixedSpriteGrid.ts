@@ -20,7 +20,7 @@ export class FixedSpriteGrid extends SpriteGrid {
 
   constructor(config: Config, ...spritesList: ((Sprites | Sprite[]) & Partial<Auxiliary>)[]) {
     super({}, {
-      getSpritesAtCell: cell => this.spritesPerCell.get(cell.tag) ?? EMPTY,
+      getElemsAtCell: cell => this.spritesPerCell.get(cell.tag) ?? EMPTY,
     });
     this.cellSize = config.cellSize ?? 1;
     this.spritesList = spritesList;

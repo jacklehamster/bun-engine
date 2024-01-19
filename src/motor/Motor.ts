@@ -7,11 +7,11 @@ import { ObjectPool } from "utils/ObjectPool";
 /**
  * Continously runs a loop which feeds a world into the GL Engine.
  */
-const MAX_DELTA_TIME = 1000 / 20;
+const MILLIS_IN_SEC = 1000;
+const MAX_DELTA_TIME = MILLIS_IN_SEC / 20;
 const FRAME_PERIOD = 16.6;
 
-
-export interface Schedule {
+interface Schedule {
   triggerTime: Time;
   period: Duration;
   expiration: Time;
@@ -21,15 +21,7 @@ export class Motor implements IMotor {
   private readonly updateSchedule: Map<Refresh, Schedule> = new Map();
   time: Time = 0;
   holder?: Refresh;
-  private pool: ObjectPool<Schedule, [number, Time]> = new ObjectPool((schedule, frameRate, expiration) => {
-    if (!schedule) {
-      return { triggerTime: 0, period: frameRate ? 1000 / frameRate : 1, expiration: expiration }
-    }
-    schedule.triggerTime = 0;
-    schedule.period = frameRate ? 1000 / frameRate : 0;
-    schedule.expiration = expiration;
-    return schedule;
-  });
+  private readonly pool = new SchedulePool();
 
   loop(update: Refresh, frameRate?: number, expirationTime?: Time) {
     this.registerUpdate(update, frameRate ?? 1000, expirationTime);
@@ -116,4 +108,18 @@ export class Motor implements IMotor {
   }
 
   stopLoop?(): void;
+}
+
+class SchedulePool extends ObjectPool<Schedule, [number, Time]> {
+  constructor() {
+    super((schedule, frameRate, expiration) => {
+      if (!schedule) {
+        return { triggerTime: 0, period: frameRate ? MILLIS_IN_SEC / frameRate : 1, expiration: expiration }
+      }
+      schedule.triggerTime = 0;
+      schedule.period = frameRate ? MILLIS_IN_SEC / frameRate : 0;
+      schedule.expiration = expiration;
+      return schedule;
+    });
+  }
 }

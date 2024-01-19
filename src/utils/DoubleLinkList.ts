@@ -8,18 +8,9 @@ interface DoubleLinkListNode<T> {
   next?: DoubleLinkListNode<T>;
 }
 
-export class DoubleLinkList<T extends string | number | symbol> implements FreeStack<T> {
-  private readonly start: DoubleLinkListNode<T>;
-  private readonly end: DoubleLinkListNode<T>;
-  private readonly nodeMap: Map<T, DoubleLinkListNode<T>> = new Map();
-  private readonly pool: ObjectPool<DoubleLinkListNode<T>, [T]>;
-
-  constructor(edgeValue: T) {
-    this.start = { value: edgeValue };
-    this.end = { value: edgeValue };
-    this.start.next = this.end;
-    this.end.prev = this.start;
-    this.pool = new ObjectPool<DoubleLinkListNode<T>, [T]>((elem, value: T) => {
+class NodePool<T> extends ObjectPool<DoubleLinkListNode<T>, [T]> {
+  constructor() {
+    super((elem, value: T) => {
       if (!elem) {
         return { value };
       }
@@ -28,6 +19,20 @@ export class DoubleLinkList<T extends string | number | symbol> implements FreeS
       elem.next = undefined;
       return elem;
     });
+  }
+}
+
+export class DoubleLinkList<T extends string | number | symbol> implements FreeStack<T> {
+  private readonly start: DoubleLinkListNode<T>;
+  private readonly end: DoubleLinkListNode<T>;
+  private readonly nodeMap: Map<T, DoubleLinkListNode<T>> = new Map();
+  private readonly pool = new NodePool<T>();
+
+  constructor(edgeValue: T) {
+    this.start = { value: edgeValue };
+    this.end = { value: edgeValue };
+    this.start.next = this.end;
+    this.end.prev = this.start;
   }
 
   clear(): void {

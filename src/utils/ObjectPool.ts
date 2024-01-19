@@ -4,7 +4,7 @@ export class ObjectPool<T, A extends any[] = []> {
   constructor(private initCall: (elem: T | undefined, ...params: A) => T) {
   }
 
-  recycle(element: T) {
+  recycle(element: T): undefined {
     this.recycler.push(element);
   }
 

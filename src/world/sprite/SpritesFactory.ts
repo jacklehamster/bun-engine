@@ -2,10 +2,9 @@ import { Sprites } from "./Sprites";
 import { Cell } from "world/grid/CellPos";
 import { UpdatePayload } from "updates/Refresh";
 import { Sprite } from "./Sprite";
-import { ObjectPool } from "utils/ObjectPool";
-import Matrix from "gl/transform/Matrix";
 import { MediaId } from "gl/texture/ImageManager";
-import { ISpriteFactory } from "./aux/ISpriteFactory";
+import { IElemFactory } from "./aux/IElemFactory";
+import { SpritePool } from "world/pools/Spritepool";
 
 interface SpriteBag {
   createSprite(imageId?: MediaId): Sprite;
@@ -16,18 +15,10 @@ interface CellSpriteFiller {
   fillSpriteBag(cell: Cell, updatePayload: UpdatePayload, bag: SpriteBag): void;
 }
 
-export class SpriteFactory implements ISpriteFactory {
-  private sprites: Sprite[] = [];
-  private pool: ObjectPool<Sprite, [MediaId]> = new ObjectPool<Sprite, [MediaId]>((sprite, imageId): Sprite => {
-    if (!sprite) {
-      return { imageId, transform: Matrix.create() };
-    }
-    sprite.imageId = imageId;
-    sprite.transform.identity();
-    return sprite;
-  });
-
-  private spriteBag: SpriteBag = {
+export class SpriteFactory implements IElemFactory<Sprite> {
+  private readonly sprites: Sprite[] = [];
+  private readonly pool: SpritePool = new SpritePool();
+  private readonly spriteBag: SpriteBag = {
     createSprite: (imageId?: MediaId): Sprite => this.pool.create(imageId ?? 0),
     addSprite: (...sprites: Sprite[]) => this.sprites.push(...sprites),
   };
@@ -35,7 +26,7 @@ export class SpriteFactory implements ISpriteFactory {
   constructor(private filler: CellSpriteFiller) {
   }
 
-  getSpritesAtCell(cell: Cell, updatePayload: UpdatePayload): Sprites {
+  getElemsAtCell(cell: Cell, updatePayload: UpdatePayload): Sprites {
     this.filler.fillSpriteBag(cell, updatePayload, this.spriteBag);
     return this.sprites;
   }

@@ -15,15 +15,7 @@ interface Slot<T> {
 export class Accumulator<T> extends AuxiliaryHolder implements ElemsHolder<T>, IAccumulator<T> {
   private readonly indices: Slot<T>[] = [];
   private readonly newElemsListener: Set<(accumulator: ElemsHolder<T>) => void> = new Set();
-  private readonly pool: ObjectPool<Slot<T>, [UpdatableList<T>, IdType]> = new ObjectPool<Slot<T>, [UpdatableList<T>, number]>((slot, elems, index) => {
-    if (!slot) {
-      return { elems, index };
-    }
-    slot.elems = elems;
-    slot.index = index;
-    slot.id = undefined;
-    return slot;
-  });
+  private readonly pool = new SlotPool<T>();
 
   informUpdate?(id: number, type?: number): void;
 
@@ -109,5 +101,19 @@ export class Accumulator<T> extends AuxiliaryHolder implements ElemsHolder<T>, I
 
   addNewElemsListener(listener: (holder: ElemsHolder<T>) => void): void {
     this.newElemsListener.add(listener);
+  }
+}
+
+class SlotPool<T> extends ObjectPool<Slot<T>, [UpdatableList<T>, IdType]> {
+  constructor() {
+    super((slot, elems, index) => {
+      if (!slot) {
+        return { elems, index };
+      }
+      slot.elems = elems;
+      slot.index = index;
+      slot.id = undefined;
+      return slot;
+    });
   }
 }

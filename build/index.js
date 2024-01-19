@@ -28618,23 +28618,24 @@ class SpriteGroup extends ItemsGroup {
   }
 }
 
-// src/world/sprite/aux/SpriteGrid.ts
-class SpriteGrid extends AuxiliaryHolder {
-  spriteFactory;
+// src/world/sprite/aux/Grid.ts
+class Grid extends AuxiliaryHolder {
   slots = [];
   ranges;
-  slotPool = new ObjectPool((slot, sprite, tag) => {
-    if (!slot) {
-      return { sprite: copySprite(sprite), tag };
-    }
-    slot.sprite = copySprite(sprite, slot.sprite);
-    slot.tag = tag;
-    return slot;
-  });
+  factories;
+  slotPool;
   holder;
-  constructor(config, spriteFactory = {}) {
+  constructor(copy5, config, ...factories) {
     super();
-    this.spriteFactory = spriteFactory;
+    this.factories = factories;
+    this.slotPool = new ObjectPool((slot, elem, tag) => {
+      if (!slot) {
+        return { elem: copy5(elem), tag };
+      }
+      slot.elem = copy5(elem, slot.elem);
+      slot.tag = tag;
+      return slot;
+    });
     this.ranges = [
       config?.xRange ?? [Number.NEGATIVE_INFINITY, Number.POSITIVE_INFINITY],
       config?.yRange ?? [Number.NEGATIVE_INFINITY, Number.POSITIVE_INFINITY],
@@ -28656,7 +28657,7 @@ class SpriteGrid extends AuxiliaryHolder {
     return this.slots.length;
   }
   at(index) {
-    return this.slots[index]?.sprite;
+    return this.slots[index]?.elem;
   }
   trackCell(cell, updatePayload) {
     const [[minX, maxX], [minY, maxY], [minZ, maxZ]] = this.ranges;
@@ -28664,20 +28665,22 @@ class SpriteGrid extends AuxiliaryHolder {
     if (x < minX || maxX < x || y < minY || maxY < y || z < minZ || maxZ < z) {
       return false;
     }
-    let spriteCount = 0;
+    let count = 0;
     const { tag } = cell;
-    const sprites = this.spriteFactory.getSpritesAtCell?.(cell, updatePayload);
-    forEach3(sprites, (sprite) => {
-      if (sprite) {
-        const spriteId = this.slots.length;
-        const slot = this.slotPool.create(sprite, tag);
-        this.slots.push(slot);
-        this.informUpdate(spriteId);
-        spriteCount++;
-      }
+    this.factories.forEach((factory) => {
+      const elems = factory.getElemsAtCell(cell, updatePayload);
+      forEach3(elems, (elem) => {
+        if (elem) {
+          const slot = this.slotPool.create(elem, tag);
+          const spriteId = this.slots.length;
+          this.slots.push(slot);
+          this.informUpdate(spriteId);
+          count++;
+        }
+      });
+      factory.doneCellTracking?.(cell, updatePayload);
     });
-    this.spriteFactory.doneCellTracking?.(cell, updatePayload);
-    return !!spriteCount;
+    return !!count;
   }
   untrackCell(cellTag2) {
     for (let i = this.slots.length - 1;i >= 0; i--) {
@@ -28693,6 +28696,13 @@ class SpriteGrid extends AuxiliaryHolder {
   }
 }
 
+// src/world/sprite/aux/SpriteGrid.ts
+class SpriteGrid extends Grid {
+  constructor(config, ...factories) {
+    super(copySprite, config, ...factories);
+  }
+}
+
 // src/world/sprite/aux/FixedSpriteGrid.ts
 var EMPTY = [];
 
@@ -28702,7 +28712,7 @@ class FixedSpriteGrid extends SpriteGrid {
   spritesList;
   constructor(config, ...spritesList) {
     super({}, {
-      getSpritesAtCell: (cell) => this.spritesPerCell.get(cell.tag) ?? EMPTY
+      getElemsAtCell: (cell) => this.spritesPerCell.get(cell.tag) ?? EMPTY
     });
     this.cellSize = config.cellSize ?? 1;
     this.spritesList = spritesList;
@@ -28875,7 +28885,7 @@ class SpriteFactory {
   constructor(filler) {
     this.filler = filler;
   }
-  getSpritesAtCell(cell, updatePayload) {
+  getElemsAtCell(cell, updatePayload) {
     this.filler.fillSpriteBag(cell, updatePayload, this.spriteBag);
     return this.sprites;
   }
@@ -29286,7 +29296,7 @@ class DemoWorld extends AuxiliaryHolder {
     super();
     const spritesAccumulator = new Accumulator().addAuxiliary(new SpriteUpdater({ engine, motor }), new MaxSpriteCountAuxiliary({ engine }));
     this.addAuxiliary(spritesAccumulator);
-    this.addAuxiliary(new Accumulator().addAuxiliary(new MediaUpdater({ engine, motor })).addAuxiliary(new ItemsGroup([
+    this.addAuxiliary(new Accumulator().addAuxiliary(new MediaUpdater({ engine, motor }), new ItemsGroup([
       {
         id: Assets.DOBUKI,
         type: "image",
@@ -29421,7 +29431,7 @@ class DemoWorld extends AuxiliaryHolder {
         }
       }
     ])));
-    this.addAuxiliary(new Accumulator().addAuxiliary(new AnimationUpdater({ engine, motor })).addAuxiliary(new ItemsGroup([
+    this.addAuxiliary(new Accumulator().addAuxiliary(new AnimationUpdater({ engine, motor }), new ItemsGroup([
       {
         id: Anims.STILL,
         frames: [0]
@@ -29690,4 +29700,4 @@ export {
   hello
 };
 
-//# debugId=1451E70E62C04A4B64756e2164756e21
+//# debugId=B137D5DD3D752D3164756e2164756e21

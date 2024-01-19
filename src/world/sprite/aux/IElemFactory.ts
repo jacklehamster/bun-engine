@@ -1,8 +1,8 @@
 import { Cell } from "world/grid/CellPos";
-import { Sprites } from "../Sprites";
 import { UpdatePayload } from "updates/Refresh";
+import { List } from "../List";
 
-export interface ISpriteFactory {
-  getSpritesAtCell?(cell: Cell, updatePayload: UpdatePayload): Sprites;
+export interface IElemFactory<T> {
+  getElemsAtCell(cell: Cell, updatePayload: UpdatePayload): List<T>;
   doneCellTracking?(cell: Cell, updatePayload: UpdatePayload): void;
 }
