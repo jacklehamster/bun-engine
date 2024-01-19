@@ -22,7 +22,7 @@ import { ICamera } from "camera/ICamera";
 import { KeyboardControls } from "controls/KeyboardControls";
 import { SpriteFactory } from "world/sprite/SpritesFactory";
 import { MoveAuxiliary } from "world/aux/MoveAuxiliary";
-import { getCellPos, positionFromCell } from "world/grid/CellPos";
+import { positionFromCell } from "world/grid/CellPos";
 import { JumpAuxiliary } from "world/aux/JumpAuxiliary";
 import { TimeAuxiliary } from "core/aux/TimeAuxiliary";
 import { PositionMatrix } from "gl/transform/PositionMatrix";
@@ -75,176 +75,182 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
 
     //  Add a sprite accumulator.
     //  * Sprite accumulators are used to collect sprite definitions, so that the engine can display them.
-    const spritesAccumulator = new Accumulator<Sprite>().addAuxiliary(
-      new SpriteUpdater({ engine, motor }),
-      new MaxSpriteCountAuxiliary({ engine }));
+    const spritesAccumulator = new Accumulator<Sprite>()
+      .addAuxiliary(
+        new SpriteUpdater({ engine, motor }),
+        new MaxSpriteCountAuxiliary({ engine }),
+      );
     this.addAuxiliary(spritesAccumulator);
 
     //  Add medias
     //  * Each media is a texture that can be shown on a sprite.
     //  * You can show videos, images, or you can have instructions to draw on a canvas.
     this.addAuxiliary(new Accumulator<Media>()
-      .addAuxiliary(new MediaUpdater({ engine, motor }))
-      .addAuxiliary(new ItemsGroup<Media>([
-        {
-          id: Assets.DOBUKI,
-          type: "image",
-          src: "dobuki.png",
-        },
-        {
-          id: Assets.DODO,
-          type: "image", src: "dodo.png",
-          spriteSheet: {
-            spriteSize: [190, 209],
+      .addAuxiliary(
+        new MediaUpdater({ engine, motor }),
+        new ItemsGroup<Media>([
+          {
+            id: Assets.DOBUKI,
+            type: "image",
+            src: "dobuki.png",
           },
-        },
-        {
-          id: Assets.DODO_SHADOW,
-          type: "image", src: "dodo.png",
-          spriteSheet: {
-            spriteSize: [190, 209],
+          {
+            id: Assets.DODO,
+            type: "image", src: "dodo.png",
+            spriteSheet: {
+              spriteSize: [190, 209],
+            },
           },
-          postProcessing(context) {
-            if (context) {
-              const imageData = context.getImageData(0, 0, context.canvas.width, context.canvas.height);
-              const { data } = imageData;
-              for (let i = 0; i < data.length; i += 4) {
-                data[i] = data[i + 1] = data[i + 2] = 0;
+          {
+            id: Assets.DODO_SHADOW,
+            type: "image", src: "dodo.png",
+            spriteSheet: {
+              spriteSize: [190, 209],
+            },
+            postProcessing(context) {
+              if (context) {
+                const imageData = context.getImageData(0, 0, context.canvas.width, context.canvas.height);
+                const { data } = imageData;
+                for (let i = 0; i < data.length; i += 4) {
+                  data[i] = data[i + 1] = data[i + 2] = 0;
+                }
+                context.putImageData(imageData, 0, 0);
               }
-              context.putImageData(imageData, 0, 0);
-            }
+            },
           },
-        },
-        {
-          id: Assets.LOGO,
-          type: "draw",
-          draw: ctx => {
-            const { canvas } = ctx;
-            canvas.width = LOGO_SIZE;
-            canvas.height = LOGO_SIZE;
-            const centerX = canvas.width / 2, centerY = canvas.height / 2;
-            const halfSize = canvas.width / 2;
-            ctx.imageSmoothingEnabled = true;
-            ctx.fillStyle = '#ddd';
-            ctx.lineWidth = canvas.width / 50;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+          {
+            id: Assets.LOGO,
+            type: "draw",
+            draw: ctx => {
+              const { canvas } = ctx;
+              canvas.width = LOGO_SIZE;
+              canvas.height = LOGO_SIZE;
+              const centerX = canvas.width / 2, centerY = canvas.height / 2;
+              const halfSize = canvas.width / 2;
+              ctx.imageSmoothingEnabled = true;
+              ctx.fillStyle = '#ddd';
+              ctx.lineWidth = canvas.width / 50;
+              ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            ctx.strokeStyle = 'black';
-            ctx.fillStyle = 'gold';
+              ctx.strokeStyle = 'black';
+              ctx.fillStyle = 'gold';
 
-            //  face
-            ctx.beginPath();
-            ctx.arc(centerX, centerY, halfSize * 0.8, 0, 2 * Math.PI);
-            ctx.fill();
-            ctx.stroke();
+              //  face
+              ctx.beginPath();
+              ctx.arc(centerX, centerY, halfSize * 0.8, 0, 2 * Math.PI);
+              ctx.fill();
+              ctx.stroke();
 
-            //  smile
-            ctx.beginPath();
-            ctx.arc(centerX, centerY, halfSize * 0.5, 0, Math.PI);
-            ctx.stroke();
+              //  smile
+              ctx.beginPath();
+              ctx.arc(centerX, centerY, halfSize * 0.5, 0, Math.PI);
+              ctx.stroke();
 
-            //  left eye
-            ctx.beginPath();
-            ctx.arc(canvas.width / 3, canvas.height / 3, halfSize * 0.1, 0, Math.PI, true);
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.arc((canvas.width / 3) * 2, canvas.height / 3, halfSize * 0.1, 0, Math.PI * 2, true);
-            ctx.stroke();
+              //  left eye
+              ctx.beginPath();
+              ctx.arc(canvas.width / 3, canvas.height / 3, halfSize * 0.1, 0, Math.PI, true);
+              ctx.stroke();
+              ctx.beginPath();
+              ctx.arc((canvas.width / 3) * 2, canvas.height / 3, halfSize * 0.1, 0, Math.PI * 2, true);
+              ctx.stroke();
+            },
           },
-        },
-        {
-          id: Assets.GROUND,
-          type: "draw",
-          draw: ctx => {
-            const { canvas } = ctx;
-            canvas.width = LOGO_SIZE;
-            canvas.height = LOGO_SIZE;
-            ctx.fillStyle = '#ddd';
-            ctx.lineWidth = canvas.width / 50;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+          {
+            id: Assets.GROUND,
+            type: "draw",
+            draw: ctx => {
+              const { canvas } = ctx;
+              canvas.width = LOGO_SIZE;
+              canvas.height = LOGO_SIZE;
+              ctx.fillStyle = '#ddd';
+              ctx.lineWidth = canvas.width / 50;
+              ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            ctx.strokeStyle = 'black';
-            ctx.fillStyle = 'silver';
+              ctx.strokeStyle = 'black';
+              ctx.fillStyle = 'silver';
 
-            ctx.beginPath();
-            ctx.rect(canvas.width * .2, canvas.height * .2, canvas.width * .6, canvas.height * .6);
-            ctx.fill();
-            ctx.stroke();
+              ctx.beginPath();
+              ctx.rect(canvas.width * .2, canvas.height * .2, canvas.width * .6, canvas.height * .6);
+              ctx.fill();
+              ctx.stroke();
+            },
           },
-        },
-        {
-          id: Assets.BRICK,
-          type: "draw",
-          draw: ctx => {
-            const { canvas } = ctx;
-            canvas.width = LOGO_SIZE;
-            canvas.height = LOGO_SIZE;
-            ctx.fillStyle = '#ddd';
-            ctx.lineWidth = canvas.width / 50;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+          {
+            id: Assets.BRICK,
+            type: "draw",
+            draw: ctx => {
+              const { canvas } = ctx;
+              canvas.width = LOGO_SIZE;
+              canvas.height = LOGO_SIZE;
+              ctx.fillStyle = '#ddd';
+              ctx.lineWidth = canvas.width / 50;
+              ctx.fillRect(0, 0, canvas.width, canvas.height);
+            },
           },
-        },
-        {
-          id: Assets.VIDEO,
-          type: "video",
-          src: 'sample.mp4',
-          volume: 0,
-          fps: 30,
-          playSpeed: .1,
-          maxRefreshRate: 30,
-        },
-        {
-          id: Assets.WIREFRAME,
-          type: "draw",
-          draw: ctx => {
-            const { canvas } = ctx;
-            canvas.width = LOGO_SIZE;
-            canvas.height = LOGO_SIZE;
-            ctx.lineWidth = 8;
-            ctx.setLineDash([5, 2]);
-
-            ctx.strokeStyle = 'green';
-
-            ctx.beginPath();
-            ctx.rect(10, 10, canvas.width - 20, canvas.height - 20);
-            ctx.stroke();
+          {
+            id: Assets.VIDEO,
+            type: "video",
+            src: 'sample.mp4',
+            volume: 0,
+            fps: 30,
+            playSpeed: .1,
+            maxRefreshRate: 30,
           },
-        },
-        {
-          id: Assets.GRASS,
-          type: "draw",
-          draw: ctx => {
-            const { canvas } = ctx;
-            canvas.width = LOGO_SIZE;
-            canvas.height = LOGO_SIZE;
-            ctx.fillStyle = 'green';
-            ctx.lineWidth = canvas.width / 50;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+          {
+            id: Assets.WIREFRAME,
+            type: "draw",
+            draw: ctx => {
+              const { canvas } = ctx;
+              canvas.width = LOGO_SIZE;
+              canvas.height = LOGO_SIZE;
+              ctx.lineWidth = 8;
+              ctx.setLineDash([5, 2]);
 
-            ctx.strokeStyle = 'black';
-            ctx.fillStyle = '#4f8';
+              ctx.strokeStyle = 'green';
 
-            ctx.beginPath();
-            ctx.rect(canvas.width * .2, canvas.height * .2, canvas.width * .6, canvas.height * .6);
-            ctx.fill();
-            ctx.stroke();
+              ctx.beginPath();
+              ctx.rect(10, 10, canvas.width - 20, canvas.height - 20);
+              ctx.stroke();
+            },
           },
-        },
-      ])));
+          {
+            id: Assets.GRASS,
+            type: "draw",
+            draw: ctx => {
+              const { canvas } = ctx;
+              canvas.width = LOGO_SIZE;
+              canvas.height = LOGO_SIZE;
+              ctx.fillStyle = 'green';
+              ctx.lineWidth = canvas.width / 50;
+              ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+              ctx.strokeStyle = 'black';
+              ctx.fillStyle = '#4f8';
+
+              ctx.beginPath();
+              ctx.rect(canvas.width * .2, canvas.height * .2, canvas.width * .6, canvas.height * .6);
+              ctx.fill();
+              ctx.stroke();
+            },
+          },
+        ]),
+      ));
 
     this.addAuxiliary(new Accumulator<Animation>()
-      .addAuxiliary(new AnimationUpdater({ engine, motor }))
-      .addAuxiliary(new ItemsGroup<Animation>([
-        {
-          id: Anims.STILL,
-          frames: [0],
-        },
-        {
-          id: Anims.RUN,
-          frames: [1, 5],
-          fps: 24,
-        },
-      ])));
+      .addAuxiliary(
+        new AnimationUpdater({ engine, motor }),
+        new ItemsGroup<Animation>([
+          {
+            id: Anims.STILL,
+            frames: [0],
+          },
+          {
+            id: Anims.RUN,
+            frames: [1, 5],
+            fps: 24,
+          },
+        ]),
+      ));
 
     //  Adding a FixedSpriteGrid to the sprite accumulator.
     //  * You add sprite collections as "SpriteGrid". That way, the engine
@@ -318,9 +324,10 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
       })
     ));
 
-    const heroPos: PositionMatrix = new PositionMatrix().onChange(() => {
-      forEach(heroSprites, (_, index) => heroSprites.informUpdate(index, SpriteUpdateType.TRANSFORM));
-    });
+    const heroPos: PositionMatrix = new PositionMatrix()
+      .onChange(() => {
+        forEach(heroSprites, (_, index) => heroSprites.informUpdate(index, SpriteUpdateType.TRANSFORM));
+      });
     const heroSprites = new SpriteGroup([
       {
         imageId: Assets.DODO,
@@ -330,9 +337,10 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
       },
     ], [heroPos]);
 
-    const shadowPos: PositionMatrix = new PositionMatrix().onChange(() => {
-      forEach(shadowHeroSprites, (_, index) => shadowHeroSprites.informUpdate(index, SpriteUpdateType.TRANSFORM));
-    });;
+    const shadowPos: PositionMatrix = new PositionMatrix()
+      .onChange(() => {
+        forEach(shadowHeroSprites, (_, index) => shadowHeroSprites.informUpdate(index, SpriteUpdateType.TRANSFORM));
+      });;
     const shadowHeroSprites = new SpriteGroup([
       {
         imageId: Assets.DODO_SHADOW,
