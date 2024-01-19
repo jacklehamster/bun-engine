@@ -17,14 +17,23 @@ export class Auxiliaries implements List<Auxiliary>, Auxiliary {
   }
 
   at(index: number): Auxiliary | undefined {
+    if (!this.active) {
+      return undefined;
+    }
     return this.auxiliaries.at(index);
   }
 
   refresh(updatePayload: UpdatePayload): void {
+    if (!this.active) {
+      return;
+    }
     forEach(this.auxiliaries, aux => aux?.refresh?.(updatePayload));
   }
 
   trackCell(cell: Cell, updatePayload: UpdatePayload): boolean {
+    if (!this.active) {
+      return false;
+    }
     let didTrack = false;
     forEach(this.auxiliaries, aux => {
       if (aux?.trackCell?.(cell, updatePayload)) {
@@ -35,20 +44,25 @@ export class Auxiliaries implements List<Auxiliary>, Auxiliary {
   }
 
   untrackCell(cellTag: string, updatePayload: UpdatePayload): void {
+    if (!this.active) {
+      return;
+    }
     forEach(this.auxiliaries, aux => aux?.untrackCell?.(cellTag, updatePayload));
   }
 
   activate(): void {
-    if (!this.active) {
-      this.active = true;
-      forEach(this.auxiliaries, aux => aux?.activate?.());
+    if (this.active) {
+      return;
     }
+    this.active = true;
+    forEach(this.auxiliaries, aux => aux?.activate?.());
   }
 
   deactivate(): void {
-    if (this.active) {
-      this.active = false;
-      forEach(this.auxiliaries, aux => aux?.deactivate?.());
+    if (!this.active) {
+      return;
     }
+    this.active = false;
+    forEach(this.auxiliaries, aux => aux?.deactivate?.());
   }
 }

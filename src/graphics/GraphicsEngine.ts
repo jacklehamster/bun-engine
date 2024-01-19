@@ -34,7 +34,7 @@ import { replaceTilda } from 'gl/utils/replaceTilda';
 import { FloatUniform, VectorUniform } from "./Uniforms";
 import { MatrixUniform } from "./Uniforms";
 import { MediaData } from 'gl/texture/MediaData';
-import { Medias } from 'gl/texture/Media';
+import { Medias } from "gl/texture/Medias";
 import { SpriteId, SpriteType } from 'world/sprite/Sprite';
 import { IGraphicsEngine } from './IGraphicsEngine';
 import { Sprites } from 'world/sprite/Sprites';
@@ -42,7 +42,8 @@ import { IMatrix, Vector } from 'gl/transform/IMatrix';
 import { SpriteSheet } from 'gl/texture/spritesheet/SpriteSheet';
 import { Priority } from 'updates/Refresh';
 import { map } from 'world/sprite/List';
-import { Animation, AnimationId, Animations } from 'animation/Animation';
+import { Animation, AnimationId } from 'animation/Animation';
+import { Animations } from "animation/Animations";
 
 const VERTICES_PER_SPRITE = 6;
 

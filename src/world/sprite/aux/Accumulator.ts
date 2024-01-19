@@ -2,12 +2,12 @@ import { AuxiliaryHolder } from "world/aux/AuxiliaryHolder";
 import { ObjectPool } from "utils/ObjectPool";
 import { forEach } from "../List";
 import { IdType } from "core/IdType";
-import { ListNotifier } from "./ListNotifier";
 import { ElemsHolder } from "./ElemsHolder";
 import { IAccumulator } from "../IAccumulator";
+import { UpdatableList } from "../UpdatableList";
 
 interface Slot<T> {
-  elems: ListNotifier<T>;
+  elems: UpdatableList<T>;
   index: IdType;
   id?: IdType;
 }
@@ -15,7 +15,7 @@ interface Slot<T> {
 export class Accumulator<T> extends AuxiliaryHolder implements ElemsHolder<T>, IAccumulator<T> {
   private readonly indices: Slot<T>[] = [];
   private readonly newElemsListener: Set<(accumulator: ElemsHolder<T>) => void> = new Set();
-  private readonly pool: ObjectPool<Slot<T>, [ListNotifier<T>, IdType]> = new ObjectPool<Slot<T>, [ListNotifier<T>, number]>((slot, elems, index) => {
+  private readonly pool: ObjectPool<Slot<T>, [UpdatableList<T>, IdType]> = new ObjectPool<Slot<T>, [UpdatableList<T>, number]>((slot, elems, index) => {
     if (!slot) {
       return { elems, index };
     }
@@ -38,6 +38,16 @@ export class Accumulator<T> extends AuxiliaryHolder implements ElemsHolder<T>, I
 
   activate(): void {
     super.activate();
+    this.informFullUpdate();
+  }
+
+  deactivate(): void {
+    this.informFullUpdate();
+    this.clear();
+    super.deactivate();
+  }
+
+  private informFullUpdate() {
     this.indices.forEach(slot => {
       if (slot.id !== undefined) {
         this.informUpdate?.(slot.id);
@@ -45,18 +55,12 @@ export class Accumulator<T> extends AuxiliaryHolder implements ElemsHolder<T>, I
     });
   }
 
-  deactivate(): void {
-    this.indices.forEach(slot => {
-      if (slot.id) {
-        this.informUpdate?.(slot.id);
-      }
-      this.pool.recycle(slot);
-    });
+  private clear(): void {
+    this.indices.forEach(slot => this.pool.recycle(slot));
     this.indices.length = 0;
-    super.deactivate();
   }
 
-  add(...elemsList: (ListNotifier<T> | T[] & { informUpdate: undefined, activate: undefined })[]): void {
+  add(...elemsList: (UpdatableList<T> | T[] & { informUpdate: undefined, activate: undefined })[]): void {
     elemsList.forEach(elems => {
       const slots: Slot<T>[] = [];
       if (elems.informUpdate) {

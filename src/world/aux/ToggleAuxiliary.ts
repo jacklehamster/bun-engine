@@ -61,16 +61,16 @@ export class ToggleAuxiliary implements Auxiliary<IKeyboard> {
 
   activate(): void {
     if (!this.active) {
-      this.keyboard?.addListener(this.keyListener);
       this.active = true;
+      this.keyboard?.addListener(this.keyListener);
       this.auxiliary?.activate?.();
     }
   }
 
   deactivate(): void {
     if (this.active) {
-      this.keyboard?.removeListener(this.keyListener);
       this.active = false;
+      this.keyboard?.removeListener(this.keyListener);
       this.auxiliary?.deactivate?.();
     }
   }

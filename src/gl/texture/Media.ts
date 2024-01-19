@@ -1,7 +1,5 @@
-import { List } from "world/sprite/List";
 import { MediaId } from "./ImageManager";
 import { SpriteSheet } from "./spritesheet/SpriteSheet";
-import { UpdateNotifier } from "updates/UpdateNotifier";
 
 export type MediaType = "image" | "video" | "canvas" | "draw" | "webcam" | string;
 
@@ -44,4 +42,3 @@ export interface WebcamMedia extends BaseMedia {
 }
 
 export type Media = ImageMedia | VideoMedia | CanvasMedia | DrawMedia | WebcamMedia;
-export type Medias = List<Media> & Partial<UpdateNotifier>;

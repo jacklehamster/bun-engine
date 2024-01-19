@@ -1,5 +1,4 @@
-import { UpdateNotifier } from "updates/UpdateNotifier";
-import { List } from "./List";
 import { Sprite } from "./Sprite";
+import { UpdatableList } from "./UpdatableList";
 
-export type Sprites = List<Sprite> & Partial<UpdateNotifier>;
+export type Sprites = UpdatableList<Sprite>;

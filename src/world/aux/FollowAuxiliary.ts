@@ -16,6 +16,6 @@ export class FollowAuxiliary implements Auxiliary {
 
   refresh(): void {
     const [x, y, z] = this.followee.position;
-    this.follower.gotoPos(x, y, z);
+    this.follower.gotoPos(x, this.follower.position[1], z, 1);
   }
 }

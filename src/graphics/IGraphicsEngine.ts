@@ -1,8 +1,9 @@
-import { AnimationId, Animations } from "animation/Animation";
+import { AnimationId } from "animation/Animation";
+import { Animations } from "animation/Animations";
 import { FloatUniform, VectorUniform } from "./Uniforms";
 import { MatrixUniform } from "./Uniforms";
 import { MediaId } from "gl/texture/ImageManager";
-import { Medias } from "gl/texture/Media";
+import { Medias } from "gl/texture/Medias";
 import { MediaData } from "gl/texture/MediaData";
 import { IMatrix, Vector } from "gl/transform/IMatrix";
 import { Auxiliary } from "world/aux/Auxiliary";

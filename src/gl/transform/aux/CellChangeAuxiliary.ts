@@ -11,8 +11,8 @@ interface Config {
 
 export class CellChangeAuxiliary extends AuxiliaryHolder implements Auxiliary<IPositionMatrix> {
   private matrix?: IPositionMatrix;
-  private cellSize: number;
-  private cell: Cell;
+  private readonly cellSize: number;
+  private readonly cell: Cell;
   visitCell?: VisitableCell;
 
   constructor(config?: Config) {

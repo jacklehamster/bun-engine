@@ -22,9 +22,7 @@ export class TiltResetAuxiliary implements Auxiliary {
     const listener = {
       onQuickTiltReset: () => {
         this.refresh = this._refresh;
-        this.tilt.angle.progressTowards(
-          0, 1 / 300, this
-        );
+        this.tilt.angle.progressTowards(0, 1 / 300, this);
       },
     };
     this.controls.addListener(listener);

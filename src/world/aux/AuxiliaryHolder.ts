@@ -9,8 +9,8 @@ const EMPTY_CELLTRACK: CellTrack[] = [];
 
 export class AuxiliaryHolder<H extends Holder = any> implements Holder<AuxiliaryHolder<H>>, Auxiliary<H> {
   private auxiliaries: Auxiliary[] = [];
-  private refreshes: Refresh[] = [];
-  private cellTracks: CellTrack[] = [];
+  private refreshes: Refresh[] = EMPTY_REFRESH;
+  private cellTracks: CellTrack[] = EMPTY_CELLTRACK;
   active: boolean = false;
 
   activate(): void {
@@ -18,9 +18,7 @@ export class AuxiliaryHolder<H extends Holder = any> implements Holder<Auxiliary
       return;
     }
     this.active = true;
-    for (const a of this.auxiliaries) {
-      a.activate?.();
-    }
+    this.auxiliaries.forEach(aux => aux.activate?.());
   }
 
   deactivate() {
@@ -28,23 +26,21 @@ export class AuxiliaryHolder<H extends Holder = any> implements Holder<Auxiliary
       return;
     }
     this.active = false;
-    for (const a of this.auxiliaries) {
-      a.deactivate?.();
-    }
+    this.auxiliaries.forEach(aux => aux.deactivate?.());
   }
 
   refresh(updatePayload: UpdatePayload): void {
     if (!this.active) {
       return;
     }
-    for (const r of this.refreshes!) {
+    for (const r of this.refreshes) {
       r.refresh?.(updatePayload);
     }
   }
 
   trackCell(cell: Cell, payload: UpdatePayload): boolean {
     let didTrack = false;
-    for (const v of this.cellTracks!) {
+    for (const v of this.cellTracks) {
       if (v.trackCell!(cell, payload)) {
         didTrack = true;
       }

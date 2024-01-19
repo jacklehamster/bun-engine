@@ -20,20 +20,20 @@ interface Props {
 }
 
 export class Camera extends AuxiliaryHolder<ICamera> implements ICamera {
-  private readonly camMatrix = Matrix.create();
-  readonly projection = new ProjectionMatrix(() => this.updateInformer.informUpdate(MatrixUniform.PROJECTION));
-  readonly position = new PositionMatrix().onChange(() => {
+  readonly position = new PositionMatrix(() => {
     this.camMatrix.invert(this.position);
-    this.engine.updateUniformMatrix(MatrixUniform.CAM_POS, this.camMatrix);
+    this.updateInformer.informUpdate(MatrixUniform.CAM_POS);
   });
+  readonly projection = new ProjectionMatrix(() => this.updateInformer.informUpdate(MatrixUniform.PROJECTION));
   readonly tilt = new TiltMatrix(() => this.updateInformer.informUpdate(MatrixUniform.CAM_TILT));
   readonly turn = new TurnMatrix(() => this.updateInformer.informUpdate(MatrixUniform.CAM_TURN));
+  readonly curvature = new NumVal(0.05, () => this.updateInformerFloat.informUpdate(FloatUniform.CURVATURE));
+  readonly distance = new NumVal(.5, () => this.updateInformerFloat.informUpdate(FloatUniform.CAM_DISTANCE));
+  readonly blur = new NumVal(1, () => this.updateInformerFloat.informUpdate(FloatUniform.BG_BLUR));
+
+  private readonly camMatrix = Matrix.create();
   private readonly _bgColor: Vector = [0, 0, 0];
-  readonly curvature;
-  readonly distance;
-  readonly blur;
-  private _viewportWidth = 0;
-  private _viewportHeight = 0;
+  private _viewportSize: [number, number] = [0, 0];
   private readonly updateInformer;
   private readonly updateInformerFloat;
   private readonly updateInformerVector;
@@ -62,9 +62,6 @@ export class Camera extends AuxiliaryHolder<ICamera> implements ICamera {
       ids.clear();
     }, motor);
 
-    this.curvature = new NumVal(0.05, () => this.updateInformerFloat.informUpdate(FloatUniform.CURVATURE));
-    this.distance = new NumVal(.5, () => this.updateInformerFloat.informUpdate(FloatUniform.CAM_DISTANCE));
-    this.blur = new NumVal(1, () => this.updateInformerFloat.informUpdate(FloatUniform.BG_BLUR));
     const cameraVal: Record<FloatUniform, Val<number> | undefined> = {
       [FloatUniform.BG_BLUR]: this.blur,
       [FloatUniform.CAM_DISTANCE]: this.distance,
@@ -96,10 +93,10 @@ export class Camera extends AuxiliaryHolder<ICamera> implements ICamera {
   }
 
   resizeViewport(width: number, height: number) {
-    if (this._viewportWidth !== width || this._viewportHeight !== height) {
-      this._viewportWidth = width;
-      this._viewportHeight = height;
-      this.projection.configure(this._viewportWidth, this._viewportHeight);
+    if (this._viewportSize[0] !== width || this._viewportSize[1] !== height) {
+      this._viewportSize[0] = width;
+      this._viewportSize[1] = height;
+      this.projection.configure(this._viewportSize);
     }
   }
 

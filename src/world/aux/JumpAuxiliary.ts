@@ -27,7 +27,7 @@ export class JumpAuxiliary implements Auxiliary {
     this.position = position;
     this.gravity = config.gravity ?? -1;
     this.jumpStrength = config.jump ?? 2;
-    this.plane = config.plane ?? 10;
+    this.plane = config.plane ?? 6;
     this.dy = 0;
   }
 

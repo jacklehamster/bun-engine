@@ -52,9 +52,9 @@ export class Keyboard extends AuxiliaryHolder<IKeyboard> implements IKeyboard {
   }
 
   deactivate(): void {
-    super.deactivate();
     document.removeEventListener('keydown', this.keyDown);
     document.removeEventListener('keyup', this.keyUp);
+    super.deactivate();
   }
 
   addListener(listener: KeyListener): () => void {

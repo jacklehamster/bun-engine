@@ -27563,26 +27563,22 @@ var EMPTY_CELLTRACK = [];
 
 class AuxiliaryHolder {
   auxiliaries = [];
-  refreshes = [];
-  cellTracks = [];
+  refreshes = EMPTY_REFRESH;
+  cellTracks = EMPTY_CELLTRACK;
   active = false;
   activate() {
     if (this.active) {
       return;
     }
     this.active = true;
-    for (const a of this.auxiliaries) {
-      a.activate?.();
-    }
+    this.auxiliaries.forEach((aux) => aux.activate?.());
   }
   deactivate() {
     if (!this.active) {
       return;
     }
     this.active = false;
-    for (const a of this.auxiliaries) {
-      a.deactivate?.();
-    }
+    this.auxiliaries.forEach((aux) => aux.deactivate?.());
   }
   refresh(updatePayload) {
     if (!this.active) {
@@ -27678,9 +27674,9 @@ class Keyboard extends AuxiliaryHolder {
     document.addEventListener("keyup", this.keyUp);
   }
   deactivate() {
-    super.deactivate();
     document.removeEventListener("keydown", this.keyDown);
     document.removeEventListener("keyup", this.keyUp);
+    super.deactivate();
   }
   addListener(listener) {
     if (listener.onKeyDown) {
@@ -27815,14 +27811,13 @@ class ProjectionMatrix extends AuxiliaryHolder {
   orthoMatrix = Matrix_default.create();
   perspective;
   zoom;
-  _width = 0;
-  _height = 0;
+  _size = [0, 0];
   constructor(onChange) {
     super();
     this.onChange = onChange;
     this.perspective = new NumVal(DEFAULT_PERSPECTIVE_LEVEL, onChange);
     this.zoom = new NumVal(DEFAULT_ZOOM, (zoom) => {
-      this.configure(this._width, this._height, zoom);
+      this.configure(this._size, zoom);
     });
   }
   configPerspectiveMatrix(angle2, ratio, near, far) {
@@ -27831,13 +27826,13 @@ class ProjectionMatrix extends AuxiliaryHolder {
   configOrthoMatrix(width, height2, near, far) {
     this.orthoMatrix.ortho(-width / 2, width / 2, -height2 / 2, height2 / 2, near, far);
   }
-  configure(width, height2, zoom, near = 0.5, far = 1e4) {
+  configure(size, zoom, near = 0.5, far = 1e4) {
     if (!zoom) {
       zoom = this.zoom.valueOf();
     }
-    this._width = width;
-    this._height = height2;
-    const ratio = width / height2;
+    this._size[0] = size[0];
+    this._size[1] = size[1];
+    const ratio = this._size[0] / this._size[1];
     const angle2 = 45 / Math.sqrt(zoom);
     this.configPerspectiveMatrix(angle2, ratio, Math.max(near, 0.00001), far);
     this.configOrthoMatrix(ratio / zoom / zoom, 1 / zoom / zoom, -far, far);
@@ -27990,20 +27985,19 @@ class UpdateRegistry {
 
 // src/camera/Camera.ts
 class Camera extends AuxiliaryHolder {
-  camMatrix = Matrix_default.create();
-  projection = new ProjectionMatrix(() => this.updateInformer.informUpdate(MatrixUniform.PROJECTION));
-  position = new PositionMatrix().onChange(() => {
+  position = new PositionMatrix(() => {
     this.camMatrix.invert(this.position);
-    this.engine.updateUniformMatrix(MatrixUniform.CAM_POS, this.camMatrix);
+    this.updateInformer.informUpdate(MatrixUniform.CAM_POS);
   });
+  projection = new ProjectionMatrix(() => this.updateInformer.informUpdate(MatrixUniform.PROJECTION));
   tilt = new TiltMatrix(() => this.updateInformer.informUpdate(MatrixUniform.CAM_TILT));
   turn = new TurnMatrix(() => this.updateInformer.informUpdate(MatrixUniform.CAM_TURN));
+  curvature = new NumVal(0.05, () => this.updateInformerFloat.informUpdate(FloatUniform.CURVATURE));
+  distance = new NumVal(0.5, () => this.updateInformerFloat.informUpdate(FloatUniform.CAM_DISTANCE));
+  blur = new NumVal(1, () => this.updateInformerFloat.informUpdate(FloatUniform.BG_BLUR));
+  camMatrix = Matrix_default.create();
   _bgColor = [0, 0, 0];
-  curvature;
-  distance;
-  blur;
-  _viewportWidth = 0;
-  _viewportHeight = 0;
+  _viewportSize = [0, 0];
   updateInformer;
   updateInformerFloat;
   updateInformerVector;
@@ -28028,9 +28022,6 @@ class Camera extends AuxiliaryHolder {
       ids.forEach((type) => this.engine.updateUniformVector(type, cameraVectors[type]));
       ids.clear();
     }, motor);
-    this.curvature = new NumVal(0.05, () => this.updateInformerFloat.informUpdate(FloatUniform.CURVATURE));
-    this.distance = new NumVal(0.5, () => this.updateInformerFloat.informUpdate(FloatUniform.CAM_DISTANCE));
-    this.blur = new NumVal(1, () => this.updateInformerFloat.informUpdate(FloatUniform.BG_BLUR));
     const cameraVal = {
       [FloatUniform.BG_BLUR]: this.blur,
       [FloatUniform.CAM_DISTANCE]: this.distance,
@@ -28060,10 +28051,10 @@ class Camera extends AuxiliaryHolder {
     this.updateInformerVector.informUpdate(VectorUniform.BG_COLOR);
   }
   resizeViewport(width, height2) {
-    if (this._viewportWidth !== width || this._viewportHeight !== height2) {
-      this._viewportWidth = width;
-      this._viewportHeight = height2;
-      this.projection.configure(this._viewportWidth, this._viewportHeight);
+    if (this._viewportSize[0] !== width || this._viewportSize[1] !== height2) {
+      this._viewportSize[0] = width;
+      this._viewportSize[1] = height2;
+      this.projection.configure(this._viewportSize);
     }
   }
   set bgColor(rgb) {
@@ -28149,12 +28140,21 @@ class Auxiliaries {
     return this.auxiliaries.length;
   }
   at(index) {
+    if (!this.active) {
+      return;
+    }
     return this.auxiliaries.at(index);
   }
   refresh(updatePayload) {
+    if (!this.active) {
+      return;
+    }
     forEach3(this.auxiliaries, (aux) => aux?.refresh?.(updatePayload));
   }
   trackCell(cell, updatePayload) {
+    if (!this.active) {
+      return false;
+    }
     let didTrack = false;
     forEach3(this.auxiliaries, (aux) => {
       if (aux?.trackCell?.(cell, updatePayload)) {
@@ -28164,19 +28164,24 @@ class Auxiliaries {
     return didTrack;
   }
   untrackCell(cellTag2, updatePayload) {
+    if (!this.active) {
+      return;
+    }
     forEach3(this.auxiliaries, (aux) => aux?.untrackCell?.(cellTag2, updatePayload));
   }
   activate() {
-    if (!this.active) {
-      this.active = true;
-      forEach3(this.auxiliaries, (aux) => aux?.activate?.());
+    if (this.active) {
+      return;
     }
+    this.active = true;
+    forEach3(this.auxiliaries, (aux) => aux?.activate?.());
   }
   deactivate() {
-    if (this.active) {
-      this.active = false;
-      forEach3(this.auxiliaries, (aux) => aux?.deactivate?.());
+    if (!this.active) {
+      return;
     }
+    this.active = false;
+    forEach3(this.auxiliaries, (aux) => aux?.deactivate?.());
   }
 }
 
@@ -28345,15 +28350,15 @@ class ToggleAuxiliary {
   }
   activate() {
     if (!this.active) {
-      this.keyboard?.addListener(this.keyListener);
       this.active = true;
+      this.keyboard?.addListener(this.keyListener);
       this.auxiliary?.activate?.();
     }
   }
   deactivate() {
     if (this.active) {
-      this.keyboard?.removeListener(this.keyListener);
       this.active = false;
+      this.keyboard?.removeListener(this.keyListener);
       this.auxiliary?.deactivate?.();
     }
   }
@@ -28532,45 +28537,71 @@ var SpriteUpdateType;
   SpriteUpdateType2[SpriteUpdateType2["ALL"] = 15] = "ALL";
 })(SpriteUpdateType || (SpriteUpdateType = {}));
 
+// src/world/sprite/aux/ItemsGroup.ts
+class ItemsGroup {
+  elems;
+  _active = false;
+  holder;
+  constructor(elems) {
+    this.elems = elems;
+  }
+  get length() {
+    return this.elems.length;
+  }
+  at(index) {
+    if (!this._active) {
+      return;
+    }
+    return this.elems.at(index);
+  }
+  informUpdate(id) {
+    this.elems.informUpdate?.(id);
+  }
+  activate() {
+    if (!this._active) {
+      this._active = true;
+      this.holder?.add?.(this);
+      forEach3(this.elems, (_, index) => this.informUpdate(index));
+    }
+  }
+  deactivate() {
+    if (this._active) {
+      this._active = false;
+      forEach3(this.elems, (_, index) => this.informUpdate(index));
+    }
+  }
+}
+
 // src/world/sprite/aux/SpritesGroup.ts
-class SpriteGroup {
-  children;
+class SpriteGroup extends ItemsGroup {
   transforms;
   _flip;
   _animationId;
-  _active = false;
-  holder;
   spriteModel = {
     imageId: 0,
     transform: Matrix_default.create()
   };
-  constructor(children, transforms = []) {
-    this.children = children;
+  constructor(sprites, transforms = []) {
+    super(sprites);
     this.transforms = transforms;
-  }
-  get length() {
-    return this.children.length;
   }
   set flip(value) {
     if (this._flip !== value) {
       this._flip = value;
-      forEach3(this.children, (_, index) => this.informUpdate(index, SpriteUpdateType.TEX_SLOT));
+      forEach3(this.elems, (_, index) => this.informUpdate(index, SpriteUpdateType.TEX_SLOT));
     }
   }
   set animationId(value) {
     if (this._animationId !== value) {
       this._animationId = value;
-      forEach3(this.children, (_, index) => this.informUpdate(index, SpriteUpdateType.ANIM));
+      forEach3(this.elems, (_, index) => this.informUpdate(index, SpriteUpdateType.ANIM));
     }
   }
   get flip() {
     return !!this._flip;
   }
   at(index) {
-    if (!this._active) {
-      return;
-    }
-    const s = this.children.at(index);
+    const s = super.at(index);
     if (!s) {
       return;
     }
@@ -28583,20 +28614,7 @@ class SpriteGroup {
     return this.spriteModel;
   }
   informUpdate(id, type) {
-    this.children.informUpdate?.(id, type);
-  }
-  activate() {
-    if (!this._active) {
-      this._active = true;
-      this.holder?.add?.(this);
-      forEach3(this.children, (_, index) => this.informUpdate(index));
-    }
-  }
-  deactivate() {
-    if (this._active) {
-      this._active = false;
-      forEach3(this.children, (_, index) => this.informUpdate(index));
-    }
+    this.elems.informUpdate?.(id, type);
   }
 }
 
@@ -28915,7 +28933,7 @@ class JumpAuxiliary {
     this.position = position;
     this.gravity = config.gravity ?? -1;
     this.jumpStrength = config.jump ?? 2;
-    this.plane = config.plane ?? 10;
+    this.plane = config.plane ?? 6;
     this.dy = 0;
   }
   refresh(update) {
@@ -29088,21 +29106,23 @@ class Accumulator extends AuxiliaryHolder {
   }
   activate() {
     super.activate();
+    this.informFullUpdate();
+  }
+  deactivate() {
+    this.informFullUpdate();
+    this.clear();
+    super.deactivate();
+  }
+  informFullUpdate() {
     this.indices.forEach((slot) => {
       if (slot.id !== undefined) {
         this.informUpdate?.(slot.id);
       }
     });
   }
-  deactivate() {
-    this.indices.forEach((slot) => {
-      if (slot.id) {
-        this.informUpdate?.(slot.id);
-      }
-      this.pool.recycle(slot);
-    });
+  clear() {
+    this.indices.forEach((slot) => this.pool.recycle(slot));
     this.indices.length = 0;
-    super.deactivate();
   }
   add(...elemsList) {
     elemsList.forEach((elems) => {
@@ -29185,7 +29205,22 @@ class MotionAuxiliary {
     this.controls.addListener(this);
   }
   deactivate() {
+    this._moving = false;
     this.controls.removeListener(this);
+  }
+}
+
+// src/world/aux/FollowAuxiliary.ts
+class FollowAuxiliary {
+  followee;
+  follower;
+  constructor({ followee, follower }) {
+    this.followee = followee;
+    this.follower = follower;
+  }
+  refresh() {
+    const [x, y, z] = this.followee.position;
+    this.follower.gotoPos(x, this.follower.position[1], z, 1);
   }
 }
 
@@ -29216,8 +29251,7 @@ class DemoWorld extends AuxiliaryHolder {
     super();
     const spritesAccumulator = new Accumulator().addAuxiliary(new SpriteUpdater({ engine, motor }), new MaxSpriteCountAuxiliary({ engine }));
     this.addAuxiliary(spritesAccumulator);
-    const mediasAccumulator = new Accumulator().addAuxiliary(new MediaUpdater({ engine, motor }));
-    mediasAccumulator.add([
+    this.addAuxiliary(new Accumulator().addAuxiliary(new MediaUpdater({ engine, motor })).addAuxiliary(new ItemsGroup([
       {
         id: Assets.DOBUKI,
         type: "image",
@@ -29351,11 +29385,8 @@ class DemoWorld extends AuxiliaryHolder {
           ctx.stroke();
         }
       }
-    ]);
-    this.addAuxiliary(mediasAccumulator);
-    const animsAccumulator = new Accumulator().addAuxiliary(new AnimationUpdater({ engine, motor }));
-    this.addAuxiliary(animsAccumulator);
-    animsAccumulator.add([
+    ])));
+    this.addAuxiliary(new Accumulator().addAuxiliary(new AnimationUpdater({ engine, motor })).addAuxiliary(new ItemsGroup([
       {
         id: Anims.STILL,
         frames: [0]
@@ -29365,7 +29396,7 @@ class DemoWorld extends AuxiliaryHolder {
         frames: [1, 5],
         fps: 24
       }
-    ]);
+    ])));
     spritesAccumulator.addAuxiliary(new FixedSpriteGrid({ cellSize: CELLSIZE }, [
       {
         imageId: Assets.DOBUKI,
@@ -29424,14 +29455,24 @@ class DemoWorld extends AuxiliaryHolder {
         spriteType: SpriteType.SPRITE,
         transform: Matrix_default.create().translate(0, -0.5, 0),
         animationId: Anims.STILL
-      },
-      {
-        imageId: Assets.DODO_SHADOW,
-        transform: Matrix_default.create().translate(0, -0.7, 0).rotateX(-Math.PI / 2).scale(1, 0.3, 1),
-        animationId: Anims.STILL
       }
     ], [heroPos]);
+    const shadowPos = new PositionMatrix().onChange(() => {
+      forEach3(shadowHeroSprites, (_, index) => shadowHeroSprites.informUpdate(index, SpriteUpdateType.TRANSFORM));
+    });
+    const shadowHeroSprites = new SpriteGroup([
+      {
+        imageId: Assets.DODO_SHADOW,
+        transform: Matrix_default.create().translate(0, -0.8, 0.5).rotateX(-Math.PI / 2).scale(1, 0.3, 1),
+        animationId: Anims.STILL
+      }
+    ], [shadowPos]);
+    this.addAuxiliary(new FollowAuxiliary({
+      follower: shadowPos,
+      followee: heroPos
+    }));
     spritesAccumulator.addAuxiliary(heroSprites);
+    spritesAccumulator.addAuxiliary(shadowHeroSprites);
     heroPos.moveBlocker = {
       isBlocked(pos) {
         const [cx, cy, cz] = getCellPos(pos, 2);
@@ -29451,18 +29492,17 @@ class DemoWorld extends AuxiliaryHolder {
       auxiliariesMapping: [
         {
           key: "Tab",
-          aux: Auxiliaries.from(new PositionStepAuxiliary({ controls, position: heroPos }), new TiltResetAuxiliary({ controls, tilt: camera.tilt }), new SmoothFollowAuxiliary({ follower: camera.position, followee: heroPos }, { speed: 0.05 }))
+          aux: Auxiliaries.from(new PositionStepAuxiliary({ controls, position: heroPos }), new SmoothFollowAuxiliary({ follower: camera.position, followee: heroPos }, { speed: 0.05 }), new JumpAuxiliary({ controls, position: heroPos }))
         },
         {
           key: "Tab",
-          aux: Auxiliaries.from(new TurnAuxiliary({ controls, turn: camera.turn }), new TiltAuxiliary({ controls, tilt: camera.tilt }), new MoveAuxiliary({ controls, direction: camera.turn, position: camera.position }), new JumpAuxiliary({ controls, position: camera.position }), new TiltResetAuxiliary({ controls, tilt: camera.tilt }))
+          aux: Auxiliaries.from(new TurnAuxiliary({ controls, turn: camera.turn }), new TiltAuxiliary({ controls, tilt: camera.tilt }), new MoveAuxiliary({ controls, direction: camera.turn, position: heroPos }), new JumpAuxiliary({ controls, position: heroPos }), new TiltResetAuxiliary({ controls, tilt: camera.tilt }), new SmoothFollowAuxiliary({ follower: camera.position, followee: heroPos }, { speed: 0.05 }))
         }
       ]
     }));
-    this.addAuxiliary(keyboard);
-    this.addAuxiliary(new DirAuxiliary({ flippable: heroSprites, controls }));
-    this.addAuxiliary(new MotionAuxiliary({ controls }, (moving) => {
+    this.addAuxiliary(keyboard).addAuxiliary(new DirAuxiliary({ flippable: heroSprites, controls })).addAuxiliary(new DirAuxiliary({ flippable: shadowHeroSprites, controls })).addAuxiliary(new MotionAuxiliary({ controls }, (moving) => {
       heroSprites.animationId = moving ? Anims.RUN : Anims.STILL;
+      shadowHeroSprites.animationId = moving ? Anims.RUN : Anims.STILL;
     }));
     camera.position.addAuxiliary(new CellChangeAuxiliary({ cellSize: CELLSIZE }).addAuxiliary(new CellTracker(this, {
       cellLimit: 50,
@@ -29620,4 +29660,4 @@ export {
   hello
 };
 
-//# debugId=8E6C427C241F7ED964756e2164756e21
+//# debugId=9882044B66ACA44C64756e2164756e21

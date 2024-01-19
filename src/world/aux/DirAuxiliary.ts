@@ -1,4 +1,3 @@
-import { PositionMatrix } from "gl/transform/PositionMatrix";
 import { Auxiliary } from "./Auxiliary";
 import { Flippable } from "world/sprite/Flippable";
 import { IControls } from "controls/IControls";
@@ -8,9 +7,9 @@ interface Props {
   controls: IControls;
 }
 
-export class DirAuxiliary implements Auxiliary<PositionMatrix> {
-  private flippable: Flippable;
-  private controls: IControls;
+export class DirAuxiliary implements Auxiliary {
+  private readonly flippable: Flippable;
+  private readonly controls: IControls;
   private dx: number = 0;
   constructor({ flippable, controls }: Props, private onChange?: () => void) {
     this.flippable = flippable;

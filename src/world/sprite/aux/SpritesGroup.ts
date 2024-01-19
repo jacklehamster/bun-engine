@@ -5,40 +5,34 @@ import { Flippable } from "../Flippable";
 import { IMatrix } from "gl/transform/IMatrix";
 import { SpriteUpdateType } from "../update/SpriteUpdateType";
 import { UpdateNotifier } from "updates/UpdateNotifier";
-import { Auxiliary } from "world/aux/Auxiliary";
-import { SpritesHolder } from "./SpritesHolder";
 import { forEach } from "../List";
 import { AnimationId } from "animation/Animation";
+import { ItemsGroup } from "./ItemsGroup";
 
-export class SpriteGroup implements Sprites, Flippable, Auxiliary<SpritesHolder> {
+export class SpriteGroup extends ItemsGroup<Sprite> implements Flippable {
   private _flip?: boolean;
   private _animationId?: AnimationId;
-  private _active = false;
-  holder?: SpritesHolder;
 
   private spriteModel: Sprite = {
     imageId: 0,
     transform: Matrix.create(),
   };
 
-  constructor(private children: Sprites | (Sprite[] & Partial<UpdateNotifier>), public transforms: IMatrix[] = []) {
-  }
-
-  get length(): number {
-    return this.children.length;
+  constructor(sprites: Sprites | (Sprite[] & Partial<UpdateNotifier>), public transforms: IMatrix[] = []) {
+    super(sprites);
   }
 
   set flip(value: boolean) {
     if (this._flip !== value) {
       this._flip = value;
-      forEach(this.children, (_, index) => this.informUpdate(index, SpriteUpdateType.TEX_SLOT));
+      forEach(this.elems, (_, index) => this.informUpdate(index, SpriteUpdateType.TEX_SLOT));
     }
   }
 
   set animationId(value: AnimationId) {
     if (this._animationId !== value) {
       this._animationId = value;
-      forEach(this.children, (_, index) => this.informUpdate(index, SpriteUpdateType.ANIM));
+      forEach(this.elems, (_, index) => this.informUpdate(index, SpriteUpdateType.ANIM));
     }
   }
 
@@ -47,10 +41,7 @@ export class SpriteGroup implements Sprites, Flippable, Auxiliary<SpritesHolder>
   }
 
   at(index: number): Sprite | undefined {
-    if (!this._active) {
-      return undefined;
-    }
-    const s = this.children.at(index);
+    const s = super.at(index);
     if (!s) {
       return undefined;
     }
@@ -64,21 +55,6 @@ export class SpriteGroup implements Sprites, Flippable, Auxiliary<SpritesHolder>
   }
 
   informUpdate(id: number, type?: SpriteUpdateType | undefined): void {
-    this.children.informUpdate?.(id, type);
-  }
-
-  activate(): void {
-    if (!this._active) {
-      this._active = true;
-      this.holder?.add?.(this);
-      forEach(this.children, (_, index) => this.informUpdate(index));
-    }
-  }
-
-  deactivate(): void {
-    if (this._active) {
-      this._active = false;
-      forEach(this.children, (_, index) => this.informUpdate(index));
-    }
+    this.elems.informUpdate?.(id, type);
   }
 }

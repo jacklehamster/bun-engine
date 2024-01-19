@@ -6,7 +6,7 @@ interface Props {
 }
 
 export class MotionAuxiliary implements Auxiliary {
-  private controls: IControls;
+  private readonly controls: IControls;
   private _moving: boolean = false;
   constructor({ controls }: Props, private onChange?: (moving: boolean) => void) {
     this.controls = controls;
@@ -26,6 +26,7 @@ export class MotionAuxiliary implements Auxiliary {
   }
 
   deactivate(): void {
+    this._moving = false;
     this.controls.removeListener(this);
   }
 }
