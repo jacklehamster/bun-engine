@@ -3,19 +3,23 @@ import { Auxiliary } from "./Auxiliary";
 import { IControls } from "controls/IControls";
 import { TurnMatrix } from "gl/transform/TurnMatrix";
 import { IAngleMatrix } from "gl/transform/IAngleMatrix";
+import { IMotor } from "motor/IMotor";
+import { Looper } from "motor/Looper";
 
 interface Props {
   controls: IControls;
   turn: TurnMatrix;
+  motor: IMotor;
 }
 
-export class TurnAuxiliary implements Auxiliary {
+export class TurnAuxiliary extends Looper implements Auxiliary {
   private readonly controls: IControls;
   private readonly turn: IAngleMatrix;
 
-  constructor(props: Props) {
-    this.controls = props.controls;
-    this.turn = props.turn;
+  constructor({ controls, turn, motor }: Props) {
+    super(motor, true);
+    this.controls = controls;
+    this.turn = turn;
   }
 
   refresh(update: UpdatePayload): void {

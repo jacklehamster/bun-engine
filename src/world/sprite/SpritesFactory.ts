@@ -1,6 +1,5 @@
 import { Sprites } from "./Sprites";
 import { Cell } from "world/grid/CellPos";
-import { UpdatePayload } from "updates/Refresh";
 import { Sprite } from "./Sprite";
 import { MediaId } from "gl/texture/ImageManager";
 import { IElemFactory } from "./aux/IElemFactory";
@@ -12,7 +11,7 @@ interface SpriteBag {
 }
 
 interface CellSpriteFiller {
-  fillSpriteBag(cell: Cell, updatePayload: UpdatePayload, bag: SpriteBag): void;
+  fillSpriteBag(cell: Cell, bag: SpriteBag): void;
 }
 
 export class SpriteFactory implements IElemFactory<Sprite> {
@@ -26,8 +25,8 @@ export class SpriteFactory implements IElemFactory<Sprite> {
   constructor(private filler: CellSpriteFiller) {
   }
 
-  getElemsAtCell(cell: Cell, updatePayload: UpdatePayload): Sprites {
-    this.filler.fillSpriteBag(cell, updatePayload, this.spriteBag);
+  getElemsAtCell(cell: Cell): Sprites {
+    this.filler.fillSpriteBag(cell, this.spriteBag);
     return this.sprites;
   }
 

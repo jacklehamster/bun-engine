@@ -2,38 +2,39 @@ import { UpdatePayload } from "updates/Refresh";
 import { Auxiliary } from "./Auxiliary";
 import { ControlsListener, IControls } from "controls/IControls";
 import { PositionMatrix } from "gl/transform/PositionMatrix";
+import { Looper } from "motor/Looper";
+import { IMotor } from "motor/IMotor";
 
 interface Props {
   controls: IControls;
   position: PositionMatrix;
+  motor: IMotor;
 }
 
-export class RiseAuxiliary implements Auxiliary {
+export class RiseAuxiliary extends Looper implements Auxiliary {
   private readonly controls: IControls;
   private readonly position: PositionMatrix;
+  private readonly listener: ControlsListener = {
+    onQuickAction: () => this.start(),
+    onAction: () => this.stop(),
+  };
 
-  constructor({ controls, position }: Props) {
+  constructor({ controls, position, motor }: Props) {
+    super(motor, false);
     this.controls = controls;
     this.position = position;
   }
 
   activate(): void {
-    const listener: ControlsListener = {
-      onQuickAction: () => this.refresh = this._refresh,
-      onAction: () => this.refresh = this._refresh,
-    };
-    this.controls.addListener(listener);
-    this.deactivate = () => {
-      this.controls.removeListener(listener);
-      this.deactivate = undefined;
-    };
+    super.activate();
+    this.controls.addListener(this.listener);
   }
 
-  deactivate?(): void;
+  deactivate(): void {
+    this.controls.removeListener(this.listener);
+  }
 
-  refresh?: ((updatePayload: UpdatePayload) => void) | undefined;
-
-  _refresh(update: UpdatePayload): void {
+  refresh(update: UpdatePayload): void {
     const { deltaTime } = update;
 
     this.riseAndDrop(deltaTime, this.controls);
@@ -49,7 +50,7 @@ export class RiseAuxiliary implements Auxiliary {
       const [x, y, z] = this.position.position;
       if (y < 0) {
         this.position.moveTo(x, 0, z);
-        this.refresh = undefined;
+        this.stop();
       }
     }
   }

@@ -1,6 +1,5 @@
 import { IKeyboard, KeyListener } from "controls/IKeyboard";
 import { Auxiliary } from "./Auxiliary";
-import { UpdatePayload } from "updates/Refresh";
 import { List, map } from "world/sprite/List";
 
 type KeyMap = { key: string; aux: Auxiliary };
@@ -53,10 +52,6 @@ export class ToggleAuxiliary implements Auxiliary<IKeyboard> {
         this.toggleIndex = nextIndex;
       }
     }
-  }
-
-  refresh(updatePayload: UpdatePayload): void {
-    this.auxiliary?.refresh?.(updatePayload);
   }
 
   activate(): void {

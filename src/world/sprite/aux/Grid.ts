@@ -2,7 +2,6 @@ import { Cell } from "world/grid/CellPos";
 import { SpriteUpdateType } from "../update/SpriteUpdateType";
 import { forEach } from "../List";
 import { UpdateNotifier } from "updates/UpdateNotifier";
-import { UpdatePayload } from "updates/Refresh";
 import { AuxiliaryHolder } from "world/aux/AuxiliaryHolder";
 import { ElemsHolder } from "./ElemsHolder";
 import { IElemFactory } from "./IElemFactory";
@@ -59,7 +58,7 @@ export class Grid<T> extends AuxiliaryHolder<ElemsHolder<T>> implements UpdateNo
     return this.slots[index]?.elem;
   }
 
-  trackCell(cell: Cell, updatePayload: UpdatePayload): boolean {
+  trackCell(cell: Cell): boolean {
     const [[minX, maxX], [minY, maxY], [minZ, maxZ]] = this.ranges;
     const [x, y, z] = cell.pos;
     if (x < minX || maxX < x || y < minY || maxY < y || z < minZ || maxZ < z) {
@@ -68,7 +67,7 @@ export class Grid<T> extends AuxiliaryHolder<ElemsHolder<T>> implements UpdateNo
     let count = 0;
     const { tag } = cell;
     this.factories.forEach(factory => {
-      const elems = factory.getElemsAtCell(cell, updatePayload);
+      const elems = factory.getElemsAtCell(cell);
       forEach(elems, elem => {
         if (elem) {
           const slot = this.slotPool.create(elem, tag);
@@ -78,7 +77,7 @@ export class Grid<T> extends AuxiliaryHolder<ElemsHolder<T>> implements UpdateNo
           count++;
         }
       });
-      factory.doneCellTracking?.(cell, updatePayload);
+      factory.doneCellTracking?.(cell);
     });
     return !!count;
   }

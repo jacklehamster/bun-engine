@@ -1,4 +1,4 @@
-export enum ActionEnum {
+export enum StateEnum {
   PRESS_UP = 0,
   PRESS_DOWN = 1,
 }
@@ -6,7 +6,7 @@ export enum ActionEnum {
 export interface ControlsListener {
   onQuickAction?(): void;
   onQuickTiltReset?(): void;
-  onAction?(controls: IControls, action: ActionEnum): void;
+  onAction?(controls: IControls, state: StateEnum): void;
 }
 
 export interface IControls {

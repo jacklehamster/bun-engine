@@ -1,15 +1,15 @@
-import { Position, toPos, transformToPosition } from "world/grid/Position";
+import { toPos, transformToPosition } from "world/grid/utils/position-utils";
 import { IMatrix } from "./IMatrix";
 import Matrix from "./Matrix";
 import { AuxiliaryHolder } from "world/aux/AuxiliaryHolder";
 import { MoveBlocker } from "./aux/MoveBlocker";
 import { IPositionMatrix } from "./IPositionMatrix";
-
-export type ChangeListener = (dx: number, dy: number, dz: number) => void;
+import { Vector } from "../../core/types/Vector";
+import { ChangeListener } from "./IPositionMatrix";
 
 export class PositionMatrix extends AuxiliaryHolder<PositionMatrix> implements IPositionMatrix {
   private matrix: Matrix = Matrix.create().setPosition(0, 0, 0);
-  private _position: Position = [0, 0, 0];
+  private _position: Vector = [0, 0, 0];
   private changeListeners: Set<ChangeListener> = new Set();
   moveBlocker?: MoveBlocker;
 

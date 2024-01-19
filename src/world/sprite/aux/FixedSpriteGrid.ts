@@ -2,7 +2,7 @@ import { SpriteGrid } from "./SpriteGrid";
 import { Sprites } from "../Sprites";
 import { Sprite, copySprite } from "../Sprite";
 import { forEach } from "../List";
-import { transformToPosition } from "world/grid/Position";
+import { transformToPosition } from "world/grid/utils/position-utils";
 import { cellTag, getCellPos } from "world/grid/CellPos";
 import { Auxiliary } from "world/aux/Auxiliary";
 

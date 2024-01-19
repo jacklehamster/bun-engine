@@ -6,7 +6,6 @@ import { FreeStack } from "utils/FreeStack";
 import { CellTrack } from "./CellTrack";
 import { Auxiliary } from "world/aux/Auxiliary";
 import { CellChangeAuxiliary } from "gl/transform/aux/CellChangeAuxiliary";
-import { UpdatePayload } from "updates/Refresh";
 
 interface Config {
   range?: [number, number, number];
@@ -15,36 +14,33 @@ interface Config {
 }
 
 export class CellTracker implements VisitableCell, Auxiliary<CellChangeAuxiliary> {
+  private readonly cellTags: FreeStack<string> = new DoubleLinkList<string>("");
   private range: [number, number, number];
   private base: [number, number, number];
   private cellLimit: number;
   private cellSize: number;
   private tempCell: Cell;
 
-  set holder(aux: CellChangeAuxiliary) {
-    aux.visitCell = this;
-  }
-
-  private readonly cellTags: FreeStack<string> = new DoubleLinkList<string>("");
-
   constructor(private cellTrack: CellTrack, { range, cellLimit, cellSize = 1 }: Config = {}) {
     this.range = [range?.[0] ?? 3, range?.[1] ?? 3, range?.[2] ?? 3];
     this.base = this.range.map(r => Math.ceil(-r / 2)) as [number, number, number];
-
     this.cellLimit = Math.max(0, cellLimit ?? 10);
     this.cellSize = cellSize ?? 1;
     this.tempCell = {
       pos: [0, 0, 0, this.cellSize],
       tag: "",
     };
-    this.onCellVisit = this.onCellVisit.bind(this);
+  }
+
+  set holder(aux: CellChangeAuxiliary) {
+    aux.visitableCell = this;
   }
 
   getCellTags(): List<string> {
     return this.cellTags.getList();
   }
 
-  iterateCells(visitedCell: Cell, updatePayload: UpdatePayload, callback: (cell: Cell, update: UpdatePayload) => void) {
+  iterateCells(visitedCell: Cell, callback: (cell: Cell) => void) {
     const { range, base, tempCell } = this;
     const { pos } = visitedCell;
     const cellX = pos[0] + base[0];
@@ -58,15 +54,15 @@ export class CellTracker implements VisitableCell, Auxiliary<CellChangeAuxiliary
           tempCellPos[1] = cellY + y;
           tempCellPos[2] = cellZ + z;
           tempCell.tag = cellTag(tempCellPos[0], tempCellPos[1], tempCellPos[2], tempCellPos[3]);
-          callback(tempCell, updatePayload);
+          callback(tempCell);
         }
       }
     }
   }
 
-  onCellVisit(cell: Cell, updatePayload: UpdatePayload) {
+  onCellVisit = (cell: Cell) => {
     if (!this.cellTags.contains(cell.tag)) {
-      if (this.cellTrack.trackCell?.(cell, updatePayload)) {
+      if (this.cellTrack.trackCell?.(cell)) {
         this.cellTags.pushTop(cell.tag);
       }
     } else {
@@ -74,17 +70,17 @@ export class CellTracker implements VisitableCell, Auxiliary<CellChangeAuxiliary
     }
   }
 
-  visitCell(visitedCell: Cell, updatePayload: UpdatePayload): void {
-    this.iterateCells(visitedCell, updatePayload, this.onCellVisit);
-    this.trimCells(updatePayload);
+  visitCell(visitedCell: Cell): void {
+    this.iterateCells(visitedCell, this.onCellVisit);
+    this.trimCells();
   }
 
-  trimCells(updatePayload: UpdatePayload) {
+  trimCells() {
     //  remove any excess cells (oldest visited first)
     while (this.cellTags.size > this.cellLimit) {
       const removedTag = this.cellTags.popBottom();
       if (removedTag) {
-        this.cellTrack.untrackCell?.(removedTag, updatePayload);
+        this.cellTrack.untrackCell?.(removedTag);
       }
     }
   }

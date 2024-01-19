@@ -1,5 +1,6 @@
 import Matrix from "gl/transform/Matrix";
-import { IMatrix, Vector } from "gl/transform/IMatrix";
+import { IMatrix } from "gl/transform/IMatrix";
+import { Vector } from "core/types/Vector";
 import { ProjectionMatrix } from "gl/transform/ProjectionMatrix";
 import { TiltMatrix } from "gl/transform/TiltMatrix";
 import { TurnMatrix } from "gl/transform/TurnMatrix";
@@ -33,7 +34,7 @@ export class Camera extends AuxiliaryHolder<ICamera> implements ICamera {
 
   private readonly camMatrix = Matrix.create();
   private readonly _bgColor: Vector = [0, 0, 0];
-  private _viewportSize: [number, number] = [0, 0];
+  private readonly _viewportSize: [number, number] = [0, 0];
   private readonly updateInformer;
   private readonly updateInformerFloat;
   private readonly updateInformerVector;

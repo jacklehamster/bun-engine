@@ -3,27 +3,31 @@ import { Auxiliary } from "./Auxiliary";
 import { IControls } from "controls/IControls";
 import { PositionMatrix } from "gl/transform/PositionMatrix";
 import { IMatrix } from "gl/transform/IMatrix";
+import { Looper } from "motor/Looper";
+import { IMotor } from "motor/IMotor";
 
 interface Props {
   controls: IControls;
   direction?: IMatrix;
   position: PositionMatrix;
+  motor: IMotor;
 }
 
 interface Config {
   speed: number;
 }
 
-export class MoveAuxiliary implements Auxiliary {
+export class MoveAuxiliary extends Looper implements Auxiliary {
   private readonly controls: IControls;
   private readonly direction?: IMatrix;
   private readonly position: PositionMatrix;
   private config: Config;
 
-  constructor(props: Props, config?: Partial<Config>) {
-    this.controls = props.controls;
-    this.direction = props.direction;
-    this.position = props.position;
+  constructor({ controls, direction, motor, position }: Props, config?: Partial<Config>) {
+    super(motor, true);
+    this.controls = controls;
+    this.direction = direction;
+    this.position = position;
     this.config = {
       speed: config?.speed ?? 1,
     };

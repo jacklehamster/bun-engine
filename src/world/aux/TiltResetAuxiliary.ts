@@ -1,45 +1,46 @@
 import { UpdatePayload } from "updates/Refresh";
 import { Auxiliary } from "./Auxiliary";
-import { IControls } from "controls/IControls";
+import { ControlsListener, IControls } from "controls/IControls";
 import { IAngleMatrix } from "gl/transform/IAngleMatrix";
+import { Looper } from "motor/Looper";
+import { IMotor } from "motor/IMotor";
 
 interface Props {
+  motor: IMotor;
   controls: IControls;
   tilt: IAngleMatrix;
 }
 
-export class TiltResetAuxiliary implements Auxiliary {
+export class TiltResetAuxiliary extends Looper implements Auxiliary {
   private readonly controls: IControls;
   private readonly tilt: IAngleMatrix;
+  private readonly listener: ControlsListener = {
+    onQuickTiltReset: () => {
+      this.start();
+      this.tilt.angle.progressTowards(0, 1 / 300, this);
+    },
+  };
 
-  constructor(props: Props) {
-    this.controls = props.controls;
-    this.tilt = props.tilt;
-    this._refresh = this._refresh.bind(this);
+  constructor({ controls, tilt, motor }: Props) {
+    super(motor, false);
+    this.controls = controls;
+    this.tilt = tilt;
   }
 
   activate(): void | (() => void) {
-    const listener = {
-      onQuickTiltReset: () => {
-        this.refresh = this._refresh;
-        this.tilt.angle.progressTowards(0, 1 / 300, this);
-      },
-    };
-    this.controls.addListener(listener);
-    this.deactivate = () => {
-      this.controls.removeListener(listener);
-      this.deactivate = undefined;
-    };
+    super.activate();
+    this.controls.addListener(this.listener);
   }
 
-  deactivate?(): void;
+  deactivate(): void {
+    this.controls.removeListener(this.listener);
+    super.deactivate();
+  }
 
-  refresh?: ((updatePayload: UpdatePayload) => void) | undefined;
-
-  _refresh(update: UpdatePayload): void {
+  refresh(update: UpdatePayload): void {
     const { deltaTime } = update;
     if (!this.tilt.angle.update(deltaTime)) {
-      this.refresh = undefined;
+      this.stop();
     }
   }
 }

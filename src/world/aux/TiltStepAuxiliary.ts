@@ -3,23 +3,27 @@ import { Auxiliary } from "./Auxiliary";
 import { angleStep } from "gl/utils/angleUtils";
 import { IControls } from "controls/IControls";
 import { IAngleMatrix } from "gl/transform/IAngleMatrix";
+import { Looper } from "motor/Looper";
+import { IMotor } from "motor/IMotor";
 
 interface Props {
   controls: IControls;
   tilt: IAngleMatrix;
+  motor: IMotor;
 }
 
 interface Config {
   step: number;
 }
 
-export class TiltStepAuxiliary implements Auxiliary {
+export class TiltStepAuxiliary extends Looper implements Auxiliary {
   private readonly controls: IControls;
   private readonly tilt: IAngleMatrix;
   private tiltCount: number = 0;
   private config: Config;
 
-  constructor({ controls, tilt }: Props, config: Partial<Config> = {}) {
+  constructor({ controls, tilt, motor }: Props, config: Partial<Config> = {}) {
+    super(motor, true);
     this.controls = controls;
     this.tilt = tilt;
     this.config = {

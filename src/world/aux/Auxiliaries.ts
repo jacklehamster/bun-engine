@@ -1,6 +1,5 @@
 import { List, forEach } from "world/sprite/List";
 import { Auxiliary } from "./Auxiliary";
-import { UpdatePayload } from "updates/Refresh";
 import { Cell } from "world/grid/CellPos";
 
 export class Auxiliaries implements List<Auxiliary>, Auxiliary {
@@ -23,31 +22,24 @@ export class Auxiliaries implements List<Auxiliary>, Auxiliary {
     return this.auxiliaries.at(index);
   }
 
-  refresh(updatePayload: UpdatePayload): void {
-    if (!this.active) {
-      return;
-    }
-    forEach(this.auxiliaries, aux => aux?.refresh?.(updatePayload));
-  }
-
-  trackCell(cell: Cell, updatePayload: UpdatePayload): boolean {
+  trackCell(cell: Cell): boolean {
     if (!this.active) {
       return false;
     }
     let didTrack = false;
     forEach(this.auxiliaries, aux => {
-      if (aux?.trackCell?.(cell, updatePayload)) {
+      if (aux?.trackCell?.(cell)) {
         didTrack = true;
       }
     });
     return didTrack;
   }
 
-  untrackCell(cellTag: string, updatePayload: UpdatePayload): void {
+  untrackCell(cellTag: string): void {
     if (!this.active) {
       return;
     }
-    forEach(this.auxiliaries, aux => aux?.untrackCell?.(cellTag, updatePayload));
+    forEach(this.auxiliaries, aux => aux?.untrackCell?.(cellTag));
   }
 
   activate(): void {

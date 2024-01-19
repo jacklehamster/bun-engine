@@ -3,8 +3,11 @@ import { Auxiliary } from "./Auxiliary";
 import { angleStep } from "gl/utils/angleUtils";
 import { IControls } from "controls/IControls";
 import { IAngleMatrix } from "gl/transform/IAngleMatrix";
+import { IMotor } from "motor/IMotor";
+import { ControlledLooper } from "motor/ControlLooper";
 
 interface Props {
+  motor: IMotor;
   controls: IControls;
   turn: IAngleMatrix;
 }
@@ -13,14 +16,13 @@ interface Config {
   step: number;
 }
 
-export class TurnStepAuxiliary implements Auxiliary {
-  private readonly controls: IControls;
+export class TurnStepAuxiliary extends ControlledLooper implements Auxiliary {
   private readonly turn: IAngleMatrix;
   private turnCount: number = 0;
   private config: Config;
 
-  constructor({ controls, turn }: Props, config: Partial<Config> = {}) {
-    this.controls = controls;
+  constructor({ controls, turn, motor }: Props, config: Partial<Config> = {}) {
+    super(motor, controls, controls => controls.turnLeft || controls.turnRight);
     this.turn = turn;
     this.config = {
       step: config.step ?? Math.PI / 2,
@@ -54,6 +56,8 @@ export class TurnStepAuxiliary implements Auxiliary {
       if (newTurn !== turn) {
         this.turnCount++;
       }
+    } else {
+      this.stop();
     }
   }
 }

@@ -1,14 +1,18 @@
 import { UpdatePayload } from "updates/Refresh";
 import { Auxiliary } from "./Auxiliary";
-import { Position } from "world/grid/Position";
 import { IControls } from "controls/IControls";
 import { IPositionMatrix } from "gl/transform/IPositionMatrix";
 import { NumVal } from "core/value/NumVal";
+import { IMotor } from "motor/IMotor";
+import { ControlledLooper } from "motor/ControlLooper";
+import { Vector } from "core/types/Vector";
+import { equal } from "core/utils/vector-utils";
 
 interface Props {
   controls: IControls;
   position: IPositionMatrix;
   turnGoal?: NumVal;
+  motor: IMotor;
 }
 
 interface Config {
@@ -16,26 +20,29 @@ interface Config {
   speed: number;
 }
 
-export class PositionStepAuxiliary implements Auxiliary {
-  private readonly controls: IControls;
-  private readonly goalPos: Position;
+export class PositionStepAuxiliary extends ControlledLooper implements Auxiliary {
+  private readonly goalPos: Vector;
   private readonly position: IPositionMatrix;
   private readonly turnGoal?: NumVal;
   private stepCount: number = 0;
   private config: Config;
 
-  constructor({ controls, position, turnGoal }: Props, config: Partial<Config> = {}) {
-    this.controls = controls;
+  constructor({ controls, position, turnGoal, motor }: Props, config: Partial<Config> = {}) {
+    super(motor, controls, ({ backward, forward, left, right }) => backward || forward || left || right);
     this.position = position;
     this.turnGoal = turnGoal;
-    this.goalPos = [...this.position.position];
+    this.goalPos = [
+      this.position.position[0],
+      this.position.position[1],
+      this.position.position[2],
+    ];
     this.config = {
       step: config.step ?? 2,
       speed: config.speed ?? 1,
     };
   }
 
-  private readonly prePos: Position = [0, 0, 0];
+  private readonly prePos: Vector = [0, 0, 0];
   refresh(update: UpdatePayload): void {
     const { backward, forward, left, right } = this.controls;
     const { deltaTime } = update;
@@ -89,6 +96,9 @@ export class PositionStepAuxiliary implements Auxiliary {
       || Math.round(newPos[1] / step) * step !== this.prePos[1]
       || Math.round(newPos[2] / step) * step !== this.prePos[2]) {
       this.stepCount++;
+    }
+    if (equal(newPos, this.goalPos)) {
+      this.stop();
     }
   }
 }

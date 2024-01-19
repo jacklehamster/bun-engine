@@ -8,6 +8,6 @@ export interface UpdatePayload {
 }
 
 export type Refresh = {
-  readonly refresh?: (updatePayload: UpdatePayload) => void;
+  readonly refresh: (updatePayload: UpdatePayload) => void;
   priority?: Priority;
 }

@@ -2,6 +2,8 @@ import { UpdatePayload } from "updates/Refresh";
 import { Auxiliary } from "./Auxiliary";
 import { IControls } from "controls/IControls";
 import { IPositionMatrix } from "gl/transform/IPositionMatrix";
+import { IMotor } from "motor/IMotor";
+import { ControlledLooper } from "motor/ControlLooper";
 
 interface Config {
   gravity: number;
@@ -12,18 +14,18 @@ interface Config {
 interface Props {
   controls: IControls;
   position: IPositionMatrix;
+  motor: IMotor;
 }
 
-export class JumpAuxiliary implements Auxiliary {
-  private readonly controls: IControls;
+export class JumpAuxiliary extends ControlledLooper implements Auxiliary {
   private readonly position: IPositionMatrix;
   private gravity: number;
   private dy: number;
   private jumpStrength = 0;
   private plane = 1;
 
-  constructor({ controls, position }: Props, config: Partial<Config> = {}) {
-    this.controls = controls;
+  constructor({ controls, position, motor }: Props, config: Partial<Config> = {}) {
+    super(motor, controls, controls => controls.action);
     this.position = position;
     this.gravity = config.gravity ?? -1;
     this.jumpStrength = config.jump ?? 2;
@@ -55,6 +57,7 @@ export class JumpAuxiliary implements Auxiliary {
       } else {
         this.position.moveTo(x, 0, z);
         this.dy = 0;
+        this.stop();
       }
     }
   }

@@ -1,7 +1,7 @@
 import { mat4, quat, vec3 } from 'gl-matrix';
-import { IMatrix, Vector } from './IMatrix';
+import { IMatrix } from './IMatrix';
+import { Vector } from "../../core/types/Vector";
 import { Angle } from 'gl/utils/angleUtils';
-import { Position } from 'world/grid/Position';
 
 const DEG_TO_RADIANT = Math.PI / 90;
 
@@ -132,12 +132,16 @@ class Matrix implements IMatrix {
     return v;
   }
 
-  getPosition(): Position {
+  getPosition(): Vector {
     const v = Matrix.tempVec;
     v[0] = this.m4[12];
     v[1] = this.m4[13];
     v[2] = this.m4[14];
     return v;
+  }
+
+  setVector(v: Vector) {
+    return this.setPosition(v[0], v[1], v[2]);
   }
 
   setPosition(x: number, y: number, z: number) {

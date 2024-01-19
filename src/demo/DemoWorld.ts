@@ -41,6 +41,7 @@ import { FollowAuxiliary } from "world/aux/FollowAuxiliary";
 import { ItemsGroup } from "world/sprite/aux/ItemsGroup";
 import { WebGlCanvas } from "graphics/WebGlCanvas";
 import { Hud } from "ui/Hud";
+import { TurnStepAuxiliary } from "world/aux/TurnStepAuxiliary";
 
 enum Assets {
   DOBUKI = 0,
@@ -302,7 +303,7 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
           Matrix.create().translate(0, 0, 1).rotateY(Math.PI),  //  front
           Matrix.create().translate(0, 0, -1).rotateY(0), //  back
         ].map(transform => ({ imageId: Assets.BRICK, transform })),
-      ], [Matrix.create().setPosition(...positionFromCell([0, 0, -3, CELLSIZE]))]),
+      ], [Matrix.create().setVector(positionFromCell([0, 0, -3, CELLSIZE]))]),
     ));
 
     const camera = new Camera({ engine, motor });
@@ -314,7 +315,7 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
     //  * fly. This allows us to produce an infinite amounts of cells.
     spritesAccumulator.addAuxiliary(new SpriteGrid(
       { yRange: [0, 0] }, new SpriteFactory({
-        fillSpriteBag({ pos }, _, bag) {
+        fillSpriteBag({ pos }, bag) {
           const ground = bag.createSprite(Assets.GRASS);
           ground.transform.translate(pos[0] * pos[3], -1, pos[2] * pos[3]).rotateX(-Math.PI / 2);
           const ceiling = bag.createSprite(Assets.WIREFRAME);
@@ -349,8 +350,11 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
       },
     ], [shadowPos]);
     this.addAuxiliary(new FollowAuxiliary({
+      motor,
       follower: shadowPos,
       followee: heroPos,
+    }, {
+      followY: false,
     }));
 
     spritesAccumulator.addAuxiliary(heroSprites);
@@ -385,7 +389,7 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
 
     //  Toggle auxiliary
     //  * Pressing the "Tab" button switches between two modes of movement below
-    //  * The CamStepAuxiliary is "dungeon" crawling mode, where you move cell by cell.
+    //  * The PositionStepAuxiliary is "dungeon" crawling mode, where you move cell by cell.
     //  * CamTiltReset is just for restoring the view from looking up or down
     //  * CamMoveAuxiliary is a more free-form way to move.
     //  * JumpAuxiliary lets you jump
@@ -396,19 +400,20 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
         auxiliariesMapping: [
           {
             key: "Tab", aux: Auxiliaries.from(
-              new PositionStepAuxiliary({ controls, position: heroPos }),
-              new SmoothFollowAuxiliary({ follower: camera.position, followee: heroPos }, { speed: .05 }),
-              new JumpAuxiliary({ controls, position: heroPos }),
+              new PositionStepAuxiliary({ motor, controls, position: heroPos }),
+              new TurnStepAuxiliary({ motor, controls, turn: camera.turn }),
+              new SmoothFollowAuxiliary({ motor, follower: camera.position, followee: heroPos }, { speed: .05 }),
+              new JumpAuxiliary({ motor, controls, position: heroPos }),
             )
           },
           {
             key: "Tab", aux: Auxiliaries.from(
-              new TurnAuxiliary({ controls, turn: camera.turn }),
-              new TiltAuxiliary({ controls, tilt: camera.tilt }),
-              new MoveAuxiliary({ controls, direction: camera.turn, position: heroPos }),
-              new JumpAuxiliary({ controls, position: heroPos }),
-              new TiltResetAuxiliary({ controls, tilt: camera.tilt }),
-              new SmoothFollowAuxiliary({ follower: camera.position, followee: heroPos }, { speed: .05 }),
+              new TurnAuxiliary({ motor, controls, turn: camera.turn }),
+              new TiltAuxiliary({ motor, controls, tilt: camera.tilt }),
+              new MoveAuxiliary({ motor, controls, direction: camera.turn, position: heroPos }),
+              new JumpAuxiliary({ motor, controls, position: heroPos }),
+              new TiltResetAuxiliary({ motor, controls, tilt: camera.tilt }),
+              new SmoothFollowAuxiliary({ motor, follower: camera.position, followee: heroPos }, { speed: .05 }),
             )
           },
         ],
@@ -430,8 +435,8 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
     camera.position.addAuxiliary(
       new CellChangeAuxiliary({ cellSize: CELLSIZE })
         .addAuxiliary(new CellTracker(this, {
-          cellLimit: 1000,
-          range: [25, 3, 25],
+          cellLimit: 100,
+          range: [5, 3, 5],
           cellSize: CELLSIZE,
         })));
 
@@ -442,6 +447,6 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
     camera.tilt.angle.setValue(1.1);
     camera.projection.zoom.setValue(.25);
     camera.projection.perspective.setValue(.05);
-    this.addAuxiliary(new TimeAuxiliary(engine));
+    this.addAuxiliary(new TimeAuxiliary({ motor, engine }));
   }
 }

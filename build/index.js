@@ -25739,6 +25739,9 @@ class Matrix {
     v[2] = this.m4[14];
     return v;
   }
+  setVector(v) {
+    return this.setPosition(v[0], v[1], v[2]);
+  }
   setPosition(x, y, z) {
     this.m4[12] = x;
     this.m4[13] = y;
@@ -27474,28 +27477,28 @@ var MAX_DELTA_TIME = MILLIS_IN_SEC / 20;
 var FRAME_PERIOD = 16.6;
 
 class Motor {
-  updateSchedule = new Map;
+  pool = new SchedulePool;
+  schedule = new Map;
   time = 0;
   holder;
-  pool = new SchedulePool;
-  loop(update, frameRate, expirationTime) {
-    this.registerUpdate(update, frameRate ?? 1000, expirationTime);
+  loop(update, frameRate) {
+    this.registerUpdate(update, frameRate ?? 1000);
   }
-  registerUpdate(update, refreshRate = 0, expiration = Infinity) {
-    const schedule = this.updateSchedule.get(update);
+  registerUpdate(update, refreshRate = 0) {
+    const schedule = this.schedule.get(update);
     if (!schedule) {
-      this.updateSchedule.set(update, this.pool.create(refreshRate, expiration));
-    } else {
+      this.schedule.set(update, this.pool.create(refreshRate));
+    } else if (schedule.frameRate !== refreshRate) {
+      schedule.frameRate = refreshRate;
       schedule.period = refreshRate ? 1000 / refreshRate : 0;
-      schedule.expiration = expiration;
     }
   }
   deregisterUpdate(update) {
-    const schedule = this.updateSchedule.get(update);
+    const schedule = this.schedule.get(update);
     if (schedule) {
       this.pool.recycle(schedule);
     }
-    this.updateSchedule.delete(update);
+    this.schedule.delete(update);
   }
   deactivate() {
     if (this.holder) {
@@ -27522,11 +27525,11 @@ class Motor {
       time += FRAME_PERIOD;
       updatePayload.deltaTime = Math.min(time - updatePayload.time, MAX_DELTA_TIME);
       this.time = updatePayload.time = time;
-      this.updateSchedule.forEach((schedule, update) => {
+      this.schedule.forEach((schedule, update) => {
         if (time < schedule.triggerTime) {
           return;
         }
-        if (schedule.period && time < schedule.expiration) {
+        if (schedule.period) {
           schedule.triggerTime = Math.max(schedule.triggerTime + schedule.period, time);
         } else {
           this.deregisterUpdate(update);
@@ -27552,25 +27555,23 @@ class Motor {
 
 class SchedulePool extends ObjectPool {
   constructor() {
-    super((schedule, frameRate, expiration) => {
+    super((schedule, frameRate) => {
       if (!schedule) {
-        return { triggerTime: 0, period: frameRate ? MILLIS_IN_SEC / frameRate : 1, expiration };
+        return { triggerTime: 0, frameRate, period: frameRate ? MILLIS_IN_SEC / frameRate : 0 };
       }
       schedule.triggerTime = 0;
       schedule.period = frameRate ? MILLIS_IN_SEC / frameRate : 0;
-      schedule.expiration = expiration;
+      schedule.frameRate = frameRate;
       return schedule;
     });
   }
 }
 
 // src/world/aux/AuxiliaryHolder.ts
-var EMPTY_REFRESH = [];
 var EMPTY_CELLTRACK = [];
 
 class AuxiliaryHolder {
   auxiliaries = [];
-  refreshes = EMPTY_REFRESH;
   cellTracks = EMPTY_CELLTRACK;
   active = false;
   activate() {
@@ -27587,26 +27588,18 @@ class AuxiliaryHolder {
     this.active = false;
     this.auxiliaries.forEach((aux) => aux.deactivate?.());
   }
-  refresh(updatePayload) {
-    if (!this.active) {
-      return;
-    }
-    for (const r of this.refreshes) {
-      r.refresh?.(updatePayload);
-    }
-  }
-  trackCell(cell, payload) {
+  trackCell(cell) {
     let didTrack = false;
     for (const v of this.cellTracks) {
-      if (v.trackCell(cell, payload)) {
+      if (v.trackCell(cell)) {
         didTrack = true;
       }
     }
     return didTrack;
   }
-  untrackCell(cellTag, payload) {
+  untrackCell(cellTag) {
     for (const v of this.cellTracks) {
-      v.untrackCell(cellTag, payload);
+      v.untrackCell(cellTag);
     }
   }
   addAuxiliary(...aux) {
@@ -27637,7 +27630,6 @@ class AuxiliaryHolder {
     this.onAuxiliariesChange();
   }
   onAuxiliariesChange() {
-    this.refreshes = this.auxiliaries?.filter((a) => !!a.refresh) ?? EMPTY_REFRESH;
     this.cellTracks = this.auxiliaries?.filter((a) => !!a.trackCell || !!a.untrackCell) ?? EMPTY_CELLTRACK;
   }
 }
@@ -27895,7 +27887,7 @@ class TurnMatrix {
   }
 }
 
-// src/world/grid/Position.ts
+// src/world/grid/utils/position-utils.ts
 function toPos(x, y, z) {
   _position[0] = x;
   _position[1] = y;
@@ -28113,36 +28105,43 @@ var tempPos = [0, 0, 0];
 
 // src/gl/transform/aux/CellChangeAuxiliary.ts
 class CellChangeAuxiliary extends AuxiliaryHolder {
-  matrix;
+  positionMatrix;
   cellSize;
   cell;
-  visitCell;
+  visitableCell;
+  listener = () => this.checkPosition();
   constructor(config) {
     super();
     this.cellSize = config?.cellSize ?? 1;
     this.cell = { pos: [Number.NaN, Number.NaN, Number.NaN, this.cellSize], tag: "" };
   }
   set holder(value) {
-    this.matrix = value;
+    this.positionMatrix = value;
   }
-  refresh(updatePayload) {
-    if (!this.matrix || !this.visitCell) {
+  checkPosition() {
+    if (!this.positionMatrix || !this.visitableCell) {
       return;
     }
-    const pos = this.matrix.position;
+    const pos = this.positionMatrix.position;
     const [x, y, z] = getCellPos(pos, this.cellSize);
     if (this.cell.pos[0] !== x || this.cell.pos[1] !== y || this.cell.pos[2] !== z) {
       this.cell.pos[0] = x;
       this.cell.pos[1] = y;
       this.cell.pos[2] = z;
       this.cell.tag = cellTag(...this.cell.pos);
-      this.visitCell.visitCell(this.cell, updatePayload);
+      this.visitableCell.visitCell(this.cell);
     }
   }
-  deactivate() {
+  activate() {
+    super.activate();
+    this.positionMatrix?.onChange(this.listener);
     this.cell.pos[0] = Number.NaN;
     this.cell.pos[1] = Number.NaN;
     this.cell.pos[2] = Number.NaN;
+    this.checkPosition();
+  }
+  deactivate() {
+    this.positionMatrix?.removeChangeListener(this.listener);
     super.deactivate();
   }
 }
@@ -28166,29 +28165,23 @@ class Auxiliaries {
     }
     return this.auxiliaries.at(index);
   }
-  refresh(updatePayload) {
-    if (!this.active) {
-      return;
-    }
-    forEach3(this.auxiliaries, (aux) => aux?.refresh?.(updatePayload));
-  }
-  trackCell(cell, updatePayload) {
+  trackCell(cell) {
     if (!this.active) {
       return false;
     }
     let didTrack = false;
     forEach3(this.auxiliaries, (aux) => {
-      if (aux?.trackCell?.(cell, updatePayload)) {
+      if (aux?.trackCell?.(cell)) {
         didTrack = true;
       }
     });
     return didTrack;
   }
-  untrackCell(cellTag2, updatePayload) {
+  untrackCell(cellTag2) {
     if (!this.active) {
       return;
     }
-    forEach3(this.auxiliaries, (aux) => aux?.untrackCell?.(cellTag2, updatePayload));
+    forEach3(this.auxiliaries, (aux) => aux?.untrackCell?.(cellTag2));
   }
   activate() {
     if (this.active) {
@@ -28206,13 +28199,43 @@ class Auxiliaries {
   }
 }
 
+// src/motor/Looper.ts
+class Looper {
+  motor;
+  autoStart;
+  refresher;
+  constructor(motor, autoStart, refresher) {
+    this.motor = motor;
+    this.autoStart = autoStart;
+    this.refresher = refresher;
+  }
+  refresh(updatePayload) {
+    this.refresher?.refresh(updatePayload);
+  }
+  activate() {
+    if (this.autoStart) {
+      this.start();
+    }
+  }
+  deactivate() {
+    this.stop();
+  }
+  start() {
+    this.motor.loop(this);
+  }
+  stop() {
+    this.motor.deregisterUpdate(this);
+  }
+}
+
 // src/world/aux/TurnAuxiliary.ts
-class TurnAuxiliary {
+class TurnAuxiliary extends Looper {
   controls;
   turn;
-  constructor(props) {
-    this.controls = props.controls;
-    this.turn = props.turn;
+  constructor({ controls, turn, motor }) {
+    super(motor, true);
+    this.controls = controls;
+    this.turn = turn;
   }
   refresh(update) {
     const { turnLeft, turnRight } = this.controls;
@@ -28227,19 +28250,67 @@ class TurnAuxiliary {
   }
 }
 
-// src/world/aux/PositionStepAuxiliary.ts
-class PositionStepAuxiliary {
+// src/controls/IControls.ts
+var StateEnum;
+(function(StateEnum2) {
+  StateEnum2[StateEnum2["PRESS_UP"] = 0] = "PRESS_UP";
+  StateEnum2[StateEnum2["PRESS_DOWN"] = 1] = "PRESS_DOWN";
+})(StateEnum || (StateEnum = {}));
+
+// src/motor/ControlLooper.ts
+class ControlledLooper extends Looper {
   controls;
+  listener;
+  constructor(motor, controls, trigger, refresher) {
+    super(motor, false, refresher);
+    this.controls = controls;
+    this.listener = {
+      onAction: (controls2, state) => {
+        if (state === StateEnum.PRESS_DOWN) {
+          if (trigger(controls2)) {
+            this.start();
+          }
+        }
+      }
+    };
+  }
+  activate() {
+    super.activate();
+    this.controls.addListener(this.listener);
+  }
+  deactivate() {
+    this.controls.removeListener(this.listener);
+    super.deactivate();
+  }
+}
+
+// src/core/utils/vector-utils.ts
+var distSq = function(v1, v2) {
+  const dx = v1[0] - v2[0];
+  const dy = v1[0] - v2[0];
+  const dz = v1[0] - v2[0];
+  return dx * dx + dy * dy + dz * dz;
+};
+function equal(v1, v2, threshold = 0) {
+  return distSq(v1, v2) <= threshold * threshold;
+}
+
+// src/world/aux/PositionStepAuxiliary.ts
+class PositionStepAuxiliary extends ControlledLooper {
   goalPos;
   position;
   turnGoal;
   stepCount = 0;
   config;
-  constructor({ controls, position, turnGoal }, config = {}) {
-    this.controls = controls;
+  constructor({ controls, position, turnGoal, motor }, config = {}) {
+    super(motor, controls, ({ backward, forward, left, right }) => backward || forward || left || right);
     this.position = position;
     this.turnGoal = turnGoal;
-    this.goalPos = [...this.position.position];
+    this.goalPos = [
+      this.position.position[0],
+      this.position.position[1],
+      this.position.position[2]
+    ];
     this.config = {
       step: config.step ?? 2,
       speed: config.speed ?? 1
@@ -28291,36 +28362,39 @@ class PositionStepAuxiliary {
     if (Math.round(newPos[0] / step) * step !== this.prePos[0] || Math.round(newPos[1] / step) * step !== this.prePos[1] || Math.round(newPos[2] / step) * step !== this.prePos[2]) {
       this.stepCount++;
     }
+    if (equal(newPos, this.goalPos)) {
+      this.stop();
+    }
   }
 }
 
 // src/world/aux/TiltResetAuxiliary.ts
-class TiltResetAuxiliary {
+class TiltResetAuxiliary extends Looper {
   controls;
   tilt;
-  constructor(props) {
-    this.controls = props.controls;
-    this.tilt = props.tilt;
-    this._refresh = this._refresh.bind(this);
+  listener = {
+    onQuickTiltReset: () => {
+      this.start();
+      this.tilt.angle.progressTowards(0, 0.0033333333333333335, this);
+    }
+  };
+  constructor({ controls, tilt, motor }) {
+    super(motor, false);
+    this.controls = controls;
+    this.tilt = tilt;
   }
   activate() {
-    const listener = {
-      onQuickTiltReset: () => {
-        this.refresh = this._refresh;
-        this.tilt.angle.progressTowards(0, 0.0033333333333333335, this);
-      }
-    };
-    this.controls.addListener(listener);
-    this.deactivate = () => {
-      this.controls.removeListener(listener);
-      this.deactivate = undefined;
-    };
+    super.activate();
+    this.controls.addListener(this.listener);
   }
-  refresh;
-  _refresh(update) {
+  deactivate() {
+    this.controls.removeListener(this.listener);
+    super.deactivate();
+  }
+  refresh(update) {
     const { deltaTime } = update;
     if (!this.tilt.angle.update(deltaTime)) {
-      this.refresh = undefined;
+      this.stop();
     }
   }
 }
@@ -28365,9 +28439,6 @@ class ToggleAuxiliary {
         this.toggleIndex = nextIndex;
       }
     }
-  }
-  refresh(updatePayload) {
-    this.auxiliary?.refresh?.(updatePayload);
   }
   activate() {
     if (!this.active) {
@@ -28483,15 +28554,12 @@ class DoubleLinkList {
 // src/world/grid/CellTracker.ts
 class CellTracker {
   cellTrack;
+  cellTags = new DoubleLinkList("");
   range;
   base;
   cellLimit;
   cellSize;
   tempCell;
-  set holder(aux) {
-    aux.visitCell = this;
-  }
-  cellTags = new DoubleLinkList("");
   constructor(cellTrack, { range, cellLimit, cellSize = 1 } = {}) {
     this.cellTrack = cellTrack;
     this.range = [range?.[0] ?? 3, range?.[1] ?? 3, range?.[2] ?? 3];
@@ -28502,12 +28570,14 @@ class CellTracker {
       pos: [0, 0, 0, this.cellSize],
       tag: ""
     };
-    this.onCellVisit = this.onCellVisit.bind(this);
+  }
+  set holder(aux) {
+    aux.visitableCell = this;
   }
   getCellTags() {
     return this.cellTags.getList();
   }
-  iterateCells(visitedCell, updatePayload, callback) {
+  iterateCells(visitedCell, callback) {
     const { range, base, tempCell } = this;
     const { pos } = visitedCell;
     const cellX = pos[0] + base[0];
@@ -28521,29 +28591,29 @@ class CellTracker {
           tempCellPos[1] = cellY + y;
           tempCellPos[2] = cellZ + z;
           tempCell.tag = cellTag(tempCellPos[0], tempCellPos[1], tempCellPos[2], tempCellPos[3]);
-          callback(tempCell, updatePayload);
+          callback(tempCell);
         }
       }
     }
   }
-  onCellVisit(cell, updatePayload) {
+  onCellVisit = (cell) => {
     if (!this.cellTags.contains(cell.tag)) {
-      if (this.cellTrack.trackCell?.(cell, updatePayload)) {
+      if (this.cellTrack.trackCell?.(cell)) {
         this.cellTags.pushTop(cell.tag);
       }
     } else {
       this.cellTags.moveTop(cell.tag);
     }
+  };
+  visitCell(visitedCell) {
+    this.iterateCells(visitedCell, this.onCellVisit);
+    this.trimCells();
   }
-  visitCell(visitedCell, updatePayload) {
-    this.iterateCells(visitedCell, updatePayload, this.onCellVisit);
-    this.trimCells(updatePayload);
-  }
-  trimCells(updatePayload) {
+  trimCells() {
     while (this.cellTags.size > this.cellLimit) {
       const removedTag = this.cellTags.popBottom();
       if (removedTag) {
-        this.cellTrack.untrackCell?.(removedTag, updatePayload);
+        this.cellTrack.untrackCell?.(removedTag);
       }
     }
   }
@@ -28678,7 +28748,7 @@ class Grid extends AuxiliaryHolder {
   at(index) {
     return this.slots[index]?.elem;
   }
-  trackCell(cell, updatePayload) {
+  trackCell(cell) {
     const [[minX, maxX], [minY, maxY], [minZ, maxZ]] = this.ranges;
     const [x, y, z] = cell.pos;
     if (x < minX || maxX < x || y < minY || maxY < y || z < minZ || maxZ < z) {
@@ -28687,7 +28757,7 @@ class Grid extends AuxiliaryHolder {
     let count = 0;
     const { tag } = cell;
     this.factories.forEach((factory) => {
-      const elems = factory.getElemsAtCell(cell, updatePayload);
+      const elems = factory.getElemsAtCell(cell);
       forEach3(elems, (elem) => {
         if (elem) {
           const slot = this.slotPool.create(elem, tag);
@@ -28697,7 +28767,7 @@ class Grid extends AuxiliaryHolder {
           count++;
         }
       });
-      factory.doneCellTracking?.(cell, updatePayload);
+      factory.doneCellTracking?.(cell);
     });
     return !!count;
   }
@@ -28825,13 +28895,6 @@ class SpriteUpdater {
   }
 }
 
-// src/controls/IControls.ts
-var ActionEnum;
-(function(ActionEnum2) {
-  ActionEnum2[ActionEnum2["PRESS_UP"] = 0] = "PRESS_UP";
-  ActionEnum2[ActionEnum2["PRESS_DOWN"] = 1] = "PRESS_DOWN";
-})(ActionEnum || (ActionEnum = {}));
-
 // src/controls/KeyboardControls.ts
 class KeyboardControls {
   keyboard;
@@ -28851,8 +28914,8 @@ class KeyboardControls {
             break;
         }
       },
-      onKeyDown: () => listener.onAction?.(this, ActionEnum.PRESS_DOWN),
-      onKeyUp: () => listener.onAction?.(this, ActionEnum.PRESS_UP)
+      onKeyDown: () => listener.onAction?.(this, StateEnum.PRESS_DOWN),
+      onKeyUp: () => listener.onAction?.(this, StateEnum.PRESS_UP)
     });
     this.onRemoveListener.set(listener, onRemove);
   }
@@ -28924,8 +28987,8 @@ class SpriteFactory {
   constructor(filler) {
     this.filler = filler;
   }
-  getElemsAtCell(cell, updatePayload) {
-    this.filler.fillSpriteBag(cell, updatePayload, this.spriteBag);
+  getElemsAtCell(cell) {
+    this.filler.fillSpriteBag(cell, this.spriteBag);
     return this.sprites;
   }
   doneCellTracking() {
@@ -28935,15 +28998,16 @@ class SpriteFactory {
 }
 
 // src/world/aux/MoveAuxiliary.ts
-class MoveAuxiliary {
+class MoveAuxiliary extends Looper {
   controls;
   direction;
   position;
   config;
-  constructor(props, config) {
-    this.controls = props.controls;
-    this.direction = props.direction;
-    this.position = props.position;
+  constructor({ controls, direction, motor, position }, config) {
+    super(motor, true);
+    this.controls = controls;
+    this.direction = direction;
+    this.position = position;
     this.config = {
       speed: config?.speed ?? 1
     };
@@ -28970,15 +29034,14 @@ class MoveAuxiliary {
 }
 
 // src/world/aux/JumpAuxiliary.ts
-class JumpAuxiliary {
-  controls;
+class JumpAuxiliary extends ControlledLooper {
   position;
   gravity;
   dy;
   jumpStrength = 0;
   plane = 1;
-  constructor({ controls, position }, config = {}) {
-    this.controls = controls;
+  constructor({ controls, position, motor }, config = {}) {
+    super(motor, controls, (controls2) => controls2.action);
     this.position = position;
     this.gravity = config.gravity ?? -1;
     this.jumpStrength = config.jump ?? 2;
@@ -29008,15 +29071,17 @@ class JumpAuxiliary {
       } else {
         this.position.moveTo(x, 0, z);
         this.dy = 0;
+        this.stop();
       }
     }
   }
 }
 
 // src/core/aux/TimeAuxiliary.ts
-class TimeAuxiliary {
+class TimeAuxiliary extends Looper {
   engine;
-  constructor(engine) {
+  constructor({ engine, motor }) {
+    super(motor, true);
     this.engine = engine;
   }
   refresh(updatePayload) {
@@ -29025,12 +29090,13 @@ class TimeAuxiliary {
 }
 
 // src/world/aux/TiltAuxiliary.ts
-class TiltAuxiliary {
+class TiltAuxiliary extends Looper {
   controls;
   tilt;
-  constructor(props) {
-    this.controls = props.controls;
-    this.tilt = props.tilt;
+  constructor({ controls, tilt, motor }) {
+    super(motor, true);
+    this.controls = controls;
+    this.tilt = tilt;
   }
   refresh(update) {
     const { up, down } = this.controls;
@@ -29046,14 +29112,26 @@ class TiltAuxiliary {
 }
 
 // src/world/aux/SmoothFollowAuxiliary.ts
-class SmoothFollowAuxiliary {
+class SmoothFollowAuxiliary extends Looper {
   followee;
   follower;
   speed;
-  constructor({ followee, follower }, config) {
+  listener = () => {
+    this.start();
+  };
+  constructor({ followee, follower, motor }, config) {
+    super(motor, false);
     this.followee = followee;
     this.follower = follower;
     this.speed = config?.speed ?? 1;
+  }
+  activate() {
+    super.activate();
+    this.followee.onChange(this.listener);
+  }
+  deactivate() {
+    this.followee.removeChangeListener(this.listener);
+    super.deactivate();
   }
   refresh() {
     const [x, y, z] = this.followee.position;
@@ -29062,6 +29140,7 @@ class SmoothFollowAuxiliary {
     const dist2 = Math.sqrt(dx * dx + dy * dy + dz * dz);
     if (dist2 < 0.1) {
       this.follower.moveTo(x, y, z);
+      this.stop();
     } else {
       const speed = Math.min(dist2, this.speed * dist2);
       this.follower.moveBy(dx / dist2 * speed, dy / dist2 * speed, dz / dist2 * speed);
@@ -29266,16 +29345,43 @@ class MotionAuxiliary {
 }
 
 // src/world/aux/FollowAuxiliary.ts
-class FollowAuxiliary {
+class FollowAuxiliary extends Looper {
   followee;
   follower;
-  constructor({ followee, follower }) {
+  config;
+  listener = (dx, dy, dz) => {
+    if (dx && this.config.followX || dy && this.config.followY || dz && this.config.followZ) {
+      this.start();
+    }
+  };
+  constructor({ followee, follower, motor }, config) {
+    super(motor, false);
     this.followee = followee;
     this.follower = follower;
+    this.config = {
+      followX: config?.followX ?? true,
+      followY: config?.followY ?? true,
+      followZ: config?.followZ ?? true,
+      speed: config?.speed ?? 1
+    };
+  }
+  activate() {
+    super.activate();
+    this.followee.onChange(this.listener);
+  }
+  deactivate() {
+    this.followee.removeChangeListener(this.listener);
+    super.deactivate();
   }
   refresh() {
-    const [x, y, z] = this.followee.position;
-    this.follower.gotoPos(x, this.follower.position[1], z, 1);
+    const { followX, followY, followZ, speed } = this.config;
+    const x = followX ? this.followee.position[0] : this.follower.position[0];
+    const y = followY ? this.followee.position[1] : this.follower.position[1];
+    const z = followZ ? this.followee.position[2] : this.follower.position[2];
+    this.follower.gotoPos(x, y, z, speed);
+    if (this.followee.position[0] === this.follower.position[0] && this.followee.position[1] === this.follower.position[1] && this.followee.position[2] === this.follower.position[2]) {
+      this.stop();
+    }
   }
 }
 
@@ -29311,6 +29417,52 @@ class Hud extends AuxiliaryHolder {
     }, import_react.default.createElement("div", {
       style: { backgroundColor: "#ffffff66" }
     }, "Hello World"));
+  }
+}
+
+// src/gl/utils/angleUtils.ts
+function angleStep(angle2, step) {
+  return Math.round(angle2 / step) * step;
+}
+
+// src/world/aux/TurnStepAuxiliary.ts
+class TurnStepAuxiliary extends ControlledLooper {
+  turn;
+  turnCount = 0;
+  config;
+  constructor({ controls, turn, motor }, config = {}) {
+    super(motor, controls, (controls2) => controls2.turnLeft || controls2.turnRight);
+    this.turn = turn;
+    this.config = {
+      step: config.step ?? Math.PI / 2
+    };
+  }
+  refresh(update) {
+    const { turnLeft, turnRight } = this.controls;
+    const { deltaTime } = update;
+    let dTurn = 0;
+    if (turnLeft) {
+      dTurn--;
+    }
+    if (turnRight) {
+      dTurn++;
+    }
+    const { step } = this.config;
+    const turn = angleStep(this.turn.angle.valueOf(), step);
+    if (dTurn || this.turnCount > 0) {
+      this.turn.angle.progressTowards(angleStep(turn + step * dTurn, step), dTurn ? 0.005 : 0.01, this);
+    }
+    if (!dTurn) {
+      this.turnCount = 0;
+    }
+    if (this.turn.angle.update(deltaTime)) {
+      const newTurn = angleStep(this.turn.angle.valueOf(), step);
+      if (newTurn !== turn) {
+        this.turnCount++;
+      }
+    } else {
+      this.stop();
+    }
   }
 }
 
@@ -29523,12 +29675,12 @@ class DemoWorld extends AuxiliaryHolder {
         Matrix_default.create().translate(0, 0, 1).rotateY(Math.PI),
         Matrix_default.create().translate(0, 0, -1).rotateY(0)
       ].map((transform) => ({ imageId: Assets.BRICK, transform }))
-    ], [Matrix_default.create().setPosition(...positionFromCell([0, 0, -3, CELLSIZE]))])));
+    ], [Matrix_default.create().setVector(positionFromCell([0, 0, -3, CELLSIZE]))])));
     const camera = new Camera({ engine, motor });
     this.addAuxiliary(camera);
     this.camera = camera;
     spritesAccumulator.addAuxiliary(new SpriteGrid({ yRange: [0, 0] }, new SpriteFactory({
-      fillSpriteBag({ pos }, _, bag) {
+      fillSpriteBag({ pos }, bag) {
         const ground = bag.createSprite(Assets.GRASS);
         ground.transform.translate(pos[0] * pos[3], -1, pos[2] * pos[3]).rotateX(-Math.PI / 2);
         const ceiling = bag.createSprite(Assets.WIREFRAME);
@@ -29558,8 +29710,11 @@ class DemoWorld extends AuxiliaryHolder {
       }
     ], [shadowPos]);
     this.addAuxiliary(new FollowAuxiliary({
+      motor,
       follower: shadowPos,
       followee: heroPos
+    }, {
+      followY: false
     }));
     spritesAccumulator.addAuxiliary(heroSprites);
     spritesAccumulator.addAuxiliary(shadowHeroSprites);
@@ -29568,8 +29723,8 @@ class DemoWorld extends AuxiliaryHolder {
         const blockPos = positionFromCell([0, 0, -3, 2]);
         const range = 2;
         const dx = blockPos[0] - pos[0], dy = blockPos[1] - pos[1], dz = blockPos[2] - pos[2];
-        const distSq = dx * dx + dy * dy + dz * dz;
-        return distSq < range * range;
+        const distSq2 = dx * dx + dy * dy + dz * dz;
+        return distSq2 < range * range;
       }
     };
     spritesAccumulator.addAuxiliary(new SpriteGroup([
@@ -29585,11 +29740,11 @@ class DemoWorld extends AuxiliaryHolder {
       auxiliariesMapping: [
         {
           key: "Tab",
-          aux: Auxiliaries.from(new PositionStepAuxiliary({ controls, position: heroPos }), new SmoothFollowAuxiliary({ follower: camera.position, followee: heroPos }, { speed: 0.05 }), new JumpAuxiliary({ controls, position: heroPos }))
+          aux: Auxiliaries.from(new PositionStepAuxiliary({ motor, controls, position: heroPos }), new TurnStepAuxiliary({ motor, controls, turn: camera.turn }), new SmoothFollowAuxiliary({ motor, follower: camera.position, followee: heroPos }, { speed: 0.05 }), new JumpAuxiliary({ motor, controls, position: heroPos }))
         },
         {
           key: "Tab",
-          aux: Auxiliaries.from(new TurnAuxiliary({ controls, turn: camera.turn }), new TiltAuxiliary({ controls, tilt: camera.tilt }), new MoveAuxiliary({ controls, direction: camera.turn, position: heroPos }), new JumpAuxiliary({ controls, position: heroPos }), new TiltResetAuxiliary({ controls, tilt: camera.tilt }), new SmoothFollowAuxiliary({ follower: camera.position, followee: heroPos }, { speed: 0.05 }))
+          aux: Auxiliaries.from(new TurnAuxiliary({ motor, controls, turn: camera.turn }), new TiltAuxiliary({ motor, controls, tilt: camera.tilt }), new MoveAuxiliary({ motor, controls, direction: camera.turn, position: heroPos }), new JumpAuxiliary({ motor, controls, position: heroPos }), new TiltResetAuxiliary({ motor, controls, tilt: camera.tilt }), new SmoothFollowAuxiliary({ motor, follower: camera.position, followee: heroPos }, { speed: 0.05 }))
         }
       ]
     }));
@@ -29599,8 +29754,8 @@ class DemoWorld extends AuxiliaryHolder {
       shadowHeroSprites.animationId = animId;
     }));
     camera.position.addAuxiliary(new CellChangeAuxiliary({ cellSize: CELLSIZE }).addAuxiliary(new CellTracker(this, {
-      cellLimit: 1000,
-      range: [25, 3, 25],
+      cellLimit: 100,
+      range: [5, 3, 5],
       cellSize: CELLSIZE
     })));
     webGlCanvas.addAuxiliary(new Hud);
@@ -29608,7 +29763,7 @@ class DemoWorld extends AuxiliaryHolder {
     camera.tilt.angle.setValue(1.1);
     camera.projection.zoom.setValue(0.25);
     camera.projection.perspective.setValue(0.05);
-    this.addAuxiliary(new TimeAuxiliary(engine));
+    this.addAuxiliary(new TimeAuxiliary({ motor, engine }));
   }
 }
 
@@ -29745,4 +29900,4 @@ export {
   hello
 };
 
-//# debugId=7B8FCDAD1DE7085A64756e2164756e21
+//# debugId=908AAD0F9CA0A27164756e2164756e21

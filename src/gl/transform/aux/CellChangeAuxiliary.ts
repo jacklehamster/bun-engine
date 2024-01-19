@@ -1,19 +1,19 @@
 import { Auxiliary } from "world/aux/Auxiliary";
 import { Cell, cellTag, getCellPos } from "world/grid/CellPos";
 import { VisitableCell } from "../../../world/grid/VisitCell";
-import { UpdatePayload } from "updates/Refresh";
 import { AuxiliaryHolder } from "world/aux/AuxiliaryHolder";
-import { IPositionMatrix } from "../IPositionMatrix";
+import { ChangeListener, IPositionMatrix } from "../IPositionMatrix";
 
 interface Config {
   cellSize?: number;
 }
 
 export class CellChangeAuxiliary extends AuxiliaryHolder implements Auxiliary<IPositionMatrix> {
-  private matrix?: IPositionMatrix;
+  private positionMatrix?: IPositionMatrix;
   private readonly cellSize: number;
   private readonly cell: Cell;
-  visitCell?: VisitableCell;
+  visitableCell?: VisitableCell;
+  private readonly listener: ChangeListener = () => this.checkPosition();
 
   constructor(config?: Config) {
     super();
@@ -22,28 +22,35 @@ export class CellChangeAuxiliary extends AuxiliaryHolder implements Auxiliary<IP
   }
 
   set holder(value: IPositionMatrix) {
-    this.matrix = value;
+    this.positionMatrix = value;
   }
 
-  refresh(updatePayload: UpdatePayload): void {
-    if (!this.matrix || !this.visitCell) {
+  checkPosition(): void {
+    if (!this.positionMatrix || !this.visitableCell) {
       return;
     }
-    const pos = this.matrix.position;
+    const pos = this.positionMatrix.position;
     const [x, y, z] = getCellPos(pos, this.cellSize);
     if (this.cell.pos[0] !== x || this.cell.pos[1] !== y || this.cell.pos[2] !== z) {
       this.cell.pos[0] = x;
       this.cell.pos[1] = y;
       this.cell.pos[2] = z;
       this.cell.tag = cellTag(...this.cell.pos);
-      this.visitCell.visitCell(this.cell, updatePayload);
+      this.visitableCell.visitCell(this.cell);
     }
   }
 
-  deactivate(): void {
+  activate(): void {
+    super.activate();
+    this.positionMatrix?.onChange(this.listener);
     this.cell.pos[0] = Number.NaN;
     this.cell.pos[1] = Number.NaN;
     this.cell.pos[2] = Number.NaN;
+    this.checkPosition();
+  }
+
+  deactivate(): void {
+    this.positionMatrix?.removeChangeListener(this.listener);
     super.deactivate();
   }
 }

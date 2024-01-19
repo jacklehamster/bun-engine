@@ -15,49 +15,47 @@ const FRAME_PERIOD = 16.6;
 interface Schedule {
   triggerTime: Time;
   period: Duration;
-  expiration: Time;
+  frameRate: number;
 }
 
 export class Motor implements IMotor {
-  private readonly updateSchedule: Map<Refresh, Schedule> = new Map();
-  time: Time = 0;
-  holder?: Refresh;
   private readonly pool = new SchedulePool();
+  private readonly schedule: Map<Refresh, Schedule> = new Map();
+  time: Time = 0;
 
-  loop(update: Refresh, frameRate?: number, expirationTime?: Time) {
-    this.registerUpdate(update, frameRate ?? 1000, expirationTime);
+  loop(update: Refresh, frameRate?: number) {
+    this.registerUpdate(update, frameRate ?? 1000);
   }
 
-  registerUpdate(update: Refresh, refreshRate: number = 0, expiration: Time = Infinity) {
-    const schedule = this.updateSchedule.get(update);
+  registerUpdate(update: Refresh, refreshRate: number = 0) {
+    const schedule = this.schedule.get(update);
     if (!schedule) {
-      this.updateSchedule.set(update, this.pool.create(refreshRate, expiration));
-    } else {
+      this.schedule.set(update, this.pool.create(refreshRate));
+      //      console.log("schedule size:", this.schedule.size);
+    } else if (schedule.frameRate !== refreshRate) {
+      schedule.frameRate = refreshRate;
       schedule.period = refreshRate ? 1000 / refreshRate : 0;
-      schedule.expiration = expiration;
     }
   }
 
   deregisterUpdate(update: Refresh) {
-    const schedule = this.updateSchedule.get(update);
+    const schedule = this.schedule.get(update);
     if (schedule) {
       this.pool.recycle(schedule);
     }
-    this.updateSchedule.delete(update);
+    this.schedule.delete(update);
+    // console.log("schedule size:", this.schedule.size);
   }
 
   deactivate(): void {
-    if (this.holder) {
-      this.deregisterUpdate(this.holder);
-    }
     this.stopLoop?.();
   }
 
   activate() {
-    if (!this.holder) {
-      return;
-    }
-    let handle = 0;
+    this.startLoop();
+  }
+
+  startLoop() {
     const updatePayload: UpdatePayload = {
       time: 0,
       deltaTime: 0,
@@ -81,11 +79,11 @@ export class Motor implements IMotor {
       updatePayload.deltaTime = Math.min(time - updatePayload.time, MAX_DELTA_TIME);
       this.time = updatePayload.time = time;
 
-      this.updateSchedule.forEach((schedule, update) => {
+      this.schedule.forEach((schedule, update) => {
         if (time < schedule.triggerTime) {
           return;
         }
-        if (schedule.period && time < schedule.expiration) {
+        if (schedule.period) {
           schedule.triggerTime = Math.max(schedule.triggerTime + schedule.period, time);
         } else {
           this.deregisterUpdate(update);
@@ -100,26 +98,25 @@ export class Motor implements IMotor {
       updateGroups[Priority.DEFAULT].length = 0;
       updateGroups[Priority.LAST].length = 0;
     };
-    requestAnimationFrame(loop);
+    let handle = requestAnimationFrame(loop);
     this.stopLoop = () => {
       cancelAnimationFrame(handle);
       this.stopLoop = undefined;
     };
-    this.loop(this.holder);
   }
 
   stopLoop?(): void;
 }
 
-class SchedulePool extends ObjectPool<Schedule, [number, Time]> {
+class SchedulePool extends ObjectPool<Schedule, [number]> {
   constructor() {
-    super((schedule, frameRate, expiration) => {
+    super((schedule, frameRate) => {
       if (!schedule) {
-        return { triggerTime: 0, period: frameRate ? MILLIS_IN_SEC / frameRate : 1, expiration: expiration }
+        return { triggerTime: 0, frameRate, period: frameRate ? MILLIS_IN_SEC / frameRate : 0 }
       }
       schedule.triggerTime = 0;
       schedule.period = frameRate ? MILLIS_IN_SEC / frameRate : 0;
-      schedule.expiration = expiration;
+      schedule.frameRate = frameRate;
       return schedule;
     });
   }

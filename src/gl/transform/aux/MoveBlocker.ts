@@ -1,5 +1,5 @@
-import { Position } from "world/grid/Position";
+import { Vector } from "../../../core/types/Vector";
 
 export interface MoveBlocker {
-  isBlocked(to: Position, from?: Position): boolean;
+  isBlocked(to: Vector, from?: Vector): boolean;
 }

@@ -1,4 +1,4 @@
-import { Position } from "./Position";
+import { Vector } from "core/types/Vector";
 
 export type CellPos = [number, number, number, number];
 export type Cell = {
@@ -11,7 +11,7 @@ export function cellTag(x: number, y: number, z: number, cellSize: number) {
 }
 
 const cellPos: CellPos = [0, 0, 0, 0];
-export function getCellPos(pos: Position, cellSize: number): CellPos {
+export function getCellPos(pos: Vector, cellSize: number): CellPos {
   cellPos[0] = Math.round(pos[0] / cellSize);
   cellPos[1] = Math.round(pos[1] / cellSize);
   cellPos[2] = Math.round(pos[2] / cellSize);
@@ -19,8 +19,8 @@ export function getCellPos(pos: Position, cellSize: number): CellPos {
   return cellPos;
 }
 
-const tempPos: Position = [0, 0, 0];
-export function positionFromCell(cellPos: CellPos): Position {
+const tempPos: Vector = [0, 0, 0];
+export function positionFromCell(cellPos: CellPos): Vector {
   const [cx, cy, cz, cellSize] = cellPos;
   tempPos[0] = cx * cellSize;
   tempPos[1] = cy * cellSize;
