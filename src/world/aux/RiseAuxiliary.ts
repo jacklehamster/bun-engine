@@ -2,8 +2,8 @@ import { UpdatePayload } from "updates/Refresh";
 import { Auxiliary } from "./Auxiliary";
 import { ControlsListener, IControls } from "controls/IControls";
 import { PositionMatrix } from "gl/transform/PositionMatrix";
-import { Looper } from "motor/Looper";
 import { IMotor } from "motor/IMotor";
+import { Looper } from "motor/Looper";
 
 interface Props {
   controls: IControls;
@@ -12,14 +12,14 @@ interface Props {
 }
 
 export class RiseAuxiliary extends Looper implements Auxiliary {
-  private readonly controls: IControls;
+  private readonly controls;
   private readonly position: PositionMatrix;
   private readonly listener: ControlsListener = {
     onQuickAction: () => this.start(),
-    onAction: () => this.stop(),
+    onAction: () => this.start(),
   };
 
-  constructor({ controls, position, motor }: Props) {
+  constructor({ position, controls, motor }: Props) {
     super(motor, false);
     this.controls = controls;
     this.position = position;
@@ -32,6 +32,7 @@ export class RiseAuxiliary extends Looper implements Auxiliary {
 
   deactivate(): void {
     this.controls.removeListener(this.listener);
+    super.deactivate();
   }
 
   refresh(update: UpdatePayload): void {

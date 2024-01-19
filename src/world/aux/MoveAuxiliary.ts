@@ -3,8 +3,8 @@ import { Auxiliary } from "./Auxiliary";
 import { IControls } from "controls/IControls";
 import { PositionMatrix } from "gl/transform/PositionMatrix";
 import { IMatrix } from "gl/transform/IMatrix";
-import { Looper } from "motor/Looper";
 import { IMotor } from "motor/IMotor";
+import { ControlledLooper } from "motor/ControlLooper";
 
 interface Props {
   controls: IControls;
@@ -17,15 +17,13 @@ interface Config {
   speed: number;
 }
 
-export class MoveAuxiliary extends Looper implements Auxiliary {
-  private readonly controls: IControls;
+export class MoveAuxiliary extends ControlledLooper implements Auxiliary {
   private readonly direction?: IMatrix;
   private readonly position: PositionMatrix;
   private config: Config;
 
   constructor({ controls, direction, motor, position }: Props, config?: Partial<Config>) {
-    super(motor, true);
-    this.controls = controls;
+    super(motor, controls, ({ forward, backward, left, right }) => forward || backward || left || right);
     this.direction = direction;
     this.position = position;
     this.config = {
@@ -51,5 +49,8 @@ export class MoveAuxiliary extends Looper implements Auxiliary {
       dx += speed;
     }
     this.position.moveBy(dx, 0, dz, this.direction);
+    if (!forward && !backward && !left && !right) {
+      this.stop();
+    }
   }
 }

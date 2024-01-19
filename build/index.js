@@ -27480,7 +27480,6 @@ class Motor {
   pool = new SchedulePool;
   schedule = new Map;
   time = 0;
-  holder;
   loop(update, frameRate) {
     this.registerUpdate(update, frameRate ?? 1000);
   }
@@ -27501,16 +27500,12 @@ class Motor {
     this.schedule.delete(update);
   }
   deactivate() {
-    if (this.holder) {
-      this.deregisterUpdate(this.holder);
-    }
     this.stopLoop?.();
   }
   activate() {
-    if (!this.holder) {
-      return;
-    }
-    let handle = 0;
+    this.startLoop();
+  }
+  startLoop() {
     const updatePayload = {
       time: 0,
       deltaTime: 0
@@ -27544,12 +27539,11 @@ class Motor {
       updateGroups[Priority.DEFAULT].length = 0;
       updateGroups[Priority.LAST].length = 0;
     };
-    requestAnimationFrame(loop);
+    let handle = requestAnimationFrame(loop);
     this.stopLoop = () => {
       cancelAnimationFrame(handle);
       this.stopLoop = undefined;
     };
-    this.loop(this.holder);
   }
 }
 
@@ -28228,28 +28222,6 @@ class Looper {
   }
 }
 
-// src/world/aux/TurnAuxiliary.ts
-class TurnAuxiliary extends Looper {
-  controls;
-  turn;
-  constructor({ controls, turn, motor }) {
-    super(motor, true);
-    this.controls = controls;
-    this.turn = turn;
-  }
-  refresh(update) {
-    const { turnLeft, turnRight } = this.controls;
-    const { deltaTime } = update;
-    const turnspeed = deltaTime / 400;
-    if (turnLeft) {
-      this.turn.angle.addValue(-turnspeed);
-    }
-    if (turnRight) {
-      this.turn.angle.addValue(turnspeed);
-    }
-  }
-}
-
 // src/controls/IControls.ts
 var StateEnum;
 (function(StateEnum2) {
@@ -28281,6 +28253,29 @@ class ControlledLooper extends Looper {
   deactivate() {
     this.controls.removeListener(this.listener);
     super.deactivate();
+  }
+}
+
+// src/world/aux/TurnAuxiliary.ts
+class TurnAuxiliary extends ControlledLooper {
+  turn;
+  constructor({ controls, turn, motor }) {
+    super(motor, controls, ({ turnLeft, turnRight }) => turnLeft || turnRight);
+    this.turn = turn;
+  }
+  refresh(update) {
+    const { turnLeft, turnRight } = this.controls;
+    const { deltaTime } = update;
+    const turnspeed = deltaTime / 400;
+    if (turnLeft) {
+      this.turn.angle.addValue(-turnspeed);
+    }
+    if (turnRight) {
+      this.turn.angle.addValue(turnspeed);
+    }
+    if (!turnLeft && !turnRight) {
+      this.stop();
+    }
   }
 }
 
@@ -28362,7 +28357,7 @@ class PositionStepAuxiliary extends ControlledLooper {
     if (Math.round(newPos[0] / step) * step !== this.prePos[0] || Math.round(newPos[1] / step) * step !== this.prePos[1] || Math.round(newPos[2] / step) * step !== this.prePos[2]) {
       this.stepCount++;
     }
-    if (equal(newPos, this.goalPos)) {
+    if (!dx && !dz && equal(newPos, this.goalPos)) {
       this.stop();
     }
   }
@@ -28998,13 +28993,13 @@ class SpriteFactory {
 }
 
 // src/world/aux/MoveAuxiliary.ts
-class MoveAuxiliary extends Looper {
+class MoveAuxiliary extends ControlledLooper {
   controls;
   direction;
   position;
   config;
   constructor({ controls, direction, motor, position }, config) {
-    super(motor, true);
+    super(motor, controls, ({ forward, backward, left, right }) => forward || backward || left || right);
     this.controls = controls;
     this.direction = direction;
     this.position = position;
@@ -29030,6 +29025,9 @@ class MoveAuxiliary extends Looper {
       dx += speed;
     }
     this.position.moveBy(dx, 0, dz, this.direction);
+    if (!forward && !backward && !left && !right) {
+      this.stop();
+    }
   }
 }
 
@@ -29090,12 +29088,10 @@ class TimeAuxiliary extends Looper {
 }
 
 // src/world/aux/TiltAuxiliary.ts
-class TiltAuxiliary extends Looper {
-  controls;
+class TiltAuxiliary extends ControlledLooper {
   tilt;
   constructor({ controls, tilt, motor }) {
-    super(motor, true);
-    this.controls = controls;
+    super(motor, controls, ({ up, down }) => up || down);
     this.tilt = tilt;
   }
   refresh(update) {
@@ -29107,6 +29103,9 @@ class TiltAuxiliary extends Looper {
     }
     if (down) {
       this.tilt.angle.addValue(turnspeed);
+    }
+    if (!up && !down) {
+      this.stop();
     }
   }
 }
@@ -29900,4 +29899,4 @@ export {
   hello
 };
 
-//# debugId=908AAD0F9CA0A27164756e2164756e21
+//# debugId=3E8DE1C3C4AA527264756e2164756e21

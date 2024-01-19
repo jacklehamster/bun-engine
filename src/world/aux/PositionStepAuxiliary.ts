@@ -97,7 +97,7 @@ export class PositionStepAuxiliary extends ControlledLooper implements Auxiliary
       || Math.round(newPos[2] / step) * step !== this.prePos[2]) {
       this.stepCount++;
     }
-    if (equal(newPos, this.goalPos)) {
+    if (!dx && !dz && equal(newPos, this.goalPos)) {
       this.stop();
     }
   }

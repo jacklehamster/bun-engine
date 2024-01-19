@@ -3,8 +3,8 @@ import { Auxiliary } from "./Auxiliary";
 import { angleStep } from "gl/utils/angleUtils";
 import { IControls } from "controls/IControls";
 import { IAngleMatrix } from "gl/transform/IAngleMatrix";
-import { Looper } from "motor/Looper";
 import { IMotor } from "motor/IMotor";
+import { ControlledLooper } from "motor/ControlLooper";
 
 interface Props {
   controls: IControls;
@@ -16,15 +16,13 @@ interface Config {
   step: number;
 }
 
-export class TiltStepAuxiliary extends Looper implements Auxiliary {
-  private readonly controls: IControls;
+export class TiltStepAuxiliary extends ControlledLooper implements Auxiliary {
   private readonly tilt: IAngleMatrix;
   private tiltCount: number = 0;
   private config: Config;
 
   constructor({ controls, tilt, motor }: Props, config: Partial<Config> = {}) {
-    super(motor, true);
-    this.controls = controls;
+    super(motor, controls, ({ up, down }) => up || down);
     this.tilt = tilt;
     this.config = {
       step: config.step ?? Math.PI / 2,
@@ -60,6 +58,8 @@ export class TiltStepAuxiliary extends Looper implements Auxiliary {
       if (newTilt !== tilt) {
         this.tiltCount++;
       }
+    } else {
+      this.stop();
     }
   }
 }

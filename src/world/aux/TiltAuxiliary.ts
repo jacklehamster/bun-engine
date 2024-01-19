@@ -3,8 +3,8 @@ import { Auxiliary } from "./Auxiliary";
 import { IControls } from "controls/IControls";
 import { TiltMatrix } from "gl/transform/TiltMatrix";
 import { IAngleMatrix } from "gl/transform/IAngleMatrix";
-import { Looper } from "motor/Looper";
 import { IMotor } from "motor/IMotor";
+import { ControlledLooper } from "motor/ControlLooper";
 
 interface Props {
   controls: IControls;
@@ -12,13 +12,11 @@ interface Props {
   motor: IMotor;
 }
 
-export class TiltAuxiliary extends Looper implements Auxiliary {
-  private readonly controls: IControls;
+export class TiltAuxiliary extends ControlledLooper implements Auxiliary {
   private readonly tilt: IAngleMatrix;
 
   constructor({ controls, tilt, motor }: Props) {
-    super(motor, true);
-    this.controls = controls;
+    super(motor, controls, ({ up, down }) => up || down);
     this.tilt = tilt;
   }
 
@@ -31,6 +29,9 @@ export class TiltAuxiliary extends Looper implements Auxiliary {
     }
     if (down) {
       this.tilt.angle.addValue(turnspeed);
+    }
+    if (!up && !down) {
+      this.stop();
     }
   }
 }

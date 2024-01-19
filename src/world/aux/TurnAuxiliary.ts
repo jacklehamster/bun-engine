@@ -4,7 +4,7 @@ import { IControls } from "controls/IControls";
 import { TurnMatrix } from "gl/transform/TurnMatrix";
 import { IAngleMatrix } from "gl/transform/IAngleMatrix";
 import { IMotor } from "motor/IMotor";
-import { Looper } from "motor/Looper";
+import { ControlledLooper } from "motor/ControlLooper";
 
 interface Props {
   controls: IControls;
@@ -12,13 +12,11 @@ interface Props {
   motor: IMotor;
 }
 
-export class TurnAuxiliary extends Looper implements Auxiliary {
-  private readonly controls: IControls;
+export class TurnAuxiliary extends ControlledLooper implements Auxiliary {
   private readonly turn: IAngleMatrix;
 
   constructor({ controls, turn, motor }: Props) {
-    super(motor, true);
-    this.controls = controls;
+    super(motor, controls, ({ turnLeft, turnRight }) => turnLeft || turnRight);
     this.turn = turn;
   }
 
@@ -31,6 +29,9 @@ export class TurnAuxiliary extends Looper implements Auxiliary {
     }
     if (turnRight) {
       this.turn.angle.addValue(turnspeed);
+    }
+    if (!turnLeft && !turnRight) {
+      this.stop();
     }
   }
 }

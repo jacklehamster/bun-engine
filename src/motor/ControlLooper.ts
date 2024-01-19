@@ -4,10 +4,10 @@ import { Looper } from "./Looper";
 import { ControlsListener, IControls, StateEnum } from "controls/IControls";
 
 export class ControlledLooper extends Looper {
-  private listener: ControlsListener;
+  private _listener: ControlsListener;
   constructor(motor: IMotor, protected readonly controls: IControls, trigger: (controls: IControls) => boolean, refresher?: Refresh) {
     super(motor, false, refresher);
-    this.listener = {
+    this._listener = {
       onAction: (controls, state): void => {
         if (state === StateEnum.PRESS_DOWN) {
           if (trigger(controls)) {
@@ -20,11 +20,11 @@ export class ControlledLooper extends Looper {
 
   activate(): void {
     super.activate();
-    this.controls.addListener(this.listener);
+    this.controls.addListener(this._listener);
   }
 
   deactivate(): void {
-    this.controls.removeListener(this.listener);
+    this.controls.removeListener(this._listener);
     super.deactivate();
   }
 }

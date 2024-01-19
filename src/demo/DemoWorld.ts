@@ -41,7 +41,6 @@ import { FollowAuxiliary } from "world/aux/FollowAuxiliary";
 import { ItemsGroup } from "world/sprite/aux/ItemsGroup";
 import { WebGlCanvas } from "graphics/WebGlCanvas";
 import { Hud } from "ui/Hud";
-import { TurnStepAuxiliary } from "world/aux/TurnStepAuxiliary";
 
 enum Assets {
   DOBUKI = 0,
@@ -401,7 +400,6 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
           {
             key: "Tab", aux: Auxiliaries.from(
               new PositionStepAuxiliary({ motor, controls, position: heroPos }),
-              new TurnStepAuxiliary({ motor, controls, turn: camera.turn }),
               new SmoothFollowAuxiliary({ motor, follower: camera.position, followee: heroPos }, { speed: .05 }),
               new JumpAuxiliary({ motor, controls, position: heroPos }),
             )

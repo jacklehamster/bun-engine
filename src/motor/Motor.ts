@@ -44,7 +44,7 @@ export class Motor implements IMotor {
       this.pool.recycle(schedule);
     }
     this.schedule.delete(update);
-    // console.log("schedule size:", this.schedule.size);
+    // console.log("schedule size:", this.schedule.size, "deregistering", update);
   }
 
   deactivate(): void {
