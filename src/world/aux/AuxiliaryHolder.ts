@@ -3,11 +3,12 @@ import { Auxiliary } from "./Auxiliary";
 import { Cell } from "world/grid/CellPos";
 import { CellTrack } from "world/grid/CellTrack";
 import { Holder } from "./Holder";
+import { IAuxiliaryHolder } from "./IAuxiliaryHolder";
 
 const EMPTY_REFRESH: Refresh[] = [];
 const EMPTY_CELLTRACK: CellTrack[] = [];
 
-export class AuxiliaryHolder<H extends Holder = any> implements Holder<AuxiliaryHolder<H>>, Auxiliary<H> {
+export class AuxiliaryHolder<H extends Holder = any> implements IAuxiliaryHolder<H> {
   private auxiliaries: Auxiliary[] = [];
   private refreshes: Refresh[] = EMPTY_REFRESH;
   private cellTracks: CellTrack[] = EMPTY_CELLTRACK;

@@ -21,13 +21,12 @@ interface Config {
   logGL: boolean;
 }
 
-export class WebGlCanvas extends DOMWrap<HTMLCanvasElement | OffscreenCanvas> {
-  gl: GL;
-  constructor(canvas: HTMLCanvasElement | OffscreenCanvas, {
-    attributes,
-  }: Props = {}, config?: Partial<Config>) {
+export class WebGlCanvas extends DOMWrap<HTMLCanvasElement> {
+  readonly gl: GL;
+  constructor(canvas: HTMLCanvasElement, { attributes }: Props = {}, config?: Partial<Config>) {
     super(canvas);
     const gl: WebGL2RenderingContext = canvas.getContext('webgl2', { ...DEFAULT_ATTRIBUTES, ...attributes })! as WebGL2RenderingContext;
     this.gl = config?.logGL ? logProxy(gl) : gl;
+    canvas.style.pointerEvents = 'none';
   }
 }

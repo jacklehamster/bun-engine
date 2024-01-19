@@ -39,6 +39,8 @@ import { MotionAuxiliary } from "world/aux/MotionAuxiliary";
 import { forEach } from "world/sprite/List";
 import { FollowAuxiliary } from "world/aux/FollowAuxiliary";
 import { ItemsGroup } from "world/sprite/aux/ItemsGroup";
+import { WebGlCanvas } from "graphics/WebGlCanvas";
+import { Hud } from "ui/Hud";
 
 enum Assets {
   DOBUKI = 0,
@@ -63,11 +65,12 @@ const CELLSIZE = 2;
 interface Props {
   engine: IGraphicsEngine;
   motor: IMotor;
+  webGlCanvas: WebGlCanvas;
 }
 
 export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
   camera: ICamera;
-  constructor({ engine, motor }: Props) {
+  constructor({ engine, motor, webGlCanvas }: Props) {
     super();
 
     //  Add a sprite accumulator.
@@ -349,8 +352,13 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
     //  Currently, there is just one block at [0, 0, -3]
     heroPos.moveBlocker = {
       isBlocked(pos): boolean {
-        const [cx, cy, cz] = getCellPos(pos, 2);
-        return cx === 0 && cy === 0 && cz === -3;
+        const blockPos = positionFromCell([0, 0, -3, 2]);
+        const range = 2;
+        const dx = blockPos[0] - pos[0],
+          dy = blockPos[1] - pos[1],
+          dz = blockPos[2] - pos[2];
+        const distSq = dx * dx + dy * dy + dz * dz;
+        return distSq < range * range;
       },
     };
 
@@ -414,10 +422,12 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
     camera.position.addAuxiliary(
       new CellChangeAuxiliary({ cellSize: CELLSIZE })
         .addAuxiliary(new CellTracker(this, {
-          cellLimit: 50,
-          range: [5, 3, 5],
+          cellLimit: 1000,
+          range: [25, 3, 25],
           cellSize: CELLSIZE,
         })));
+
+    webGlCanvas.addAuxiliary(new Hud());
 
     //  Hack some base settings
     camera.distance.setValue(5)

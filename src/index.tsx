@@ -2,8 +2,6 @@ import { GraphicsEngine } from 'graphics/GraphicsEngine';
 import { Motor } from 'motor/Motor';
 import { DemoWorld } from 'demo/DemoWorld';
 import { AuxiliaryHolder } from 'world/aux/AuxiliaryHolder';
-import React from 'react';
-import ReactDOM from 'react-dom/client';
 import { ResizeAux } from 'graphics/aux/ResizeAux';
 import { WebGlCanvas } from 'graphics/WebGlCanvas';
 
@@ -17,14 +15,7 @@ let onStop: () => void;
 
 export async function testCanvas(canvas: HTMLCanvasElement) {
   const webGlCanvas = new WebGlCanvas(canvas);
-  const root = ReactDOM.createRoot(
-    document.body.appendChild(document.createElement('div')),
-  );
-  const element = <h1>Hello, world!</h1>;
-  root.render(element);
 
-  canvas.style.outline = '2px solid black';
-  canvas.style.pointerEvents = 'none';
   const pixelListener = {
     x: 0,
     y: 0,
@@ -45,12 +36,12 @@ export async function testCanvas(canvas: HTMLCanvasElement) {
   // engine.setPixelListener(pixelListener);
   const motor = new Motor();
   const core = new AuxiliaryHolder();
-  const world = new DemoWorld({ engine, motor });
+  const world = new DemoWorld({ engine, motor, webGlCanvas });
   core.addAuxiliary(motor);
   core.addAuxiliary(world);
   core.addAuxiliary(webGlCanvas);
   webGlCanvas.addAuxiliary(new ResizeAux({ engine, camera: world.camera }));
-  // core.addAuxiliary(engine);
+
   core.activate();
   motor.loop(engine);
   onStop = () => core.deactivate();

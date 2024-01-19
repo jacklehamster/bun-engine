@@ -28259,7 +28259,7 @@ class PositionStepAuxiliary {
       this.stepCount = 0;
     }
     const speed = (dx || dz ? deltaTime / 150 : deltaTime / 100) * this.config.speed;
-    const didMove = this.position.gotoPos(this.goalPos[0], pos[1], this.goalPos[2], speed);
+    const didMove = this.position.gotoPos(this.goalPos[0], pos[1], this.goalPos[2], speed) || this.position.gotoPos(this.goalPos[0], pos[1], pos[2], speed) || this.position.gotoPos(pos[0], pos[1], this.goalPos[2], speed);
     if (!didMove) {
       const gx = Math.round(pos[0] / step) * step;
       const gz = Math.round(pos[2] / step) * step;
@@ -29224,6 +29224,41 @@ class FollowAuxiliary {
   }
 }
 
+// src/ui/Hud.tsx
+var import_react = __toESM(require_react(), 1);
+var client = __toESM(require_client(), 1);
+var STYLE = {
+  position: "absolute",
+  pointerEvents: "none",
+  width: "100%",
+  height: "100%"
+};
+
+class Hud extends AuxiliaryHolder {
+  constructor() {
+    super(...arguments);
+  }
+  holder;
+  rootElem = document.createElement("div");
+  root = client.default.createRoot(this.rootElem);
+  activate() {
+    document.body.appendChild(this.rootElem);
+    this.root.render(this.createElement());
+  }
+  deactivate() {
+    this.root.unmount();
+    document.body.removeChild(this.rootElem);
+  }
+  createElement() {
+    const { offsetLeft: left, offsetTop: top } = this.holder?.elem ?? {};
+    return import_react.default.createElement("div", {
+      style: { ...STYLE, top, left }
+    }, import_react.default.createElement("div", {
+      style: { backgroundColor: "#ffffff66" }
+    }, "Hello World"));
+  }
+}
+
 // src/demo/DemoWorld.ts
 var Assets;
 (function(Assets2) {
@@ -29247,7 +29282,7 @@ var CELLSIZE = 2;
 
 class DemoWorld extends AuxiliaryHolder {
   camera;
-  constructor({ engine, motor }) {
+  constructor({ engine, motor, webGlCanvas }) {
     super();
     const spritesAccumulator = new Accumulator().addAuxiliary(new SpriteUpdater({ engine, motor }), new MaxSpriteCountAuxiliary({ engine }));
     this.addAuxiliary(spritesAccumulator);
@@ -29475,8 +29510,11 @@ class DemoWorld extends AuxiliaryHolder {
     spritesAccumulator.addAuxiliary(shadowHeroSprites);
     heroPos.moveBlocker = {
       isBlocked(pos) {
-        const [cx, cy, cz] = getCellPos(pos, 2);
-        return cx === 0 && cy === 0 && cz === -3;
+        const blockPos = positionFromCell([0, 0, -3, 2]);
+        const range = 2;
+        const dx = blockPos[0] - pos[0], dy = blockPos[1] - pos[1], dz = blockPos[2] - pos[2];
+        const distSq = dx * dx + dy * dy + dz * dz;
+        return distSq < range * range;
       }
     };
     spritesAccumulator.addAuxiliary(new SpriteGroup([
@@ -29501,14 +29539,16 @@ class DemoWorld extends AuxiliaryHolder {
       ]
     }));
     this.addAuxiliary(keyboard).addAuxiliary(new DirAuxiliary({ flippable: heroSprites, controls })).addAuxiliary(new DirAuxiliary({ flippable: shadowHeroSprites, controls })).addAuxiliary(new MotionAuxiliary({ controls }, (moving) => {
-      heroSprites.animationId = moving ? Anims.RUN : Anims.STILL;
-      shadowHeroSprites.animationId = moving ? Anims.RUN : Anims.STILL;
+      const animId = moving ? Anims.RUN : Anims.STILL;
+      heroSprites.animationId = animId;
+      shadowHeroSprites.animationId = animId;
     }));
     camera.position.addAuxiliary(new CellChangeAuxiliary({ cellSize: CELLSIZE }).addAuxiliary(new CellTracker(this, {
-      cellLimit: 50,
-      range: [5, 3, 5],
+      cellLimit: 1000,
+      range: [25, 3, 25],
       cellSize: CELLSIZE
     })));
+    webGlCanvas.addAuxiliary(new Hud);
     camera.distance.setValue(5);
     camera.tilt.angle.setValue(1.1);
     camera.projection.zoom.setValue(0.25);
@@ -29516,10 +29556,6 @@ class DemoWorld extends AuxiliaryHolder {
     this.addAuxiliary(new TimeAuxiliary(engine));
   }
 }
-
-// src/index.tsx
-var import_react = __toESM(require_react(), 1);
-var client = __toESM(require_client(), 1);
 
 // src/graphics/aux/ResizeAux.ts
 class ResizeAux {
@@ -29601,12 +29637,11 @@ var DEFAULT_ATTRIBUTES = {
 
 class WebGlCanvas extends DOMWrap {
   gl;
-  constructor(canvas, {
-    attributes
-  } = {}, config) {
+  constructor(canvas, { attributes } = {}, config) {
     super(canvas);
     const gl = canvas.getContext("webgl2", { ...DEFAULT_ATTRIBUTES, ...attributes });
     this.gl = config?.logGL ? logProxy(gl) : gl;
+    canvas.style.pointerEvents = "none";
   }
 }
 
@@ -29618,11 +29653,6 @@ https://github.com/jacklehamster/bun-engine`);
 }
 async function testCanvas(canvas) {
   const webGlCanvas = new WebGlCanvas(canvas);
-  const root = client.default.createRoot(document.body.appendChild(document.createElement("div")));
-  const element = import_react.default.createElement("h1", null, "Hello, world!");
-  root.render(element);
-  canvas.style.outline = "2px solid black";
-  canvas.style.pointerEvents = "none";
   const pixelListener = {
     x: 0,
     y: 0,
@@ -29640,7 +29670,7 @@ async function testCanvas(canvas) {
   const engine = new GraphicsEngine(webGlCanvas.gl);
   const motor = new Motor;
   const core = new AuxiliaryHolder;
-  const world = new DemoWorld({ engine, motor });
+  const world = new DemoWorld({ engine, motor, webGlCanvas });
   core.addAuxiliary(motor);
   core.addAuxiliary(world);
   core.addAuxiliary(webGlCanvas);
@@ -29660,4 +29690,4 @@ export {
   hello
 };
 
-//# debugId=9882044B66ACA44C64756e2164756e21
+//# debugId=1451E70E62C04A4B64756e2164756e21

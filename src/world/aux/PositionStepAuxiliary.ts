@@ -75,7 +75,9 @@ export class PositionStepAuxiliary implements Auxiliary {
     }
     const speed = ((dx || dz) ? deltaTime / 150 : deltaTime / 100) * this.config.speed;
 
-    const didMove = this.position.gotoPos(this.goalPos[0], pos[1], this.goalPos[2], speed);
+    const didMove = this.position.gotoPos(this.goalPos[0], pos[1], this.goalPos[2], speed)
+      || this.position.gotoPos(this.goalPos[0], pos[1], pos[2], speed)
+      || this.position.gotoPos(pos[0], pos[1], this.goalPos[2], speed);
     if (!didMove) {
       const gx = Math.round(pos[0] / step) * step;
       const gz = Math.round(pos[2] / step) * step;
