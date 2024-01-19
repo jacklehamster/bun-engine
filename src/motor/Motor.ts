@@ -1,8 +1,9 @@
 import { Time } from "core/Time";
-import { Priority, Refresh, UpdatePayload } from "../updates/Refresh";
+import { Refresh, UpdatePayload } from "../updates/Refresh";
 import { IMotor } from "./IMotor";
 import { Duration } from "core/Time";
 import { ObjectPool } from "utils/ObjectPool";
+import { Priority } from "updates/Priority";
 
 /**
  * Continously runs a loop which feeds a world into the GL Engine.

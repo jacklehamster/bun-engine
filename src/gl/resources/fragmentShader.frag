@@ -26,20 +26,20 @@ uniform float time;
 vec4 getTextureColor(float textureSlot, vec2 vTexturePoint);
 
 float rand(vec2 co){
-    return fract(sin(dot(co, vec2(12.9898, 78.233))) * 43758.5453) - .5;
+    return fract(sin(dot(co, vec2(12.9898, 78.233))) * 43758.5453);
 }
 
 void main() {
   vec2 vFragment = vTex;
   float blur = bgBlur * pow(dist, .7) / 20000.;
   vec4 color = getTextureColor(vTextureIndex, vTex);
-  if (color.a <= .2) {
+  if (color.a < rand(vTex)) {
     discard;
   };
   int blurPass = 8;
   vec2 vecSeed = vTex * mod(time, 7.);
   for (int i = 0; i < blurPass; i++) {
-    vFragment = vTex + blur * rand(vecSeed + dist * float(i));
+    vFragment = vTex + blur * (rand(vecSeed + dist * float(i) - .5));
     color += getTextureColor(vTextureIndex, vFragment);
   }
   color /= float(blurPass + 1);

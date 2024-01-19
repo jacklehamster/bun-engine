@@ -1,15 +1,11 @@
 import { Duration } from "core/Time";
 import { Time } from "core/Time";
+import { Priority } from "./Priority";
 
 export interface UpdatePayload {
   time: Time;
   deltaTime: Duration;
 }
-
-export enum Priority {
-  DEFAULT = 0,
-  LAST = 1,
-};
 
 export type Refresh = {
   readonly refresh?: (updatePayload: UpdatePayload) => void;

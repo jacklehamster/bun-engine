@@ -40,7 +40,7 @@ import { IGraphicsEngine } from './IGraphicsEngine';
 import { Sprites } from 'world/sprite/Sprites';
 import { IMatrix, Vector } from 'gl/transform/IMatrix';
 import { SpriteSheet } from 'gl/texture/spritesheet/SpriteSheet';
-import { Priority } from 'updates/Refresh';
+import { Priority } from "updates/Priority";
 import { map } from 'world/sprite/List';
 import { Animation, AnimationId } from 'animation/Animation';
 import { Animations } from "animation/Animations";

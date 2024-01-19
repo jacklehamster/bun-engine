@@ -25878,20 +25878,20 @@ uniform float time;
 vec4 getTextureColor(float textureSlot, vec2 vTexturePoint);
 
 float rand(vec2 co){
-    return fract(sin(dot(co, vec2(12.9898, 78.233))) * 43758.5453) - .5;
+    return fract(sin(dot(co, vec2(12.9898, 78.233))) * 43758.5453);
 }
 
 void main() {
   vec2 vFragment = vTex;
   float blur = bgBlur * pow(dist, .7) / 20000.;
   vec4 color = getTextureColor(vTextureIndex, vTex);
-  if (color.a <= .2) {
+  if (color.a < rand(vTex)) {
     discard;
   };
   int blurPass = 8;
   vec2 vecSeed = vTex * mod(time, 7.);
   for (int i = 0; i < blurPass; i++) {
-    vFragment = vTex + blur * rand(vecSeed + dist * float(i));
+    vFragment = vTex + blur * (rand(vecSeed + dist * float(i) - .5));
     color += getTextureColor(vTextureIndex, vFragment);
   }
   color /= float(blurPass + 1);
@@ -27097,7 +27097,7 @@ var SpriteType;
   SpriteType2[SpriteType2["SHADOW"] = 4] = "SHADOW";
 })(SpriteType || (SpriteType = {}));
 
-// src/updates/Refresh.ts
+// src/updates/Priority.ts
 var Priority;
 (function(Priority2) {
   Priority2[Priority2["DEFAULT"] = 0] = "DEFAULT";
@@ -27469,22 +27469,15 @@ class ObjectPool {
 }
 
 // src/motor/Motor.ts
-var MAX_DELTA_TIME = 50;
+var MILLIS_IN_SEC = 1000;
+var MAX_DELTA_TIME = MILLIS_IN_SEC / 20;
 var FRAME_PERIOD = 16.6;
 
 class Motor {
   updateSchedule = new Map;
   time = 0;
   holder;
-  pool = new ObjectPool((schedule, frameRate, expiration) => {
-    if (!schedule) {
-      return { triggerTime: 0, period: frameRate ? 1000 / frameRate : 1, expiration };
-    }
-    schedule.triggerTime = 0;
-    schedule.period = frameRate ? 1000 / frameRate : 0;
-    schedule.expiration = expiration;
-    return schedule;
-  });
+  pool = new SchedulePool;
   loop(update, frameRate, expirationTime) {
     this.registerUpdate(update, frameRate ?? 1000, expirationTime);
   }
@@ -27554,6 +27547,20 @@ class Motor {
       this.stopLoop = undefined;
     };
     this.loop(this.holder);
+  }
+}
+
+class SchedulePool extends ObjectPool {
+  constructor() {
+    super((schedule, frameRate, expiration) => {
+      if (!schedule) {
+        return { triggerTime: 0, period: frameRate ? MILLIS_IN_SEC / frameRate : 1, expiration };
+      }
+      schedule.triggerTime = 0;
+      schedule.period = frameRate ? MILLIS_IN_SEC / frameRate : 0;
+      schedule.expiration = expiration;
+      return schedule;
+    });
   }
 }
 
@@ -27745,14 +27752,21 @@ class Progressive {
   }
 }
 
-// src/core/value/NumVal.ts
-var progressivePool = new ObjectPool((progressive, val) => {
-  if (!progressive) {
-    return new Progressive(val, (elem) => elem.valueOf(), (elem, value) => elem.setValue(value));
+// src/core/value/ProgressivePool.ts
+class ProgressivePool extends ObjectPool {
+  constructor() {
+    super((progressive, val) => {
+      if (!progressive) {
+        return new Progressive(val, (elem) => elem.valueOf(), (elem, value) => elem.setValue(value));
+      }
+      progressive.element = val;
+      return progressive;
+    });
   }
-  progressive.element = val;
-  return progressive;
-});
+}
+
+// src/core/value/NumVal.ts
+var progressivePool = new ProgressivePool;
 
 class NumVal {
   onChange;
@@ -27777,7 +27791,14 @@ class NumVal {
     return this;
   }
   update(deltaTime) {
-    return !!this.progressive?.update(deltaTime);
+    if (this.progressive) {
+      const didUpdate = !!this.progressive?.update(deltaTime);
+      if (!didUpdate) {
+        this.progressive = progressivePool.recycle(this.progressive);
+      }
+      return didUpdate;
+    }
+    return false;
   }
   progressTowards(goal, speed, locker, motor) {
     if (!this.progressive) {
@@ -28365,17 +28386,9 @@ class ToggleAuxiliary {
 }
 
 // src/utils/DoubleLinkList.ts
-class DoubleLinkList {
-  start;
-  end;
-  nodeMap = new Map;
-  pool;
-  constructor(edgeValue) {
-    this.start = { value: edgeValue };
-    this.end = { value: edgeValue };
-    this.start.next = this.end;
-    this.end.prev = this.start;
-    this.pool = new ObjectPool((elem, value) => {
+class NodePool extends ObjectPool {
+  constructor() {
+    super((elem, value) => {
       if (!elem) {
         return { value };
       }
@@ -28384,6 +28397,19 @@ class DoubleLinkList {
       elem.next = undefined;
       return elem;
     });
+  }
+}
+
+class DoubleLinkList {
+  start;
+  end;
+  nodeMap = new Map;
+  pool = new NodePool;
+  constructor(edgeValue) {
+    this.start = { value: edgeValue };
+    this.end = { value: edgeValue };
+    this.start.next = this.end;
+    this.end.prev = this.start;
   }
   clear() {
     while (this.removeEntry(this.start.next)) {
@@ -28628,14 +28654,7 @@ class Grid extends AuxiliaryHolder {
   constructor(copy5, config, ...factories) {
     super();
     this.factories = factories;
-    this.slotPool = new ObjectPool((slot, elem, tag) => {
-      if (!slot) {
-        return { elem: copy5(elem), tag };
-      }
-      slot.elem = copy5(elem, slot.elem);
-      slot.tag = tag;
-      return slot;
-    });
+    this.slotPool = new SlotPool(copy5);
     this.ranges = [
       config?.xRange ?? [Number.NEGATIVE_INFINITY, Number.POSITIVE_INFINITY],
       config?.yRange ?? [Number.NEGATIVE_INFINITY, Number.POSITIVE_INFINITY],
@@ -28693,6 +28712,19 @@ class Grid extends AuxiliaryHolder {
         this.slotPool.recycle(slot);
       }
     }
+  }
+}
+
+class SlotPool extends ObjectPool {
+  constructor(copy5) {
+    super((slot, elem, tag) => {
+      if (!slot) {
+        return { elem: copy5(elem), tag };
+      }
+      slot.elem = copy5(elem, slot.elem);
+      slot.tag = tag;
+      return slot;
+    });
   }
 }
 
@@ -28866,18 +28898,25 @@ class KeyboardControls {
   }
 }
 
+// src/world/pools/Spritepool.ts
+class SpritePool extends ObjectPool {
+  constructor() {
+    super((sprite, imageId) => {
+      if (!sprite) {
+        return { imageId, transform: Matrix_default.create() };
+      }
+      sprite.imageId = imageId;
+      sprite.transform.identity();
+      return sprite;
+    });
+  }
+}
+
 // src/world/sprite/SpritesFactory.ts
 class SpriteFactory {
   filler;
   sprites = [];
-  pool = new ObjectPool((sprite, imageId) => {
-    if (!sprite) {
-      return { imageId, transform: Matrix_default.create() };
-    }
-    sprite.imageId = imageId;
-    sprite.transform.identity();
-    return sprite;
-  });
+  pool = new SpritePool;
   spriteBag = {
     createSprite: (imageId) => this.pool.create(imageId ?? 0),
     addSprite: (...sprites) => this.sprites.push(...sprites)
@@ -29098,15 +29137,7 @@ class Accumulator extends AuxiliaryHolder {
   }
   indices = [];
   newElemsListener = new Set;
-  pool = new ObjectPool((slot, elems, index) => {
-    if (!slot) {
-      return { elems, index };
-    }
-    slot.elems = elems;
-    slot.index = index;
-    slot.id = undefined;
-    return slot;
-  });
+  pool = new SlotPool2;
   at(id) {
     const slot = this.indices[id];
     return slot?.elems.at(slot.index);
@@ -29180,6 +29211,20 @@ class Accumulator extends AuxiliaryHolder {
   }
   addNewElemsListener(listener) {
     this.newElemsListener.add(listener);
+  }
+}
+
+class SlotPool2 extends ObjectPool {
+  constructor() {
+    super((slot, elems, index) => {
+      if (!slot) {
+        return { elems, index };
+      }
+      slot.elems = elems;
+      slot.index = index;
+      slot.id = undefined;
+      return slot;
+    });
   }
 }
 
@@ -29700,4 +29745,4 @@ export {
   hello
 };
 
-//# debugId=B137D5DD3D752D3164756e2164756e21
+//# debugId=7B8FCDAD1DE7085A64756e2164756e21
