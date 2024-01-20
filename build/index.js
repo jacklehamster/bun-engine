@@ -25889,7 +25889,7 @@ void main() {
   vec2 vFragment = vTex;
   float blur = bgBlur * pow(dist, .7) / 20000.;
   vec4 color = getTextureColor(vTextureIndex, vTex);
-  if (color.a < rand(vTex)) {
+  if (color.a < .1) {//rand(vTex)) {
     discard;
   };
   int blurPass = 8;
@@ -28255,17 +28255,18 @@ class Looper {
 // src/motor/ControlledLooper.ts
 class ControlledLooper extends Looper {
   controls;
+  triggerred;
   _listener;
   constructor(motor, controls, triggerred, data, refresher) {
     super(motor, false, data, refresher);
     this.controls = controls;
-    this._listener = {
-      onAction: (controls2) => {
-        if (triggerred(controls2)) {
-          this.start();
-        }
-      }
-    };
+    this.triggerred = triggerred;
+    this._listener = this;
+  }
+  onAction(controls) {
+    if (this.triggerred(controls)) {
+      this.start();
+    }
   }
   activate() {
     super.activate();
@@ -29207,9 +29208,7 @@ class TiltAuxiliary extends ControlledLooper {
 // src/world/aux/SmoothFollowAuxiliary.ts
 class SmoothFollowAuxiliary extends Looper {
   followee;
-  listener = () => {
-    this.start();
-  };
+  listener = () => this.start();
   constructor({ followee, follower, motor }, config) {
     super(motor, false, { followee, follower, speed: config?.speed ?? 1 });
     this.followee = followee;
@@ -29557,6 +29556,45 @@ class TurnStepAuxiliary extends ControlledLooper {
   }
 }
 
+// src/world/collision/DisplayBox.ts
+class DisplayBox {
+  sprites;
+  constructor(box, imageId) {
+    const cX = (box.left + box.right) / 2;
+    const cY = (box.top + box.bottom) / 2;
+    const cZ = (box.near + box.far) / 2;
+    const groundScale = [box.right - box.left, 2, box.near - box.far];
+    const sideScale = [2, box.top - box.bottom, box.near - box.far];
+    const faceScale = [box.right - box.left, box.top - box.bottom, 2];
+    const outside = [
+      Matrix_default.create().translate(cX, box.bottom, cZ).scale(...groundScale).scale(0.5).rotateX(Math.PI / 2),
+      Matrix_default.create().translate(cX, box.top, cZ).scale(...groundScale).scale(0.5).rotateX(-Math.PI / 2),
+      Matrix_default.create().translate(box.left, cY, cZ).scale(...sideScale).scale(0.5).rotateY(-Math.PI / 2),
+      Matrix_default.create().translate(box.right, cY, cZ).scale(...sideScale).scale(0.5).rotateY(Math.PI / 2),
+      Matrix_default.create().translate(cX, cY, box.near).scale(...faceScale).scale(0.5).rotateY(0),
+      Matrix_default.create().translate(cX, cY, box.far).scale(...faceScale).scale(0.5).rotateY(Math.PI)
+    ].map((transform) => ({ imageId, transform }));
+    const inside = [
+      Matrix_default.create().translate(cX, box.bottom, cZ).scale(...groundScale).scale(0.5).rotateX(-Math.PI / 2),
+      Matrix_default.create().translate(cX, box.top, cZ).scale(...groundScale).scale(0.5).rotateX(+Math.PI / 2),
+      Matrix_default.create().translate(box.left, cY, cZ).scale(...sideScale).scale(0.5).rotateY(+Math.PI / 2),
+      Matrix_default.create().translate(box.right, cY, cZ).scale(...sideScale).scale(0.5).rotateY(-Math.PI / 2),
+      Matrix_default.create().translate(cX, cY, box.near).scale(...faceScale).scale(0.5).rotateY(Math.PI),
+      Matrix_default.create().translate(cX, cY, box.far).scale(...faceScale).scale(0.5).rotateY(0)
+    ].map((transform) => ({ imageId, transform }));
+    this.sprites = [...inside, ...outside];
+  }
+  get length() {
+    return this.sprites.length;
+  }
+  at(index) {
+    return this.sprites.at(index);
+  }
+  informUpdate(_id, _type) {
+    throw new Error("Method not implemented.");
+  }
+}
+
 // src/demo/DemoWorld.ts
 var Assets;
 (function(Assets2) {
@@ -29693,9 +29731,9 @@ class DemoWorld extends AuxiliaryHolder {
           const { canvas } = ctx;
           canvas.width = LOGO_SIZE;
           canvas.height = LOGO_SIZE;
-          ctx.lineWidth = 8;
-          ctx.setLineDash([5, 2]);
-          ctx.strokeStyle = "green";
+          ctx.lineWidth = 40;
+          ctx.setLineDash([20, 5]);
+          ctx.strokeStyle = "red";
           ctx.beginPath();
           ctx.rect(10, 10, canvas.width - 20, canvas.height - 20);
           ctx.stroke();
@@ -29780,8 +29818,17 @@ class DemoWorld extends AuxiliaryHolder {
         bag.addSprite(ground, ceiling);
       }
     })));
+    const heroBox = {
+      top: 1,
+      bottom: -1,
+      left: -0.9,
+      right: 0.9,
+      near: 0.9,
+      far: -0.9
+    };
     const heroPos = new PositionMatrix().onChange(() => {
       forEach3(heroSprites, (_, index) => heroSprites.informUpdate(index, SpriteUpdateType.TRANSFORM));
+      forEach3(displayBox, (_, index) => displayBox.informUpdate(index, SpriteUpdateType.TRANSFORM));
     });
     const heroSprites = new SpriteGroup([
       {
@@ -29791,6 +29838,9 @@ class DemoWorld extends AuxiliaryHolder {
         animationId: Anims.STILL
       }
     ], [heroPos]);
+    spritesAccumulator.addAuxiliary(heroSprites);
+    const displayBox = new SpriteGroup(new DisplayBox(heroBox, Assets.WIREFRAME), [heroPos]);
+    spritesAccumulator.addAuxiliary(displayBox);
     const shadowPos = new PositionMatrix().onChange(() => {
       forEach3(shadowHeroSprites, (_, index) => shadowHeroSprites.informUpdate(index, SpriteUpdateType.TRANSFORM));
     });
@@ -29808,7 +29858,6 @@ class DemoWorld extends AuxiliaryHolder {
     }, {
       followY: false
     }));
-    spritesAccumulator.addAuxiliary(heroSprites);
     spritesAccumulator.addAuxiliary(shadowHeroSprites);
     heroPos.moveBlocker = {
       isBlocked(to, from) {
@@ -30007,4 +30056,4 @@ export {
   hello
 };
 
-//# debugId=AD0D4E435B2099A164756e2164756e21
+//# debugId=E0ADD7188206BD7264756e2164756e21

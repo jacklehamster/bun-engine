@@ -43,6 +43,7 @@ import { WebGlCanvas } from "graphics/WebGlCanvas";
 import { Hud } from "ui/Hud";
 import { TurnStepAuxiliary } from "world/aux/TurnStepAuxiliary";
 import { IPositionMatrix } from "gl/transform/IPositionMatrix";
+import { DisplayBox } from "world/collision/DisplayBox";
 
 enum Assets {
   DOBUKI = 0,
@@ -207,10 +208,10 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
               const { canvas } = ctx;
               canvas.width = LOGO_SIZE;
               canvas.height = LOGO_SIZE;
-              ctx.lineWidth = 8;
-              ctx.setLineDash([5, 2]);
+              ctx.lineWidth = 40;
+              ctx.setLineDash([20, 5]);
 
-              ctx.strokeStyle = 'green';
+              ctx.strokeStyle = 'red';
 
               ctx.beginPath();
               ctx.rect(10, 10, canvas.width - 20, canvas.height - 20);
@@ -329,18 +330,29 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
       })
     ));
 
+    const heroBox = {
+      top: 1,
+      bottom: -1,
+      left: -.9,
+      right: .9,
+      near: .9,
+      far: -.9,
+    };
     const heroPos: IPositionMatrix = new PositionMatrix()
       .onChange(() => {
         forEach(heroSprites, (_, index) => heroSprites.informUpdate(index, SpriteUpdateType.TRANSFORM));
+        forEach(displayBox, (_, index) => displayBox.informUpdate(index, SpriteUpdateType.TRANSFORM));
       });
-    const heroSprites = new SpriteGroup([
-      {
-        imageId: Assets.DODO,
-        spriteType: SpriteType.SPRITE,
-        transform: Matrix.create().translate(0, -.5, 0),
-        animationId: Anims.STILL,
-      },
-    ], [heroPos]);
+    const heroSprites = new SpriteGroup([{
+      imageId: Assets.DODO,
+      spriteType: SpriteType.SPRITE,
+      transform: Matrix.create().translate(0, -.5, 0),
+      animationId: Anims.STILL,
+    },], [heroPos]);
+    spritesAccumulator.addAuxiliary(heroSprites);
+
+    const displayBox = new SpriteGroup(new DisplayBox(heroBox, Assets.WIREFRAME), [heroPos]);
+    spritesAccumulator.addAuxiliary(displayBox);
 
     const shadowPos: IPositionMatrix = new PositionMatrix()
       .onChange(() => {
@@ -360,8 +372,6 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
     }, {
       followY: false,
     }));
-
-    spritesAccumulator.addAuxiliary(heroSprites);
     spritesAccumulator.addAuxiliary(shadowHeroSprites);
 
     //  * A move blocker just determines where you can or cannot move.

@@ -22,9 +22,7 @@ interface Config {
 
 export class SmoothFollowAuxiliary extends Looper<Data> implements Auxiliary {
   private followee: IPositionMatrix;
-  private listener: ChangeListener = () => {
-    this.start();
-  };
+  private listener: ChangeListener = () => this.start();
 
   constructor({ followee, follower, motor }: Props, config?: Partial<Config>) {
     super(motor, false, { followee, follower, speed: config?.speed ?? 1 });

@@ -3,17 +3,17 @@ import { IMotor } from "./IMotor";
 import { Looper } from "./Looper";
 import { ControlsListener, IControls } from "controls/IControls";
 
-export class ControlledLooper<T = undefined> extends Looper<T> {
+export class ControlledLooper<T = undefined> extends Looper<T> implements ControlsListener {
   private _listener: ControlsListener;
-  constructor(motor: IMotor, private readonly controls: IControls, triggerred: (controls: IControls) => boolean, data: T, refresher?: Refresh<T>) {
+  constructor(motor: IMotor, private readonly controls: IControls, private triggerred: (controls: IControls) => boolean, data: T, refresher?: Refresh<T>) {
     super(motor, false, data, refresher);
-    this._listener = {
-      onAction: (controls): void => {
-        if (triggerred(controls)) {
-          this.start();
-        }
-      },
-    };
+    this._listener = this;
+  }
+
+  onAction(controls: IControls): void {
+    if (this.triggerred(controls)) {
+      this.start();
+    }
   }
 
   activate(): void {
