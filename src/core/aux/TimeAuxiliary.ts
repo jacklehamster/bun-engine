@@ -10,14 +10,12 @@ interface Props {
   engine: IGraphicsEngine;
 }
 
-export class TimeAuxiliary extends Looper implements Auxiliary {
-  private readonly engine: IGraphicsEngine;
+export class TimeAuxiliary extends Looper<IGraphicsEngine> implements Auxiliary {
   constructor({ engine, motor }: Props) {
-    super(motor, true);
-    this.engine = engine;
+    super(motor, true, engine);
   }
 
-  refresh(updatePayload: UpdatePayload): void {
-    this.engine.updateUniformFloat(FloatUniform.TIME, updatePayload.time);
+  refresh({ time, data }: UpdatePayload<IGraphicsEngine>): void {
+    data.updateUniformFloat(FloatUniform.TIME, time);
   }
 }

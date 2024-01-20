@@ -11,22 +11,18 @@ export const TEXTURE_INDEX_FOR_VIDEO = 15;
 export type Url = string;
 
 export class TextureManager extends Disposable {
-  private gl: GL;
-  private uniforms: GLUniforms;
   private textureBuffers: Record<TextureId | string, WebGLTexture> = {};
   private tempContext = (new OffscreenCanvas(1, 1)).getContext('2d')!;
   private textureSlotAllocator = new TextureSlotAllocator({
-    excludeTexture: (tex) => tex === TEXTURE_INDEX_FOR_VIDEO
+    excludeTexture: tex => tex === TEXTURE_INDEX_FOR_VIDEO,
   });
   private textureSlotAllocatorForVideo = new TextureSlotAllocator({
-    excludeTexture: (tex) => tex !== TEXTURE_INDEX_FOR_VIDEO
+    excludeTexture: tex => tex !== TEXTURE_INDEX_FOR_VIDEO,
   });
   private activeMedias: Set<MediaData> = new Set();
 
-  constructor(gl: GL, uniforms: GLUniforms) {
+  constructor(private gl: GL, private uniforms: GLUniforms) {
     super();
-    this.gl = gl;
-    this.uniforms = uniforms;
     this.tempContext.imageSmoothingEnabled = true;
   }
 

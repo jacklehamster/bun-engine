@@ -2,8 +2,8 @@ import { Vector } from "core/types/Vector";
 
 function distSq(v1: Vector, v2: Vector) {
   const dx = v1[0] - v2[0];
-  const dy = v1[0] - v2[0];
-  const dz = v1[0] - v2[0];
+  const dy = v1[1] - v2[1];
+  const dz = v1[2] - v2[2];
   return dx * dx + dy * dy + dz * dz;
 }
 

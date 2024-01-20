@@ -68,8 +68,7 @@ export class Motor implements IMotor {
       data: undefined,
     };
     const updateGroups: [Update[], Update[]] = [
-      [],
-      [],
+      [], [],
     ];
 
     let time = 0;
@@ -98,6 +97,7 @@ export class Motor implements IMotor {
       }
       updateGroups[Priority.DEFAULT].length = 0;
       updateGroups[Priority.LAST].length = 0;
+      this.updatePool.reset();
     };
     let handle = requestAnimationFrame(loop);
     this.stopLoop = () => {

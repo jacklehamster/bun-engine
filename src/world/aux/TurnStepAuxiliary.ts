@@ -4,7 +4,7 @@ import { angleStep } from "gl/utils/angleUtils";
 import { IControls } from "controls/IControls";
 import { IAngleMatrix } from "gl/transform/IAngleMatrix";
 import { IMotor } from "motor/IMotor";
-import { ControlledLooper } from "motor/ControlLooper";
+import { ControlledLooper } from "motor/ControlledLooper";
 
 interface Props {
   motor: IMotor;

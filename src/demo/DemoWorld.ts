@@ -11,7 +11,7 @@ import { TurnAuxiliary } from "world/aux/TurnAuxiliary";
 import { PositionStepAuxiliary } from "world/aux/PositionStepAuxiliary";
 import { TiltResetAuxiliary } from "world/aux/TiltResetAuxiliary";
 import { ToggleAuxiliary } from "world/aux/ToggleAuxiliary";
-import { CellTracker } from "world/grid/CellTracker";
+import { SurroundingTracker } from "world/grid/SurroundingTracker";
 import { SpriteGroup } from "world/sprite/aux/SpritesGroup";
 import { FixedSpriteGrid } from "world/sprite/aux/FixedSpriteGrid";
 import { MaxSpriteCountAuxiliary } from "world/sprite/aux/MaxSpriteCountAuxiliary";
@@ -42,6 +42,7 @@ import { ItemsGroup } from "world/sprite/aux/ItemsGroup";
 import { WebGlCanvas } from "graphics/WebGlCanvas";
 import { Hud } from "ui/Hud";
 import { TurnStepAuxiliary } from "world/aux/TurnStepAuxiliary";
+import { IPositionMatrix } from "gl/transform/IPositionMatrix";
 
 enum Assets {
   DOBUKI = 0,
@@ -263,7 +264,7 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
         {
           imageId: Assets.DOBUKI,
           spriteType: SpriteType.SPRITE,
-          transform: Matrix.create().translate(0, 0, -1),
+          transform: Matrix.create().translate(0, 0, -3),
         },
       ],
       //  Side walls with happy face logo
@@ -325,7 +326,7 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
       })
     ));
 
-    const heroPos: PositionMatrix = new PositionMatrix()
+    const heroPos: IPositionMatrix = new PositionMatrix()
       .onChange(() => {
         forEach(heroSprites, (_, index) => heroSprites.informUpdate(index, SpriteUpdateType.TRANSFORM));
       });
@@ -338,7 +339,7 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
       },
     ], [heroPos]);
 
-    const shadowPos: PositionMatrix = new PositionMatrix()
+    const shadowPos: IPositionMatrix = new PositionMatrix()
       .onChange(() => {
         forEach(shadowHeroSprites, (_, index) => shadowHeroSprites.informUpdate(index, SpriteUpdateType.TRANSFORM));
       });;
@@ -404,7 +405,7 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
               new SmoothFollowAuxiliary({ motor, follower: camera.position, followee: heroPos }, { speed: .05 }),
               new JumpAuxiliary({ motor, controls, position: heroPos }),
               new TurnStepAuxiliary({ motor, controls, turn: camera.turn }),
-            )
+            ),
           },
           {
             key: "Tab", aux: Auxiliaries.from(
@@ -414,7 +415,7 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
               new JumpAuxiliary({ motor, controls, position: heroPos }),
               new TiltResetAuxiliary({ motor, controls, tilt: camera.tilt }),
               new SmoothFollowAuxiliary({ motor, follower: camera.position, followee: heroPos }, { speed: .05 }),
-            )
+            ),
           },
         ],
       }),
@@ -434,7 +435,7 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
     //  * is evaluated, and some are created as needed.
     camera.position.addAuxiliary(
       new CellChangeAuxiliary({ cellSize: CELLSIZE })
-        .addAuxiliary(new CellTracker(this, {
+        .addAuxiliary(new SurroundingTracker(this, {
           cellLimit: 100,
           range: [5, 3, 5],
           cellSize: CELLSIZE,

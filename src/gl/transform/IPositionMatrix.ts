@@ -1,5 +1,6 @@
 import { IMatrix } from "./IMatrix";
 import { Vector } from "../../core/types/Vector";
+import { MoveBlocker } from "./aux/MoveBlocker";
 
 export type ChangeListener = (dx: number, dy: number, dz: number) => void;
 export interface IPositionMatrix extends IMatrix {
@@ -9,4 +10,5 @@ export interface IPositionMatrix extends IMatrix {
   get position(): Vector;
   onChange(listener: ChangeListener): this;
   removeChangeListener(listener: ChangeListener): void;
+  moveBlocker?: MoveBlocker;
 }

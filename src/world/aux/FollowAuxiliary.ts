@@ -1,13 +1,12 @@
-import { PositionMatrix } from "gl/transform/PositionMatrix";
-import { ChangeListener } from "gl/transform/IPositionMatrix";
+import { ChangeListener, IPositionMatrix } from "gl/transform/IPositionMatrix";
 import { Auxiliary } from "./Auxiliary";
 import { Looper } from "motor/Looper";
 import { IMotor } from "motor/IMotor";
 import { UpdatePayload } from "updates/Refresh";
 
 interface Props {
-  followee: PositionMatrix;
-  follower: PositionMatrix;
+  followee: IPositionMatrix;
+  follower: IPositionMatrix;
   motor: IMotor;
 }
 
@@ -19,8 +18,8 @@ interface Config {
 }
 
 interface Data {
-  followee: PositionMatrix;
-  follower: PositionMatrix;
+  followee: IPositionMatrix;
+  follower: IPositionMatrix;
 }
 
 export class FollowAuxiliary extends Looper<Data> implements Auxiliary {

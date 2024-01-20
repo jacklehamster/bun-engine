@@ -4,7 +4,7 @@ import { IControls } from "controls/IControls";
 import { IPositionMatrix } from "gl/transform/IPositionMatrix";
 import { NumVal } from "core/value/NumVal";
 import { IMotor } from "motor/IMotor";
-import { ControlledLooper } from "motor/ControlLooper";
+import { ControlledLooper } from "motor/ControlledLooper";
 import { Vector } from "core/types/Vector";
 import { equal } from "core/utils/vector-utils";
 

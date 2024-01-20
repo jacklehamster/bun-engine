@@ -1,10 +1,10 @@
-import { StateEnum, ControlsListener, IControls } from "./IControls";
+import { ControlsListener, IControls } from "./IControls";
 import { IKeyboard } from "./IKeyboard";
 
 export class KeyboardControls implements IControls {
-  private onRemoveListener: Map<ControlsListener, () => void> = new Map();
+  private readonly onRemoveListener: Map<ControlsListener, () => void> = new Map();
 
-  constructor(private keyboard: IKeyboard) {
+  constructor(private readonly keyboard: IKeyboard) {
   }
 
   addListener(listener: ControlsListener): void {
@@ -19,8 +19,8 @@ export class KeyboardControls implements IControls {
             break;
         }
       },
-      onKeyDown: () => listener.onAction?.(this, StateEnum.PRESS_DOWN),
-      onKeyUp: () => listener.onAction?.(this, StateEnum.PRESS_UP),
+      onKeyDown: () => listener.onAction?.(this),
+      onKeyUp: () => listener.onActionUp?.(this),
     });
     this.onRemoveListener.set(listener, onRemove);
   }

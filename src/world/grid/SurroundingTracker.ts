@@ -13,7 +13,7 @@ interface Config {
   cellSize?: number;
 }
 
-export class CellTracker implements VisitableCell, Auxiliary<CellChangeAuxiliary> {
+export class SurroundingTracker implements VisitableCell, Auxiliary<CellChangeAuxiliary> {
   private readonly cellTags: FreeStack<string> = new DoubleLinkList<string>("");
   private range: [number, number, number];
   private base: [number, number, number];

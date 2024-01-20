@@ -27542,6 +27542,7 @@ class Motor {
       }
       updateGroups[Priority.DEFAULT].length = 0;
       updateGroups[Priority.LAST].length = 0;
+      this.updatePool.reset();
     };
     let handle = requestAnimationFrame(loop);
     this.stopLoop = () => {
@@ -28147,6 +28148,7 @@ class CellChangeAuxiliary extends AuxiliaryHolder {
       this.cell.pos[2] = z;
       this.cell.tag = cellTag(...this.cell.pos);
       this.visitableCell.visitCell(this.cell);
+      console.log(this.cell);
     }
   }
   activate() {
@@ -28247,26 +28249,17 @@ class Looper {
   }
 }
 
-// src/controls/IControls.ts
-var StateEnum;
-(function(StateEnum2) {
-  StateEnum2[StateEnum2["PRESS_UP"] = 0] = "PRESS_UP";
-  StateEnum2[StateEnum2["PRESS_DOWN"] = 1] = "PRESS_DOWN";
-})(StateEnum || (StateEnum = {}));
-
-// src/motor/ControlLooper.ts
+// src/motor/ControlledLooper.ts
 class ControlledLooper extends Looper {
   controls;
   _listener;
-  constructor(motor, controls, trigger, data, refresher) {
+  constructor(motor, controls, triggerred, data, refresher) {
     super(motor, false, data, refresher);
     this.controls = controls;
     this._listener = {
-      onAction: (controls2, state) => {
-        if (state === StateEnum.PRESS_DOWN) {
-          if (trigger(controls2)) {
-            this.start();
-          }
+      onAction: (controls2) => {
+        if (triggerred(controls2)) {
+          this.start();
         }
       }
     };
@@ -28304,8 +28297,8 @@ class TurnAuxiliary extends ControlledLooper {
 // src/core/utils/vector-utils.ts
 var distSq = function(v1, v2) {
   const dx = v1[0] - v2[0];
-  const dy = v1[0] - v2[0];
-  const dz = v1[0] - v2[0];
+  const dy = v1[1] - v2[1];
+  const dz = v1[2] - v2[2];
   return dx * dx + dy * dy + dz * dz;
 };
 function equal(v1, v2, threshold = 0) {
@@ -28910,8 +28903,8 @@ class KeyboardControls {
             break;
         }
       },
-      onKeyDown: () => listener.onAction?.(this, StateEnum.PRESS_DOWN),
-      onKeyUp: () => listener.onAction?.(this, StateEnum.PRESS_UP)
+      onKeyDown: () => listener.onAction?.(this),
+      onKeyUp: () => listener.onActionUp?.(this)
     });
     this.onRemoveListener.set(listener, onRemove);
   }
@@ -29064,13 +29057,11 @@ class JumpAuxiliary extends ControlledLooper {
 
 // src/core/aux/TimeAuxiliary.ts
 class TimeAuxiliary extends Looper {
-  engine;
   constructor({ engine, motor }) {
-    super(motor, true);
-    this.engine = engine;
+    super(motor, true, engine);
   }
-  refresh(updatePayload) {
-    this.engine.updateUniformFloat(FloatUniform.TIME, updatePayload.time);
+  refresh({ time, data }) {
+    data.updateUniformFloat(FloatUniform.TIME, time);
   }
 }
 
@@ -29306,19 +29297,27 @@ class MotionAuxiliary {
     this.onChange = onChange;
     this.controls = controls;
   }
-  onAction(controls) {
-    const { left, forward, backward, right } = controls;
-    const moving = left || forward || backward || right;
-    if (this._moving !== moving) {
-      this._moving = moving;
+  set moving(value) {
+    if (this._moving !== value) {
+      this._moving = value;
       this.onChange?.(this._moving);
     }
+  }
+  checkMotion(controls) {
+    const { left, forward, backward, right } = controls;
+    this.moving = left || forward || backward || right;
+  }
+  onAction(controls) {
+    this.checkMotion(controls);
+  }
+  onActionUp(controls) {
+    this.checkMotion(controls);
   }
   activate() {
     this.controls.addListener(this);
   }
   deactivate() {
-    this._moving = false;
+    this.moving = false;
     this.controls.removeListener(this);
   }
 }
@@ -29613,7 +29612,7 @@ class DemoWorld extends AuxiliaryHolder {
       {
         imageId: Assets.DOBUKI,
         spriteType: SpriteType.SPRITE,
-        transform: Matrix_default.create().translate(0, 0, -1)
+        transform: Matrix_default.create().translate(0, 0, -3)
       }
     ], [
       ...[
@@ -29870,4 +29869,4 @@ export {
   hello
 };
 
-//# debugId=56E5C5474D5F247A64756e2164756e21
+//# debugId=3DDF52372A8EF5B064756e2164756e21

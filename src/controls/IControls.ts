@@ -6,7 +6,8 @@ export enum StateEnum {
 export interface ControlsListener {
   onQuickAction?(): void;
   onQuickTiltReset?(): void;
-  onAction?(controls: IControls, state: StateEnum): void;
+  onAction?(controls: IControls): void;
+  onActionUp?(controls: IControls): void;
 }
 
 export interface IControls {

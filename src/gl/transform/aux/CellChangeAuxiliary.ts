@@ -37,6 +37,7 @@ export class CellChangeAuxiliary extends AuxiliaryHolder implements Auxiliary<IP
       this.cell.pos[2] = z;
       this.cell.tag = cellTag(...this.cell.pos);
       this.visitableCell.visitCell(this.cell);
+      console.log(this.cell);
     }
   }
 

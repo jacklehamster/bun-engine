@@ -1,15 +1,15 @@
 import { UpdatePayload } from "updates/Refresh";
 import { Auxiliary } from "./Auxiliary";
 import { IControls } from "controls/IControls";
-import { PositionMatrix } from "gl/transform/PositionMatrix";
 import { IMatrix } from "gl/transform/IMatrix";
 import { IMotor } from "motor/IMotor";
-import { ControlledLooper } from "motor/ControlLooper";
+import { ControlledLooper } from "motor/ControlledLooper";
+import { IPositionMatrix } from "gl/transform/IPositionMatrix";
 
 interface Props {
   controls: IControls;
   direction?: IMatrix;
-  position: PositionMatrix;
+  position: IPositionMatrix;
   motor: IMotor;
 }
 
@@ -20,7 +20,7 @@ interface Config {
 interface Data {
   controls: IControls;
   direction?: IMatrix;
-  position: PositionMatrix;
+  position: IPositionMatrix;
   speed: number;
 }
 
