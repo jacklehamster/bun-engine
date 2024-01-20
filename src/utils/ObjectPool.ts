@@ -1,6 +1,6 @@
 export class ObjectPool<T, A extends any[] = []> {
-  private allObjectsCreated: T[] = [];
-  private recycler: T[] = [];
+  private readonly allObjectsCreated: T[] = [];
+  private readonly recycler: T[] = [];
   constructor(private initCall: (elem: T | undefined, ...params: A) => T) {
   }
 

@@ -17,24 +17,22 @@ interface Config {
   speed: number;
 }
 
-export class MoveAuxiliary extends ControlledLooper implements Auxiliary {
-  private readonly direction?: IMatrix;
-  private readonly position: PositionMatrix;
-  private config: Config;
+interface Data {
+  controls: IControls;
+  direction?: IMatrix;
+  position: PositionMatrix;
+  speed: number;
+}
 
+export class MoveAuxiliary extends ControlledLooper<Data> implements Auxiliary {
   constructor({ controls, direction, motor, position }: Props, config?: Partial<Config>) {
-    super(motor, controls, ({ forward, backward, left, right }) => forward || backward || left || right);
-    this.direction = direction;
-    this.position = position;
-    this.config = {
-      speed: config?.speed ?? 1,
-    };
+    super(motor, controls, ({ forward, backward, left, right }) => forward || backward || left || right,
+      { controls, direction, position, speed: config?.speed ?? 1 });
   }
 
-  refresh(update: UpdatePayload): void {
-    const { forward, backward, left, right } = this.controls;
-    const { deltaTime } = update;
-    const speed = deltaTime / 80 * this.config.speed;
+  refresh({ data, deltaTime }: UpdatePayload<Data>): void {
+    const { forward, backward, left, right } = data.controls;
+    const speed = deltaTime / 80 * data.speed;
     let dx = 0, dz = 0;
     if (forward) {
       dz -= speed;
@@ -48,7 +46,7 @@ export class MoveAuxiliary extends ControlledLooper implements Auxiliary {
     if (right) {
       dx += speed;
     }
-    this.position.moveBy(dx, 0, dz, this.direction);
+    data.position.moveBy(dx, 0, dz, data.direction);
     if (!forward && !backward && !left && !right) {
       this.stop();
     }

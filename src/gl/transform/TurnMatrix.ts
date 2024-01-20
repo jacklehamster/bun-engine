@@ -3,7 +3,7 @@ import Matrix from "./Matrix";
 import { NumVal } from "core/value/NumVal";
 
 export class TurnMatrix implements IAngleMatrix {
-  private matrix: Matrix = Matrix.create();
+  private readonly matrix: Matrix = Matrix.create();
   readonly angle: NumVal;
 
   constructor(onChange?: () => void) {

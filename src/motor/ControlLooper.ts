@@ -3,10 +3,10 @@ import { IMotor } from "./IMotor";
 import { Looper } from "./Looper";
 import { ControlsListener, IControls, StateEnum } from "controls/IControls";
 
-export class ControlledLooper extends Looper {
+export class ControlledLooper<T = undefined> extends Looper<T> {
   private _listener: ControlsListener;
-  constructor(motor: IMotor, protected readonly controls: IControls, trigger: (controls: IControls) => boolean, refresher?: Refresh) {
-    super(motor, false, refresher);
+  constructor(motor: IMotor, private readonly controls: IControls, trigger: (controls: IControls) => boolean, data?: T, refresher?: Refresh<T>) {
+    super(motor, false, data, refresher);
     this._listener = {
       onAction: (controls, state): void => {
         if (state === StateEnum.PRESS_DOWN) {

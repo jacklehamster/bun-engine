@@ -5,11 +5,15 @@ import { Angle } from 'gl/utils/angleUtils';
 
 const DEG_TO_RADIANT = Math.PI / 90;
 
+const tempVec: Vector = [0, 0, 0];
+const aTemp = mat4.create();
+const bTemp = mat4.create();
+const tempQuat = quat.create();
+
 class Matrix implements IMatrix {
-  private m4 = Float32Array.from(mat4.create());
+  private readonly m4 = Float32Array.from(mat4.create());
   static readonly HIDDEN = Matrix.create().scale(0, 0, 0);
   static readonly IDENTITY = Matrix.create();
-  private static tempVec: Vector = [0, 0, 0];
 
   constructor() {
     this.identity();
@@ -44,14 +48,14 @@ class Matrix implements IMatrix {
     return this;
   }
 
-  public multiply3(matrix1: IMatrix, matrix2: IMatrix, matrix3: IMatrix): Matrix {
+  multiply3(matrix1: IMatrix, matrix2: IMatrix, matrix3: IMatrix): Matrix {
     this.multiply2(matrix1, matrix2);
     this.multiply(matrix3);
     return this;
   }
 
   translate(x: number, y: number, z: number): Matrix {
-    const v = Matrix.tempVec;
+    const v = tempVec;
     v[0] = x;
     v[1] = y;
     v[2] = z;
@@ -109,31 +113,28 @@ class Matrix implements IMatrix {
     return this;
   }
 
-  private static aTemp = mat4.create();
-  private static bTemp = mat4.create();
   combine(matrix1: Matrix, matrix2: Matrix, level: number = .5): Matrix {
-    mat4.multiplyScalar(Matrix.aTemp, matrix1.getMatrix(), 1 - level);
-    mat4.multiplyScalar(Matrix.bTemp, matrix2.getMatrix(), level);
-    mat4.add(this.m4, Matrix.aTemp, Matrix.bTemp);
+    mat4.multiplyScalar(aTemp, matrix1.getMatrix(), 1 - level);
+    mat4.multiplyScalar(bTemp, matrix2.getMatrix(), level);
+    mat4.add(this.m4, aTemp, bTemp);
     return this;
   }
 
-  private static tempQuat = quat.create();
   static getMoveVector(x: number, y: number, z: number, turnMatrix?: IMatrix): Vector {
-    const v = Matrix.tempVec;
+    const v = tempVec;
     v[0] = x;
     v[1] = y;
     v[2] = z;
     if (turnMatrix) {
-      mat4.getRotation(Matrix.tempQuat, turnMatrix.getMatrix());
-      quat.invert(Matrix.tempQuat, Matrix.tempQuat);
-      vec3.transformQuat(v, v, Matrix.tempQuat);
+      mat4.getRotation(tempQuat, turnMatrix.getMatrix());
+      quat.invert(tempQuat, tempQuat);
+      vec3.transformQuat(v, v, tempQuat);
     }
     return v;
   }
 
   getPosition(): Vector {
-    const v = Matrix.tempVec;
+    const v = tempVec;
     v[0] = this.m4[12];
     v[1] = this.m4[13];
     v[2] = this.m4[14];

@@ -1,8 +1,8 @@
 import { Refresh } from "updates/Refresh";
-import { ITimeProvider, Time } from "core/Time";
+import { ITimeProvider } from "core/Time";
 
 export interface IMotor extends ITimeProvider {
-  loop(update: Refresh, frameRate?: number, priority?: number, expirationTime?: Time): void;
-  registerUpdate(update: Refresh, refreshRate?: number): void;
-  deregisterUpdate(update: Refresh): void;
+  loop<T>(update: Refresh<T>, frameRate?: number, data?: T): void;
+  registerUpdate<T>(update: Refresh<T>, refreshRate?: number, data?: T): void;
+  deregisterUpdate<T>(update: Refresh<T>): void;
 }

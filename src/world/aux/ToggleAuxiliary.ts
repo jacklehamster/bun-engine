@@ -13,9 +13,9 @@ export class ToggleAuxiliary implements Auxiliary<IKeyboard> {
   private keyboard?: IKeyboard;
   private active: boolean = false;
   private toggleIndex: number;
-  private keys: (string | undefined)[];
-  private auxiliaries: List<Auxiliary>;
-  private keyListener: KeyListener;
+  private readonly keys: (string | undefined)[];
+  private readonly auxiliaries: List<Auxiliary>;
+  private readonly keyListener: KeyListener;
 
   constructor(config: Config) {
     this.keys = map(config.auxiliariesMapping, (keyMap => keyMap?.key));

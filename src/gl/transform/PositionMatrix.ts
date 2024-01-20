@@ -8,9 +8,9 @@ import { Vector } from "../../core/types/Vector";
 import { ChangeListener } from "./IPositionMatrix";
 
 export class PositionMatrix extends AuxiliaryHolder<PositionMatrix> implements IPositionMatrix {
-  private matrix: Matrix = Matrix.create().setPosition(0, 0, 0);
-  private _position: Vector = [0, 0, 0];
-  private changeListeners: Set<ChangeListener> = new Set();
+  private readonly matrix: Matrix = Matrix.create().setPosition(0, 0, 0);
+  private readonly _position: Vector = [0, 0, 0];
+  private readonly changeListeners: Set<ChangeListener> = new Set();
   moveBlocker?: MoveBlocker;
 
   constructor(onChange?: (dx: number, dy: number, dz: number) => void) {

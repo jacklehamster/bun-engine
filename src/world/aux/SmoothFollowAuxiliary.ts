@@ -1,32 +1,34 @@
-import { PositionMatrix } from "gl/transform/PositionMatrix";
-import { ChangeListener } from "gl/transform/IPositionMatrix";
+import { ChangeListener, IPositionMatrix } from "gl/transform/IPositionMatrix";
 import { Auxiliary } from "./Auxiliary";
 import { Looper } from "motor/Looper";
 import { IMotor } from "motor/IMotor";
+import { UpdatePayload } from "updates/Refresh";
 
 interface Props {
-  followee: PositionMatrix;
-  follower: PositionMatrix;
+  followee: IPositionMatrix;
+  follower: IPositionMatrix;
   motor: IMotor;
 }
 
-export interface Config {
+interface Data {
+  followee: IPositionMatrix;
+  follower: IPositionMatrix;
   speed: number;
 }
 
-export class SmoothFollowAuxiliary extends Looper implements Auxiliary {
-  private followee;
-  private follower;
-  private speed: number;
+interface Config {
+  speed: number;
+}
+
+export class SmoothFollowAuxiliary extends Looper<Data> implements Auxiliary {
+  private followee: IPositionMatrix;
   private listener: ChangeListener = () => {
     this.start();
   };
 
   constructor({ followee, follower, motor }: Props, config?: Partial<Config>) {
-    super(motor, false);
+    super(motor, false, { followee, follower, speed: config?.speed ?? 1 });
     this.followee = followee;
-    this.follower = follower;
-    this.speed = config?.speed ?? 1;
   }
 
   activate(): void {
@@ -39,17 +41,17 @@ export class SmoothFollowAuxiliary extends Looper implements Auxiliary {
     super.deactivate();
   }
 
-  refresh(): void {
-    const [x, y, z] = this.followee.position;
-    const [fx, fy, fz] = this.follower.position;
+  refresh({ data: { follower, followee, speed } }: UpdatePayload<Data>): void {
+    const [x, y, z] = followee.position;
+    const [fx, fy, fz] = follower.position;
     const dx = x - fx, dy = y - fy, dz = z - fz;
     const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
     if (dist < .1) {
-      this.follower.moveTo(x, y, z);
+      follower.moveTo(x, y, z);
       this.stop();
     } else {
-      const speed = Math.min(dist, this.speed * dist);
-      this.follower.moveBy(dx / dist * speed, dy / dist * speed, dz / dist * speed);
+      const moveSpeed = Math.min(dist, speed * dist) / dist;
+      follower.moveBy(dx * moveSpeed, dy * moveSpeed, dz * moveSpeed);
     }
   }
 }

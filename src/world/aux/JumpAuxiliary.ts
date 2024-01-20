@@ -17,45 +17,50 @@ interface Props {
   motor: IMotor;
 }
 
-export class JumpAuxiliary extends ControlledLooper implements Auxiliary {
-  private readonly position: IPositionMatrix;
-  private gravity: number;
-  private dy: number;
-  private jumpStrength = 0;
-  private plane = 1;
+interface Data {
+  controls: IControls;
+  position: IPositionMatrix;
+  gravity: number;
+  jump: number;
+  plane: number;
+}
 
-  constructor({ controls, position, motor }: Props, config: Partial<Config> = {}) {
-    super(motor, controls, controls => controls.action);
-    this.position = position;
-    this.gravity = config.gravity ?? -1;
-    this.jumpStrength = config.jump ?? 2;
-    this.plane = config.plane ?? 6;
+export class JumpAuxiliary extends ControlledLooper<Data> implements Auxiliary {
+  private dy: number;
+
+  constructor({ controls, position, motor }: Props, config?: Partial<Config>) {
+    super(motor, controls, controls => controls.action,
+      {
+        controls, position,
+        gravity: config?.gravity ?? -1,
+        jump: config?.jump ?? 2,
+        plane: config?.plane ?? 5,
+      });
     this.dy = 0;
   }
 
-  refresh(update: UpdatePayload): void {
-    const { deltaTime } = update;
-    this.jump(deltaTime, this.controls);
+  refresh({ deltaTime, data }: UpdatePayload<Data>): void {
+    this.jump(deltaTime, data);
   }
 
-  jump(deltaTime: number, controls: IControls): void {
+  jump(deltaTime: number, data: Data): void {
     const speed = deltaTime / 80;
     const acceleration = deltaTime / 80;
-    const { action } = controls;
-    const [_x, y, _z] = this.position.position;
+    const { action } = data.controls;
+    const [_x, y, _z] = data.position.position;
     if (y === 0) {
       if (action) {
-        this.dy = this.jumpStrength;
-        this.position.moveBy(0, speed * this.dy, 0);
+        this.dy = data.jump;
+        data.position.moveBy(0, speed * this.dy, 0);
       }
     } else {
-      this.position.moveBy(0, speed * this.dy, 0);
-      const [x, y, z] = this.position.position;
+      data.position.moveBy(0, speed * this.dy, 0);
+      const [x, y, z] = data.position.position;
       if (y > 0) {
-        const mul = this.dy < 0 ? 1 / this.plane : 1;
-        this.dy += this.gravity * acceleration * mul;
+        const mul = this.dy < 0 ? 1 / data.plane : 1;
+        this.dy += data.gravity * acceleration * mul;
       } else {
-        this.position.moveTo(x, 0, z);
+        data.position.moveTo(x, 0, z);
         this.dy = 0;
         this.stop();
       }

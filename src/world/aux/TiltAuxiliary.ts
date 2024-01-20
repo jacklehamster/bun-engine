@@ -2,7 +2,6 @@ import { UpdatePayload } from "updates/Refresh";
 import { Auxiliary } from "./Auxiliary";
 import { IControls } from "controls/IControls";
 import { TiltMatrix } from "gl/transform/TiltMatrix";
-import { IAngleMatrix } from "gl/transform/IAngleMatrix";
 import { IMotor } from "motor/IMotor";
 import { ControlledLooper } from "motor/ControlLooper";
 
@@ -12,23 +11,24 @@ interface Props {
   motor: IMotor;
 }
 
-export class TiltAuxiliary extends ControlledLooper implements Auxiliary {
-  private readonly tilt: IAngleMatrix;
+interface Data {
+  controls: IControls;
+  tilt: TiltMatrix;
+}
 
+export class TiltAuxiliary extends ControlledLooper<Data> implements Auxiliary {
   constructor({ controls, tilt, motor }: Props) {
-    super(motor, controls, ({ up, down }) => up || down);
-    this.tilt = tilt;
+    super(motor, controls, ({ up, down }) => up || down, { controls, tilt });
   }
 
-  refresh(update: UpdatePayload): void {
-    const { up, down } = this.controls;
-    const { deltaTime } = update;
+  refresh({ data: { controls, tilt }, deltaTime }: UpdatePayload<Data>): void {
+    const { up, down } = controls;
     const turnspeed = deltaTime / 400;
     if (up) {
-      this.tilt.angle.addValue(-turnspeed);
+      tilt.angle.addValue(-turnspeed);
     }
     if (down) {
-      this.tilt.angle.addValue(turnspeed);
+      tilt.angle.addValue(turnspeed);
     }
     if (!up && !down) {
       this.stop();

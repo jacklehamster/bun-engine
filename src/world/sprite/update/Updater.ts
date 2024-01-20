@@ -2,10 +2,9 @@ import { UpdateNotifier } from "updates/UpdateNotifier";
 import { Auxiliary } from "world/aux/Auxiliary";
 import { UpdateRegistry } from "updates/UpdateRegistry";
 import { List } from "../List";
-import { Holder } from "world/aux/Holder";
 import { ElemsHolder } from "../aux/ElemsHolder";
 
-export class Updater<T> implements UpdateNotifier, Auxiliary<Holder & ElemsHolder<T>> {
+export class Updater<T> implements UpdateNotifier, Auxiliary<ElemsHolder<T>> {
   protected elems?: List<T> & Partial<UpdateNotifier>;
 
   constructor(private updateRegistry: UpdateRegistry) {

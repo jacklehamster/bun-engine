@@ -3,6 +3,7 @@ import { ChangeListener } from "gl/transform/IPositionMatrix";
 import { Auxiliary } from "./Auxiliary";
 import { Looper } from "motor/Looper";
 import { IMotor } from "motor/IMotor";
+import { UpdatePayload } from "updates/Refresh";
 
 interface Props {
   followee: PositionMatrix;
@@ -17,9 +18,13 @@ interface Config {
   speed: number;
 }
 
-export class FollowAuxiliary extends Looper implements Auxiliary {
+interface Data {
+  followee: PositionMatrix;
+  follower: PositionMatrix;
+}
+
+export class FollowAuxiliary extends Looper<Data> implements Auxiliary {
   private readonly followee;
-  private readonly follower;
   private readonly config: Config;
   private listener: ChangeListener = (dx, dy, dz) => {
     if (dx && this.config.followX || dy && this.config.followY || dz && this.config.followZ) {
@@ -28,9 +33,8 @@ export class FollowAuxiliary extends Looper implements Auxiliary {
   }
 
   constructor({ followee, follower, motor }: Props, config?: Partial<Config>) {
-    super(motor, false);
+    super(motor, false, { follower, followee });
     this.followee = followee;
-    this.follower = follower;
     this.config = {
       followX: config?.followX ?? true,
       followY: config?.followY ?? true,
@@ -49,15 +53,15 @@ export class FollowAuxiliary extends Looper implements Auxiliary {
     super.deactivate();
   }
 
-  refresh(): void {
+  refresh({ data }: UpdatePayload<Data>): void {
     const { followX, followY, followZ, speed } = this.config;
-    const x = followX ? this.followee.position[0] : this.follower.position[0];
-    const y = followY ? this.followee.position[1] : this.follower.position[1];
-    const z = followZ ? this.followee.position[2] : this.follower.position[2];
-    this.follower.gotoPos(x, y, z, speed);
-    if (this.followee.position[0] === this.follower.position[0]
-      && this.followee.position[1] === this.follower.position[1]
-      && this.followee.position[2] === this.follower.position[2]) {
+    const x = followX ? data.followee.position[0] : data.follower.position[0];
+    const y = followY ? data.followee.position[1] : data.follower.position[1];
+    const z = followZ ? data.followee.position[2] : data.follower.position[2];
+    data.follower.gotoPos(x, y, z, speed);
+    if (data.followee.position[0] === data.follower.position[0]
+      && data.followee.position[1] === data.follower.position[1]
+      && data.followee.position[2] === data.follower.position[2]) {
       this.stop();
     }
   }

@@ -12,7 +12,7 @@ export class ProjectionMatrix extends AuxiliaryHolder<ProjectionMatrix> implemen
   private readonly orthoMatrix = Matrix.create();
   readonly perspective: NumVal;
   readonly zoom: NumVal;
-  private _size: [number, number] = [0, 0];
+  private readonly _size: [number, number] = [0, 0];
 
   constructor(private onChange?: () => void) {
     super();

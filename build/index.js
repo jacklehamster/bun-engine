@@ -25631,12 +25631,15 @@ var setAxes = function() {
 
 // src/gl/transform/Matrix.ts
 var DEG_TO_RADIANT = Math.PI / 90;
+var tempVec = [0, 0, 0];
+var aTemp = exports_mat4.create();
+var bTemp = exports_mat4.create();
+var tempQuat = exports_quat.create();
 
 class Matrix {
   m4 = Float32Array.from(exports_mat4.create());
   static HIDDEN = Matrix.create().scale(0, 0, 0);
   static IDENTITY = Matrix.create();
-  static tempVec = [0, 0, 0];
   constructor() {
     this.identity();
   }
@@ -25669,7 +25672,7 @@ class Matrix {
     return this;
   }
   translate(x, y, z) {
-    const v = Matrix.tempVec;
+    const v = tempVec;
     v[0] = x;
     v[1] = y;
     v[2] = z;
@@ -25711,29 +25714,26 @@ class Matrix {
     exports_mat4.ortho(this.m4, left, right, bottom, top, near, far);
     return this;
   }
-  static aTemp = exports_mat4.create();
-  static bTemp = exports_mat4.create();
   combine(matrix1, matrix2, level = 0.5) {
-    exports_mat4.multiplyScalar(Matrix.aTemp, matrix1.getMatrix(), 1 - level);
-    exports_mat4.multiplyScalar(Matrix.bTemp, matrix2.getMatrix(), level);
-    exports_mat4.add(this.m4, Matrix.aTemp, Matrix.bTemp);
+    exports_mat4.multiplyScalar(aTemp, matrix1.getMatrix(), 1 - level);
+    exports_mat4.multiplyScalar(bTemp, matrix2.getMatrix(), level);
+    exports_mat4.add(this.m4, aTemp, bTemp);
     return this;
   }
-  static tempQuat = exports_quat.create();
   static getMoveVector(x, y, z, turnMatrix) {
-    const v = Matrix.tempVec;
+    const v = tempVec;
     v[0] = x;
     v[1] = y;
     v[2] = z;
     if (turnMatrix) {
-      exports_mat4.getRotation(Matrix.tempQuat, turnMatrix.getMatrix());
-      exports_quat.invert(Matrix.tempQuat, Matrix.tempQuat);
-      exports_vec3.transformQuat(v, v, Matrix.tempQuat);
+      exports_mat4.getRotation(tempQuat, turnMatrix.getMatrix());
+      exports_quat.invert(tempQuat, tempQuat);
+      exports_vec3.transformQuat(v, v, tempQuat);
     }
     return v;
   }
   getPosition() {
-    const v = Matrix.tempVec;
+    const v = tempVec;
     v[0] = this.m4[12];
     v[1] = this.m4[13];
     v[2] = this.m4[14];
@@ -27478,18 +27478,20 @@ var FRAME_PERIOD = 16.6;
 
 class Motor {
   pool = new SchedulePool;
+  updatePool = new UpdatePool;
   schedule = new Map;
   time = 0;
-  loop(update, frameRate) {
-    this.registerUpdate(update, frameRate ?? 1000);
+  loop(update, frameRate, data) {
+    this.registerUpdate(update, frameRate ?? 1000, data);
   }
-  registerUpdate(update, refreshRate = 0) {
+  registerUpdate(update, refreshRate = 0, data) {
     const schedule = this.schedule.get(update);
     if (!schedule) {
-      this.schedule.set(update, this.pool.create(refreshRate));
+      this.schedule.set(update, this.pool.create(refreshRate, data));
     } else if (schedule.frameRate !== refreshRate) {
       schedule.frameRate = refreshRate;
       schedule.period = refreshRate ? 1000 / refreshRate : 0;
+      schedule.data = data;
     }
   }
   deregisterUpdate(update) {
@@ -27508,7 +27510,8 @@ class Motor {
   startLoop() {
     const updatePayload = {
       time: 0,
-      deltaTime: 0
+      deltaTime: 0,
+      data: undefined
     };
     const updateGroups = [
       [],
@@ -27529,11 +27532,12 @@ class Motor {
         } else {
           this.deregisterUpdate(update);
         }
-        updateGroups[update.priority ?? Priority.DEFAULT].push(update);
+        updateGroups[update.priority ?? Priority.DEFAULT].push(this.updatePool.create(update, schedule.data));
       });
       for (let updates of updateGroups) {
         for (let update of updates) {
-          update.refresh?.(updatePayload);
+          updatePayload.data = update.data;
+          update.refresher.refresh?.(updatePayload);
         }
       }
       updateGroups[Priority.DEFAULT].length = 0;
@@ -27549,14 +27553,28 @@ class Motor {
 
 class SchedulePool extends ObjectPool {
   constructor() {
-    super((schedule, frameRate) => {
+    super((schedule, frameRate, data) => {
       if (!schedule) {
-        return { triggerTime: 0, frameRate, period: frameRate ? MILLIS_IN_SEC / frameRate : 0 };
+        return { triggerTime: 0, frameRate, period: frameRate ? MILLIS_IN_SEC / frameRate : 0, data };
       }
       schedule.triggerTime = 0;
       schedule.period = frameRate ? MILLIS_IN_SEC / frameRate : 0;
       schedule.frameRate = frameRate;
+      schedule.data = data;
       return schedule;
+    });
+  }
+}
+
+class UpdatePool extends ObjectPool {
+  constructor() {
+    super((update, refresher, data) => {
+      if (!update) {
+        return { refresher, data };
+      }
+      update.refresher = refresher;
+      update.data = data;
+      return update;
     });
   }
 }
@@ -27694,18 +27712,23 @@ class Keyboard extends AuxiliaryHolder {
 
 // src/core/value/Progressive.ts
 class Progressive {
-  element;
   getValue;
   apply;
   _goal;
   active = false;
   speed = 0;
   locker;
+  _element;
   constructor(element, getValue, apply) {
-    this.element = element;
     this.getValue = getValue;
     this.apply = apply;
+    this._element = element;
     this._goal = this.getValue(element);
+  }
+  set element(element) {
+    this._element = element;
+    this._goal = this.getValue(element);
+    this.locker = undefined;
   }
   setGoal(value, speed, locker) {
     if (this.locker && this.locker !== locker) {
@@ -27723,15 +27746,15 @@ class Progressive {
   }
   update(deltaTime) {
     if (this.active) {
-      const curValue = this.getValue(this.element);
+      const curValue = this.getValue(this._element);
       const diff = this.goal - curValue;
       const dDist = Math.min(Math.abs(diff), this.speed * deltaTime);
       if (dDist <= 0.01) {
-        this.apply(this.element, this.goal);
+        this.apply(this._element, this.goal);
         this.active = false;
         this.locker = undefined;
       } else {
-        this.apply(this.element, curValue + dDist * Math.sign(diff));
+        this.apply(this._element, curValue + dDist * Math.sign(diff));
       }
     }
     return this.active;
@@ -28197,10 +28220,12 @@ class Auxiliaries {
 class Looper {
   motor;
   autoStart;
+  data;
   refresher;
-  constructor(motor, autoStart, refresher) {
+  constructor(motor, autoStart, data, refresher) {
     this.motor = motor;
     this.autoStart = autoStart;
+    this.data = data;
     this.refresher = refresher;
   }
   refresh(updatePayload) {
@@ -28215,7 +28240,7 @@ class Looper {
     this.stop();
   }
   start() {
-    this.motor.loop(this);
+    this.motor.loop(this, undefined, this.data);
   }
   stop() {
     this.motor.deregisterUpdate(this);
@@ -28232,11 +28257,11 @@ var StateEnum;
 // src/motor/ControlLooper.ts
 class ControlledLooper extends Looper {
   controls;
-  listener;
-  constructor(motor, controls, trigger, refresher) {
-    super(motor, false, refresher);
+  _listener;
+  constructor(motor, controls, trigger, data, refresher) {
+    super(motor, false, data, refresher);
     this.controls = controls;
-    this.listener = {
+    this._listener = {
       onAction: (controls2, state) => {
         if (state === StateEnum.PRESS_DOWN) {
           if (trigger(controls2)) {
@@ -28248,30 +28273,27 @@ class ControlledLooper extends Looper {
   }
   activate() {
     super.activate();
-    this.controls.addListener(this.listener);
+    this.controls.addListener(this._listener);
   }
   deactivate() {
-    this.controls.removeListener(this.listener);
+    this.controls.removeListener(this._listener);
     super.deactivate();
   }
 }
 
 // src/world/aux/TurnAuxiliary.ts
 class TurnAuxiliary extends ControlledLooper {
-  turn;
   constructor({ controls, turn, motor }) {
-    super(motor, controls, ({ turnLeft, turnRight }) => turnLeft || turnRight);
-    this.turn = turn;
+    super(motor, controls, ({ turnLeft, turnRight }) => turnLeft || turnRight, { controls, turn });
   }
-  refresh(update) {
-    const { turnLeft, turnRight } = this.controls;
-    const { deltaTime } = update;
+  refresh({ data: { controls, turn }, deltaTime }) {
+    const { turnLeft, turnRight } = controls;
     const turnspeed = deltaTime / 400;
     if (turnLeft) {
-      this.turn.angle.addValue(-turnspeed);
+      turn.angle.addValue(-turnspeed);
     }
     if (turnRight) {
-      this.turn.angle.addValue(turnspeed);
+      turn.angle.addValue(turnspeed);
     }
     if (!turnLeft && !turnRight) {
       this.stop();
@@ -28293,30 +28315,20 @@ function equal(v1, v2, threshold = 0) {
 // src/world/aux/PositionStepAuxiliary.ts
 class PositionStepAuxiliary extends ControlledLooper {
   goalPos;
-  position;
-  turnGoal;
   stepCount = 0;
-  config;
   constructor({ controls, position, turnGoal, motor }, config = {}) {
-    super(motor, controls, ({ backward, forward, left, right }) => backward || forward || left || right);
-    this.position = position;
-    this.turnGoal = turnGoal;
+    super(motor, controls, ({ backward, forward, left, right }) => backward || forward || left || right, { controls, position, turnGoal, step: config.step ?? 2, speed: config.speed ?? 1 });
     this.goalPos = [
-      this.position.position[0],
-      this.position.position[1],
-      this.position.position[2]
+      position.position[0],
+      position.position[1],
+      position.position[2]
     ];
-    this.config = {
-      step: config.step ?? 2,
-      speed: config.speed ?? 1
-    };
   }
   prePos = [0, 0, 0];
-  refresh(update) {
-    const { backward, forward, left, right } = this.controls;
-    const { deltaTime } = update;
-    const pos = this.position.position;
-    const { step } = this.config;
+  refresh({ deltaTime, data }) {
+    const { backward, forward, left, right } = data.controls;
+    const pos = data.position.position;
+    const { step } = data;
     this.prePos[0] = Math.round(pos[0] / step) * step;
     this.prePos[1] = Math.round(pos[1] / step) * step;
     this.prePos[2] = Math.round(pos[2] / step) * step;
@@ -28333,7 +28345,7 @@ class PositionStepAuxiliary extends ControlledLooper {
     if (right) {
       dx++;
     }
-    const turnGoal = this.turnGoal?.goal ?? 0;
+    const turnGoal = data.turnGoal?.goal ?? 0;
     if (dx || dz || this.stepCount > 0) {
       const relativeDx = dx * Math.cos(turnGoal) - dz * Math.sin(turnGoal);
       const relativeDz = dx * Math.sin(turnGoal) + dz * Math.cos(turnGoal);
@@ -28345,15 +28357,15 @@ class PositionStepAuxiliary extends ControlledLooper {
     if (!dx && !dz) {
       this.stepCount = 0;
     }
-    const speed = (dx || dz ? deltaTime / 150 : deltaTime / 100) * this.config.speed;
-    const didMove = this.position.gotoPos(this.goalPos[0], pos[1], this.goalPos[2], speed) || this.position.gotoPos(this.goalPos[0], pos[1], pos[2], speed) || this.position.gotoPos(pos[0], pos[1], this.goalPos[2], speed);
+    const speed = (dx || dz ? deltaTime / 150 : deltaTime / 100) * data.speed;
+    const didMove = data.position.gotoPos(this.goalPos[0], pos[1], this.goalPos[2], speed) || data.position.gotoPos(this.goalPos[0], pos[1], pos[2], speed) || data.position.gotoPos(pos[0], pos[1], this.goalPos[2], speed);
     if (!didMove) {
       const gx = Math.round(pos[0] / step) * step;
       const gz = Math.round(pos[2] / step) * step;
       this.goalPos[0] = gx;
       this.goalPos[2] = gz;
     }
-    const newPos = this.position.position;
+    const newPos = data.position.position;
     if (Math.round(newPos[0] / step) * step !== this.prePos[0] || Math.round(newPos[1] / step) * step !== this.prePos[1] || Math.round(newPos[2] / step) * step !== this.prePos[2]) {
       this.stepCount++;
     }
@@ -28364,33 +28376,22 @@ class PositionStepAuxiliary extends ControlledLooper {
 }
 
 // src/world/aux/TiltResetAuxiliary.ts
-class TiltResetAuxiliary extends Looper {
+class TiltResetAuxiliary {
   controls;
-  tilt;
-  listener = {
-    onQuickTiltReset: () => {
-      this.start();
-      this.tilt.angle.progressTowards(0, 0.0033333333333333335, this);
-    }
-  };
+  listener;
   constructor({ controls, tilt, motor }) {
-    super(motor, false);
+    this.listener = {
+      onQuickTiltReset: () => {
+        tilt.angle.progressTowards(0, 0.0033333333333333335, this, motor);
+      }
+    };
     this.controls = controls;
-    this.tilt = tilt;
   }
   activate() {
-    super.activate();
     this.controls.addListener(this.listener);
   }
   deactivate() {
     this.controls.removeListener(this.listener);
-    super.deactivate();
-  }
-  refresh(update) {
-    const { deltaTime } = update;
-    if (!this.tilt.angle.update(deltaTime)) {
-      this.stop();
-    }
   }
 }
 
@@ -28994,23 +28995,12 @@ class SpriteFactory {
 
 // src/world/aux/MoveAuxiliary.ts
 class MoveAuxiliary extends ControlledLooper {
-  controls;
-  direction;
-  position;
-  config;
   constructor({ controls, direction, motor, position }, config) {
-    super(motor, controls, ({ forward, backward, left, right }) => forward || backward || left || right);
-    this.controls = controls;
-    this.direction = direction;
-    this.position = position;
-    this.config = {
-      speed: config?.speed ?? 1
-    };
+    super(motor, controls, ({ forward, backward, left, right }) => forward || backward || left || right, { controls, direction, position, speed: config?.speed ?? 1 });
   }
-  refresh(update) {
-    const { forward, backward, left, right } = this.controls;
-    const { deltaTime } = update;
-    const speed = deltaTime / 80 * this.config.speed;
+  refresh({ data, deltaTime }) {
+    const { forward, backward, left, right } = data.controls;
+    const speed = deltaTime / 80 * data.speed;
     let dx = 0, dz = 0;
     if (forward) {
       dz -= speed;
@@ -29024,7 +29014,7 @@ class MoveAuxiliary extends ControlledLooper {
     if (right) {
       dx += speed;
     }
-    this.position.moveBy(dx, 0, dz, this.direction);
+    data.position.moveBy(dx, 0, dz, data.direction);
     if (!forward && !backward && !left && !right) {
       this.stop();
     }
@@ -29033,41 +29023,38 @@ class MoveAuxiliary extends ControlledLooper {
 
 // src/world/aux/JumpAuxiliary.ts
 class JumpAuxiliary extends ControlledLooper {
-  position;
-  gravity;
   dy;
-  jumpStrength = 0;
-  plane = 1;
-  constructor({ controls, position, motor }, config = {}) {
-    super(motor, controls, (controls2) => controls2.action);
-    this.position = position;
-    this.gravity = config.gravity ?? -1;
-    this.jumpStrength = config.jump ?? 2;
-    this.plane = config.plane ?? 6;
+  constructor({ controls, position, motor }, config) {
+    super(motor, controls, (controls2) => controls2.action, {
+      controls,
+      position,
+      gravity: config?.gravity ?? -1,
+      jump: config?.jump ?? 2,
+      plane: config?.plane ?? 5
+    });
     this.dy = 0;
   }
-  refresh(update) {
-    const { deltaTime } = update;
-    this.jump(deltaTime, this.controls);
+  refresh({ deltaTime, data }) {
+    this.jump(deltaTime, data);
   }
-  jump(deltaTime, controls) {
+  jump(deltaTime, data) {
     const speed = deltaTime / 80;
     const acceleration = deltaTime / 80;
-    const { action } = controls;
-    const [_x, y, _z] = this.position.position;
+    const { action } = data.controls;
+    const [_x, y, _z] = data.position.position;
     if (y === 0) {
       if (action) {
-        this.dy = this.jumpStrength;
-        this.position.moveBy(0, speed * this.dy, 0);
+        this.dy = data.jump;
+        data.position.moveBy(0, speed * this.dy, 0);
       }
     } else {
-      this.position.moveBy(0, speed * this.dy, 0);
-      const [x, y2, z] = this.position.position;
+      data.position.moveBy(0, speed * this.dy, 0);
+      const [x, y2, z] = data.position.position;
       if (y2 > 0) {
-        const mul4 = this.dy < 0 ? 1 / this.plane : 1;
-        this.dy += this.gravity * acceleration * mul4;
+        const mul4 = this.dy < 0 ? 1 / data.plane : 1;
+        this.dy += data.gravity * acceleration * mul4;
       } else {
-        this.position.moveTo(x, 0, z);
+        data.position.moveTo(x, 0, z);
         this.dy = 0;
         this.stop();
       }
@@ -29089,20 +29076,17 @@ class TimeAuxiliary extends Looper {
 
 // src/world/aux/TiltAuxiliary.ts
 class TiltAuxiliary extends ControlledLooper {
-  tilt;
   constructor({ controls, tilt, motor }) {
-    super(motor, controls, ({ up, down }) => up || down);
-    this.tilt = tilt;
+    super(motor, controls, ({ up, down }) => up || down, { controls, tilt });
   }
-  refresh(update) {
-    const { up, down } = this.controls;
-    const { deltaTime } = update;
+  refresh({ data: { controls, tilt }, deltaTime }) {
+    const { up, down } = controls;
     const turnspeed = deltaTime / 400;
     if (up) {
-      this.tilt.angle.addValue(-turnspeed);
+      tilt.angle.addValue(-turnspeed);
     }
     if (down) {
-      this.tilt.angle.addValue(turnspeed);
+      tilt.angle.addValue(turnspeed);
     }
     if (!up && !down) {
       this.stop();
@@ -29113,16 +29097,12 @@ class TiltAuxiliary extends ControlledLooper {
 // src/world/aux/SmoothFollowAuxiliary.ts
 class SmoothFollowAuxiliary extends Looper {
   followee;
-  follower;
-  speed;
   listener = () => {
     this.start();
   };
   constructor({ followee, follower, motor }, config) {
-    super(motor, false);
+    super(motor, false, { followee, follower, speed: config?.speed ?? 1 });
     this.followee = followee;
-    this.follower = follower;
-    this.speed = config?.speed ?? 1;
   }
   activate() {
     super.activate();
@@ -29132,17 +29112,17 @@ class SmoothFollowAuxiliary extends Looper {
     this.followee.removeChangeListener(this.listener);
     super.deactivate();
   }
-  refresh() {
-    const [x, y, z] = this.followee.position;
-    const [fx, fy, fz] = this.follower.position;
+  refresh({ data: { follower, followee, speed } }) {
+    const [x, y, z] = followee.position;
+    const [fx, fy, fz] = follower.position;
     const dx = x - fx, dy = y - fy, dz = z - fz;
     const dist2 = Math.sqrt(dx * dx + dy * dy + dz * dz);
     if (dist2 < 0.1) {
-      this.follower.moveTo(x, y, z);
+      follower.moveTo(x, y, z);
       this.stop();
     } else {
-      const speed = Math.min(dist2, this.speed * dist2);
-      this.follower.moveBy(dx / dist2 * speed, dy / dist2 * speed, dz / dist2 * speed);
+      const moveSpeed = Math.min(dist2, speed * dist2) / dist2;
+      follower.moveBy(dx * moveSpeed, dy * moveSpeed, dz * moveSpeed);
     }
   }
 }
@@ -29346,7 +29326,6 @@ class MotionAuxiliary {
 // src/world/aux/FollowAuxiliary.ts
 class FollowAuxiliary extends Looper {
   followee;
-  follower;
   config;
   listener = (dx, dy, dz) => {
     if (dx && this.config.followX || dy && this.config.followY || dz && this.config.followZ) {
@@ -29354,9 +29333,8 @@ class FollowAuxiliary extends Looper {
     }
   };
   constructor({ followee, follower, motor }, config) {
-    super(motor, false);
+    super(motor, false, { follower, followee });
     this.followee = followee;
-    this.follower = follower;
     this.config = {
       followX: config?.followX ?? true,
       followY: config?.followY ?? true,
@@ -29372,13 +29350,13 @@ class FollowAuxiliary extends Looper {
     this.followee.removeChangeListener(this.listener);
     super.deactivate();
   }
-  refresh() {
+  refresh({ data }) {
     const { followX, followY, followZ, speed } = this.config;
-    const x = followX ? this.followee.position[0] : this.follower.position[0];
-    const y = followY ? this.followee.position[1] : this.follower.position[1];
-    const z = followZ ? this.followee.position[2] : this.follower.position[2];
-    this.follower.gotoPos(x, y, z, speed);
-    if (this.followee.position[0] === this.follower.position[0] && this.followee.position[1] === this.follower.position[1] && this.followee.position[2] === this.follower.position[2]) {
+    const x = followX ? data.followee.position[0] : data.follower.position[0];
+    const y = followY ? data.followee.position[1] : data.follower.position[1];
+    const z = followZ ? data.followee.position[2] : data.follower.position[2];
+    data.follower.gotoPos(x, y, z, speed);
+    if (data.followee.position[0] === data.follower.position[0] && data.followee.position[1] === data.follower.position[1] && data.followee.position[2] === data.follower.position[2]) {
       this.stop();
     }
   }
@@ -29426,19 +29404,12 @@ function angleStep(angle2, step) {
 
 // src/world/aux/TurnStepAuxiliary.ts
 class TurnStepAuxiliary extends ControlledLooper {
-  turn;
   turnCount = 0;
-  config;
   constructor({ controls, turn, motor }, config = {}) {
-    super(motor, controls, (controls2) => controls2.turnLeft || controls2.turnRight);
-    this.turn = turn;
-    this.config = {
-      step: config.step ?? Math.PI / 2
-    };
+    super(motor, controls, (controls2) => controls2.turnLeft || controls2.turnRight, { controls, turn, step: config.step ?? Math.PI / 2 });
   }
-  refresh(update) {
-    const { turnLeft, turnRight } = this.controls;
-    const { deltaTime } = update;
+  refresh({ deltaTime, data }) {
+    const { turnLeft, turnRight } = data.controls;
     let dTurn = 0;
     if (turnLeft) {
       dTurn--;
@@ -29446,16 +29417,16 @@ class TurnStepAuxiliary extends ControlledLooper {
     if (turnRight) {
       dTurn++;
     }
-    const { step } = this.config;
-    const turn = angleStep(this.turn.angle.valueOf(), step);
+    const { step } = data;
+    const turn = angleStep(data.turn.angle.valueOf(), step);
     if (dTurn || this.turnCount > 0) {
-      this.turn.angle.progressTowards(angleStep(turn + step * dTurn, step), dTurn ? 0.005 : 0.01, this);
+      data.turn.angle.progressTowards(angleStep(turn + step * dTurn, step), dTurn ? 0.005 : 0.01, this);
     }
     if (!dTurn) {
       this.turnCount = 0;
     }
-    if (this.turn.angle.update(deltaTime)) {
-      const newTurn = angleStep(this.turn.angle.valueOf(), step);
+    if (data.turn.angle.update(deltaTime)) {
+      const newTurn = angleStep(data.turn.angle.valueOf(), step);
       if (newTurn !== turn) {
         this.turnCount++;
       }
@@ -29739,7 +29710,7 @@ class DemoWorld extends AuxiliaryHolder {
       auxiliariesMapping: [
         {
           key: "Tab",
-          aux: Auxiliaries.from(new PositionStepAuxiliary({ motor, controls, position: heroPos }), new TurnStepAuxiliary({ motor, controls, turn: camera.turn }), new SmoothFollowAuxiliary({ motor, follower: camera.position, followee: heroPos }, { speed: 0.05 }), new JumpAuxiliary({ motor, controls, position: heroPos }))
+          aux: Auxiliaries.from(new PositionStepAuxiliary({ motor, controls, position: heroPos }), new SmoothFollowAuxiliary({ motor, follower: camera.position, followee: heroPos }, { speed: 0.05 }), new JumpAuxiliary({ motor, controls, position: heroPos }), new TurnStepAuxiliary({ motor, controls, turn: camera.turn }))
         },
         {
           key: "Tab",
@@ -29899,4 +29870,4 @@ export {
   hello
 };
 
-//# debugId=3E8DE1C3C4AA527264756e2164756e21
+//# debugId=56E5C5474D5F247A64756e2164756e21

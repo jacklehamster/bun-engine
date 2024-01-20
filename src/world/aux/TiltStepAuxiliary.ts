@@ -16,21 +16,21 @@ interface Config {
   step: number;
 }
 
-export class TiltStepAuxiliary extends ControlledLooper implements Auxiliary {
-  private readonly tilt: IAngleMatrix;
+interface Data {
+  controls: IControls;
+  tilt: IAngleMatrix;
+  step: number;
+}
+
+export class TiltStepAuxiliary extends ControlledLooper<Data> implements Auxiliary {
   private tiltCount: number = 0;
-  private config: Config;
 
   constructor({ controls, tilt, motor }: Props, config: Partial<Config> = {}) {
-    super(motor, controls, ({ up, down }) => up || down);
-    this.tilt = tilt;
-    this.config = {
-      step: config.step ?? Math.PI / 2,
-    };
+    super(motor, controls, ({ up, down }) => up || down, { controls, tilt, step: config.step ?? Math.PI / 2 });
   }
 
-  refresh(update: UpdatePayload): void {
-    const { up, down } = this.controls;
+  refresh({ data, deltaTime }: UpdatePayload<Data>): void {
+    const { up, down } = data.controls;
 
     let dTilt = 0;
     if (up) {
@@ -40,10 +40,10 @@ export class TiltStepAuxiliary extends ControlledLooper implements Auxiliary {
       dTilt++;
     }
 
-    const { step } = this.config;
-    const tilt = angleStep(this.tilt.angle.valueOf(), step);
+    const { step } = data;
+    const tilt = angleStep(data.tilt.angle.valueOf(), step);
     if (dTilt || this.tiltCount > 0) {
-      this.tilt.angle.progressTowards(
+      data.tilt.angle.progressTowards(
         angleStep(tilt + step * dTilt, step),
         dTilt ? 1 / 400 : 1 / 200,
         this,
@@ -52,9 +52,8 @@ export class TiltStepAuxiliary extends ControlledLooper implements Auxiliary {
     if (!dTilt) {
       this.tiltCount = 0;
     }
-    const { deltaTime } = update;
-    if (this.tilt.angle.update(deltaTime)) {
-      const newTilt = angleStep(this.tilt.angle.valueOf(), step);
+    if (data.tilt.angle.update(deltaTime)) {
+      const newTilt = angleStep(data.tilt.angle.valueOf(), step);
       if (newTilt !== tilt) {
         this.tiltCount++;
       }

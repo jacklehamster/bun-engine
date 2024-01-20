@@ -1,4 +1,3 @@
-
 export enum SpriteUpdateType {
   NONE = 0,
   TRANSFORM = 1,

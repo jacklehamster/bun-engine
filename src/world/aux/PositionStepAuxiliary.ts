@@ -20,35 +20,34 @@ interface Config {
   speed: number;
 }
 
-export class PositionStepAuxiliary extends ControlledLooper implements Auxiliary {
+interface Data {
+  controls: IControls;
+  position: IPositionMatrix;
+  turnGoal?: NumVal;
+  step: number;
+  speed: number;
+}
+
+export class PositionStepAuxiliary extends ControlledLooper<Data> implements Auxiliary {
   private readonly goalPos: Vector;
-  private readonly position: IPositionMatrix;
-  private readonly turnGoal?: NumVal;
   private stepCount: number = 0;
-  private config: Config;
 
   constructor({ controls, position, turnGoal, motor }: Props, config: Partial<Config> = {}) {
-    super(motor, controls, ({ backward, forward, left, right }) => backward || forward || left || right);
-    this.position = position;
-    this.turnGoal = turnGoal;
+    super(motor, controls, ({ backward, forward, left, right }) => backward || forward || left || right,
+      { controls, position, turnGoal, step: config.step ?? 2, speed: config.speed ?? 1 });
     this.goalPos = [
-      this.position.position[0],
-      this.position.position[1],
-      this.position.position[2],
+      position.position[0],
+      position.position[1],
+      position.position[2],
     ];
-    this.config = {
-      step: config.step ?? 2,
-      speed: config.speed ?? 1,
-    };
   }
 
   private readonly prePos: Vector = [0, 0, 0];
-  refresh(update: UpdatePayload): void {
-    const { backward, forward, left, right } = this.controls;
-    const { deltaTime } = update;
+  refresh({ deltaTime, data }: UpdatePayload<Data>): void {
+    const { backward, forward, left, right } = data.controls;
 
-    const pos = this.position.position;
-    const { step } = this.config;
+    const pos = data.position.position;
+    const { step } = data;
     this.prePos[0] = Math.round(pos[0] / step) * step;
     this.prePos[1] = Math.round(pos[1] / step) * step;
     this.prePos[2] = Math.round(pos[2] / step) * step;
@@ -66,7 +65,7 @@ export class PositionStepAuxiliary extends ControlledLooper implements Auxiliary
     if (right) {
       dx++;
     }
-    const turnGoal = this.turnGoal?.goal ?? 0;
+    const turnGoal = data.turnGoal?.goal ?? 0;
     if (dx || dz || this.stepCount > 0) {
       const relativeDx = dx * Math.cos(turnGoal) - dz * Math.sin(turnGoal);
       const relativeDz = dx * Math.sin(turnGoal) + dz * Math.cos(turnGoal);
@@ -80,18 +79,18 @@ export class PositionStepAuxiliary extends ControlledLooper implements Auxiliary
     if (!dx && !dz) {
       this.stepCount = 0;
     }
-    const speed = ((dx || dz) ? deltaTime / 150 : deltaTime / 100) * this.config.speed;
+    const speed = ((dx || dz) ? deltaTime / 150 : deltaTime / 100) * data.speed;
 
-    const didMove = this.position.gotoPos(this.goalPos[0], pos[1], this.goalPos[2], speed)
-      || this.position.gotoPos(this.goalPos[0], pos[1], pos[2], speed)
-      || this.position.gotoPos(pos[0], pos[1], this.goalPos[2], speed);
+    const didMove = data.position.gotoPos(this.goalPos[0], pos[1], this.goalPos[2], speed)
+      || data.position.gotoPos(this.goalPos[0], pos[1], pos[2], speed)
+      || data.position.gotoPos(pos[0], pos[1], this.goalPos[2], speed);
     if (!didMove) {
       const gx = Math.round(pos[0] / step) * step;
       const gz = Math.round(pos[2] / step) * step;
       this.goalPos[0] = gx;
       this.goalPos[2] = gz;
     }
-    const newPos = this.position.position;
+    const newPos = data.position.position;
     if (Math.round(newPos[0] / step) * step !== this.prePos[0]
       || Math.round(newPos[1] / step) * step !== this.prePos[1]
       || Math.round(newPos[2] / step) * step !== this.prePos[2]) {

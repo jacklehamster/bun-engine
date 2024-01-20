@@ -2,11 +2,11 @@ import { Refresh, UpdatePayload } from "updates/Refresh";
 import { IMotor } from "./IMotor";
 import { Active } from "core/Active";
 
-export class Looper implements Refresh, Active {
-  constructor(private motor: IMotor, private autoStart: boolean, private refresher?: Refresh) {
+export class Looper<T = undefined> implements Refresh<T>, Active {
+  constructor(private motor: IMotor, private autoStart: boolean, private data?: T, private refresher?: Refresh<T>) {
   }
 
-  refresh(updatePayload: UpdatePayload): void {
+  refresh(updatePayload: UpdatePayload<T>): void {
     this.refresher?.refresh(updatePayload);
   }
 
@@ -21,7 +21,7 @@ export class Looper implements Refresh, Active {
   }
 
   protected start() {
-    this.motor.loop(this);
+    this.motor.loop(this, undefined, this.data);
   }
 
   protected stop() {

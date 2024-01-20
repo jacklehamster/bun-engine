@@ -16,22 +16,21 @@ interface Config {
   step: number;
 }
 
-export class TurnStepAuxiliary extends ControlledLooper implements Auxiliary {
-  private readonly turn: IAngleMatrix;
+interface Data {
+  controls: IControls;
+  turn: IAngleMatrix;
+  step: number;
+}
+
+export class TurnStepAuxiliary extends ControlledLooper<Data> implements Auxiliary {
   private turnCount: number = 0;
-  private config: Config;
 
   constructor({ controls, turn, motor }: Props, config: Partial<Config> = {}) {
-    super(motor, controls, controls => controls.turnLeft || controls.turnRight);
-    this.turn = turn;
-    this.config = {
-      step: config.step ?? Math.PI / 2,
-    };
+    super(motor, controls, controls => controls.turnLeft || controls.turnRight, { controls, turn, step: config.step ?? Math.PI / 2 });
   }
 
-  refresh(update: UpdatePayload): void {
-    const { turnLeft, turnRight } = this.controls;
-    const { deltaTime } = update;
+  refresh({ deltaTime, data }: UpdatePayload<Data>): void {
+    const { turnLeft, turnRight } = data.controls;
 
     let dTurn = 0;
     if (turnLeft) {
@@ -41,18 +40,18 @@ export class TurnStepAuxiliary extends ControlledLooper implements Auxiliary {
       dTurn++;
     }
 
-    const { step } = this.config;
-    const turn = angleStep(this.turn.angle.valueOf(), step);
+    const { step } = data;
+    const turn = angleStep(data.turn.angle.valueOf(), step);
     if (dTurn || this.turnCount > 0) {
-      this.turn.angle.progressTowards(
+      data.turn.angle.progressTowards(
         angleStep(turn + step * dTurn, step),
         dTurn ? 1 / 200 : 1 / 100, this);
     }
     if (!dTurn) {
       this.turnCount = 0;
     }
-    if (this.turn.angle.update(deltaTime)) {
-      const newTurn = angleStep(this.turn.angle.valueOf(), step);
+    if (data.turn.angle.update(deltaTime)) {
+      const newTurn = angleStep(data.turn.angle.valueOf(), step);
       if (newTurn !== turn) {
         this.turnCount++;
       }
