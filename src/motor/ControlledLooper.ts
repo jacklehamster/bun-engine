@@ -5,7 +5,7 @@ import { ControlsListener, IControls } from "controls/IControls";
 
 export class ControlledLooper<T = undefined> extends Looper<T> {
   private _listener: ControlsListener;
-  constructor(motor: IMotor, private readonly controls: IControls, triggerred: (controls: IControls) => boolean, data?: T, refresher?: Refresh<T>) {
+  constructor(motor: IMotor, private readonly controls: IControls, triggerred: (controls: IControls) => boolean, data: T, refresher?: Refresh<T>) {
     super(motor, false, data, refresher);
     this._listener = {
       onAction: (controls): void => {

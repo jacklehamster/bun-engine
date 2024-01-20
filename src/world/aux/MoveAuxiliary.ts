@@ -1,4 +1,4 @@
-import { UpdatePayload } from "updates/Refresh";
+import { UpdatePayload } from "updates/UpdatePayload";
 import { Auxiliary } from "./Auxiliary";
 import { IControls } from "controls/IControls";
 import { IMatrix } from "gl/transform/IMatrix";
@@ -30,7 +30,7 @@ export class MoveAuxiliary extends ControlledLooper<Data> implements Auxiliary {
       { controls, direction, position, speed: config?.speed ?? 1 });
   }
 
-  refresh({ data, deltaTime }: UpdatePayload<Data>): void {
+  refresh({ data, deltaTime, stopUpdate }: UpdatePayload<Data>): void {
     const { forward, backward, left, right } = data.controls;
     const speed = deltaTime / 80 * data.speed;
     let dx = 0, dz = 0;
@@ -48,7 +48,7 @@ export class MoveAuxiliary extends ControlledLooper<Data> implements Auxiliary {
     }
     data.position.moveBy(dx, 0, dz, data.direction);
     if (!forward && !backward && !left && !right) {
-      this.stop();
+      stopUpdate();
     }
   }
 }

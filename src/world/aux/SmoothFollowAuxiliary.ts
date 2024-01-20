@@ -2,7 +2,7 @@ import { ChangeListener, IPositionMatrix } from "gl/transform/IPositionMatrix";
 import { Auxiliary } from "./Auxiliary";
 import { Looper } from "motor/Looper";
 import { IMotor } from "motor/IMotor";
-import { UpdatePayload } from "updates/Refresh";
+import { UpdatePayload } from "updates/UpdatePayload";
 
 interface Props {
   followee: IPositionMatrix;
@@ -41,14 +41,14 @@ export class SmoothFollowAuxiliary extends Looper<Data> implements Auxiliary {
     super.deactivate();
   }
 
-  refresh({ data: { follower, followee, speed } }: UpdatePayload<Data>): void {
+  refresh({ data: { follower, followee, speed }, motor, refresher }: UpdatePayload<Data>): void {
     const [x, y, z] = followee.position;
     const [fx, fy, fz] = follower.position;
     const dx = x - fx, dy = y - fy, dz = z - fz;
     const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
     if (dist < .1) {
       follower.moveTo(x, y, z);
-      this.stop();
+      motor.stopUpdate(refresher);
     } else {
       const moveSpeed = Math.min(dist, speed * dist) / dist;
       follower.moveBy(dx * moveSpeed, dy * moveSpeed, dz * moveSpeed);

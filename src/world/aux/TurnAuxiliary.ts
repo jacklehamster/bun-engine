@@ -1,4 +1,4 @@
-import { UpdatePayload } from "updates/Refresh";
+import { UpdatePayload } from "updates/UpdatePayload";
 import { Auxiliary } from "./Auxiliary";
 import { IControls } from "controls/IControls";
 import { TurnMatrix } from "gl/transform/TurnMatrix";
@@ -21,7 +21,7 @@ export class TurnAuxiliary extends ControlledLooper<Data> implements Auxiliary {
     super(motor, controls, ({ turnLeft, turnRight }) => turnLeft || turnRight, { controls, turn });
   }
 
-  refresh({ data: { controls, turn }, deltaTime }: UpdatePayload<Data>): void {
+  refresh({ data: { controls, turn }, deltaTime, stopUpdate }: UpdatePayload<Data>): void {
     const { turnLeft, turnRight } = controls;
     const turnspeed = deltaTime / 400;
     if (turnLeft) {
@@ -31,7 +31,7 @@ export class TurnAuxiliary extends ControlledLooper<Data> implements Auxiliary {
       turn.angle.addValue(turnspeed);
     }
     if (!turnLeft && !turnRight) {
-      this.stop();
+      stopUpdate();
     }
   }
 }

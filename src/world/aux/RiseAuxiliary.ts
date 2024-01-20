@@ -1,4 +1,4 @@
-import { UpdatePayload } from "updates/Refresh";
+import { UpdatePayload } from "updates/UpdatePayload";
 import { Auxiliary } from "./Auxiliary";
 import { ControlsListener, IControls } from "controls/IControls";
 import { IMotor } from "motor/IMotor";
@@ -38,13 +38,13 @@ export class RiseAuxiliary extends Looper<Data> implements Auxiliary {
     super.deactivate();
   }
 
-  refresh(update: UpdatePayload<Data>): void {
-    const { deltaTime, data } = update;
-
-    this.riseAndDrop(deltaTime, data.controls, data.position);
+  refresh({ deltaTime, data, stopUpdate }: UpdatePayload<Data>): void {
+    if (!this.riseAndDrop(deltaTime, data.controls, data.position)) {
+      stopUpdate();
+    }
   }
 
-  riseAndDrop(deltaTime: number, controls: IControls, position: IPositionMatrix): void {
+  riseAndDrop(deltaTime: number, controls: IControls, position: IPositionMatrix): boolean {
     const speed = deltaTime / 80;
     const { action } = controls;
     if (action) {
@@ -54,8 +54,9 @@ export class RiseAuxiliary extends Looper<Data> implements Auxiliary {
       const [x, y, z] = position.position;
       if (y < 0) {
         position.moveTo(x, 0, z);
-        this.stop();
+        return false;
       }
     }
+    return true;
   }
 }

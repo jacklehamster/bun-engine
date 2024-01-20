@@ -2,7 +2,7 @@ import { ChangeListener, IPositionMatrix } from "gl/transform/IPositionMatrix";
 import { Auxiliary } from "./Auxiliary";
 import { Looper } from "motor/Looper";
 import { IMotor } from "motor/IMotor";
-import { UpdatePayload } from "updates/Refresh";
+import { UpdatePayload } from "updates/UpdatePayload";
 
 interface Props {
   followee: IPositionMatrix;
@@ -52,7 +52,7 @@ export class FollowAuxiliary extends Looper<Data> implements Auxiliary {
     super.deactivate();
   }
 
-  refresh({ data }: UpdatePayload<Data>): void {
+  refresh({ data, stopUpdate }: UpdatePayload<Data>): void {
     const { followX, followY, followZ, speed } = this.config;
     const x = followX ? data.followee.position[0] : data.follower.position[0];
     const y = followY ? data.followee.position[1] : data.follower.position[1];
@@ -61,7 +61,7 @@ export class FollowAuxiliary extends Looper<Data> implements Auxiliary {
     if (data.followee.position[0] === data.follower.position[0]
       && data.followee.position[1] === data.follower.position[1]
       && data.followee.position[2] === data.follower.position[2]) {
-      this.stop();
+      stopUpdate();
     }
   }
 }

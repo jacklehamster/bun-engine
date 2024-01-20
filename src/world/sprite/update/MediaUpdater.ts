@@ -17,7 +17,7 @@ export class MediaUpdater extends Updater<Media> {
       }
       engine.updateTextures(ids, this.elems)
         .then((mediaInfos) => mediaInfos.filter(({ isVideo }) => isVideo)
-          .forEach(mediaInfo => motor.registerUpdate(mediaInfo, mediaInfo.refreshRate))
+          .forEach(mediaInfo => motor.scheduleUpdate(mediaInfo, undefined, mediaInfo.refreshRate))
         );
     }, motor));
   }

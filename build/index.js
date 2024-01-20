@@ -27500,10 +27500,10 @@ class Motor {
   updatePool = new UpdatePool;
   schedule = new Map;
   time = 0;
-  loop(update, frameRate, data) {
-    this.registerUpdate(update, frameRate ?? 1000, data);
+  loop(update, data, frameRate) {
+    this.scheduleUpdate(update, data, frameRate ?? 1000);
   }
-  registerUpdate(update, refreshRate = 0, data) {
+  scheduleUpdate(update, data, refreshRate = 0) {
     const schedule = this.schedule.get(update);
     if (!schedule) {
       this.schedule.set(update, this.schedulePool.create(refreshRate, data));
@@ -27513,7 +27513,7 @@ class Motor {
       schedule.data = data;
     }
   }
-  deregisterUpdate(update) {
+  stopUpdate(update) {
     const schedule = this.schedule.get(update);
     if (schedule) {
       this.schedulePool.recycle(schedule);
@@ -27531,8 +27531,15 @@ class Motor {
       time: 0,
       deltaTime: 0,
       data: undefined,
-      renderFrame: true
+      renderFrame: true,
+      motor: this,
+      refresher: { refresh: () => {
+      } },
+      stopUpdate() {
+        this.motor.stopUpdate(this.refresher);
+      }
     };
+    updatePayload.stopUpdate = updatePayload.stopUpdate.bind(updatePayload);
     const updateGroups = [
       [],
       []
@@ -27547,13 +27554,14 @@ class Motor {
         if (schedule.period) {
           schedule.triggerTime = Math.max(schedule.triggerTime + schedule.period, time);
         } else {
-          this.deregisterUpdate(update);
+          this.stopUpdate(update);
         }
         updateGroups[update.priority ?? Priority.DEFAULT].push(updatePool.create(update, schedule.data));
       });
       for (let updates of updateGroups) {
         for (let update of updates) {
           updatePayload2.data = update.data;
+          updatePayload2.refresher = update.refresher;
           update.refresher.refresh?.(updatePayload2);
         }
       }
@@ -27845,20 +27853,18 @@ class NumVal {
     }
     return false;
   }
+  refresh({ deltaTime, data, motor, refresher }) {
+    if (!data.update(deltaTime)) {
+      motor.stopUpdate(refresher);
+    }
+  }
   progressTowards(goal, speed, locker, motor) {
     if (!this.progressive) {
       this.progressive = progressivePool.create(this);
     }
     this.progressive.setGoal(goal, speed, locker);
     if (motor) {
-      const refresh = {
-        refresh: (updatePayload) => {
-          if (!this.update(updatePayload.deltaTime)) {
-            motor.deregisterUpdate(refresh);
-          }
-        }
-      };
-      motor.loop(refresh);
+      motor.loop(this, this);
     }
   }
   get goal() {
@@ -28039,12 +28045,12 @@ class UpdateRegistry {
     if (!this.updatedIds.has(id)) {
       this.updatedIds.add(id);
     }
-    this.motor.registerUpdate(this);
+    this.motor.scheduleUpdate(this);
   }
   refresh(update) {
     this.applyUpdate(this.updatedIds, update);
     if (this.updatedIds.size) {
-      this.motor.registerUpdate(this);
+      update.motor.scheduleUpdate(this);
     }
   }
 }
@@ -28253,13 +28259,10 @@ class Looper {
     }
   }
   deactivate() {
-    this.stop();
+    this.motor.stopUpdate(this);
   }
   start() {
-    this.motor.loop(this, undefined, this.data);
-  }
-  stop() {
-    this.motor.deregisterUpdate(this);
+    this.motor.loop(this, this.data);
   }
 }
 
@@ -28293,7 +28296,7 @@ class TurnAuxiliary extends ControlledLooper {
   constructor({ controls, turn, motor }) {
     super(motor, controls, ({ turnLeft, turnRight }) => turnLeft || turnRight, { controls, turn });
   }
-  refresh({ data: { controls, turn }, deltaTime }) {
+  refresh({ data: { controls, turn }, deltaTime, stopUpdate }) {
     const { turnLeft, turnRight } = controls;
     const turnspeed = deltaTime / 400;
     if (turnLeft) {
@@ -28303,7 +28306,7 @@ class TurnAuxiliary extends ControlledLooper {
       turn.angle.addValue(turnspeed);
     }
     if (!turnLeft && !turnRight) {
-      this.stop();
+      stopUpdate();
     }
   }
 }
@@ -28332,7 +28335,7 @@ class PositionStepAuxiliary extends ControlledLooper {
     ];
   }
   prePos = [0, 0, 0];
-  refresh({ deltaTime, data }) {
+  refresh({ deltaTime, data, stopUpdate }) {
     const { backward, forward, left, right } = data.controls;
     const pos = data.position.position;
     const { step } = data;
@@ -28377,7 +28380,7 @@ class PositionStepAuxiliary extends ControlledLooper {
       this.stepCount++;
     }
     if (!backward && !forward && !left && !right && equal(newPos, this.goalPos)) {
-      this.stop();
+      stopUpdate();
     }
   }
 }
@@ -28511,8 +28514,8 @@ class CellUtils {
   cellPool;
   vectorPool;
   constructor({ motor }) {
-    this.cellPool = new CellPool(() => motor.registerUpdate(this, undefined, data));
-    this.vectorPool = new VectorPool(() => motor.registerUpdate(this, undefined, data));
+    this.cellPool = new CellPool(() => motor.scheduleUpdate(this, data));
+    this.vectorPool = new VectorPool(() => motor.scheduleUpdate(this, data));
     const data = { cellPool: this.cellPool, vectorPool: this.vectorPool };
   }
   refresh({ data: { cellPool, vectorPool } }) {
@@ -29078,7 +29081,7 @@ class MoveAuxiliary extends ControlledLooper {
   constructor({ controls, direction, motor, position }, config) {
     super(motor, controls, ({ forward, backward, left, right }) => forward || backward || left || right, { controls, direction, position, speed: config?.speed ?? 1 });
   }
-  refresh({ data, deltaTime }) {
+  refresh({ data, deltaTime, stopUpdate }) {
     const { forward, backward, left, right } = data.controls;
     const speed = deltaTime / 80 * data.speed;
     let dx = 0, dz = 0;
@@ -29096,7 +29099,7 @@ class MoveAuxiliary extends ControlledLooper {
     }
     data.position.moveBy(dx, 0, dz, data.direction);
     if (!forward && !backward && !left && !right) {
-      this.stop();
+      stopUpdate();
     }
   }
 }
@@ -29114,8 +29117,10 @@ class JumpAuxiliary extends ControlledLooper {
     });
     this.dy = 0;
   }
-  refresh({ deltaTime, data }) {
-    this.jump(deltaTime, data);
+  refresh({ deltaTime, data, stopUpdate }) {
+    if (!this.jump(deltaTime, data)) {
+      stopUpdate();
+    }
   }
   canJump(position) {
     const [_x, y, _z] = position.position;
@@ -29129,6 +29134,7 @@ class JumpAuxiliary extends ControlledLooper {
       if (action) {
         this.dy = data.jump;
         data.position.moveBy(0, speed * this.dy, 0);
+        return true;
       }
     } else {
       data.position.moveBy(0, speed * this.dy, 0);
@@ -29136,12 +29142,13 @@ class JumpAuxiliary extends ControlledLooper {
       if (y > 0) {
         const mul4 = this.dy < 0 ? 1 / data.plane : 1;
         this.dy += data.gravity * acceleration * mul4;
+        return true;
       } else {
         data.position.moveTo(x, 0, z);
         this.dy = 0;
-        this.stop();
       }
     }
+    return false;
   }
 }
 
@@ -29160,7 +29167,7 @@ class TiltAuxiliary extends ControlledLooper {
   constructor({ controls, tilt, motor }) {
     super(motor, controls, ({ up, down }) => up || down, { controls, tilt });
   }
-  refresh({ data: { controls, tilt }, deltaTime }) {
+  refresh({ data: { controls, tilt }, deltaTime, motor, refresher }) {
     const { up, down } = controls;
     const turnspeed = deltaTime / 400;
     if (up) {
@@ -29170,7 +29177,7 @@ class TiltAuxiliary extends ControlledLooper {
       tilt.angle.addValue(turnspeed);
     }
     if (!up && !down) {
-      this.stop();
+      motor.stopUpdate(refresher);
     }
   }
 }
@@ -29193,14 +29200,14 @@ class SmoothFollowAuxiliary extends Looper {
     this.followee.removeChangeListener(this.listener);
     super.deactivate();
   }
-  refresh({ data: { follower, followee, speed } }) {
+  refresh({ data: { follower, followee, speed }, motor, refresher }) {
     const [x, y, z] = followee.position;
     const [fx, fy, fz] = follower.position;
     const dx = x - fx, dy = y - fy, dz = z - fz;
     const dist2 = Math.sqrt(dx * dx + dy * dy + dz * dz);
     if (dist2 < 0.1) {
       follower.moveTo(x, y, z);
-      this.stop();
+      motor.stopUpdate(refresher);
     } else {
       const moveSpeed = Math.min(dist2, speed * dist2) / dist2;
       follower.moveBy(dx * moveSpeed, dy * moveSpeed, dz * moveSpeed);
@@ -29267,7 +29274,7 @@ class MediaUpdater extends Updater {
       if (!this.elems) {
         return;
       }
-      engine.updateTextures(ids, this.elems).then((mediaInfos) => mediaInfos.filter(({ isVideo }) => isVideo).forEach((mediaInfo) => motor.registerUpdate(mediaInfo, mediaInfo.refreshRate)));
+      engine.updateTextures(ids, this.elems).then((mediaInfos) => mediaInfos.filter(({ isVideo }) => isVideo).forEach((mediaInfo) => motor.scheduleUpdate(mediaInfo, undefined, mediaInfo.refreshRate)));
     }, motor));
   }
 }
@@ -29442,14 +29449,14 @@ class FollowAuxiliary extends Looper {
     this.followee.removeChangeListener(this.listener);
     super.deactivate();
   }
-  refresh({ data }) {
+  refresh({ data, stopUpdate }) {
     const { followX, followY, followZ, speed } = this.config;
     const x = followX ? data.followee.position[0] : data.follower.position[0];
     const y = followY ? data.followee.position[1] : data.follower.position[1];
     const z = followZ ? data.followee.position[2] : data.follower.position[2];
     data.follower.gotoPos(x, y, z, speed);
     if (data.followee.position[0] === data.follower.position[0] && data.followee.position[1] === data.follower.position[1] && data.followee.position[2] === data.follower.position[2]) {
-      this.stop();
+      stopUpdate();
     }
   }
 }
@@ -29500,7 +29507,7 @@ class TurnStepAuxiliary extends ControlledLooper {
   constructor({ controls, turn, motor }, config = {}) {
     super(motor, controls, (controls2) => controls2.turnLeft || controls2.turnRight, { controls, turn, step: config.step ?? Math.PI / 2 });
   }
-  refresh({ deltaTime, data }) {
+  refresh({ deltaTime, data, stopUpdate }) {
     const { turnLeft, turnRight } = data.controls;
     let dTurn = 0;
     if (turnLeft) {
@@ -29523,7 +29530,7 @@ class TurnStepAuxiliary extends ControlledLooper {
         this.turnCount++;
       }
     } else {
-      this.stop();
+      stopUpdate();
     }
   }
 }
@@ -29978,4 +29985,4 @@ export {
   hello
 };
 
-//# debugId=77A0AB2EF293110D64756e2164756e21
+//# debugId=094F61411BBE986764756e2164756e21

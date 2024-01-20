@@ -1,5 +1,6 @@
 import { Time } from "core/Time";
-import { Refresh, UpdatePayload } from "../updates/Refresh";
+import { Refresh } from "../updates/Refresh";
+import { UpdatePayload } from "updates/UpdatePayload";
 import { IMotor } from "./IMotor";
 import { Duration } from "core/Time";
 import { ObjectPool } from "utils/ObjectPool";
@@ -31,11 +32,11 @@ export class Motor implements IMotor {
   private readonly schedule: Map<Refresh<any>, Schedule> = new Map();
   time: Time = 0;
 
-  loop<T>(update: Refresh<T>, frameRate?: number, data?: T) {
-    this.registerUpdate<T>(update, frameRate ?? 1000, data);
+  loop<T>(update: Refresh<T>, data: T, frameRate?: number) {
+    this.scheduleUpdate<T>(update, data, frameRate ?? 1000);
   }
 
-  registerUpdate<T>(update: Refresh<T>, refreshRate: number = 0, data?: T) {
+  scheduleUpdate<T>(update: Refresh<T>, data?: T, refreshRate: number = 0) {
     const schedule = this.schedule.get(update);
     if (!schedule) {
       this.schedule.set(update, this.schedulePool.create(refreshRate, data));
@@ -46,7 +47,7 @@ export class Motor implements IMotor {
     }
   }
 
-  deregisterUpdate<T>(update: Refresh<T>) {
+  stopUpdate<T>(update: Refresh<T>) {
     const schedule = this.schedule.get(update);
     if (schedule) {
       this.schedulePool.recycle(schedule);
@@ -68,7 +69,14 @@ export class Motor implements IMotor {
       deltaTime: 0,
       data: undefined,
       renderFrame: true,
+      motor: this,
+      refresher: { refresh: () => { } },
+      stopUpdate() {
+        this.motor.stopUpdate(this.refresher);
+      },
     };
+    updatePayload.stopUpdate = updatePayload.stopUpdate.bind(updatePayload);
+
     const updateGroups: [Update[], Update[]] = [
       [], [],
     ];
@@ -84,13 +92,14 @@ export class Motor implements IMotor {
         if (schedule.period) {
           schedule.triggerTime = Math.max(schedule.triggerTime + schedule.period, time);
         } else {
-          this.deregisterUpdate(update);
+          this.stopUpdate(update);
         }
         updateGroups[update.priority ?? Priority.DEFAULT].push(updatePool.create(update, schedule.data));
       });
       for (let updates of updateGroups) {
         for (let update of updates) {
           updatePayload.data = update.data;
+          updatePayload.refresher = update.refresher;
           update.refresher.refresh?.(updatePayload);
         }
       }

@@ -4,7 +4,8 @@ import { CellPool } from "../../pools/CellPool";
 import { Cell } from "../Cell";
 import { VectorPool } from "world/pools/VectorPool";
 import { IMotor } from "motor/IMotor";
-import { Refresh, UpdatePayload } from "updates/Refresh";
+import { Refresh } from "updates/Refresh";
+import { UpdatePayload } from "updates/UpdatePayload";
 
 interface Props {
   motor: IMotor;
@@ -20,8 +21,8 @@ export class CellUtils implements Refresh<Data> {
   private readonly vectorPool: VectorPool;
 
   constructor({ motor }: Props) {
-    this.cellPool = new CellPool(() => motor.registerUpdate(this, undefined, data));
-    this.vectorPool = new VectorPool(() => motor.registerUpdate(this, undefined, data));
+    this.cellPool = new CellPool(() => motor.scheduleUpdate(this, data));
+    this.vectorPool = new VectorPool(() => motor.scheduleUpdate(this, data));
     const data: Data = { cellPool: this.cellPool, vectorPool: this.vectorPool };
   }
 

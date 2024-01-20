@@ -1,4 +1,4 @@
-import { UpdatePayload } from "updates/Refresh";
+import { UpdatePayload } from "updates/UpdatePayload";
 import { Auxiliary } from "./Auxiliary";
 import { IControls } from "controls/IControls";
 import { IPositionMatrix } from "gl/transform/IPositionMatrix";
@@ -43,7 +43,7 @@ export class PositionStepAuxiliary extends ControlledLooper<Data> implements Aux
   }
 
   private readonly prePos: Vector = [0, 0, 0];
-  refresh({ deltaTime, data }: UpdatePayload<Data>): void {
+  refresh({ deltaTime, data, stopUpdate }: UpdatePayload<Data>): void {
     const { backward, forward, left, right } = data.controls;
 
     const pos = data.position.position;
@@ -97,7 +97,7 @@ export class PositionStepAuxiliary extends ControlledLooper<Data> implements Aux
       this.stepCount++;
     }
     if (!backward && !forward && !left && !right && equal(newPos, this.goalPos)) {
-      this.stop();
+      stopUpdate();
     }
   }
 }

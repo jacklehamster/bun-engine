@@ -1,4 +1,4 @@
-import { UpdatePayload } from "updates/Refresh";
+import { UpdatePayload } from "updates/UpdatePayload";
 import { Auxiliary } from "./Auxiliary";
 import { IControls } from "controls/IControls";
 import { IPositionMatrix } from "gl/transform/IPositionMatrix";
@@ -39,8 +39,10 @@ export class JumpAuxiliary extends ControlledLooper<Data> implements Auxiliary {
     this.dy = 0;
   }
 
-  refresh({ deltaTime, data }: UpdatePayload<Data>): void {
-    this.jump(deltaTime, data);
+  refresh({ deltaTime, data, stopUpdate }: UpdatePayload<Data>): void {
+    if (!this.jump(deltaTime, data)) {
+      stopUpdate();
+    }
   }
 
   canJump(position: IPositionMatrix) {
@@ -48,7 +50,7 @@ export class JumpAuxiliary extends ControlledLooper<Data> implements Auxiliary {
     return y === 0;
   }
 
-  jump(deltaTime: number, data: Data): void {
+  jump(deltaTime: number, data: Data): boolean {
     const speed = deltaTime / 80;
     const acceleration = deltaTime / 80;
     const { action } = data.controls;
@@ -56,6 +58,7 @@ export class JumpAuxiliary extends ControlledLooper<Data> implements Auxiliary {
       if (action) {
         this.dy = data.jump;
         data.position.moveBy(0, speed * this.dy, 0);
+        return true;
       }
     } else {
       data.position.moveBy(0, speed * this.dy, 0);
@@ -63,11 +66,12 @@ export class JumpAuxiliary extends ControlledLooper<Data> implements Auxiliary {
       if (y > 0) {
         const mul = this.dy < 0 ? 1 / data.plane : 1;
         this.dy += data.gravity * acceleration * mul;
+        return true;
       } else {
         data.position.moveTo(x, 0, z);
         this.dy = 0;
-        this.stop();
       }
     }
+    return false;
   }
 }

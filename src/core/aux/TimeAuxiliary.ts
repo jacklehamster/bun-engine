@@ -2,7 +2,7 @@ import { IGraphicsEngine } from "graphics/IGraphicsEngine";
 import { FloatUniform } from "graphics/Uniforms";
 import { IMotor } from "motor/IMotor";
 import { Looper } from "motor/Looper";
-import { UpdatePayload } from "updates/Refresh";
+import { UpdatePayload } from "updates/UpdatePayload";
 import { Auxiliary } from "world/aux/Auxiliary";
 
 interface Props {

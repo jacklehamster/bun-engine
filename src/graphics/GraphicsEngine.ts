@@ -45,7 +45,7 @@ import { Priority } from "updates/Priority";
 import { map } from 'world/sprite/List';
 import { Animation, AnimationId } from 'animation/Animation';
 import { Animations } from "animation/Animations";
-import { UpdatePayload } from 'updates/Refresh';
+import { UpdatePayload } from "updates/UpdatePayload";
 
 const VERTICES_PER_SPRITE = 6;
 

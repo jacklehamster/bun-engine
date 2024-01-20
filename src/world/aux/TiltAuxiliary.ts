@@ -1,4 +1,4 @@
-import { UpdatePayload } from "updates/Refresh";
+import { UpdatePayload } from "updates/UpdatePayload";
 import { Auxiliary } from "./Auxiliary";
 import { IControls } from "controls/IControls";
 import { TiltMatrix } from "gl/transform/TiltMatrix";
@@ -21,7 +21,7 @@ export class TiltAuxiliary extends ControlledLooper<Data> implements Auxiliary {
     super(motor, controls, ({ up, down }) => up || down, { controls, tilt });
   }
 
-  refresh({ data: { controls, tilt }, deltaTime }: UpdatePayload<Data>): void {
+  refresh({ data: { controls, tilt }, deltaTime, motor, refresher }: UpdatePayload<Data>): void {
     const { up, down } = controls;
     const turnspeed = deltaTime / 400;
     if (up) {
@@ -31,7 +31,7 @@ export class TiltAuxiliary extends ControlledLooper<Data> implements Auxiliary {
       tilt.angle.addValue(turnspeed);
     }
     if (!up && !down) {
-      this.stop();
+      motor.stopUpdate(refresher);
     }
   }
 }

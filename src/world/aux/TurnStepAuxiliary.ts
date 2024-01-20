@@ -1,4 +1,4 @@
-import { UpdatePayload } from "updates/Refresh";
+import { UpdatePayload } from "updates/UpdatePayload";
 import { Auxiliary } from "./Auxiliary";
 import { angleStep } from "gl/utils/angleUtils";
 import { IControls } from "controls/IControls";
@@ -29,7 +29,7 @@ export class TurnStepAuxiliary extends ControlledLooper<Data> implements Auxilia
     super(motor, controls, controls => controls.turnLeft || controls.turnRight, { controls, turn, step: config.step ?? Math.PI / 2 });
   }
 
-  refresh({ deltaTime, data }: UpdatePayload<Data>): void {
+  refresh({ deltaTime, data, stopUpdate }: UpdatePayload<Data>): void {
     const { turnLeft, turnRight } = data.controls;
 
     let dTurn = 0;
@@ -56,7 +56,7 @@ export class TurnStepAuxiliary extends ControlledLooper<Data> implements Auxilia
         this.turnCount++;
       }
     } else {
-      this.stop();
+      stopUpdate();
     }
   }
 }
