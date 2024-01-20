@@ -29,7 +29,7 @@ export class ObjectPool<T, A extends any[] = []> {
     this._recycler.push(...this._allObjectsCreated);
   }
 
-  destroy() {
+  clear() {
     this._recycler.length = 0;
     this._allObjectsCreated.length = 0;
   }

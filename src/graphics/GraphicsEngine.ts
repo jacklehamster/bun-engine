@@ -45,6 +45,7 @@ import { Priority } from "updates/Priority";
 import { map } from 'world/sprite/List';
 import { Animation, AnimationId } from 'animation/Animation';
 import { Animations } from "animation/Animations";
+import { UpdatePayload } from 'updates/Refresh';
 
 const VERTICES_PER_SPRITE = 6;
 
@@ -406,11 +407,13 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
   }
 
   private static clearBit = GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT;
-  refresh(): void {
-    this.gl.clear(GraphicsEngine.clearBit);
-    if (this.visibleSprites.length) {
-      this.drawElementsInstanced(VERTICES_PER_SPRITE, this.visibleSprites.length);
-      this.pixelListener?.setPixel(this.getPixel(this.pixelListener.x, this.pixelListener.y));
+  refresh(updatePayload: UpdatePayload): void {
+    if (updatePayload.renderFrame) {
+      this.gl.clear(GraphicsEngine.clearBit);
+      if (this.visibleSprites.length) {
+        this.drawElementsInstanced(VERTICES_PER_SPRITE, this.visibleSprites.length);
+        this.pixelListener?.setPixel(this.getPixel(this.pixelListener.x, this.pixelListener.y));
+      }
     }
   }
 }

@@ -27434,11 +27434,13 @@ class GraphicsEngine extends Disposable {
     return r * 65536 + g * 256 + b;
   }
   static clearBit = GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT;
-  refresh() {
-    this.gl.clear(GraphicsEngine.clearBit);
-    if (this.visibleSprites.length) {
-      this.drawElementsInstanced(VERTICES_PER_SPRITE, this.visibleSprites.length);
-      this.pixelListener?.setPixel(this.getPixel(this.pixelListener.x, this.pixelListener.y));
+  refresh(updatePayload) {
+    if (updatePayload.renderFrame) {
+      this.gl.clear(GraphicsEngine.clearBit);
+      if (this.visibleSprites.length) {
+        this.drawElementsInstanced(VERTICES_PER_SPRITE, this.visibleSprites.length);
+        this.pixelListener?.setPixel(this.getPixel(this.pixelListener.x, this.pixelListener.y));
+      }
     }
   }
 }
@@ -27473,7 +27475,7 @@ class ObjectPool {
     this._recycler.length = 0;
     this._recycler.push(...this._allObjectsCreated);
   }
-  destroy() {
+  clear() {
     this._recycler.length = 0;
     this._allObjectsCreated.length = 0;
   }
@@ -27490,10 +27492,11 @@ class ObjectPool {
 // src/motor/Motor.ts
 var MILLIS_IN_SEC = 1000;
 var MAX_DELTA_TIME = MILLIS_IN_SEC / 20;
-var FRAME_PERIOD = 16.6;
+var FRAME_PERIOD = 16.5;
+var MAX_LOOP_JUMP = 10;
 
 class Motor {
-  pool = new SchedulePool;
+  schedulePool = new SchedulePool;
   updatePool = new UpdatePool;
   schedule = new Map;
   time = 0;
@@ -27503,7 +27506,7 @@ class Motor {
   registerUpdate(update, refreshRate = 0, data) {
     const schedule = this.schedule.get(update);
     if (!schedule) {
-      this.schedule.set(update, this.pool.create(refreshRate, data));
+      this.schedule.set(update, this.schedulePool.create(refreshRate, data));
     } else if (schedule.frameRate !== refreshRate) {
       schedule.frameRate = refreshRate;
       schedule.period = refreshRate ? 1000 / refreshRate : 0;
@@ -27513,7 +27516,7 @@ class Motor {
   deregisterUpdate(update) {
     const schedule = this.schedule.get(update);
     if (schedule) {
-      this.pool.recycle(schedule);
+      this.schedulePool.recycle(schedule);
     }
     this.schedule.delete(update);
   }
@@ -27527,18 +27530,16 @@ class Motor {
     const updatePayload = {
       time: 0,
       deltaTime: 0,
-      data: undefined
+      data: undefined,
+      renderFrame: true
     };
     const updateGroups = [
       [],
       []
     ];
-    let time = 0;
-    const loop = () => {
-      handle = requestAnimationFrame(loop);
-      time += FRAME_PERIOD;
-      updatePayload.deltaTime = Math.min(time - updatePayload.time, MAX_DELTA_TIME);
-      this.time = updatePayload.time = time;
+    const performUpdate = (time, updatePayload2, updatePool) => {
+      updatePayload2.deltaTime = Math.min(time - updatePayload2.time, MAX_DELTA_TIME);
+      this.time = updatePayload2.time = time;
       this.schedule.forEach((schedule, update) => {
         if (time < schedule.triggerTime) {
           return;
@@ -27548,22 +27549,39 @@ class Motor {
         } else {
           this.deregisterUpdate(update);
         }
-        updateGroups[update.priority ?? Priority.DEFAULT].push(this.updatePool.create(update, schedule.data));
+        updateGroups[update.priority ?? Priority.DEFAULT].push(updatePool.create(update, schedule.data));
       });
       for (let updates of updateGroups) {
         for (let update of updates) {
-          updatePayload.data = update.data;
-          update.refresher.refresh?.(updatePayload);
+          updatePayload2.data = update.data;
+          update.refresher.refresh?.(updatePayload2);
         }
       }
       updateGroups[Priority.DEFAULT].length = 0;
       updateGroups[Priority.LAST].length = 0;
+    };
+    let timeOffset = 0;
+    let gameTime = 0;
+    const loop = (time) => {
+      handle = requestAnimationFrame(loop);
+      let loopCount = Math.ceil((time + timeOffset - gameTime) / FRAME_PERIOD);
+      if (loopCount > MAX_LOOP_JUMP) {
+        timeOffset -= FRAME_PERIOD * (loopCount - MAX_LOOP_JUMP);
+        loopCount = MAX_LOOP_JUMP;
+      }
+      for (let i = 0;i < loopCount; i++) {
+        gameTime += FRAME_PERIOD;
+        updatePayload.renderFrame = i === loopCount - 1;
+        performUpdate(gameTime, updatePayload, this.updatePool);
+      }
       this.updatePool.reset();
     };
     let handle = requestAnimationFrame(loop);
     this.stopLoop = () => {
       cancelAnimationFrame(handle);
       this.stopLoop = undefined;
+      this.updatePool.clear();
+      this.schedulePool.clear();
     };
   }
 }
@@ -29099,20 +29117,23 @@ class JumpAuxiliary extends ControlledLooper {
   refresh({ deltaTime, data }) {
     this.jump(deltaTime, data);
   }
+  canJump(position) {
+    const [_x, y, _z] = position.position;
+    return y === 0;
+  }
   jump(deltaTime, data) {
     const speed = deltaTime / 80;
     const acceleration = deltaTime / 80;
     const { action } = data.controls;
-    const [_x, y, _z] = data.position.position;
-    if (y === 0) {
+    if (this.canJump(data.position)) {
       if (action) {
         this.dy = data.jump;
         data.position.moveBy(0, speed * this.dy, 0);
       }
     } else {
       data.position.moveBy(0, speed * this.dy, 0);
-      const [x, y2, z] = data.position.position;
-      if (y2 > 0) {
+      const [x, y, z] = data.position.position;
+      if (y > 0) {
         const mul4 = this.dy < 0 ? 1 / data.plane : 1;
         this.dy += data.gravity * acceleration * mul4;
       } else {
@@ -29957,4 +29978,4 @@ export {
   hello
 };
 
-//# debugId=5CA54D3E84371DE364756e2164756e21
+//# debugId=77A0AB2EF293110D64756e2164756e21

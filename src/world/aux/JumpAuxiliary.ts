@@ -43,12 +43,16 @@ export class JumpAuxiliary extends ControlledLooper<Data> implements Auxiliary {
     this.jump(deltaTime, data);
   }
 
+  canJump(position: IPositionMatrix) {
+    const [_x, y, _z] = position.position;
+    return y === 0;
+  }
+
   jump(deltaTime: number, data: Data): void {
     const speed = deltaTime / 80;
     const acceleration = deltaTime / 80;
     const { action } = data.controls;
-    const [_x, y, _z] = data.position.position;
-    if (y === 0) {
+    if (this.canJump(data.position)) {
       if (action) {
         this.dy = data.jump;
         data.position.moveBy(0, speed * this.dy, 0);

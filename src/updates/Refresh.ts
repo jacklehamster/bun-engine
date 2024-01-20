@@ -6,6 +6,7 @@ export interface UpdatePayload<T = undefined> {
   time: Time;
   deltaTime: Duration;
   data: T;
+  renderFrame: boolean;
 }
 
 export interface Refresh<T = undefined> {

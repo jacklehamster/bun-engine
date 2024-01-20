@@ -10,7 +10,8 @@ import { Priority } from "updates/Priority";
  */
 const MILLIS_IN_SEC = 1000;
 const MAX_DELTA_TIME = MILLIS_IN_SEC / 20;
-const FRAME_PERIOD = 16.6;
+const FRAME_PERIOD = 16.5;  //  base of 60fps
+const MAX_LOOP_JUMP = 10;
 
 interface Schedule {
   triggerTime: Time;
@@ -25,7 +26,7 @@ interface Update {
 }
 
 export class Motor implements IMotor {
-  private readonly pool = new SchedulePool();
+  private readonly schedulePool = new SchedulePool();
   private readonly updatePool = new UpdatePool();
   private readonly schedule: Map<Refresh<any>, Schedule> = new Map();
   time: Time = 0;
@@ -37,7 +38,7 @@ export class Motor implements IMotor {
   registerUpdate<T>(update: Refresh<T>, refreshRate: number = 0, data?: T) {
     const schedule = this.schedule.get(update);
     if (!schedule) {
-      this.schedule.set(update, this.pool.create(refreshRate, data));
+      this.schedule.set(update, this.schedulePool.create(refreshRate, data));
     } else if (schedule.frameRate !== refreshRate) {
       schedule.frameRate = refreshRate;
       schedule.period = refreshRate ? 1000 / refreshRate : 0;
@@ -48,7 +49,7 @@ export class Motor implements IMotor {
   deregisterUpdate<T>(update: Refresh<T>) {
     const schedule = this.schedule.get(update);
     if (schedule) {
-      this.pool.recycle(schedule);
+      this.schedulePool.recycle(schedule);
     }
     this.schedule.delete(update);
   }
@@ -66,15 +67,13 @@ export class Motor implements IMotor {
       time: 0,
       deltaTime: 0,
       data: undefined,
+      renderFrame: true,
     };
     const updateGroups: [Update[], Update[]] = [
       [], [],
     ];
 
-    let time = 0;
-    const loop: FrameRequestCallback = () => {
-      handle = requestAnimationFrame(loop);
-      time += FRAME_PERIOD;
+    const performUpdate = (time: number, updatePayload: UpdatePayload, updatePool: UpdatePool) => {
       updatePayload.deltaTime = Math.min(time - updatePayload.time, MAX_DELTA_TIME);
       this.time = updatePayload.time = time;
 
@@ -87,7 +86,7 @@ export class Motor implements IMotor {
         } else {
           this.deregisterUpdate(update);
         }
-        updateGroups[update.priority ?? Priority.DEFAULT].push(this.updatePool.create(update, schedule.data));
+        updateGroups[update.priority ?? Priority.DEFAULT].push(updatePool.create(update, schedule.data));
       });
       for (let updates of updateGroups) {
         for (let update of updates) {
@@ -97,12 +96,31 @@ export class Motor implements IMotor {
       }
       updateGroups[Priority.DEFAULT].length = 0;
       updateGroups[Priority.LAST].length = 0;
+    }
+
+    let timeOffset = 0;
+    let gameTime = 0;
+    const loop: FrameRequestCallback = (time) => {
+      handle = requestAnimationFrame(loop);
+      let loopCount = Math.ceil((time + timeOffset - gameTime) / FRAME_PERIOD);
+      if (loopCount > MAX_LOOP_JUMP) {
+        timeOffset -= FRAME_PERIOD * (loopCount - MAX_LOOP_JUMP);
+        loopCount = MAX_LOOP_JUMP;
+      }
+      for (let i = 0; i < loopCount; i++) {
+        gameTime += FRAME_PERIOD;
+        updatePayload.renderFrame = i === loopCount - 1;
+        performUpdate(gameTime, updatePayload, this.updatePool);
+      }
       this.updatePool.reset();
     };
     let handle = requestAnimationFrame(loop);
+
     this.stopLoop = () => {
       cancelAnimationFrame(handle);
       this.stopLoop = undefined;
+      this.updatePool.clear();
+      this.schedulePool.clear();
     };
   }
 
