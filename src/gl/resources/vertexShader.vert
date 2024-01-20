@@ -70,13 +70,14 @@ void main() {
   basePosition = (isBillboard * billboardMatrix + (1. - isBillboard) * identity) * basePosition;
 
   vec4 elemPosition = transform * basePosition;
-  // elementPosition => relativePosition
+  // elemPosition => relativePosition
   vec4 relativePosition = camTilt * camTurn * camPos * elemPosition;
 
   float actualCurvature = curvature * (1. - isDistant);
   relativePosition.y -= actualCurvature * ((relativePosition.z * relativePosition.z) + (relativePosition.x * relativePosition.x) / 4.) / 10.;
   relativePosition.x /= (1. + actualCurvature * 1.4);
 
+  //relativePosition.z *= -1.0;
   relativePosition.z -= camDist;
 
   dist = max(isDistant, isHud) + (1. - max(isDistant, isHud)) * (relativePosition.z*relativePosition.z + relativePosition.x*relativePosition.x);

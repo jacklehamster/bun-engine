@@ -1,6 +1,7 @@
 import { SpriteGrid } from "./SpriteGrid";
 import { Sprites } from "../Sprites";
-import { Sprite, copySprite } from "../Sprite";
+import { Sprite } from "../Sprite";
+import { copySprite } from "../utils/sprite-utils";
 import { forEach } from "../List";
 import { transformToPosition } from "world/grid/utils/position-utils";
 import { CellUtils } from "world/grid/utils/cell-utils";
@@ -14,7 +15,7 @@ interface Config {
 const EMPTY: Sprite[] = [];
 
 export class FixedSpriteGrid extends SpriteGrid {
-  private cellSize: number;
+  private readonly cellSize: number;
   private readonly spritesPerCell: Map<string, Sprite[]> = new Map();
   private readonly spritesList: Sprites[];
 

@@ -1,4 +1,5 @@
-import { Sprite, copySprite } from "../Sprite";
+import { Sprite } from "../Sprite";
+import { copySprite } from "../utils/sprite-utils";
 import { Config, Grid } from "./Grid";
 import { IElemFactory } from "./IElemFactory";
 

@@ -25827,13 +25827,14 @@ void main() {
   basePosition = (isBillboard * billboardMatrix + (1. - isBillboard) * identity) * basePosition;
 
   vec4 elemPosition = transform * basePosition;
-  // elementPosition => relativePosition
+  // elemPosition => relativePosition
   vec4 relativePosition = camTilt * camTurn * camPos * elemPosition;
 
   float actualCurvature = curvature * (1. - isDistant);
   relativePosition.y -= actualCurvature * ((relativePosition.z * relativePosition.z) + (relativePosition.x * relativePosition.x) / 4.) / 10.;
   relativePosition.x /= (1. + actualCurvature * 1.4);
 
+  //relativePosition.z *= -1.0;
   relativePosition.z -= camDist;
 
   dist = max(isDistant, isHud) + (1. - max(isDistant, isHud)) * (relativePosition.z*relativePosition.z + relativePosition.x*relativePosition.x);
@@ -27072,25 +27073,6 @@ var VectorUniform;
 })(VectorUniform || (VectorUniform = {}));
 
 // src/world/sprite/Sprite.ts
-function copySprite(sprite, dest) {
-  if (!dest) {
-    return {
-      name: sprite.name,
-      transform: Matrix_default.create().copy(sprite.transform),
-      imageId: sprite.imageId,
-      spriteType: sprite.spriteType,
-      flip: sprite.flip,
-      animationId: sprite.animationId
-    };
-  }
-  dest.name = sprite.name;
-  dest.imageId = sprite.imageId;
-  dest.spriteType = sprite.spriteType;
-  dest.transform.copy(sprite.transform);
-  dest.flip = sprite.flip;
-  dest.animationId = sprite.animationId;
-  return dest;
-}
 var SpriteType;
 (function(SpriteType2) {
   SpriteType2[SpriteType2["DEFAULT"] = 0] = "DEFAULT";
@@ -27099,6 +27081,10 @@ var SpriteType;
   SpriteType2[SpriteType2["DISTANT"] = 3] = "DISTANT";
   SpriteType2[SpriteType2["SHADOW"] = 4] = "SHADOW";
 })(SpriteType || (SpriteType = {}));
+var EMPTY_SPRITE = {
+  imageId: 0,
+  transform: new Matrix_default
+};
 
 // src/updates/Priority.ts
 var Priority;
@@ -28746,15 +28732,29 @@ class ItemsGroup {
   }
 }
 
+// src/world/sprite/aux/SpriteModel.ts
+class SpriteModel {
+  sprite = EMPTY_SPRITE;
+  animationId = 0;
+  flip = false;
+  transform = Matrix_default.create();
+  get name() {
+    return this.sprite.name;
+  }
+  get imageId() {
+    return this.sprite.imageId;
+  }
+  get spriteType() {
+    return this.sprite.spriteType;
+  }
+}
+
 // src/world/sprite/aux/SpritesGroup.ts
 class SpriteGroup extends ItemsGroup {
   transforms;
   _flip;
   _animationId;
-  spriteModel = {
-    imageId: 0,
-    transform: Matrix_default.create()
-  };
+  spriteModel = new SpriteModel;
   constructor(sprites, transforms = []) {
     super(sprites);
     this.transforms = transforms;
@@ -28779,7 +28779,8 @@ class SpriteGroup extends ItemsGroup {
     if (!s) {
       return;
     }
-    copySprite(s, this.spriteModel);
+    this.spriteModel.sprite = s;
+    this.spriteModel.transform.copy(s.transform);
     for (let transform of this.transforms) {
       this.spriteModel.transform.multiply2(transform, this.spriteModel.transform);
     }
@@ -28790,6 +28791,27 @@ class SpriteGroup extends ItemsGroup {
   informUpdate(id, type) {
     this.elems.informUpdate?.(id, type);
   }
+}
+
+// src/world/sprite/utils/sprite-utils.ts
+function copySprite(sprite, dest) {
+  if (!dest) {
+    return {
+      name: sprite.name,
+      transform: Matrix_default.create().copy(sprite.transform),
+      imageId: sprite.imageId,
+      spriteType: sprite.spriteType,
+      flip: sprite.flip,
+      animationId: sprite.animationId
+    };
+  }
+  dest.name = sprite.name;
+  dest.imageId = sprite.imageId;
+  dest.spriteType = sprite.spriteType;
+  dest.transform.copy(sprite.transform);
+  dest.flip = sprite.flip;
+  dest.animationId = sprite.animationId;
+  return dest;
 }
 
 // src/world/sprite/aux/Grid.ts
@@ -29821,7 +29843,7 @@ class DemoWorld extends AuxiliaryHolder {
       auxiliariesMapping: [
         {
           key: "Tab",
-          aux: Auxiliaries.from(new PositionStepAuxiliary({ motor, controls, position: heroPos }), new SmoothFollowAuxiliary({ motor, follower: camera.position, followee: heroPos }, { speed: 0.05 }), new JumpAuxiliary({ motor, controls, position: heroPos }), new TurnStepAuxiliary({ motor, controls, turn: camera.turn }))
+          aux: Auxiliaries.from(new PositionStepAuxiliary({ motor, controls, position: heroPos, turnGoal: camera.turn.angle }), new SmoothFollowAuxiliary({ motor, follower: camera.position, followee: heroPos }, { speed: 0.05 }), new JumpAuxiliary({ motor, controls, position: heroPos }), new TurnStepAuxiliary({ motor, controls, turn: camera.turn }))
         },
         {
           key: "Tab",
@@ -29943,7 +29965,7 @@ class WebGlCanvas extends DOMWrap {
 // src/index.tsx
 async function hello() {
   console.info(`Welcome!
-You are using dok-engine.
+You are using Dok engine.
 https://github.com/jacklehamster/bun-engine`);
 }
 async function testCanvas(canvas) {
@@ -29985,4 +30007,4 @@ export {
   hello
 };
 
-//# debugId=094F61411BBE986764756e2164756e21
+//# debugId=AD0D4E435B2099A164756e2164756e21

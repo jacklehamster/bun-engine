@@ -251,6 +251,7 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
     } else {
       this.attributeBuffers.ensureSize(SPRITE_TYPE_LOC, instanceCount);
     }
+
     return this.attributeBuffers;
   }
 

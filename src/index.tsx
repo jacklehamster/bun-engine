@@ -7,7 +7,7 @@ import { WebGlCanvas } from 'graphics/WebGlCanvas';
 
 export async function hello() {
   console.info(`Welcome!
-You are using dok-engine.
+You are using Dok engine.
 https://github.com/jacklehamster/bun-engine`);
 }
 
