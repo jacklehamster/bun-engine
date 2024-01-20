@@ -1,6 +1,6 @@
 import { List, forEach } from "world/sprite/List";
 import { Auxiliary } from "./Auxiliary";
-import { Cell } from "world/grid/CellPos";
+import { Cell } from "world/grid/Cell";
 
 export class Auxiliaries implements List<Auxiliary>, Auxiliary {
   private active: boolean = false;

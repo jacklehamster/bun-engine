@@ -1,5 +1,6 @@
 import { List } from "world/sprite/List";
-import { Cell, cellTag } from "./CellPos";
+import { Cell } from "./Cell";
+import { cellTag } from "./utils/cell-utils";
 import { VisitableCell } from "./VisitCell";
 import { DoubleLinkList } from "../../utils/DoubleLinkList";
 import { FreeStack } from "utils/FreeStack";

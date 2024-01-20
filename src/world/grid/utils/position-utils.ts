@@ -11,7 +11,7 @@ export function transformsToPosition(transforms: List<Matrix>) {
   return transformToPosition(_matrix);
 }
 
-export function toPos(x: number, y: number, z: number): Vector {
+export function toVector(x: number, y: number, z: number): Vector {
   _position[0] = x;
   _position[1] = y;
   _position[2] = z;

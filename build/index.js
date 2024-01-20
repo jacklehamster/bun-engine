@@ -27356,6 +27356,7 @@ class GraphicsEngine extends Disposable {
     spriteIds.forEach((spriteId) => {
       const sprite = sprites.at(spriteId);
       if (!sprite) {
+        spriteIds.delete(spriteId);
         return;
       }
       const slotObj = this.textureSlots.get(sprite.imageId);
@@ -27445,29 +27446,44 @@ class GraphicsEngine extends Disposable {
 // src/utils/ObjectPool.ts
 class ObjectPool {
   initCall;
-  allObjectsCreated = [];
-  recycler = [];
-  constructor(initCall) {
+  onCreate;
+  static warningLimit = 1e5;
+  _allObjectsCreated = [];
+  _recycler = [];
+  constructor(initCall, onCreate) {
     this.initCall = initCall;
+    this.onCreate = onCreate;
   }
   recycle(element) {
-    this.recycler.push(element);
+    this._recycler.push(element);
+    this.checkObjectExistence();
   }
   create(...params) {
-    const recycledElem = this.recycler.pop();
+    const recycledElem = this._recycler.pop();
     if (recycledElem) {
       return this.initCall(recycledElem, ...params);
     }
     const elem = this.initCall(undefined, ...params);
-    this.allObjectsCreated.push(elem);
-    if (this.allObjectsCreated.length === 1e5) {
-      console.warn("ObjectPool already created", this.allObjectsCreated.length);
-    }
+    this._allObjectsCreated.push(elem);
+    this.checkObjectExistence();
+    this.onCreate?.(elem);
     return elem;
   }
   reset() {
-    this.recycler.length = 0;
-    this.recycler.push(...this.allObjectsCreated);
+    this._recycler.length = 0;
+    this._recycler.push(...this._allObjectsCreated);
+  }
+  destroy() {
+    this._recycler.length = 0;
+    this._allObjectsCreated.length = 0;
+  }
+  get totalObjectsInExistence() {
+    return this._recycler.length + this._allObjectsCreated.length;
+  }
+  checkObjectExistence() {
+    if (this.totalObjectsInExistence === ObjectPool.warningLimit) {
+      console.warn("ObjectPool already created", this.totalObjectsInExistence);
+    }
   }
 }
 
@@ -27804,7 +27820,8 @@ class NumVal {
     if (this.progressive) {
       const didUpdate = !!this.progressive?.update(deltaTime);
       if (!didUpdate) {
-        this.progressive = progressivePool.recycle(this.progressive);
+        progressivePool.recycle(this.progressive);
+        this.progressive = undefined;
       }
       return didUpdate;
     }
@@ -27906,7 +27923,7 @@ class TurnMatrix {
 }
 
 // src/world/grid/utils/position-utils.ts
-function toPos(x, y, z) {
+function toVector(x, y, z) {
   _position[0] = x;
   _position[1] = y;
   _position[2] = z;
@@ -27949,7 +27966,7 @@ class PositionMatrix extends AuxiliaryHolder {
   }
   moveBy(x, y, z, turnMatrix) {
     const vector = Matrix_default.getMoveVector(x, y, z, turnMatrix);
-    const blocked = this.moveBlocker?.isBlocked(toPos(this.position[0] + vector[0], this.position[1] + vector[1], this.position[2] + vector[2]), this.position);
+    const blocked = this.moveBlocker?.isBlocked(toVector(this.position[0] + vector[0], this.position[1] + vector[1], this.position[2] + vector[2]), this.position);
     if (!blocked) {
       if (vector[0] || vector[1] || vector[2]) {
         this.matrix.move(vector);
@@ -27959,7 +27976,7 @@ class PositionMatrix extends AuxiliaryHolder {
     return !blocked;
   }
   moveTo(x, y, z) {
-    const blocked = this.moveBlocker?.isBlocked(toPos(x, y, z));
+    const blocked = this.moveBlocker?.isBlocked(toVector(x, y, z), this.position);
     if (!blocked) {
       const [curX, curY, curZ] = this.matrix.getPosition();
       if (curX !== x || curY !== y || curZ !== z) {
@@ -28100,38 +28117,19 @@ class Camera extends AuxiliaryHolder {
   }
 }
 
-// src/world/grid/CellPos.ts
-function cellTag(x, y, z, cellSize) {
-  return `(${x},${y},${z})_${cellSize}`;
-}
-function getCellPos(pos, cellSize) {
-  cellPos[0] = Math.round(pos[0] / cellSize);
-  cellPos[1] = Math.round(pos[1] / cellSize);
-  cellPos[2] = Math.round(pos[2] / cellSize);
-  cellPos[3] = cellSize;
-  return cellPos;
-}
-function positionFromCell(cellPos) {
-  const [cx, cy, cz, cellSize] = cellPos;
-  tempPos[0] = cx * cellSize;
-  tempPos[1] = cy * cellSize;
-  tempPos[2] = cz * cellSize;
-  return tempPos;
-}
-var cellPos = [0, 0, 0, 0];
-var tempPos = [0, 0, 0];
-
 // src/gl/transform/aux/CellChangeAuxiliary.ts
 class CellChangeAuxiliary extends AuxiliaryHolder {
+  cellUtils;
+  visitableCell;
   positionMatrix;
   cellSize;
-  cell;
-  visitableCell;
+  previousCellPos;
   listener = () => this.checkPosition();
-  constructor(config) {
+  constructor(cellUtils, config) {
     super();
+    this.cellUtils = cellUtils;
     this.cellSize = config?.cellSize ?? 1;
-    this.cell = { pos: [Number.NaN, Number.NaN, Number.NaN, this.cellSize], tag: "" };
+    this.previousCellPos = [Number.NaN, Number.NaN, Number.NaN, this.cellSize];
   }
   set holder(value) {
     this.positionMatrix = value;
@@ -28141,22 +28139,20 @@ class CellChangeAuxiliary extends AuxiliaryHolder {
       return;
     }
     const pos = this.positionMatrix.position;
-    const [x, y, z] = getCellPos(pos, this.cellSize);
-    if (this.cell.pos[0] !== x || this.cell.pos[1] !== y || this.cell.pos[2] !== z) {
-      this.cell.pos[0] = x;
-      this.cell.pos[1] = y;
-      this.cell.pos[2] = z;
-      this.cell.tag = cellTag(...this.cell.pos);
-      this.visitableCell.visitCell(this.cell);
-      console.log(this.cell);
+    const cell = this.cellUtils.getCell(pos, this.previousCellPos[3]);
+    if (this.previousCellPos[0] !== cell.pos[0] || this.previousCellPos[1] !== cell.pos[1] || this.previousCellPos[2] !== cell.pos[2]) {
+      this.previousCellPos[0] = cell.pos[0];
+      this.previousCellPos[1] = cell.pos[1];
+      this.previousCellPos[2] = cell.pos[2];
+      this.visitableCell.visitCell(cell);
     }
   }
   activate() {
     super.activate();
     this.positionMatrix?.onChange(this.listener);
-    this.cell.pos[0] = Number.NaN;
-    this.cell.pos[1] = Number.NaN;
-    this.cell.pos[2] = Number.NaN;
+    this.previousCellPos[0] = Number.NaN;
+    this.previousCellPos[1] = Number.NaN;
+    this.previousCellPos[2] = Number.NaN;
     this.checkPosition();
   }
   deactivate() {
@@ -28196,11 +28192,11 @@ class Auxiliaries {
     });
     return didTrack;
   }
-  untrackCell(cellTag2) {
+  untrackCell(cellTag) {
     if (!this.active) {
       return;
     }
-    forEach3(this.auxiliaries, (aux) => aux?.untrackCell?.(cellTag2));
+    forEach3(this.auxiliaries, (aux) => aux?.untrackCell?.(cellTag));
   }
   activate() {
     if (this.active) {
@@ -28351,7 +28347,7 @@ class PositionStepAuxiliary extends ControlledLooper {
       this.stepCount = 0;
     }
     const speed = (dx || dz ? deltaTime / 150 : deltaTime / 100) * data.speed;
-    const didMove = data.position.gotoPos(this.goalPos[0], pos[1], this.goalPos[2], speed) || data.position.gotoPos(this.goalPos[0], pos[1], pos[2], speed) || data.position.gotoPos(pos[0], pos[1], this.goalPos[2], speed);
+    const didMove = data.position.gotoPos(this.goalPos[0], pos[1], this.goalPos[2], speed) || dx && data.position.gotoPos(this.goalPos[0], pos[1], pos[2], speed) || dz && data.position.gotoPos(pos[0], pos[1], this.goalPos[2], speed);
     if (!didMove) {
       const gx = Math.round(pos[0] / step) * step;
       const gz = Math.round(pos[2] / step) * step;
@@ -28362,7 +28358,7 @@ class PositionStepAuxiliary extends ControlledLooper {
     if (Math.round(newPos[0] / step) * step !== this.prePos[0] || Math.round(newPos[1] / step) * step !== this.prePos[1] || Math.round(newPos[2] / step) * step !== this.prePos[2]) {
       this.stepCount++;
     }
-    if (!dx && !dz && equal(newPos, this.goalPos)) {
+    if (!backward && !forward && !left && !right && equal(newPos, this.goalPos)) {
       this.stop();
     }
   }
@@ -28444,6 +28440,78 @@ class ToggleAuxiliary {
     }
   }
 }
+
+// src/world/pools/CellPool.ts
+class CellPool extends ObjectPool {
+  constructor(onCreate) {
+    super((cell, [x, y, z], cellSize) => {
+      const cx = Math.round(x / cellSize);
+      const cy = Math.round(y / cellSize);
+      const cz = Math.round(z / cellSize);
+      const tag = cellTag(cx, cy, cz, cellSize);
+      if (!cell) {
+        return { pos: [cx, cy, cz, cellSize], tag };
+      }
+      cell.pos[0] = cx;
+      cell.pos[1] = cy;
+      cell.pos[2] = cz;
+      cell.pos[3] = cellSize;
+      cell.tag = tag;
+      return cell;
+    }, onCreate);
+  }
+}
+
+// src/world/pools/VectorPool.ts
+class VectorPool extends ObjectPool {
+  constructor(onCreate) {
+    super((vector, x, y, z) => {
+      if (!vector) {
+        return [x, y, z];
+      }
+      vector[0] = x;
+      vector[1] = y;
+      vector[2] = z;
+      return vector;
+    }, onCreate);
+  }
+}
+
+// src/world/grid/utils/cell-utils.ts
+function cellTag(x, y, z, cellSize) {
+  return `(${x},${y},${z})_${cellSize}`;
+}
+function positionFromCell(cellPos) {
+  const [cx, cy, cz, cellSize] = cellPos;
+  tempPos[0] = cx * cellSize;
+  tempPos[1] = cy * cellSize;
+  tempPos[2] = cz * cellSize;
+  return tempPos;
+}
+
+class CellUtils {
+  cellPool;
+  vectorPool;
+  constructor({ motor }) {
+    this.cellPool = new CellPool(() => motor.registerUpdate(this, undefined, data));
+    this.vectorPool = new VectorPool(() => motor.registerUpdate(this, undefined, data));
+    const data = { cellPool: this.cellPool, vectorPool: this.vectorPool };
+  }
+  refresh({ data: { cellPool, vectorPool } }) {
+    cellPool.reset();
+    vectorPool.reset();
+  }
+  getCell(pos, cellSize) {
+    return this.cellPool.create(pos, cellSize);
+  }
+  positionFromCell(cell) {
+    return this.positionFromCellPos(...cell.pos);
+  }
+  positionFromCellPos(cx, cy, cz, cellSize) {
+    return this.vectorPool.create(cx * cellSize, cy * cellSize, cz * cellSize);
+  }
+}
+var tempPos = [0, 0, 0];
 
 // src/utils/DoubleLinkList.ts
 class NodePool extends ObjectPool {
@@ -28540,8 +28608,8 @@ class DoubleLinkList {
   }
 }
 
-// src/world/grid/CellTracker.ts
-class CellTracker {
+// src/world/grid/SurroundingTracker.ts
+class SurroundingTracker {
   cellTrack;
   cellTags = new DoubleLinkList("");
   range;
@@ -28676,7 +28744,7 @@ class SpriteGroup extends ItemsGroup {
       forEach3(this.elems, (_, index) => this.informUpdate(index, SpriteUpdateType.TEX_SLOT));
     }
   }
-  set animationId(value) {
+  setAnimationId(value) {
     if (this._animationId !== value) {
       this._animationId = value;
       forEach3(this.elems, (_, index) => this.informUpdate(index, SpriteUpdateType.ANIM));
@@ -28798,13 +28866,15 @@ class SpriteGrid extends Grid {
 var EMPTY = [];
 
 class FixedSpriteGrid extends SpriteGrid {
+  cellUtils;
   cellSize;
   spritesPerCell = new Map;
   spritesList;
-  constructor(config, ...spritesList) {
+  constructor(cellUtils, config, ...spritesList) {
     super({}, {
       getElemsAtCell: (cell) => this.spritesPerCell.get(cell.tag) ?? EMPTY
     });
+    this.cellUtils = cellUtils;
     this.cellSize = config.cellSize ?? 1;
     this.spritesList = spritesList;
     spritesList.forEach((sprites) => this.addAuxiliary(sprites));
@@ -28815,12 +28885,11 @@ class FixedSpriteGrid extends SpriteGrid {
       forEach3(sprites, (sprite) => {
         if (sprite) {
           const pos = transformToPosition(sprite.transform);
-          const cellPos2 = getCellPos(pos, this.cellSize);
-          const tag = cellTag(...cellPos2);
-          if (!this.spritesPerCell.has(tag)) {
-            this.spritesPerCell.set(tag, []);
+          const cell = this.cellUtils.getCell(pos, this.cellSize);
+          if (!this.spritesPerCell.has(cell.tag)) {
+            this.spritesPerCell.set(cell.tag, []);
           }
-          this.spritesPerCell.get(tag)?.push(copySprite(sprite));
+          this.spritesPerCell.get(cell.tag)?.push(copySprite(sprite));
         }
       });
     });
@@ -29120,16 +29189,14 @@ class SmoothFollowAuxiliary extends Looper {
 
 // src/world/aux/DirAuxiliary.ts
 class DirAuxiliary {
-  onChange;
-  flippable;
+  onFlip;
   controls;
   dx = 0;
-  constructor({ flippable, controls }, onChange) {
-    this.onChange = onChange;
-    this.flippable = flippable;
+  constructor({ controls }, onFlip) {
+    this.onFlip = onFlip;
     this.controls = controls;
   }
-  onAction(controls) {
+  checkControls(controls) {
     let dx = 0;
     if (controls.left) {
       dx--;
@@ -29139,9 +29206,14 @@ class DirAuxiliary {
     }
     if (dx && dx !== this.dx) {
       this.dx = dx;
-      this.flippable.flip = this.dx < 0;
-      this.onChange?.();
+      this.onFlip?.(this.dx);
     }
+  }
+  onAction(controls) {
+    this.checkControls(controls);
+  }
+  onActionUp(controls) {
+    this.checkControls(controls);
   }
   activate() {
     this.controls.addListener(this);
@@ -29460,6 +29532,7 @@ class DemoWorld extends AuxiliaryHolder {
   camera;
   constructor({ engine, motor, webGlCanvas }) {
     super();
+    const cellUtils = new CellUtils({ motor });
     const spritesAccumulator = new Accumulator().addAuxiliary(new SpriteUpdater({ engine, motor }), new MaxSpriteCountAuxiliary({ engine }));
     this.addAuxiliary(spritesAccumulator);
     this.addAuxiliary(new Accumulator().addAuxiliary(new MediaUpdater({ engine, motor }), new ItemsGroup([
@@ -29608,11 +29681,11 @@ class DemoWorld extends AuxiliaryHolder {
         fps: 24
       }
     ])));
-    spritesAccumulator.addAuxiliary(new FixedSpriteGrid({ cellSize: CELLSIZE }, [
+    spritesAccumulator.addAuxiliary(new FixedSpriteGrid(cellUtils, { cellSize: CELLSIZE }, [
       {
         imageId: Assets.DOBUKI,
         spriteType: SpriteType.SPRITE,
-        transform: Matrix_default.create().translate(0, 0, -3)
+        transform: Matrix_default.create().translate(0, -0.5, -3)
       }
     ], [
       ...[
@@ -29674,7 +29747,7 @@ class DemoWorld extends AuxiliaryHolder {
     const shadowHeroSprites = new SpriteGroup([
       {
         imageId: Assets.DODO_SHADOW,
-        transform: Matrix_default.create().translate(0, -0.8, 0.5).rotateX(-Math.PI / 2).scale(1, 0.3, 1),
+        transform: Matrix_default.create().translate(0, -0.89, 0.5).rotateX(-Math.PI / 2).scale(1, 0.3, 1),
         animationId: Anims.STILL
       }
     ], [shadowPos]);
@@ -29688,12 +29761,23 @@ class DemoWorld extends AuxiliaryHolder {
     spritesAccumulator.addAuxiliary(heroSprites);
     spritesAccumulator.addAuxiliary(shadowHeroSprites);
     heroPos.moveBlocker = {
-      isBlocked(pos) {
-        const blockPos = positionFromCell([0, 0, -3, 2]);
-        const range = 2;
-        const dx = blockPos[0] - pos[0], dy = blockPos[1] - pos[1], dz = blockPos[2] - pos[2];
-        const distSq2 = dx * dx + dy * dy + dz * dz;
-        return distSq2 < range * range;
+      isBlocked(to, from) {
+        {
+          const blockPos = cellUtils.positionFromCellPos(0, 0, -3, 2);
+          const xRange = 1.8, yRange = 2, zRange = 1.8;
+          const dx = blockPos[0] - to[0], dy = blockPos[1] - to[1], dz = blockPos[2] - to[2];
+          if (Math.abs(dx) < xRange && Math.abs(dy) < yRange && Math.abs(dz) < zRange) {
+            return true;
+          }
+        }
+        {
+          const fromCell = cellUtils.getCell(from, 2);
+          const toCell = cellUtils.getCell(to, 2);
+          if (fromCell.pos[0] === 0 && toCell.pos[0] === 0 && (fromCell.pos[2] === -2 && toCell.pos[2] === -1 || fromCell.pos[2] === -1 && toCell.pos[2] === -2)) {
+            return true;
+          }
+        }
+        return false;
       }
     };
     spritesAccumulator.addAuxiliary(new SpriteGroup([
@@ -29717,12 +29801,16 @@ class DemoWorld extends AuxiliaryHolder {
         }
       ]
     }));
-    this.addAuxiliary(keyboard).addAuxiliary(new DirAuxiliary({ flippable: heroSprites, controls })).addAuxiliary(new DirAuxiliary({ flippable: shadowHeroSprites, controls })).addAuxiliary(new MotionAuxiliary({ controls }, (moving) => {
+    this.addAuxiliary(keyboard).addAuxiliary(new DirAuxiliary({ controls }, (dx) => {
+      const flip = dx < 0;
+      heroSprites.flip = flip;
+      shadowHeroSprites.flip = flip;
+    })).addAuxiliary(new MotionAuxiliary({ controls }, (moving) => {
       const animId = moving ? Anims.RUN : Anims.STILL;
-      heroSprites.animationId = animId;
-      shadowHeroSprites.animationId = animId;
+      heroSprites.setAnimationId(animId);
+      shadowHeroSprites.setAnimationId(animId);
     }));
-    camera.position.addAuxiliary(new CellChangeAuxiliary({ cellSize: CELLSIZE }).addAuxiliary(new CellTracker(this, {
+    camera.position.addAuxiliary(new CellChangeAuxiliary(cellUtils, { cellSize: CELLSIZE }).addAuxiliary(new SurroundingTracker(this, {
       cellLimit: 100,
       range: [5, 3, 5],
       cellSize: CELLSIZE
@@ -29869,4 +29957,4 @@ export {
   hello
 };
 
-//# debugId=3DDF52372A8EF5B064756e2164756e21
+//# debugId=5CA54D3E84371DE364756e2164756e21

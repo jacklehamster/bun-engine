@@ -1,5 +1,5 @@
 import { Auxiliary } from "./Auxiliary";
-import { Cell } from "world/grid/CellPos";
+import { Cell } from "world/grid/Cell";
 import { CellTrack } from "world/grid/CellTrack";
 import { Holder } from "./Holder";
 import { IAuxiliaryHolder } from "./IAuxiliaryHolder";

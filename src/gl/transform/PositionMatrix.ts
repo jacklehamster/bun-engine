@@ -1,8 +1,8 @@
-import { toPos, transformToPosition } from "world/grid/utils/position-utils";
+import { toVector, transformToPosition } from "world/grid/utils/position-utils";
 import { IMatrix } from "./IMatrix";
 import Matrix from "./Matrix";
 import { AuxiliaryHolder } from "world/aux/AuxiliaryHolder";
-import { MoveBlocker } from "./aux/MoveBlocker";
+import { MoveBlocker } from "../../world/collision/MoveBlocker";
 import { IPositionMatrix } from "./IPositionMatrix";
 import { Vector } from "../../core/types/Vector";
 import { ChangeListener } from "./IPositionMatrix";
@@ -38,7 +38,7 @@ export class PositionMatrix extends AuxiliaryHolder<PositionMatrix> implements I
 
   moveBy(x: number, y: number, z: number, turnMatrix?: IMatrix) {
     const vector = Matrix.getMoveVector(x, y, z, turnMatrix);
-    const blocked = this.moveBlocker?.isBlocked(toPos(
+    const blocked = this.moveBlocker?.isBlocked(toVector(
       this.position[0] + vector[0],
       this.position[1] + vector[1],
       this.position[2] + vector[2],
@@ -53,7 +53,7 @@ export class PositionMatrix extends AuxiliaryHolder<PositionMatrix> implements I
   }
 
   moveTo(x: number, y: number, z: number) {
-    const blocked = this.moveBlocker?.isBlocked(toPos(x, y, z));
+    const blocked = this.moveBlocker?.isBlocked(toVector(x, y, z), this.position);
     if (!blocked) {
       const [curX, curY, curZ] = this.matrix.getPosition();
       if (curX !== x || curY !== y || curZ !== z) {

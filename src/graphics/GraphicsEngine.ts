@@ -319,6 +319,7 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
     spriteIds.forEach(spriteId => {
       const sprite = sprites.at(spriteId);
       if (!sprite) {
+        spriteIds.delete(spriteId);
         return;
       }
       const slotObj = this.textureSlots.get(sprite.imageId);

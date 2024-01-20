@@ -3,7 +3,7 @@ import { Sprites } from "../Sprites";
 import { Sprite, copySprite } from "../Sprite";
 import { forEach } from "../List";
 import { transformToPosition } from "world/grid/utils/position-utils";
-import { cellTag, getCellPos } from "world/grid/CellPos";
+import { CellUtils } from "world/grid/utils/cell-utils";
 import { Auxiliary } from "world/aux/Auxiliary";
 
 interface Config {
@@ -18,7 +18,7 @@ export class FixedSpriteGrid extends SpriteGrid {
   private readonly spritesPerCell: Map<string, Sprite[]> = new Map();
   private readonly spritesList: Sprites[];
 
-  constructor(config: Config, ...spritesList: ((Sprites | Sprite[]) & Partial<Auxiliary>)[]) {
+  constructor(private cellUtils: CellUtils, config: Config, ...spritesList: ((Sprites | Sprite[]) & Partial<Auxiliary>)[]) {
     super({}, {
       getElemsAtCell: cell => this.spritesPerCell.get(cell.tag) ?? EMPTY,
     });
@@ -33,12 +33,11 @@ export class FixedSpriteGrid extends SpriteGrid {
       forEach(sprites, (sprite) => {
         if (sprite) {
           const pos = transformToPosition(sprite.transform);
-          const cellPos = getCellPos(pos, this.cellSize);
-          const tag = cellTag(...cellPos);
-          if (!this.spritesPerCell.has(tag)) {
-            this.spritesPerCell.set(tag, []);
+          const cell = this.cellUtils.getCell(pos, this.cellSize);
+          if (!this.spritesPerCell.has(cell.tag)) {
+            this.spritesPerCell.set(cell.tag, []);
           }
-          this.spritesPerCell.get(tag)?.push(copySprite(sprite));
+          this.spritesPerCell.get(cell.tag)?.push(copySprite(sprite));
         }
       });
     });

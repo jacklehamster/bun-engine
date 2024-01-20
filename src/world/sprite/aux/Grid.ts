@@ -1,4 +1,4 @@
-import { Cell } from "world/grid/CellPos";
+import { Cell } from "world/grid/Cell";
 import { SpriteUpdateType } from "../update/SpriteUpdateType";
 import { forEach } from "../List";
 import { UpdateNotifier } from "updates/UpdateNotifier";
@@ -37,6 +37,7 @@ export class Grid<T> extends AuxiliaryHolder<ElemsHolder<T>> implements UpdateNo
   }
 
   informUpdate(_id: number, _type?: number | undefined): void {
+    //  needs overwrite
   }
 
   activate(): void {

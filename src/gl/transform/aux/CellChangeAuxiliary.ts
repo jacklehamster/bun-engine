@@ -1,24 +1,25 @@
 import { Auxiliary } from "world/aux/Auxiliary";
-import { Cell, cellTag, getCellPos } from "world/grid/CellPos";
+import { CellUtils } from "world/grid/utils/cell-utils";
 import { VisitableCell } from "../../../world/grid/VisitCell";
 import { AuxiliaryHolder } from "world/aux/AuxiliaryHolder";
 import { ChangeListener, IPositionMatrix } from "../IPositionMatrix";
+import { CellPos } from "world/grid/CellPos";
 
 interface Config {
   cellSize?: number;
 }
 
 export class CellChangeAuxiliary extends AuxiliaryHolder implements Auxiliary<IPositionMatrix> {
+  visitableCell?: VisitableCell;
   private positionMatrix?: IPositionMatrix;
   private readonly cellSize: number;
-  private readonly cell: Cell;
-  visitableCell?: VisitableCell;
+  private readonly previousCellPos: CellPos;
   private readonly listener: ChangeListener = () => this.checkPosition();
 
-  constructor(config?: Config) {
+  constructor(private cellUtils: CellUtils, config?: Config) {
     super();
     this.cellSize = config?.cellSize ?? 1;
-    this.cell = { pos: [Number.NaN, Number.NaN, Number.NaN, this.cellSize], tag: "" };
+    this.previousCellPos = [Number.NaN, Number.NaN, Number.NaN, this.cellSize];
   }
 
   set holder(value: IPositionMatrix) {
@@ -30,23 +31,21 @@ export class CellChangeAuxiliary extends AuxiliaryHolder implements Auxiliary<IP
       return;
     }
     const pos = this.positionMatrix.position;
-    const [x, y, z] = getCellPos(pos, this.cellSize);
-    if (this.cell.pos[0] !== x || this.cell.pos[1] !== y || this.cell.pos[2] !== z) {
-      this.cell.pos[0] = x;
-      this.cell.pos[1] = y;
-      this.cell.pos[2] = z;
-      this.cell.tag = cellTag(...this.cell.pos);
-      this.visitableCell.visitCell(this.cell);
-      console.log(this.cell);
+    const cell = this.cellUtils.getCell(pos, this.previousCellPos[3]);
+    if (this.previousCellPos[0] !== cell.pos[0] || this.previousCellPos[1] !== cell.pos[1] || this.previousCellPos[2] !== cell.pos[2]) {
+      this.previousCellPos[0] = cell.pos[0];
+      this.previousCellPos[1] = cell.pos[1];
+      this.previousCellPos[2] = cell.pos[2];
+      this.visitableCell.visitCell(cell);
     }
   }
 
   activate(): void {
     super.activate();
     this.positionMatrix?.onChange(this.listener);
-    this.cell.pos[0] = Number.NaN;
-    this.cell.pos[1] = Number.NaN;
-    this.cell.pos[2] = Number.NaN;
+    this.previousCellPos[0] = Number.NaN;
+    this.previousCellPos[1] = Number.NaN;
+    this.previousCellPos[2] = Number.NaN;
     this.checkPosition();
   }
 

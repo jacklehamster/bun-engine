@@ -1,4 +1,4 @@
-import { Cell } from "world/grid/CellPos";
+import { Cell } from "world/grid/Cell";
 import { List } from "../List";
 
 export interface IElemFactory<T> {

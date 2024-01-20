@@ -35,7 +35,8 @@ export class NumVal implements Val<number> {
     if (this.progressive) {
       const didUpdate = !!this.progressive?.update(deltaTime);
       if (!didUpdate) {
-        this.progressive = progressivePool.recycle(this.progressive);
+        progressivePool.recycle(this.progressive);
+        this.progressive = undefined;
       }
       return didUpdate;
     }

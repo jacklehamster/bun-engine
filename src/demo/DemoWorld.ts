@@ -22,7 +22,7 @@ import { ICamera } from "camera/ICamera";
 import { KeyboardControls } from "controls/KeyboardControls";
 import { SpriteFactory } from "world/sprite/SpritesFactory";
 import { MoveAuxiliary } from "world/aux/MoveAuxiliary";
-import { positionFromCell } from "world/grid/CellPos";
+import { CellUtils, positionFromCell } from "world/grid/utils/cell-utils";
 import { JumpAuxiliary } from "world/aux/JumpAuxiliary";
 import { TimeAuxiliary } from "core/aux/TimeAuxiliary";
 import { PositionMatrix } from "gl/transform/PositionMatrix";
@@ -74,6 +74,8 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
   camera: ICamera;
   constructor({ engine, motor, webGlCanvas }: Props) {
     super();
+
+    const cellUtils = new CellUtils({ motor });
 
     //  Add a sprite accumulator.
     //  * Sprite accumulators are used to collect sprite definitions, so that the engine can display them.
@@ -258,13 +260,14 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
     //  * You add sprite collections as "SpriteGrid". That way, the engine
     //  * will hide sprites if you're too far, and show them again if you're close.
     spritesAccumulator.addAuxiliary(new FixedSpriteGrid(
+      cellUtils,
       { cellSize: CELLSIZE },
       //  Dobuki logo
       [
         {
           imageId: Assets.DOBUKI,
           spriteType: SpriteType.SPRITE,
-          transform: Matrix.create().translate(0, 0, -3),
+          transform: Matrix.create().translate(0, -.5, -3),
         },
       ],
       //  Side walls with happy face logo
@@ -346,7 +349,7 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
     const shadowHeroSprites = new SpriteGroup([
       {
         imageId: Assets.DODO_SHADOW,
-        transform: Matrix.create().translate(0, -.8, .5).rotateX(-Math.PI / 2).scale(1, .3, 1),
+        transform: Matrix.create().translate(0, -.89, .5).rotateX(-Math.PI / 2).scale(1, .3, 1),
         animationId: Anims.STILL,
       },
     ], [shadowPos]);
@@ -364,15 +367,30 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
     //  * A move blocker just determines where you can or cannot move.
     //  Currently, there is just one block at [0, 0, -3]
     heroPos.moveBlocker = {
-      isBlocked(pos): boolean {
-        const blockPos = positionFromCell([0, 0, -3, 2]);
-        const range = 2;
-        const dx = blockPos[0] - pos[0],
-          dy = blockPos[1] - pos[1],
-          dz = blockPos[2] - pos[2];
-        const distSq = dx * dx + dy * dy + dz * dz;
-        return distSq < range * range;
-      },
+      isBlocked(to, from): boolean {
+        {
+          const blockPos = cellUtils.positionFromCellPos(0, 0, -3, 2);
+          const xRange = 1.8, yRange = 2, zRange = 1.8;
+          const dx = blockPos[0] - to[0],
+            dy = blockPos[1] - to[1],
+            dz = blockPos[2] - to[2];
+          if (Math.abs(dx) < xRange && Math.abs(dy) < yRange && Math.abs(dz) < zRange) {
+            return true;
+          }
+        }
+
+        {
+          const fromCell = cellUtils.getCell(from, 2);
+          const toCell = cellUtils.getCell(to, 2);
+          if (fromCell.pos[0] === 0 && toCell.pos[0] === 0
+            && (fromCell.pos[2] === -2 && toCell.pos[2] === -1
+              || fromCell.pos[2] === -1 && toCell.pos[2] === -2)) {
+            return true;
+          }
+        }
+
+        return false;
+      }
     };
 
     //  Static Sprites
@@ -421,12 +439,15 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
       }),
     );
     this.addAuxiliary(keyboard)
-      .addAuxiliary(new DirAuxiliary({ flippable: heroSprites, controls }))
-      .addAuxiliary(new DirAuxiliary({ flippable: shadowHeroSprites, controls }))
+      .addAuxiliary(new DirAuxiliary({ controls }, dx => {
+        const flip = dx < 0;
+        heroSprites.flip = flip;
+        shadowHeroSprites.flip = flip;
+      }))
       .addAuxiliary(new MotionAuxiliary({ controls }, moving => {
         const animId = moving ? Anims.RUN : Anims.STILL;
-        heroSprites.animationId = animId;
-        shadowHeroSprites.animationId = animId;
+        heroSprites.setAnimationId(animId);
+        shadowHeroSprites.setAnimationId(animId);
       }));
 
     //  CellChangeAuxiliary
@@ -434,7 +455,7 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
     //  * as they move. Every cell change, a new set of surrounding cells
     //  * is evaluated, and some are created as needed.
     camera.position.addAuxiliary(
-      new CellChangeAuxiliary({ cellSize: CELLSIZE })
+      new CellChangeAuxiliary(cellUtils, { cellSize: CELLSIZE })
         .addAuxiliary(new SurroundingTracker(this, {
           cellLimit: 100,
           range: [5, 3, 5],

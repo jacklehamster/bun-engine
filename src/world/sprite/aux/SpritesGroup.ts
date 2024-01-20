@@ -1,15 +1,15 @@
 import Matrix from "gl/transform/Matrix";
 import { Sprites } from "../Sprites";
 import { Sprite, copySprite } from "../Sprite";
-import { Flippable } from "../Flippable";
 import { IMatrix } from "gl/transform/IMatrix";
 import { SpriteUpdateType } from "../update/SpriteUpdateType";
 import { UpdateNotifier } from "updates/UpdateNotifier";
 import { forEach } from "../List";
 import { AnimationId } from "animation/Animation";
 import { ItemsGroup } from "./ItemsGroup";
+import { Animatable as Animating } from "animation/Animatable";
 
-export class SpriteGroup extends ItemsGroup<Sprite> implements Flippable {
+export class SpriteGroup extends ItemsGroup<Sprite> implements Animating {
   private _flip?: boolean;
   private _animationId?: AnimationId;
 
@@ -29,7 +29,7 @@ export class SpriteGroup extends ItemsGroup<Sprite> implements Flippable {
     }
   }
 
-  set animationId(value: AnimationId) {
+  setAnimationId(value: AnimationId) {
     if (this._animationId !== value) {
       this._animationId = value;
       forEach(this.elems, (_, index) => this.informUpdate(index, SpriteUpdateType.ANIM));

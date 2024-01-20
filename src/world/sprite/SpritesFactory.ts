@@ -1,5 +1,5 @@
 import { Sprites } from "./Sprites";
-import { Cell } from "world/grid/CellPos";
+import { Cell } from "world/grid/Cell";
 import { Sprite } from "./Sprite";
 import { MediaId } from "gl/texture/ImageManager";
 import { IElemFactory } from "./aux/IElemFactory";

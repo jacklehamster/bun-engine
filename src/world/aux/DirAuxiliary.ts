@@ -1,22 +1,18 @@
 import { Auxiliary } from "./Auxiliary";
-import { Flippable } from "world/sprite/Flippable";
 import { IControls } from "controls/IControls";
 
 interface Props {
-  flippable: Flippable;
   controls: IControls;
 }
 
 export class DirAuxiliary implements Auxiliary {
-  private readonly flippable: Flippable;
   private readonly controls: IControls;
   private dx: number = 0;
-  constructor({ flippable, controls }: Props, private onChange?: () => void) {
-    this.flippable = flippable;
+  constructor({ controls }: Props, private onFlip?: (dx: number) => void) {
     this.controls = controls;
   }
 
-  onAction(controls: IControls) {
+  private checkControls(controls: IControls) {
     let dx = 0;
     if (controls.left) {
       dx--;
@@ -26,9 +22,16 @@ export class DirAuxiliary implements Auxiliary {
     }
     if (dx && dx !== this.dx) {
       this.dx = dx;
-      this.flippable.flip = this.dx < 0;
-      this.onChange?.();
+      this.onFlip?.(this.dx);
     }
+  }
+
+  onAction(controls: IControls) {
+    this.checkControls(controls);
+  }
+
+  onActionUp(controls: IControls) {
+    this.checkControls(controls);
   }
 
   activate(): void {

@@ -1,6 +1,6 @@
 import { IMatrix } from "./IMatrix";
 import { Vector } from "../../core/types/Vector";
-import { MoveBlocker } from "./aux/MoveBlocker";
+import { MoveBlocker } from "../../world/collision/MoveBlocker";
 
 export type ChangeListener = (dx: number, dy: number, dz: number) => void;
 export interface IPositionMatrix extends IMatrix {

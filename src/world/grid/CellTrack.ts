@@ -1,4 +1,4 @@
-import { Cell } from "./CellPos";
+import { Cell } from "./Cell";
 
 export interface CellTrack {
   trackCell?(cell: Cell): boolean;
