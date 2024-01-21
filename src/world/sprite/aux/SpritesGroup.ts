@@ -8,10 +8,12 @@ import { AnimationId } from "animation/Animation";
 import { ItemsGroup } from "./ItemsGroup";
 import { Animatable as Animating } from "animation/Animatable";
 import { SpriteModel } from "./SpriteModel";
+import { MediaId } from "gl/texture/ImageManager";
 
 export class SpriteGroup extends ItemsGroup<Sprite> implements Animating {
   private _flip?: boolean;
   private _animationId?: AnimationId;
+  private _imageId?: MediaId;
 
   private readonly spriteModel: SpriteModel = new SpriteModel();
 
@@ -37,6 +39,13 @@ export class SpriteGroup extends ItemsGroup<Sprite> implements Animating {
     return !!this._flip;
   }
 
+  set imageId(value: MediaId) {
+    if (this._imageId !== value) {
+      this._imageId = value;
+      forEach(this.elems, (_, index) => this.informUpdate(index, SpriteUpdateType.TEX_SLOT));
+    }
+  }
+
   at(index: number): Sprite | undefined {
     const s = super.at(index);
     if (!s) {
@@ -48,7 +57,8 @@ export class SpriteGroup extends ItemsGroup<Sprite> implements Animating {
       this.spriteModel.transform.multiply2(transform, this.spriteModel.transform);
     }
     this.spriteModel.flip = !!this.flip;
-    this.spriteModel.animationId = this._animationId ?? this.spriteModel.animationId;
+    this.spriteModel.animationId = this._animationId ?? s.animationId ?? 0;
+    this.spriteModel.imageId = this._imageId ?? s.imageId;
     return this.spriteModel;
   }
 

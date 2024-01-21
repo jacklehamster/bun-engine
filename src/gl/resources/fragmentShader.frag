@@ -33,7 +33,7 @@ void main() {
   vec2 vFragment = vTex;
   float blur = bgBlur * pow(dist, .7) / 20000.;
   vec4 color = getTextureColor(vTextureIndex, vTex);
-  if (color.a < .1) {//rand(vTex)) {
+  if (color.a < rand(vTex)) {
     discard;
   };
   int blurPass = 8;

@@ -3,6 +3,7 @@
 
 precision highp float;
 
+
 //  CONST
 const mat4 identity = mat4(1.0);
 const float SPRITE = 1.0;
@@ -69,9 +70,10 @@ void main() {
   float isBillboard = max(isDistant, isSprite);
   basePosition = (isBillboard * billboardMatrix + (1. - isBillboard) * identity) * basePosition;
 
-  vec4 elemPosition = transform * basePosition;
-  // elemPosition => relativePosition
-  vec4 relativePosition = camTilt * camTurn * camPos * elemPosition;
+  vec4 worldPosition = transform * basePosition;
+
+  // worldPosition => relativePositio
+  vec4 relativePosition = camTilt * camTurn * camPos * worldPosition;
 
   float actualCurvature = curvature * (1. - isDistant);
   relativePosition.y -= actualCurvature * ((relativePosition.z * relativePosition.z) + (relativePosition.x * relativePosition.x) / 4.) / 10.;
@@ -82,8 +84,10 @@ void main() {
 
   dist = max(isDistant, isHud) + (1. - max(isDistant, isHud)) * (relativePosition.z*relativePosition.z + relativePosition.x*relativePosition.x);
   // relativePosition => gl_Position
-  relativePosition = isHud * elemPosition + (1. - isHud) * relativePosition;
+  relativePosition = isHud * worldPosition + (1. - isHud) * relativePosition;
   gl_Position = projection * relativePosition;
+
+
 
   vTex = (vec2(slotX, slotY) + tex) * slotSize / maxTextureSize;
   vTextureIndex = floor(slotNumber / (maxCols * maxRows));

@@ -163,7 +163,7 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
 
   private ensureBuffers(instanceCount: number) {
     if (instanceCount >= 10000) {
-      console.warn("Sprite limit has already reached:", instanceCount);
+      console.warn("Sprite count has already reached:", instanceCount);
     }
 
     if (!this.attributeBuffers.hasBuffer(INDEX_LOC)) {

@@ -2,7 +2,7 @@ import { toVector, transformToPosition } from "world/grid/utils/position-utils";
 import { IMatrix } from "./IMatrix";
 import Matrix from "./Matrix";
 import { AuxiliaryHolder } from "world/aux/AuxiliaryHolder";
-import { MoveBlocker } from "../../world/collision/MoveBlocker";
+import { ICollisionDetector } from "../../world/collision/ICollisionDetector";
 import { IPositionMatrix } from "./IPositionMatrix";
 import { Vector } from "../../core/types/Vector";
 import { ChangeListener } from "./IPositionMatrix";
@@ -11,7 +11,7 @@ export class PositionMatrix extends AuxiliaryHolder<PositionMatrix> implements I
   private readonly matrix: Matrix = Matrix.create().setPosition(0, 0, 0);
   private readonly _position: Vector = [0, 0, 0];
   private readonly changeListeners: Set<ChangeListener> = new Set();
-  moveBlocker?: MoveBlocker;
+  moveBlocker?: ICollisionDetector;
 
   constructor(onChange?: (dx: number, dy: number, dz: number) => void) {
     super();

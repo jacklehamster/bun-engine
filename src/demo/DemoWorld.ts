@@ -1,3 +1,4 @@
+import seedrandom from "seedrandom"
 import IWorld from "world/IWorld";
 import Matrix from "gl/transform/Matrix";
 import { Keyboard } from "controls/Keyboard";
@@ -44,6 +45,7 @@ import { Hud } from "ui/Hud";
 import { TurnStepAuxiliary } from "world/aux/TurnStepAuxiliary";
 import { IPositionMatrix } from "gl/transform/IPositionMatrix";
 import { DisplayBox } from "world/collision/DisplayBox";
+import { CollisionDetector } from "world/collision/CollisionDetector";
 
 enum Assets {
   DOBUKI = 0,
@@ -51,10 +53,12 @@ enum Assets {
   GROUND = 2,
   VIDEO = 3,
   WIREFRAME = 4,
-  GRASS = 5,
-  BRICK = 6,
-  DODO = 7,
-  DODO_SHADOW = 8,
+  WIREFRAME_RED = 5,
+  GRASS = 6,
+  BRICK = 7,
+  DODO = 8,
+  DODO_SHADOW = 9,
+  TREE = 10,
 }
 
 enum Anims {
@@ -211,6 +215,23 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
               ctx.lineWidth = 40;
               ctx.setLineDash([20, 5]);
 
+              ctx.strokeStyle = 'lightblue';
+
+              ctx.beginPath();
+              ctx.rect(10, 10, canvas.width - 20, canvas.height - 20);
+              ctx.stroke();
+            },
+          },
+          {
+            id: Assets.WIREFRAME_RED,
+            type: "draw",
+            draw: ctx => {
+              const { canvas } = ctx;
+              canvas.width = LOGO_SIZE;
+              canvas.height = LOGO_SIZE;
+              ctx.lineWidth = 40;
+              ctx.setLineDash([20, 5]);
+
               ctx.strokeStyle = 'red';
 
               ctx.beginPath();
@@ -223,8 +244,8 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
             type: "draw",
             draw: ctx => {
               const { canvas } = ctx;
-              canvas.width = LOGO_SIZE;
-              canvas.height = LOGO_SIZE;
+              canvas.width = 100;
+              canvas.height = 100;
               ctx.fillStyle = 'green';
               ctx.lineWidth = canvas.width / 50;
               ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -236,6 +257,24 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
               ctx.rect(canvas.width * .2, canvas.height * .2, canvas.width * .6, canvas.height * .6);
               ctx.fill();
               ctx.stroke();
+            },
+          },
+          {
+            id: Assets.TREE,
+            type: "draw",
+            draw: ctx => {
+              const { canvas } = ctx;
+              canvas.width = 200;
+              canvas.height = 200;
+              ctx.fillStyle = '#0f0';
+
+              ctx.beginPath();
+              ctx.moveTo(100, 0);
+              ctx.lineTo(200, 150);
+              ctx.lineTo(0, 150);
+              ctx.fill();
+              ctx.fillStyle = '#430';
+              ctx.fillRect(75, 125, 50, 50);
             },
           },
         ]),
@@ -260,6 +299,16 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
     //  Adding a FixedSpriteGrid to the sprite accumulator.
     //  * You add sprite collections as "SpriteGrid". That way, the engine
     //  * will hide sprites if you're too far, and show them again if you're close.
+    const blockBox = {
+      top: 1,
+      bottom: -1,
+      left: -1,
+      right: 1,
+      near: 1,
+      far: -1,
+    };
+    const blockPosition = positionFromCell([0, 0, -3, CELLSIZE]);
+    const blockBoxSprites = new DisplayBox(blockBox, Assets.GROUND, Assets.BRICK);
     spritesAccumulator.addAuxiliary(new FixedSpriteGrid(
       cellUtils,
       { cellSize: CELLSIZE },
@@ -289,26 +338,7 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
         ].map(transform => ({ imageId: Assets.GROUND, transform })),
       ],
       //  This is a block, moved 3 spaces back
-      new SpriteGroup([
-        //  block outside
-        ...[
-          Matrix.create().translate(0, -1, 0).rotateX(Math.PI / 2),
-          Matrix.create().translate(0, 1, 0).rotateX(-Math.PI / 2),
-          Matrix.create().translate(-1, 0, 0).rotateY(-Math.PI / 2),
-          Matrix.create().translate(1, 0, 0).rotateY(Math.PI / 2),
-          Matrix.create().translate(0, 0, 1).rotateY(0),  //  front
-          Matrix.create().translate(0, 0, -1).rotateY(Math.PI), //  back
-        ].map(transform => ({ imageId: Assets.GROUND, transform })),
-        //  Inside
-        ...[
-          Matrix.create().translate(0, -1, 0).rotateX(-Math.PI / 2),
-          Matrix.create().translate(0, 1, 0).rotateX(Math.PI / 2),
-          Matrix.create().translate(-1, 0, 0).rotateY(Math.PI / 2),
-          Matrix.create().translate(1, 0, 0).rotateY(-Math.PI / 2),
-          Matrix.create().translate(0, 0, 1).rotateY(Math.PI),  //  front
-          Matrix.create().translate(0, 0, -1).rotateY(0), //  back
-        ].map(transform => ({ imageId: Assets.BRICK, transform })),
-      ], [Matrix.create().setVector(positionFromCell([0, 0, -3, CELLSIZE]))]),
+      new SpriteGroup(blockBoxSprites, [Matrix.create().setVector(blockPosition)]),
     ));
 
     const camera = new Camera({ engine, motor });
@@ -325,6 +355,16 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
           ground.transform.translate(pos[0] * pos[3], -1, pos[2] * pos[3]).rotateX(-Math.PI / 2);
           const ceiling = bag.createSprite(Assets.WIREFRAME);
           ceiling.transform.translate(pos[0] * pos[3], 2, pos[2] * pos[3]).rotateX(Math.PI / 2);
+
+          const rng = seedrandom(`${pos[0]}, ${pos[1]}, ${pos[2]}`);
+          const count = rng() * 30 - 25;
+          for (let i = 0; i < count; i++) {
+            const tree = bag.createSprite(Assets.TREE);
+            tree.spriteType = SpriteType.SPRITE;
+            const size = Math.floor(3 * rng());
+            tree.transform.translate(pos[0] * pos[3] + (rng() - .5) * 2, -1 + size / 2, pos[2] * pos[3] + (rng() - .5) * 2).scale(.2 + rng(), size, .2 + rng());
+            bag.addSprite(tree);
+          }
           bag.addSprite(ground, ceiling);
         },
       })
@@ -376,32 +416,37 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
 
     //  * A move blocker just determines where you can or cannot move.
     //  Currently, there is just one block at [0, 0, -3]
-    heroPos.moveBlocker = {
-      isBlocked(to, from): boolean {
-        {
-          const blockPos = cellUtils.positionFromCellPos(0, 0, -3, 2);
-          const xRange = 1.8, yRange = 2, zRange = 1.8;
-          const dx = blockPos[0] - to[0],
-            dy = blockPos[1] - to[1],
-            dz = blockPos[2] - to[2];
-          if (Math.abs(dx) < xRange && Math.abs(dy) < yRange && Math.abs(dz) < zRange) {
-            return true;
-          }
-        }
+    // heroPos.moveBlocker = {
+    //   isBlocked(to, from): boolean {
+    //     {
+    //       const blockPos = cellUtils.positionFromCellPos(0, 0, -3, 2);
+    //       const xRange = 1.8, yRange = 2, zRange = 1.8;
+    //       const dx = blockPos[0] - to[0],
+    //         dy = blockPos[1] - to[1],
+    //         dz = blockPos[2] - to[2];
+    //       if (Math.abs(dx) < xRange && Math.abs(dy) < yRange && Math.abs(dz) < zRange) {
+    //         return true;
+    //       }
+    //     }
 
-        {
-          const fromCell = cellUtils.getCell(from, 2);
-          const toCell = cellUtils.getCell(to, 2);
-          if (fromCell.pos[0] === 0 && toCell.pos[0] === 0
-            && (fromCell.pos[2] === -2 && toCell.pos[2] === -1
-              || fromCell.pos[2] === -1 && toCell.pos[2] === -2)) {
-            return true;
-          }
-        }
+    //     {
+    //       const fromCell = cellUtils.getCell(from, 2);
+    //       const toCell = cellUtils.getCell(to, 2);
+    //       if (fromCell.pos[0] === 0 && toCell.pos[0] === 0
+    //         && (fromCell.pos[2] === -2 && toCell.pos[2] === -1
+    //           || fromCell.pos[2] === -1 && toCell.pos[2] === -2)) {
+    //         return true;
+    //       }
+    //     }
 
-        return false;
-      }
-    };
+    //     return false;
+    //   }
+    // };
+    heroPos.moveBlocker = new CollisionDetector(
+      blockBox, blockPosition, heroBox, (blocked) => {
+        displayBox.imageId = blocked ? Assets.WIREFRAME_RED : Assets.WIREFRAME;
+      },
+    );
 
     //  Static Sprites
     //  * Those are just sprites, which will appear regardless of where
@@ -432,7 +477,7 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
               new PositionStepAuxiliary({ motor, controls, position: heroPos, turnGoal: camera.turn.angle }),
               new SmoothFollowAuxiliary({ motor, follower: camera.position, followee: heroPos }, { speed: .05 }),
               new JumpAuxiliary({ motor, controls, position: heroPos }),
-              new TurnStepAuxiliary({ motor, controls, turn: camera.turn }),
+              // new TurnStepAuxiliary({ motor, controls, turn: camera.turn }),
             ),
           },
           {
@@ -467,8 +512,8 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
     camera.position.addAuxiliary(
       new CellChangeAuxiliary(cellUtils, { cellSize: CELLSIZE })
         .addAuxiliary(new SurroundingTracker(this, {
-          cellLimit: 100,
-          range: [5, 3, 5],
+          cellLimit: 10000,
+          range: [50, 3, 50],
           cellSize: CELLSIZE,
         })));
 

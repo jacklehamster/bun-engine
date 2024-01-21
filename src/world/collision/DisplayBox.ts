@@ -6,7 +6,7 @@ import { Sprites } from "world/sprite/Sprites";
 
 export class DisplayBox implements Sprites {
   private readonly sprites: Sprite[];
-  constructor(box: Box, imageId: MediaId) {
+  constructor(box: Box, imageId: MediaId, insideImageId?: MediaId) {
     const cX = (box.left + box.right) / 2;
     const cY = (box.top + box.bottom) / 2;
     const cZ = (box.near + box.far) / 2;
@@ -23,14 +23,14 @@ export class DisplayBox implements Sprites {
       Matrix.create().translate(cX, cY, box.far).scale(...faceScale).scale(1 / 2).rotateY(Math.PI),
     ].map(transform => ({ imageId, transform }));
 
-    const inside = [
+    const inside = !insideImageId ? [] : [
       Matrix.create().translate(cX, box.bottom, cZ).scale(...groundScale).scale(1 / 2).rotateX(-Math.PI / 2),
       Matrix.create().translate(cX, box.top, cZ).scale(...groundScale).scale(1 / 2).rotateX(+Math.PI / 2),
       Matrix.create().translate(box.left, cY, cZ).scale(...sideScale).scale(1 / 2).rotateY(+Math.PI / 2),
       Matrix.create().translate(box.right, cY, cZ).scale(...sideScale).scale(1 / 2).rotateY(-Math.PI / 2),
       Matrix.create().translate(cX, cY, box.near).scale(...faceScale).scale(1 / 2).rotateY(Math.PI),
       Matrix.create().translate(cX, cY, box.far).scale(...faceScale).scale(1 / 2).rotateY(0),
-    ].map(transform => ({ imageId, transform }));
+    ].map(transform => ({ imageId: insideImageId, transform }));
     this.sprites = [...inside, ...outside];
   }
 
@@ -43,6 +43,5 @@ export class DisplayBox implements Sprites {
   }
 
   informUpdate(_id: number, _type: number | undefined): void {
-    throw new Error("Method not implemented.");
   }
 }
