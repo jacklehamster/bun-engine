@@ -1,6 +1,6 @@
 import { List } from "world/sprite/List";
-import { Cell } from "./Cell";
-import { CellUtils, cellTag } from "./utils/cell-utils";
+import { Cell, Tag } from "./Cell";
+import { CellUtils } from "./utils/cell-utils";
 import { VisitableCell } from "./VisitCell";
 import { DoubleLinkList } from "../../utils/DoubleLinkList";
 import { FreeStack } from "utils/FreeStack";
@@ -20,14 +20,13 @@ interface Props {
 }
 
 export class SurroundingTracker implements VisitableCell, Auxiliary<CellChangeAuxiliary> {
-  private readonly cellTags: FreeStack<string> = new DoubleLinkList<string>("");
+  private readonly cellTags: FreeStack<Tag> = new DoubleLinkList<Tag>("");
   private readonly cellTrack;
   private readonly cellUtils;
   private range: [number, number, number];
   private base: [number, number, number];
   private cellLimit: number;
   private cellSize: number;
-  private tempCell: Cell;
 
   constructor({ cellTrack, cellUtils }: Props, { range, cellLimit, cellSize = 1 }: Config = {}) {
     this.range = [range?.[0] ?? 3, range?.[1] ?? 3, range?.[2] ?? 3];
@@ -36,10 +35,6 @@ export class SurroundingTracker implements VisitableCell, Auxiliary<CellChangeAu
     this.cellSize = cellSize ?? 1;
     this.cellTrack = cellTrack;
     this.cellUtils = cellUtils;
-    this.tempCell = {
-      pos: [0, 0, 0, this.cellSize],
-      tag: "",
-    };
   }
 
   set holder(aux: CellChangeAuxiliary) {
@@ -51,21 +46,15 @@ export class SurroundingTracker implements VisitableCell, Auxiliary<CellChangeAu
   }
 
   iterateCells(visitedCell: Cell, callback: (cell: Cell) => void) {
-    const { range, base, tempCell } = this;
+    const { range, base } = this;
     const { pos } = visitedCell;
     const cellX = pos[0] + base[0];
     const cellY = pos[1] + base[1];
     const cellZ = pos[2] + base[2];
-    const tempCellPos = tempCell.pos;
     for (let z = 0; z < range[0]; z++) {
       for (let x = 0; x < range[2]; x++) {
         for (let y = 0; y < range[1]; y++) {
-          tempCellPos[0] = cellX + x;
-          tempCellPos[1] = cellY + y;
-          tempCellPos[2] = cellZ + z;
-          tempCell.tag = cellTag(tempCellPos[0], tempCellPos[1], tempCellPos[2], tempCellPos[3]);
           callback(this.cellUtils.cellAt(cellX + x, cellY + y, cellZ + z, this.cellSize));
-          // callback(tempCell);
         }
       }
     }

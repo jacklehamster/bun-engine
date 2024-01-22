@@ -1,4 +1,3 @@
-import seedrandom from "seedrandom"
 import IWorld from "world/IWorld";
 import Matrix from "gl/transform/Matrix";
 import { Keyboard } from "controls/Keyboard";
@@ -60,11 +59,16 @@ enum Assets {
   DODO_SHADOW = 9,
   TREE = 10,
   BUN = 11,
+  BUN_SHADOW = 12,
+  WOLF = 13,
+  WOLF_SHADOW = 14,
 }
 
 enum Anims {
   STILL = 0,
   RUN = 1,
+  WOLF_STILL = 2,
+  WOLF_JUMP = 3,
 }
 
 const LOGO_SIZE = 512;
@@ -112,6 +116,20 @@ export class DemoWorld extends AuxiliaryHolder<DemoWorld> implements IWorld {
             type: "image", src: "bun.png",
           },
           {
+            id: Assets.BUN_SHADOW,
+            type: "image", src: "bun.png",
+            postProcessing(context) {
+              if (context) {
+                const imageData = context.getImageData(0, 0, context.canvas.width, context.canvas.height);
+                const { data } = imageData;
+                for (let i = 0; i < data.length; i += 4) {
+                  data[i] = data[i + 1] = data[i + 2] = 0;
+                }
+                context.putImageData(imageData, 0, 0);
+              }
+            },
+          },
+          {
             id: Assets.DODO,
             type: "image", src: "dodo.png",
             spriteSheet: {
@@ -123,6 +141,30 @@ export class DemoWorld extends AuxiliaryHolder<DemoWorld> implements IWorld {
             type: "image", src: "dodo.png",
             spriteSheet: {
               spriteSize: [190, 209],
+            },
+            postProcessing(context) {
+              if (context) {
+                const imageData = context.getImageData(0, 0, context.canvas.width, context.canvas.height);
+                const { data } = imageData;
+                for (let i = 0; i < data.length; i += 4) {
+                  data[i] = data[i + 1] = data[i + 2] = 0;
+                }
+                context.putImageData(imageData, 0, 0);
+              }
+            },
+          },
+          {
+            id: Assets.WOLF,
+            type: "image", src: "wolf.png",
+            spriteSheet: {
+              spriteSize: [200, 256],
+            },
+          },
+          {
+            id: Assets.WOLF_SHADOW,
+            type: "image", src: "wolf.png",
+            spriteSheet: {
+              spriteSize: [200, 256],
             },
             postProcessing(context) {
               if (context) {
@@ -293,6 +335,11 @@ export class DemoWorld extends AuxiliaryHolder<DemoWorld> implements IWorld {
             frames: [1, 5],
             fps: 24,
           },
+          {
+            id: Anims.WOLF_STILL,
+            frames: [0, 4],
+            fps: 15,
+          },
         ]),
       ));
 
@@ -365,21 +412,46 @@ export class DemoWorld extends AuxiliaryHolder<DemoWorld> implements IWorld {
     //  * fly. This allows us to produce an infinite amounts of cells.
     spritesAccumulator.addAuxiliary(new SpriteGrid(
       { yRange: [0, 0] }, new SpriteFactory({
-        fillSpriteBag({ pos }, bag) {
+        fillSpriteBag({ pos }, bag, rng) {
           const ground = bag.createSprite(Assets.GRASS);
           ground.transform.translate(pos[0] * pos[3], -1, pos[2] * pos[3]).rotateX(-Math.PI / 2);
           const ceiling = bag.createSprite(Assets.WIREFRAME);
           ceiling.transform.translate(pos[0] * pos[3], 2, pos[2] * pos[3]).rotateX(Math.PI / 2);
 
-          const rng = seedrandom(`${pos[0]}, ${pos[1]}, ${pos[2]}`);
           const count = rng() < .1 ? 3 + rng() * 10 : 0;
           for (let i = 0; i < count; i++) {
             const tree = bag.createSprite(Assets.TREE);
             tree.spriteType = SpriteType.SPRITE;
-            const size = 2 + Math.floor(2 * rng());
+            const size = 4 + Math.floor(2 * rng());
             tree.transform.translate(pos[0] * pos[3] + (rng() - .5) * 2.5, -1 + size / 2, pos[2] * pos[3] + (rng() - .5) * 2.5).scale(.2 + rng(), size, .2 + rng());
             bag.addSprite(tree);
           }
+
+          //  Add bun
+          if (rng() < .02) {
+            const bun = bag.createSprite(Assets.BUN);
+            bun.spriteType = SpriteType.SPRITE;
+            bun.transform.translate(pos[0] * pos[3], -.5, pos[2] * pos[3]).scale(.5);
+
+            const bunShadow = bag.createSprite(Assets.BUN_SHADOW);
+            bunShadow.transform.translate(pos[0] * pos[3], -1, pos[2] * pos[3]).rotateX(-Math.PI / 2).scale(.5);
+
+            bag.addSprite(bun, bunShadow);
+          }
+
+          //  Add wolf
+          if (rng() < .01) {
+            const scale = 1.5;
+            const wolf = bag.createSprite(Assets.WOLF);
+            wolf.spriteType = SpriteType.SPRITE;
+            wolf.transform.translate(pos[0] * pos[3], 0, pos[2] * pos[3]).scale(scale);
+
+            const shadow = bag.createSprite(Assets.WOLF_SHADOW);
+            shadow.transform.translate(pos[0] * pos[3], -1, pos[2] * pos[3]).rotateX(-Math.PI / 2).scale(scale);
+
+            bag.addSprite(wolf, shadow);
+          }
+
           bag.addSprite(ground, ceiling);
         },
       })

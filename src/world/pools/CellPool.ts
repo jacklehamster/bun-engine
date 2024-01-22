@@ -1,6 +1,6 @@
 import { ObjectPool } from "utils/ObjectPool";
 import { Cell } from "../grid/Cell";
-import { cellTag } from "../grid/utils/cell-utils";
+import { cellTag } from "world/grid/Cell";
 import { Vector } from "core/types/Vector";
 
 export class CellPool extends ObjectPool<Cell, [number, number, number, number]> {

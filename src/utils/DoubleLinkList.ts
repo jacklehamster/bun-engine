@@ -22,7 +22,7 @@ class NodePool<T> extends ObjectPool<DoubleLinkListNode<T>, [T]> {
   }
 }
 
-export class DoubleLinkList<T extends string | number | symbol> implements FreeStack<T> {
+export class DoubleLinkList<T> implements FreeStack<T> {
   private readonly start: DoubleLinkListNode<T>;
   private readonly end: DoubleLinkListNode<T>;
   private readonly nodeMap: Map<T, DoubleLinkListNode<T>> = new Map();
@@ -44,7 +44,7 @@ export class DoubleLinkList<T extends string | number | symbol> implements FreeS
     return this.nodeMap.size;
   }
 
-  private tags: T[] = [];
+  private readonly tags: T[] = [];
   getList(): List<T> {
     this.tags.length = 0;
     for (let e = this.start.next; e !== this.end; e = e!.next) {

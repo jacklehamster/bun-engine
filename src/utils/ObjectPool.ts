@@ -1,5 +1,5 @@
 export class ObjectPool<T, A extends any[] = []> {
-  static warningLimit = 100000;
+  static warningLimit = 50000;
 
   private readonly _allObjectsCreated: T[] = [];
   private readonly _recycler: T[] = [];
@@ -25,8 +25,9 @@ export class ObjectPool<T, A extends any[] = []> {
   }
 
   reset() {
-    this._recycler.length = 0;
-    this._recycler.push(...this._allObjectsCreated);
+    for (let i = 0; i < this._allObjectsCreated.length; i++) {
+      this._recycler[i] = this._allObjectsCreated[i];
+    }
   }
 
   clear() {
@@ -34,13 +35,9 @@ export class ObjectPool<T, A extends any[] = []> {
     this._allObjectsCreated.length = 0;
   }
 
-  get totalObjectsInExistence() {
-    return this._recycler.length + this._allObjectsCreated.length;
-  }
-
   private checkObjectExistence() {
-    if (this.totalObjectsInExistence === ObjectPool.warningLimit) {
-      console.warn("ObjectPool already created", this.totalObjectsInExistence);
+    if (this._allObjectsCreated.length === ObjectPool.warningLimit) {
+      console.warn("ObjectPool already created", this._allObjectsCreated.length);
     }
   }
 }

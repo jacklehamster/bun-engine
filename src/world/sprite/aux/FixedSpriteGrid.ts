@@ -6,6 +6,7 @@ import { forEach } from "../List";
 import { transformToPosition } from "world/grid/utils/position-utils";
 import { CellUtils } from "world/grid/utils/cell-utils";
 import { Auxiliary } from "world/aux/Auxiliary";
+import { Tag } from "world/grid/Cell";
 
 interface Config {
   cellSize?: number;
@@ -14,12 +15,12 @@ interface Config {
 
 export class FixedSpriteGrid extends SpriteGrid {
   private readonly cellSize: number;
-  private readonly spritesPerCell: Record<string, Sprite[]> = {};
+  private readonly spritesPerCell: Map<Tag, Sprite[]> = new Map();
   private readonly spritesList: Sprites[];
 
   constructor(private cellUtils: CellUtils, config: Config, ...spritesList: ((Sprites | Sprite[]) & Partial<Auxiliary>)[]) {
     super({}, {
-      getElemsAtCell: cell => this.spritesPerCell[cell.tag],
+      getElemsAtCell: cell => this.spritesPerCell.get(cell.tag),
     });
     this.cellSize = config.cellSize ?? 1;
     this.spritesList = spritesList;
@@ -33,10 +34,10 @@ export class FixedSpriteGrid extends SpriteGrid {
         if (sprite) {
           const pos = transformToPosition(sprite.transform);
           const cell = this.cellUtils.cellFromPos(pos, this.cellSize);
-          if (!this.spritesPerCell[cell.tag]) {
-            this.spritesPerCell[cell.tag] = [];
+          if (!this.spritesPerCell.has(cell.tag)) {
+            this.spritesPerCell.set(cell.tag, []);
           }
-          this.spritesPerCell[cell.tag]?.push(copySprite(sprite));
+          this.spritesPerCell.get(cell.tag)?.push(copySprite(sprite));
         }
       });
     });
@@ -44,7 +45,7 @@ export class FixedSpriteGrid extends SpriteGrid {
 
   deactivate(): void {
     for (let tag in this.spritesPerCell) {
-      delete this.spritesPerCell[tag];
+      this.spritesPerCell.delete(tag);
     }
     super.deactivate();
   }

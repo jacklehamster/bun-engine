@@ -46,7 +46,3 @@ export class CellUtils implements Refresh<Data> {
     return this.vectorPool.create(cx * cellSize, cy * cellSize, cz * cellSize);
   }
 }
-
-export function cellTag(x: number, y: number, z: number, cellSize: number) {
-  return `(${x},${y},${z})_${cellSize}`;
-}

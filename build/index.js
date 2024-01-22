@@ -46524,7 +46524,7 @@ class GraphicsEngine extends Disposable {
 class ObjectPool {
   initCall;
   onCreate;
-  static warningLimit = 1e5;
+  static warningLimit = 50000;
   _allObjectsCreated = [];
   _recycler = [];
   constructor(initCall, onCreate) {
@@ -46547,19 +46547,17 @@ class ObjectPool {
     return elem;
   }
   reset() {
-    this._recycler.length = 0;
-    this._recycler.push(...this._allObjectsCreated);
+    for (let i = 0;i < this._allObjectsCreated.length; i++) {
+      this._recycler[i] = this._allObjectsCreated[i];
+    }
   }
   clear() {
     this._recycler.length = 0;
     this._allObjectsCreated.length = 0;
   }
-  get totalObjectsInExistence() {
-    return this._recycler.length + this._allObjectsCreated.length;
-  }
   checkObjectExistence() {
-    if (this.totalObjectsInExistence === ObjectPool.warningLimit) {
-      console.warn("ObjectPool already created", this.totalObjectsInExistence);
+    if (this._allObjectsCreated.length === ObjectPool.warningLimit) {
+      console.warn("ObjectPool already created", this._allObjectsCreated.length);
     }
   }
 }
@@ -46696,9 +46694,6 @@ class UpdatePool extends ObjectPool {
     });
   }
 }
-
-// src/demo/DemoWorld.ts
-var import_seedrandom = __toESM(require_seedrandom2(), 1);
 
 // src/world/aux/AuxiliaryHolder.ts
 var EMPTY_CELLTRACK = [];
@@ -46996,10 +46991,10 @@ class PositionMatrix extends AuxiliaryHolder {
   removeChangeListener(listener) {
     this.changeListeners.delete(listener);
   }
-  changedPosition(dx, dy2, dz) {
+  changedPosition(dx, dy, dz) {
     transformToPosition(this.matrix, this._position);
     for (let listener of this.changeListeners) {
-      listener(dx, dy2, dz);
+      listener(dx, dy, dz);
     }
   }
   moveBy(x, y, z, turnMatrix) {
@@ -47018,9 +47013,9 @@ class PositionMatrix extends AuxiliaryHolder {
     if (!blocked) {
       const [curX, curY, curZ] = this.matrix.getPosition();
       if (curX !== x || curY !== y || curZ !== z) {
-        const dx = x - curX, dy2 = y - curY, dz = z - curZ;
+        const dx = x - curX, dy = y - curY, dz = z - curZ;
         this.matrix.setPosition(x, y, z);
-        this.changedPosition(dx, dy2, dz);
+        this.changedPosition(dx, dy, dz);
       }
     }
     return !blocked;
@@ -47031,12 +47026,12 @@ class PositionMatrix extends AuxiliaryHolder {
   gotoPos(x, y, z, speed = 0.1) {
     const curPos = this.position;
     const dx = x - curPos[0];
-    const dy2 = y - curPos[1];
+    const dy = y - curPos[1];
     const dz = z - curPos[2];
-    const dist2 = Math.sqrt(dx * dx + dy2 * dy2 + dz * dz);
+    const dist2 = Math.sqrt(dx * dx + dy * dy + dz * dz);
     if (dist2 > 0.01) {
       const sp = Math.min(dist2, speed);
-      return this.moveBy(dx / dist2 * sp, dy2 / dist2 * sp, dz / dist2 * sp);
+      return this.moveBy(dx / dist2 * sp, dy / dist2 * sp, dz / dist2 * sp);
     } else {
       return this.moveTo(x, y, z);
     }
@@ -47331,9 +47326,9 @@ class TurnAuxiliary extends ControlledLooper {
 // src/core/utils/vector-utils.ts
 var distSq = function(v1, v2) {
   const dx = v1[0] - v2[0];
-  const dy2 = v1[1] - v2[1];
+  const dy = v1[1] - v2[1];
   const dz = v1[2] - v2[2];
-  return dx * dx + dy2 * dy2 + dz * dz;
+  return dx * dx + dy * dy + dz * dz;
 };
 function equal(v1, v2, threshold = 0) {
   return distSq(v1, v2) <= threshold * threshold;
@@ -47479,77 +47474,6 @@ class ToggleAuxiliary {
   }
 }
 
-// src/world/pools/CellPool.ts
-class CellPool extends ObjectPool {
-  constructor(onCreate) {
-    super((cell, cx, cy, cz, cellSize) => {
-      const tag = cellTag(cx, cy, cz, cellSize);
-      if (!cell) {
-        return { pos: [cx, cy, cz, cellSize], tag };
-      }
-      cell.pos[0] = cx;
-      cell.pos[1] = cy;
-      cell.pos[2] = cz;
-      cell.pos[3] = cellSize;
-      cell.tag = tag;
-      return cell;
-    }, onCreate);
-  }
-  createFromPos(pos, cellSize) {
-    const [x, y, z] = pos;
-    const cx = Math.round(x / cellSize);
-    const cy = Math.round(y / cellSize);
-    const cz = Math.round(z / cellSize);
-    return this.create(cx, cy, cz, cellSize);
-  }
-}
-
-// src/world/pools/VectorPool.ts
-class VectorPool extends ObjectPool {
-  constructor(onCreate) {
-    super((vector, x, y, z) => {
-      if (!vector) {
-        return [x, y, z];
-      }
-      vector[0] = x;
-      vector[1] = y;
-      vector[2] = z;
-      return vector;
-    }, onCreate);
-  }
-}
-
-// src/world/grid/utils/cell-utils.ts
-function cellTag(x, y, z, cellSize) {
-  return `(${x},${y},${z})_${cellSize}`;
-}
-
-class CellUtils {
-  cellPool;
-  vectorPool;
-  constructor({ motor }) {
-    this.cellPool = new CellPool(() => motor.scheduleUpdate(this, data));
-    this.vectorPool = new VectorPool(() => motor.scheduleUpdate(this, data));
-    const data = { cellPool: this.cellPool, vectorPool: this.vectorPool };
-  }
-  refresh({ data: { cellPool, vectorPool } }) {
-    cellPool.reset();
-    vectorPool.reset();
-  }
-  cellFromPos(pos, cellSize) {
-    return this.cellPool.createFromPos(pos, cellSize);
-  }
-  cellAt(x, y, z, cellSize) {
-    return this.cellPool.create(x, y, z, cellSize);
-  }
-  positionFromCell(cell) {
-    return this.positionFromCellPos(...cell.pos);
-  }
-  positionFromCellPos(cx, cy, cz, cellSize) {
-    return this.vectorPool.create(cx * cellSize, cy * cellSize, cz * cellSize);
-  }
-}
-
 // src/utils/DoubleLinkList.ts
 class NodePool extends ObjectPool {
   constructor() {
@@ -47654,7 +47578,6 @@ class SurroundingTracker {
   base;
   cellLimit;
   cellSize;
-  tempCell;
   constructor({ cellTrack, cellUtils }, { range, cellLimit, cellSize = 1 } = {}) {
     this.range = [range?.[0] ?? 3, range?.[1] ?? 3, range?.[2] ?? 3];
     this.base = this.range.map((r) => Math.ceil(-r / 2));
@@ -47662,10 +47585,6 @@ class SurroundingTracker {
     this.cellSize = cellSize ?? 1;
     this.cellTrack = cellTrack;
     this.cellUtils = cellUtils;
-    this.tempCell = {
-      pos: [0, 0, 0, this.cellSize],
-      tag: ""
-    };
   }
   set holder(aux) {
     aux.visitableCell = this;
@@ -47674,19 +47593,14 @@ class SurroundingTracker {
     return this.cellTags.getList();
   }
   iterateCells(visitedCell, callback) {
-    const { range, base, tempCell } = this;
+    const { range, base } = this;
     const { pos } = visitedCell;
     const cellX = pos[0] + base[0];
     const cellY = pos[1] + base[1];
     const cellZ = pos[2] + base[2];
-    const tempCellPos = tempCell.pos;
     for (let z = 0;z < range[0]; z++) {
       for (let x = 0;x < range[2]; x++) {
         for (let y = 0;y < range[1]; y++) {
-          tempCellPos[0] = cellX + x;
-          tempCellPos[1] = cellY + y;
-          tempCellPos[2] = cellZ + z;
-          tempCell.tag = cellTag(tempCellPos[0], tempCellPos[1], tempCellPos[2], tempCellPos[3]);
           callback(this.cellUtils.cellAt(cellX + x, cellY + y, cellZ + z, this.cellSize));
         }
       }
@@ -47855,7 +47769,7 @@ function copySprite(sprite, dest) {
 // src/world/sprite/aux/Grid.ts
 class Grid extends AuxiliaryHolder {
   slots = [];
-  ranges;
+  boundaries;
   factories;
   slotPool;
   holder;
@@ -47863,11 +47777,14 @@ class Grid extends AuxiliaryHolder {
     super();
     this.factories = factories;
     this.slotPool = new SlotPool(copy5);
-    this.ranges = [
-      config?.xRange ?? [Number.NEGATIVE_INFINITY, Number.POSITIVE_INFINITY],
-      config?.yRange ?? [Number.NEGATIVE_INFINITY, Number.POSITIVE_INFINITY],
-      config?.zRange ?? [Number.NEGATIVE_INFINITY, Number.POSITIVE_INFINITY]
-    ];
+    this.boundaries = {
+      minX: config?.xRange?.[0] ?? Number.NEGATIVE_INFINITY,
+      maxX: config?.xRange?.[1] ?? Number.POSITIVE_INFINITY,
+      minY: config?.yRange?.[0] ?? Number.NEGATIVE_INFINITY,
+      maxY: config?.yRange?.[1] ?? Number.POSITIVE_INFINITY,
+      minZ: config?.zRange?.[0] ?? Number.NEGATIVE_INFINITY,
+      maxZ: config?.zRange?.[1] ?? Number.POSITIVE_INFINITY
+    };
   }
   informUpdate(_id, _type) {
   }
@@ -47887,8 +47804,10 @@ class Grid extends AuxiliaryHolder {
     return this.slots[index]?.elem;
   }
   trackCell(cell) {
-    const [[minX, maxX], [minY, maxY], [minZ, maxZ]] = this.ranges;
-    const [x, y, z] = cell.pos;
+    const { minX, maxX, minY, maxY, minZ, maxZ } = this.boundaries;
+    const x = cell.pos[0];
+    const y = cell.pos[1];
+    const z = cell.pos[2];
     if (x < minX || maxX < x || y < minY || maxY < y || z < minZ || maxZ < z) {
       return false;
     }
@@ -47909,10 +47828,10 @@ class Grid extends AuxiliaryHolder {
     }
     return !!count;
   }
-  untrackCell(cellTag2) {
+  untrackCell(cellTag) {
     for (let i = this.slots.length - 1;i >= 0; i--) {
       const slot = this.slots[i];
-      if (slot.tag === cellTag2) {
+      if (slot.tag === cellTag) {
         this.informUpdate(i);
         this.informUpdate(this.slots.length - 1, SpriteUpdateType.TRANSFORM);
         this.slots[i] = this.slots[this.slots.length - 1];
@@ -47947,11 +47866,11 @@ class SpriteGrid extends Grid {
 class FixedSpriteGrid extends SpriteGrid {
   cellUtils;
   cellSize;
-  spritesPerCell = {};
+  spritesPerCell = new Map;
   spritesList;
   constructor(cellUtils, config, ...spritesList) {
     super({}, {
-      getElemsAtCell: (cell) => this.spritesPerCell[cell.tag]
+      getElemsAtCell: (cell) => this.spritesPerCell.get(cell.tag)
     });
     this.cellUtils = cellUtils;
     this.cellSize = config.cellSize ?? 1;
@@ -47965,17 +47884,17 @@ class FixedSpriteGrid extends SpriteGrid {
         if (sprite) {
           const pos = transformToPosition(sprite.transform);
           const cell = this.cellUtils.cellFromPos(pos, this.cellSize);
-          if (!this.spritesPerCell[cell.tag]) {
-            this.spritesPerCell[cell.tag] = [];
+          if (!this.spritesPerCell.has(cell.tag)) {
+            this.spritesPerCell.set(cell.tag, []);
           }
-          this.spritesPerCell[cell.tag]?.push(copySprite(sprite));
+          this.spritesPerCell.get(cell.tag)?.push(copySprite(sprite));
         }
       });
     });
   }
   deactivate() {
     for (let tag in this.spritesPerCell) {
-      delete this.spritesPerCell[tag];
+      this.spritesPerCell.delete(tag);
     }
     super.deactivate();
   }
@@ -48050,6 +47969,8 @@ class SpritePool extends ObjectPool {
 }
 
 // src/world/sprite/SpritesFactory.ts
+var import_seedrandom = __toESM(require_seedrandom2(), 1);
+
 class SpriteFactory {
   filler;
   sprites = [];
@@ -48062,7 +47983,7 @@ class SpriteFactory {
     this.filler = filler;
   }
   getElemsAtCell(cell) {
-    this.filler.fillSpriteBag(cell, this.spriteBag);
+    this.filler.fillSpriteBag(cell, this.spriteBag, import_seedrandom.default(cell.tag));
     return this.sprites;
   }
   doneCellTracking() {
@@ -48096,6 +48017,78 @@ class MoveAuxiliary extends ControlledLooper {
     if (!forward && !backward && !left && !right) {
       stopUpdate();
     }
+  }
+}
+
+// src/world/grid/Cell.ts
+function cellTag(x, y, z, cellSize) {
+  return x + "|" + y + "|" + z + "|" + cellSize;
+}
+
+// src/world/pools/CellPool.ts
+class CellPool extends ObjectPool {
+  constructor(onCreate) {
+    super((cell, cx, cy, cz, cellSize) => {
+      const tag = cellTag(cx, cy, cz, cellSize);
+      if (!cell) {
+        return { pos: [cx, cy, cz, cellSize], tag };
+      }
+      cell.pos[0] = cx;
+      cell.pos[1] = cy;
+      cell.pos[2] = cz;
+      cell.pos[3] = cellSize;
+      cell.tag = tag;
+      return cell;
+    }, onCreate);
+  }
+  createFromPos(pos, cellSize) {
+    const [x, y, z] = pos;
+    const cx = Math.round(x / cellSize);
+    const cy = Math.round(y / cellSize);
+    const cz = Math.round(z / cellSize);
+    return this.create(cx, cy, cz, cellSize);
+  }
+}
+
+// src/world/pools/VectorPool.ts
+class VectorPool extends ObjectPool {
+  constructor(onCreate) {
+    super((vector, x, y, z) => {
+      if (!vector) {
+        return [x, y, z];
+      }
+      vector[0] = x;
+      vector[1] = y;
+      vector[2] = z;
+      return vector;
+    }, onCreate);
+  }
+}
+
+// src/world/grid/utils/cell-utils.ts
+class CellUtils {
+  cellPool;
+  vectorPool;
+  constructor({ motor }) {
+    this.cellPool = new CellPool(() => motor.scheduleUpdate(this, data));
+    this.vectorPool = new VectorPool(() => motor.scheduleUpdate(this, data));
+    const data = { cellPool: this.cellPool, vectorPool: this.vectorPool };
+  }
+  refresh({ data: { cellPool, vectorPool } }) {
+    cellPool.reset();
+    vectorPool.reset();
+  }
+  cellFromPos(pos, cellSize) {
+    return this.cellPool.createFromPos(pos, cellSize);
+  }
+  cellAt(x, y, z, cellSize) {
+    return this.cellPool.create(x, y, z, cellSize);
+  }
+  positionFromCell(cell) {
+    return this.positionFromCellPos(...cell.pos);
+  }
+  positionFromCellPos(cx, cy, cz, cellSize) {
+    return this.vectorPool.create(cx * cellSize, cy * cellSize, cz * cellSize);
   }
 }
 
@@ -48639,11 +48632,16 @@ var Assets;
   Assets2[Assets2["DODO_SHADOW"] = 9] = "DODO_SHADOW";
   Assets2[Assets2["TREE"] = 10] = "TREE";
   Assets2[Assets2["BUN"] = 11] = "BUN";
+  Assets2[Assets2["BUN_SHADOW"] = 12] = "BUN_SHADOW";
+  Assets2[Assets2["WOLF"] = 13] = "WOLF";
+  Assets2[Assets2["WOLF_SHADOW"] = 14] = "WOLF_SHADOW";
 })(Assets || (Assets = {}));
 var Anims;
 (function(Anims2) {
   Anims2[Anims2["STILL"] = 0] = "STILL";
   Anims2[Anims2["RUN"] = 1] = "RUN";
+  Anims2[Anims2["WOLF_STILL"] = 2] = "WOLF_STILL";
+  Anims2[Anims2["WOLF_JUMP"] = 3] = "WOLF_JUMP";
 })(Anims || (Anims = {}));
 var LOGO_SIZE = 512;
 var CELLSIZE = 2;
@@ -48668,6 +48666,21 @@ class DemoWorld extends AuxiliaryHolder {
         src: "bun.png"
       },
       {
+        id: Assets.BUN_SHADOW,
+        type: "image",
+        src: "bun.png",
+        postProcessing(context) {
+          if (context) {
+            const imageData = context.getImageData(0, 0, context.canvas.width, context.canvas.height);
+            const { data } = imageData;
+            for (let i = 0;i < data.length; i += 4) {
+              data[i] = data[i + 1] = data[i + 2] = 0;
+            }
+            context.putImageData(imageData, 0, 0);
+          }
+        }
+      },
+      {
         id: Assets.DODO,
         type: "image",
         src: "dodo.png",
@@ -48681,6 +48694,32 @@ class DemoWorld extends AuxiliaryHolder {
         src: "dodo.png",
         spriteSheet: {
           spriteSize: [190, 209]
+        },
+        postProcessing(context) {
+          if (context) {
+            const imageData = context.getImageData(0, 0, context.canvas.width, context.canvas.height);
+            const { data } = imageData;
+            for (let i = 0;i < data.length; i += 4) {
+              data[i] = data[i + 1] = data[i + 2] = 0;
+            }
+            context.putImageData(imageData, 0, 0);
+          }
+        }
+      },
+      {
+        id: Assets.WOLF,
+        type: "image",
+        src: "wolf.png",
+        spriteSheet: {
+          spriteSize: [200, 256]
+        }
+      },
+      {
+        id: Assets.WOLF_SHADOW,
+        type: "image",
+        src: "wolf.png",
+        spriteSheet: {
+          spriteSize: [200, 256]
         },
         postProcessing(context) {
           if (context) {
@@ -48831,6 +48870,11 @@ class DemoWorld extends AuxiliaryHolder {
         id: Anims.RUN,
         frames: [1, 5],
         fps: 24
+      },
+      {
+        id: Anims.WOLF_STILL,
+        frames: [0, 4],
+        fps: 15
       }
     ])));
     const dobukiBlock = {
@@ -48876,19 +48920,35 @@ class DemoWorld extends AuxiliaryHolder {
     this.addAuxiliary(camera);
     this.camera = camera;
     spritesAccumulator.addAuxiliary(new SpriteGrid({ yRange: [0, 0] }, new SpriteFactory({
-      fillSpriteBag({ pos }, bag) {
+      fillSpriteBag({ pos }, bag, rng) {
         const ground = bag.createSprite(Assets.GRASS);
         ground.transform.translate(pos[0] * pos[3], -1, pos[2] * pos[3]).rotateX(-Math.PI / 2);
         const ceiling = bag.createSprite(Assets.WIREFRAME);
         ceiling.transform.translate(pos[0] * pos[3], 2, pos[2] * pos[3]).rotateX(Math.PI / 2);
-        const rng = import_seedrandom.default(`${pos[0]}, ${pos[1]}, ${pos[2]}`);
         const count = rng() < 0.1 ? 3 + rng() * 10 : 0;
         for (let i = 0;i < count; i++) {
           const tree = bag.createSprite(Assets.TREE);
           tree.spriteType = SpriteType.SPRITE;
-          const size = 2 + Math.floor(2 * rng());
+          const size = 4 + Math.floor(2 * rng());
           tree.transform.translate(pos[0] * pos[3] + (rng() - 0.5) * 2.5, -1 + size / 2, pos[2] * pos[3] + (rng() - 0.5) * 2.5).scale(0.2 + rng(), size, 0.2 + rng());
           bag.addSprite(tree);
+        }
+        if (rng() < 0.02) {
+          const bun = bag.createSprite(Assets.BUN);
+          bun.spriteType = SpriteType.SPRITE;
+          bun.transform.translate(pos[0] * pos[3], -0.5, pos[2] * pos[3]).scale(0.5);
+          const bunShadow = bag.createSprite(Assets.BUN_SHADOW);
+          bunShadow.transform.translate(pos[0] * pos[3], -1, pos[2] * pos[3]).rotateX(-Math.PI / 2).scale(0.5);
+          bag.addSprite(bun, bunShadow);
+        }
+        if (rng() < 0.01) {
+          const scale5 = 1.5;
+          const wolf = bag.createSprite(Assets.WOLF);
+          wolf.spriteType = SpriteType.SPRITE;
+          wolf.transform.translate(pos[0] * pos[3], 0, pos[2] * pos[3]).scale(scale5);
+          const shadow = bag.createSprite(Assets.WOLF_SHADOW);
+          shadow.transform.translate(pos[0] * pos[3], -1, pos[2] * pos[3]).rotateX(-Math.PI / 2).scale(scale5);
+          bag.addSprite(wolf, shadow);
         }
         bag.addSprite(ground, ceiling);
       }
@@ -49684,4 +49744,4 @@ export {
   hello
 };
 
-//# debugId=D789F6BA9ED8024A64756e2164756e21
+//# debugId=B89DC2098C2497C964756e2164756e21

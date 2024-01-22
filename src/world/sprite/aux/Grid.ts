@@ -1,4 +1,4 @@
-import { Cell } from "world/grid/Cell";
+import { Cell, Tag } from "world/grid/Cell";
 import { SpriteUpdateType } from "../update/SpriteUpdateType";
 import { forEach } from "../List";
 import { UpdateNotifier } from "updates/UpdateNotifier";
@@ -6,6 +6,12 @@ import { AuxiliaryHolder } from "world/aux/AuxiliaryHolder";
 import { ElemsHolder } from "./ElemsHolder";
 import { IElemFactory } from "./IElemFactory";
 import { ObjectPool } from "utils/ObjectPool";
+
+interface Boundaries {
+  minX: number; maxX: number;
+  minY: number; maxY: number;
+  minZ: number; maxZ: number;
+}
 
 export interface Config {
   xRange?: [number, number];
@@ -15,12 +21,12 @@ export interface Config {
 
 interface Slot<T> {
   elem: T;
-  tag: string;
+  tag: Tag;
 }
 
 export class Grid<T> extends AuxiliaryHolder<ElemsHolder<T>> implements UpdateNotifier {
   private readonly slots: Slot<T>[] = [];
-  private readonly ranges: [[number, number], [number, number], [number, number]];
+  private readonly boundaries: Boundaries;
   private readonly factories: IElemFactory<T>[];
   private readonly slotPool;
   holder?: ElemsHolder<T>;
@@ -29,11 +35,14 @@ export class Grid<T> extends AuxiliaryHolder<ElemsHolder<T>> implements UpdateNo
     super();
     this.factories = factories;
     this.slotPool = new SlotPool(copy);
-    this.ranges = [
-      config?.xRange ?? [Number.NEGATIVE_INFINITY, Number.POSITIVE_INFINITY],
-      config?.yRange ?? [Number.NEGATIVE_INFINITY, Number.POSITIVE_INFINITY],
-      config?.zRange ?? [Number.NEGATIVE_INFINITY, Number.POSITIVE_INFINITY],
-    ];
+    this.boundaries = {
+      minX: config?.xRange?.[0] ?? Number.NEGATIVE_INFINITY,
+      maxX: config?.xRange?.[1] ?? Number.POSITIVE_INFINITY,
+      minY: config?.yRange?.[0] ?? Number.NEGATIVE_INFINITY,
+      maxY: config?.yRange?.[1] ?? Number.POSITIVE_INFINITY,
+      minZ: config?.zRange?.[0] ?? Number.NEGATIVE_INFINITY,
+      maxZ: config?.zRange?.[1] ?? Number.POSITIVE_INFINITY,
+    };
   }
 
   informUpdate(_id: number, _type?: number | undefined): void {
@@ -60,8 +69,10 @@ export class Grid<T> extends AuxiliaryHolder<ElemsHolder<T>> implements UpdateNo
   }
 
   trackCell(cell: Cell): boolean {
-    const [[minX, maxX], [minY, maxY], [minZ, maxZ]] = this.ranges;
-    const [x, y, z] = cell.pos;
+    const { minX, maxX, minY, maxY, minZ, maxZ } = this.boundaries;
+    const x = cell.pos[0];
+    const y = cell.pos[1];
+    const z = cell.pos[2];
     if (x < minX || maxX < x || y < minY || maxY < y || z < minZ || maxZ < z) {
       return false;
     }
