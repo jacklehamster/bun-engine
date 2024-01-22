@@ -11,6 +11,12 @@ export class CollisionBox implements Box {
       && this.near > box.far && box.near > this.far;
   }
 
+  gotoPosition(pos: Vector) {
+    this.position[0] = pos[0];
+    this.position[1] = pos[1];
+    this.position[2] = pos[2];
+  }
+
   get top(): number {
     return this.box.top + this.position[1];
   }

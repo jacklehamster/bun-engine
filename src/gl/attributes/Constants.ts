@@ -29,3 +29,4 @@ export const BG_COLOR_LOC: LocationName = 'bgColor';
 export const MAX_TEXTURE_SIZE_LOC: LocationName = 'maxTextureSize';
 export const TEXTURE_UNIFORM_LOC: LocationName = 'uTextures';
 export const TIME_LOC: LocationName = 'time';
+export const FADE_LOC: LocationName = 'fade';

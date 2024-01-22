@@ -20,10 +20,9 @@ import { SpriteGrid } from "world/sprite/aux/SpriteGrid";
 import { SpriteUpdater } from "world/sprite/update/SpriteUpdater";
 import { Sprite, SpriteType } from "world/sprite/Sprite";
 import { ICamera } from "camera/ICamera";
-import { KeyboardControls } from "controls/KeyboardControls";
 import { SpriteFactory } from "world/sprite/SpritesFactory";
 import { MoveAuxiliary } from "world/aux/MoveAuxiliary";
-import { CellUtils, positionFromCell } from "world/grid/utils/cell-utils";
+import { CellUtils } from "world/grid/utils/cell-utils";
 import { JumpAuxiliary } from "world/aux/JumpAuxiliary";
 import { TimeAuxiliary } from "core/aux/TimeAuxiliary";
 import { PositionMatrix } from "gl/transform/PositionMatrix";
@@ -40,12 +39,13 @@ import { MotionAuxiliary } from "world/aux/MotionAuxiliary";
 import { forEach } from "world/sprite/List";
 import { FollowAuxiliary } from "world/aux/FollowAuxiliary";
 import { ItemsGroup } from "world/sprite/aux/ItemsGroup";
-import { WebGlCanvas } from "graphics/WebGlCanvas";
-import { Hud } from "ui/Hud";
-import { TurnStepAuxiliary } from "world/aux/TurnStepAuxiliary";
 import { IPositionMatrix } from "gl/transform/IPositionMatrix";
 import { DisplayBox } from "world/collision/DisplayBox";
 import { CollisionDetector } from "world/collision/CollisionDetector";
+import { CollisionDetectors } from "world/collision/CollisionDetectors";
+import { UserInterface } from "ui/UserInterface";
+import { IControls } from "controls/IControls";
+import { IFade, FadeAuxiliary } from "world/aux/FadeAuxiliary";
 
 enum Assets {
   DOBUKI = 0,
@@ -59,6 +59,7 @@ enum Assets {
   DODO = 8,
   DODO_SHADOW = 9,
   TREE = 10,
+  BUN = 11,
 }
 
 enum Anims {
@@ -72,12 +73,15 @@ const CELLSIZE = 2;
 interface Props {
   engine: IGraphicsEngine;
   motor: IMotor;
-  webGlCanvas: WebGlCanvas;
+  ui: UserInterface;
+  keyboard: Keyboard;
+  controls: IControls;
 }
 
-export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
+export class DemoWorld extends AuxiliaryHolder<DemoWorld> implements IWorld {
   camera: ICamera;
-  constructor({ engine, motor, webGlCanvas }: Props) {
+  api: IFade = {};
+  constructor({ engine, motor, ui, keyboard, controls }: Props) {
     super();
 
     const cellUtils = new CellUtils({ motor });
@@ -102,6 +106,10 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
             id: Assets.DOBUKI,
             type: "image",
             src: "dobuki.png",
+          },
+          {
+            id: Assets.BUN,
+            type: "image", src: "bun.png",
           },
           {
             id: Assets.DODO,
@@ -244,19 +252,11 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
             type: "draw",
             draw: ctx => {
               const { canvas } = ctx;
-              canvas.width = 100;
-              canvas.height = 100;
+              canvas.width = 1024;
+              canvas.height = 1024;
               ctx.fillStyle = 'green';
               ctx.lineWidth = canvas.width / 50;
               ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-              ctx.strokeStyle = 'black';
-              ctx.fillStyle = '#4f8';
-
-              ctx.beginPath();
-              ctx.rect(canvas.width * .2, canvas.height * .2, canvas.width * .6, canvas.height * .6);
-              ctx.fill();
-              ctx.stroke();
             },
           },
           {
@@ -299,6 +299,16 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
     //  Adding a FixedSpriteGrid to the sprite accumulator.
     //  * You add sprite collections as "SpriteGrid". That way, the engine
     //  * will hide sprites if you're too far, and show them again if you're close.
+    const dobukiBlock = {
+      top: 1,
+      bottom: -1,
+      left: -.1,
+      right: .1,
+      near: 0,
+      far: -.5,
+    };
+    const dobukiPosition = cellUtils.positionFromCellPos(0, 0, -1, CELLSIZE);
+
     const blockBox = {
       top: 1,
       bottom: -1,
@@ -307,19 +317,24 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
       near: 1,
       far: -1,
     };
-    const blockPosition = positionFromCell([0, 0, -3, CELLSIZE]);
+    const blockPosition = cellUtils.positionFromCellPos(0, 0, -3, CELLSIZE);
     const blockBoxSprites = new DisplayBox(blockBox, Assets.GROUND, Assets.BRICK);
     spritesAccumulator.addAuxiliary(new FixedSpriteGrid(
       cellUtils,
       { cellSize: CELLSIZE },
       //  Dobuki logo
-      [
+      new SpriteGroup([
         {
           imageId: Assets.DOBUKI,
           spriteType: SpriteType.SPRITE,
-          transform: Matrix.create().translate(0, -.5, -3),
+          transform: Matrix.create().translate(0, -.5, -1),
         },
-      ],
+      ], [Matrix.create().setVector(dobukiPosition)]),
+      new SpriteGroup(
+        new DisplayBox(dobukiBlock, Assets.WIREFRAME, Assets.WIREFRAME),
+        [Matrix.create().setVector(dobukiPosition)]
+      ),
+
       //  Side walls with happy face logo
       [
         //  side walls
@@ -357,12 +372,12 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
           ceiling.transform.translate(pos[0] * pos[3], 2, pos[2] * pos[3]).rotateX(Math.PI / 2);
 
           const rng = seedrandom(`${pos[0]}, ${pos[1]}, ${pos[2]}`);
-          const count = rng() * 30 - 25;
+          const count = rng() < .1 ? 3 + rng() * 10 : 0;
           for (let i = 0; i < count; i++) {
             const tree = bag.createSprite(Assets.TREE);
             tree.spriteType = SpriteType.SPRITE;
-            const size = Math.floor(3 * rng());
-            tree.transform.translate(pos[0] * pos[3] + (rng() - .5) * 2, -1 + size / 2, pos[2] * pos[3] + (rng() - .5) * 2).scale(.2 + rng(), size, .2 + rng());
+            const size = 2 + Math.floor(2 * rng());
+            tree.transform.translate(pos[0] * pos[3] + (rng() - .5) * 2.5, -1 + size / 2, pos[2] * pos[3] + (rng() - .5) * 2.5).scale(.2 + rng(), size, .2 + rng());
             bag.addSprite(tree);
           }
           bag.addSprite(ground, ceiling);
@@ -414,39 +429,41 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
     }));
     spritesAccumulator.addAuxiliary(shadowHeroSprites);
 
-    //  * A move blocker just determines where you can or cannot move.
-    //  Currently, there is just one block at [0, 0, -3]
-    // heroPos.moveBlocker = {
-    //   isBlocked(to, from): boolean {
-    //     {
-    //       const blockPos = cellUtils.positionFromCellPos(0, 0, -3, 2);
-    //       const xRange = 1.8, yRange = 2, zRange = 1.8;
-    //       const dx = blockPos[0] - to[0],
-    //         dy = blockPos[1] - to[1],
-    //         dz = blockPos[2] - to[2];
-    //       if (Math.abs(dx) < xRange && Math.abs(dy) < yRange && Math.abs(dz) < zRange) {
-    //         return true;
-    //       }
-    //     }
-
-    //     {
-    //       const fromCell = cellUtils.getCell(from, 2);
-    //       const toCell = cellUtils.getCell(to, 2);
-    //       if (fromCell.pos[0] === 0 && toCell.pos[0] === 0
-    //         && (fromCell.pos[2] === -2 && toCell.pos[2] === -1
-    //           || fromCell.pos[2] === -1 && toCell.pos[2] === -2)) {
-    //         return true;
-    //       }
-    //     }
-
-    //     return false;
-    //   }
-    // };
-    heroPos.moveBlocker = new CollisionDetector(
-      blockBox, blockPosition, heroBox, (blocked) => {
-        displayBox.imageId = blocked ? Assets.WIREFRAME_RED : Assets.WIREFRAME;
-      },
-    );
+    heroPos.moveBlocker = new CollisionDetectors([
+      new CollisionDetector(
+        {
+          blockerBox: blockBox, blockerPosition: blockPosition, heroBox,
+          listener: {
+            onBlockChange(blocked) {
+              displayBox.imageId = blocked ? Assets.WIREFRAME_RED : Assets.WIREFRAME;
+            },
+          }
+        },
+        { shouldBlock: true }
+      ),
+      new CollisionDetector(
+        {
+          blockerBox: dobukiBlock, blockerPosition: dobukiPosition, heroBox,
+          listener: {
+            onEnter() {
+              displayBox.imageId = Assets.WIREFRAME_RED;
+              ui.showDialog({
+                conversation: {
+                  messages: [
+                    { text: "Hello there." },
+                    { text: "Bye bye." },
+                  ]
+                },
+              });
+            },
+            onLeave() {
+              displayBox.imageId = Assets.WIREFRAME;
+            }
+          }
+        },
+        { shouldBlock: false }
+      ),
+    ]);
 
     //  Static Sprites
     //  * Those are just sprites, which will appear regardless of where
@@ -467,33 +484,31 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
     //  * CamTiltReset is just for restoring the view from looking up or down
     //  * CamMoveAuxiliary is a more free-form way to move.
     //  * JumpAuxiliary lets you jump
-    const keyboard = new Keyboard({ motor });
-    const controls = new KeyboardControls(keyboard);
-    keyboard.addAuxiliary(
-      new ToggleAuxiliary({
-        auxiliariesMapping: [
-          {
-            key: "Tab", aux: Auxiliaries.from(
-              new PositionStepAuxiliary({ motor, controls, position: heroPos, turnGoal: camera.turn.angle }),
-              new SmoothFollowAuxiliary({ motor, follower: camera.position, followee: heroPos }, { speed: .05 }),
-              new JumpAuxiliary({ motor, controls, position: heroPos }),
-              // new TurnStepAuxiliary({ motor, controls, turn: camera.turn }),
-            ),
-          },
-          {
-            key: "Tab", aux: Auxiliaries.from(
-              new TurnAuxiliary({ motor, controls, turn: camera.turn }),
-              new TiltAuxiliary({ motor, controls, tilt: camera.tilt }),
-              new MoveAuxiliary({ motor, controls, direction: camera.turn, position: heroPos }),
-              new JumpAuxiliary({ motor, controls, position: heroPos }),
-              new TiltResetAuxiliary({ motor, controls, tilt: camera.tilt }),
-              new SmoothFollowAuxiliary({ motor, follower: camera.position, followee: heroPos }, { speed: .05 }),
-            ),
-          },
-        ],
-      }),
-    );
-    this.addAuxiliary(keyboard)
+    ;
+    this
+      .addAuxiliary(keyboard.addAuxiliary(
+        new ToggleAuxiliary({
+          auxiliariesMapping: [
+            {
+              key: "Tab", aux: Auxiliaries.from(
+                new PositionStepAuxiliary({ motor, controls, position: heroPos, turnGoal: camera.turn.angle }),
+                new SmoothFollowAuxiliary({ motor, follower: camera.position, followee: heroPos }, { speed: .05 }),
+                new JumpAuxiliary({ motor, controls, position: heroPos }),
+              ),
+            },
+            {
+              key: "Tab", aux: Auxiliaries.from(
+                new TurnAuxiliary({ motor, controls, turn: camera.turn }),
+                new TiltAuxiliary({ motor, controls, tilt: camera.tilt }),
+                new MoveAuxiliary({ motor, controls, direction: camera.turn, position: heroPos }),
+                new JumpAuxiliary({ motor, controls, position: heroPos }),
+                new TiltResetAuxiliary({ motor, controls, tilt: camera.tilt }),
+                new SmoothFollowAuxiliary({ motor, follower: camera.position, followee: heroPos }, { speed: .05 }),
+              ),
+            },
+          ],
+        }),
+      ))
       .addAuxiliary(new DirAuxiliary({ controls }, dx => {
         const flip = dx < 0;
         heroSprites.flip = flip;
@@ -509,21 +524,20 @@ export class DemoWorld extends AuxiliaryHolder<IWorld> implements IWorld {
     //  * This is needed to indicate when the player is changing cell
     //  * as they move. Every cell change, a new set of surrounding cells
     //  * is evaluated, and some are created as needed.
-    camera.position.addAuxiliary(
+    this.addAuxiliary(heroPos.addAuxiliary(
       new CellChangeAuxiliary(cellUtils, { cellSize: CELLSIZE })
-        .addAuxiliary(new SurroundingTracker(this, {
-          cellLimit: 10000,
-          range: [50, 3, 50],
+        .addAuxiliary(new SurroundingTracker({ cellTrack: this, cellUtils }, {
+          cellLimit: 5000,
+          range: [30, 3, 30],
           cellSize: CELLSIZE,
-        })));
-
-    webGlCanvas.addAuxiliary(new Hud());
+        }))));
 
     //  Hack some base settings
     camera.distance.setValue(5)
     camera.tilt.angle.setValue(1.1);
     camera.projection.zoom.setValue(.25);
     camera.projection.perspective.setValue(.05);
-    this.addAuxiliary(new TimeAuxiliary({ motor, engine }));
+    this.addAuxiliary(new TimeAuxiliary({ motor, engine }))
+      .addAuxiliary(new FadeAuxiliary({ camera, motor }));
   }
 }

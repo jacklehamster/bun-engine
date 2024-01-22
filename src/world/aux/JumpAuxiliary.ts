@@ -45,33 +45,26 @@ export class JumpAuxiliary extends ControlledLooper<Data> implements Auxiliary {
     }
   }
 
-  canJump(position: IPositionMatrix) {
-    const [_x, y, _z] = position.position;
-    return y === 0;
-  }
-
   jump(deltaTime: number, data: Data): boolean {
     const speed = deltaTime / 80;
     const acceleration = deltaTime / 80;
     const { action } = data.controls;
-    if (this.canJump(data.position)) {
+    const onGround = data.position.position[1] <= 0;
+    const movingDown = !onGround && data.position.moveBy(0, speed * this.dy, 0);
+    if (onGround || !movingDown) {
       if (action) {
         this.dy = data.jump;
         data.position.moveBy(0, speed * this.dy, 0);
         return true;
       }
-    } else {
-      data.position.moveBy(0, speed * this.dy, 0);
-      const [x, y, z] = data.position.position;
-      if (y > 0) {
-        const mul = this.dy < 0 ? 1 / data.plane : 1;
-        this.dy += data.gravity * acceleration * mul;
-        return true;
-      } else {
-        data.position.moveTo(x, 0, z);
-        this.dy = 0;
-      }
+      this.dy = 0;
     }
-    return false;
+    if (!onGround) {
+      const mul = this.dy < 0 ? 1 / data.plane : 1;
+      this.dy += data.gravity * acceleration * mul;
+    } else {
+      data.position.moveTo(data.position.position[0], 0, data.position.position[2]);
+    }
+    return !onGround;
   }
 }

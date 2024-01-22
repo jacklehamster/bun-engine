@@ -31,7 +31,7 @@ export class CellChangeAuxiliary extends AuxiliaryHolder implements Auxiliary<IP
       return;
     }
     const pos = this.positionMatrix.position;
-    const cell = this.cellUtils.getCell(pos, this.previousCellPos[3]);
+    const cell = this.cellUtils.cellFromPos(pos, this.previousCellPos[3]);
     if (this.previousCellPos[0] !== cell.pos[0] || this.previousCellPos[1] !== cell.pos[1] || this.previousCellPos[2] !== cell.pos[2]) {
       this.previousCellPos[0] = cell.pos[0];
       this.previousCellPos[1] = cell.pos[1];

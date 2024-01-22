@@ -1,6 +1,7 @@
 import { UpdatePayload } from "updates/UpdatePayload";
 import { Auxiliary } from "./Auxiliary";
-import { ControlsListener, IControls } from "controls/IControls";
+import { IControls } from "controls/IControls";
+import { ControlsListener } from "controls/ControlsListener";
 import { IMotor } from "motor/IMotor";
 import { Looper } from "motor/Looper";
 import { IPositionMatrix } from "gl/transform/IPositionMatrix";

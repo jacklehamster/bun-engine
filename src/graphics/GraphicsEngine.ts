@@ -24,6 +24,7 @@ import {
   SPRITE_TYPE_LOC,
   TIME_LOC,
   ANIM_LOC,
+  FADE_LOC,
 } from '../gl/attributes/Constants';
 import Matrix from 'gl/transform/Matrix';
 import vertexShader from 'generated/src/gl/resources/vertexShader.txt';
@@ -34,18 +35,16 @@ import { replaceTilda } from 'gl/utils/replaceTilda';
 import { FloatUniform, VectorUniform } from "./Uniforms";
 import { MatrixUniform } from "./Uniforms";
 import { MediaData } from 'gl/texture/MediaData';
-import { Medias } from "gl/texture/Medias";
-import { SpriteId, SpriteType } from 'world/sprite/Sprite';
+import { Sprite, SpriteId, SpriteType } from 'world/sprite/Sprite';
 import { IGraphicsEngine } from './IGraphicsEngine';
-import { Sprites } from 'world/sprite/Sprites';
 import { IMatrix } from 'gl/transform/IMatrix';
 import { Vector } from "core/types/Vector";
 import { SpriteSheet } from 'gl/texture/spritesheet/SpriteSheet';
 import { Priority } from "updates/Priority";
-import { map } from 'world/sprite/List';
+import { List, map } from 'world/sprite/List';
 import { Animation, AnimationId } from 'animation/Animation';
-import { Animations } from "animation/Animations";
 import { UpdatePayload } from "updates/UpdatePayload";
+import { Media } from 'gl/texture/Media';
 
 const VERTICES_PER_SPRITE = 6;
 
@@ -106,6 +105,7 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
       [FloatUniform.CAM_DISTANCE]: this.uniforms.getUniformLocation(CAM_DISTANCE_LOC, PROGRAM_NAME),
       [FloatUniform.BG_BLUR]: this.uniforms.getUniformLocation(BG_BLUR_LOC, PROGRAM_NAME),
       [FloatUniform.TIME]: this.uniforms.getUniformLocation(TIME_LOC, PROGRAM_NAME),
+      [FloatUniform.FADE]: this.uniforms.getUniformLocation(FADE_LOC, PROGRAM_NAME),
     };
     this.vec3Uniforms = {
       [VectorUniform.BG_COLOR]: this.uniforms.getUniformLocation(BG_COLOR_LOC, PROGRAM_NAME),
@@ -162,7 +162,7 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
   }
 
   private ensureBuffers(instanceCount: number) {
-    if (instanceCount >= 10000) {
+    if (instanceCount >= 100000) {
       console.warn("Sprite count has already reached:", instanceCount);
     }
 
@@ -255,7 +255,7 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
     return this.attributeBuffers;
   }
 
-  async updateTextures(ids: Set<MediaId>, medias: Medias): Promise<MediaData[]> {
+  async updateTextures(ids: Set<MediaId>, medias: List<Media>): Promise<MediaData[]> {
     const mediaList = Array.from(ids).map(index => medias.at(index));
     ids.clear();
     const mediaInfos = (await Promise.all(map(mediaList, async media => {
@@ -296,7 +296,7 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
       instances);
   }
 
-  updateSpriteTransforms(spriteIds: Set<SpriteId>, sprites: Sprites) {
+  updateSpriteTransforms(spriteIds: Set<SpriteId>, sprites: List<Sprite>) {
     const attributeBuffers = this.attributeBuffers;
     attributeBuffers.bindBuffer(TRANSFORM_LOC);
     spriteIds.forEach(spriteId => {
@@ -315,7 +315,7 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
     }
   }
 
-  updateSpriteTexSlots(spriteIds: Set<SpriteId>, sprites: Sprites) {
+  updateSpriteTexSlots(spriteIds: Set<SpriteId>, sprites: List<Sprite>) {
     const attributeBuffers = this.attributeBuffers;
     attributeBuffers.bindBuffer(SLOT_SIZE_LOC);
     spriteIds.forEach(spriteId => {
@@ -341,7 +341,7 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
     });
   }
 
-  updateSpriteTypes(spriteIds: Set<SpriteId>, sprites: Sprites) {
+  updateSpriteTypes(spriteIds: Set<SpriteId>, sprites: List<Sprite>) {
     const attributeBuffers = this.attributeBuffers;
     attributeBuffers.bindBuffer(SPRITE_TYPE_LOC);
     spriteIds.forEach(spriteId => {
@@ -356,7 +356,7 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
     spriteIds.clear();
   }
 
-  updateSpriteAnimations(spriteIds: Set<SpriteId>, sprites: Sprites) {
+  updateSpriteAnimations(spriteIds: Set<SpriteId>, sprites: List<Sprite>) {
     const attributeBuffers = this.attributeBuffers;
     attributeBuffers.bindBuffer(ANIM_LOC);
     spriteIds.forEach(spriteId => {
@@ -374,7 +374,7 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
     spriteIds.clear();
   }
 
-  updateAnimationDefinitions(ids: Set<AnimationId>, animations: Animations) {
+  updateAnimationDefinitions(ids: Set<AnimationId>, animations: List<Animation>) {
     for (let id of ids) {
       const animation = animations.at(id);
       if (animation?.id !== undefined) {

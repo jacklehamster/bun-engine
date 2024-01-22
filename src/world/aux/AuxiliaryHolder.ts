@@ -55,7 +55,7 @@ export class AuxiliaryHolder<H extends Holder = any> implements IAuxiliaryHolder
     return this;
   }
 
-  removeAuxiliary(...aux: Auxiliary[]) {
+  removeAuxiliary(...aux: Auxiliary<any>[]) {
     const removeSet = new Set(aux);
     let j = 0;
     for (let i = 0; i < this.auxiliaries.length; i++) {

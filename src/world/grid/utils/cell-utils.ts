@@ -1,4 +1,3 @@
-import { CellPos } from "../CellPos";
 import { Vector } from "core/types/Vector";
 import { CellPool } from "../../pools/CellPool";
 import { Cell } from "../Cell";
@@ -31,8 +30,12 @@ export class CellUtils implements Refresh<Data> {
     vectorPool.reset();
   }
 
-  getCell(pos: Vector, cellSize: number): Cell {
-    return this.cellPool.create(pos, cellSize);
+  cellFromPos(pos: Vector, cellSize: number): Cell {
+    return this.cellPool.createFromPos(pos, cellSize);
+  }
+
+  cellAt(x: number, y: number, z: number, cellSize: number): Cell {
+    return this.cellPool.create(x, y, z, cellSize);
   }
 
   positionFromCell(cell: Cell): Vector {
@@ -44,25 +47,6 @@ export class CellUtils implements Refresh<Data> {
   }
 }
 
-export const cellPos: CellPos = [0, 0, 0, 0];
-export const tempPos: Vector = [0, 0, 0];
-
 export function cellTag(x: number, y: number, z: number, cellSize: number) {
   return `(${x},${y},${z})_${cellSize}`;
-}
-
-export function getCellPos(pos: Vector, cellSize: number): CellPos {
-  cellPos[0] = Math.round(pos[0] / cellSize);
-  cellPos[1] = Math.round(pos[1] / cellSize);
-  cellPos[2] = Math.round(pos[2] / cellSize);
-  cellPos[3] = cellSize;
-  return cellPos;
-}
-
-export function positionFromCell(cellPos: CellPos): Vector {
-  const [cx, cy, cz, cellSize] = cellPos;
-  tempPos[0] = cx * cellSize;
-  tempPos[1] = cy * cellSize;
-  tempPos[2] = cz * cellSize;
-  return tempPos;
 }

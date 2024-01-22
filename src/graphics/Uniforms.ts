@@ -3,6 +3,7 @@ export enum FloatUniform {
   CURVATURE = 1,
   CAM_DISTANCE = 2,
   BG_BLUR = 3,
+  FADE = 4,
 }
 
 export enum MatrixUniform {

@@ -14,6 +14,7 @@ import { FloatUniform } from "graphics/Uniforms";
 import { Val } from "core/value/Val";
 import { NumVal } from "core/value/NumVal";
 import { UpdateRegistry } from "updates/UpdateRegistry";
+import { IPositionMatrix } from "gl/transform/IPositionMatrix";
 
 interface Props {
   engine: IGraphicsEngine;
@@ -21,7 +22,7 @@ interface Props {
 }
 
 export class Camera extends AuxiliaryHolder<ICamera> implements ICamera {
-  readonly position = new PositionMatrix(() => {
+  readonly position: IPositionMatrix = new PositionMatrix(() => {
     this.camMatrix.invert(this.position);
     this.updateInformer.informUpdate(MatrixUniform.CAM_POS);
   });
@@ -31,6 +32,7 @@ export class Camera extends AuxiliaryHolder<ICamera> implements ICamera {
   readonly curvature = new NumVal(0.05, () => this.updateInformerFloat.informUpdate(FloatUniform.CURVATURE));
   readonly distance = new NumVal(.5, () => this.updateInformerFloat.informUpdate(FloatUniform.CAM_DISTANCE));
   readonly blur = new NumVal(1, () => this.updateInformerFloat.informUpdate(FloatUniform.BG_BLUR));
+  readonly fade = new NumVal(0, () => this.updateInformerFloat.informUpdate(FloatUniform.FADE));
 
   private readonly camMatrix = Matrix.create();
   private readonly _bgColor: Vector = [0, 0, 0];
@@ -68,6 +70,7 @@ export class Camera extends AuxiliaryHolder<ICamera> implements ICamera {
       [FloatUniform.CAM_DISTANCE]: this.distance,
       [FloatUniform.CURVATURE]: this.curvature,
       [FloatUniform.TIME]: undefined,
+      [FloatUniform.FADE]: this.fade,
     };
     this.updateInformerFloat = new UpdateRegistry<FloatUniform>((ids, updatePayload) => {
       ids.forEach(type => {

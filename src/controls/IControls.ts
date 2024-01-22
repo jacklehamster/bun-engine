@@ -1,16 +1,12 @@
+import { Auxiliary } from "world/aux/Auxiliary";
+import { ControlsListener } from "./ControlsListener";
+
 export enum StateEnum {
   PRESS_UP = 0,
   PRESS_DOWN = 1,
 }
 
-export interface ControlsListener {
-  onQuickAction?(): void;
-  onQuickTiltReset?(): void;
-  onAction?(controls: IControls): void;
-  onActionUp?(controls: IControls): void;
-}
-
-export interface IControls {
+export interface IControls extends Auxiliary {
   get forward(): boolean;
   get backward(): boolean;
   get left(): boolean;
@@ -20,6 +16,8 @@ export interface IControls {
   get turnLeft(): boolean;
   get turnRight(): boolean;
   get action(): boolean;
+  get exit(): boolean;
   addListener(listener: ControlsListener): void;
   removeListener(listener: ControlsListener): void;
+  setActive(active: boolean): void;
 }

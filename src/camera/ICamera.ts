@@ -1,3 +1,4 @@
+import { NumVal } from "core/value/NumVal";
 import { IPositionMatrix } from "gl/transform/IPositionMatrix";
 import { ProjectionMatrix } from "gl/transform/ProjectionMatrix";
 import { TiltMatrix } from "gl/transform/TiltMatrix";
@@ -11,4 +12,8 @@ export interface ICamera extends Holder<ICamera>, Auxiliary {
   readonly tilt: TiltMatrix;
   readonly turn: TurnMatrix;
   readonly projection: ProjectionMatrix;
+  readonly curvature: NumVal;
+  readonly distance: NumVal;
+  readonly blur: NumVal;
+  readonly fade: NumVal;
 }

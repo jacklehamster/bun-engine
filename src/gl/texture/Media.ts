@@ -8,7 +8,7 @@ interface PostProcessable {
 }
 
 interface BaseMedia extends PostProcessable {
-  id?: MediaId;
+  id: MediaId;
   spriteSheet?: SpriteSheet;
 }
 

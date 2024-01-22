@@ -1,6 +1,6 @@
 import { Media } from "gl/texture/Media";
-import { Medias } from "gl/texture/Medias";
 import { ElemsHolder } from "./ElemsHolder";
+import { UpdatableList } from "../UpdatableList";
 
-export interface MediasHolder extends Medias, ElemsHolder<Media> {
+export interface MediasHolder extends UpdatableList<Media>, ElemsHolder<Media> {
 }

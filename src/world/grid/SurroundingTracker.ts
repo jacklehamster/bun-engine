@@ -1,6 +1,6 @@
 import { List } from "world/sprite/List";
 import { Cell } from "./Cell";
-import { cellTag } from "./utils/cell-utils";
+import { CellUtils, cellTag } from "./utils/cell-utils";
 import { VisitableCell } from "./VisitCell";
 import { DoubleLinkList } from "../../utils/DoubleLinkList";
 import { FreeStack } from "utils/FreeStack";
@@ -14,19 +14,28 @@ interface Config {
   cellSize?: number;
 }
 
+interface Props {
+  cellTrack: CellTrack;
+  cellUtils: CellUtils;
+}
+
 export class SurroundingTracker implements VisitableCell, Auxiliary<CellChangeAuxiliary> {
   private readonly cellTags: FreeStack<string> = new DoubleLinkList<string>("");
+  private readonly cellTrack;
+  private readonly cellUtils;
   private range: [number, number, number];
   private base: [number, number, number];
   private cellLimit: number;
   private cellSize: number;
   private tempCell: Cell;
 
-  constructor(private cellTrack: CellTrack, { range, cellLimit, cellSize = 1 }: Config = {}) {
+  constructor({ cellTrack, cellUtils }: Props, { range, cellLimit, cellSize = 1 }: Config = {}) {
     this.range = [range?.[0] ?? 3, range?.[1] ?? 3, range?.[2] ?? 3];
     this.base = this.range.map(r => Math.ceil(-r / 2)) as [number, number, number];
     this.cellLimit = Math.max(0, cellLimit ?? 10);
     this.cellSize = cellSize ?? 1;
+    this.cellTrack = cellTrack;
+    this.cellUtils = cellUtils;
     this.tempCell = {
       pos: [0, 0, 0, this.cellSize],
       tag: "",
@@ -55,7 +64,8 @@ export class SurroundingTracker implements VisitableCell, Auxiliary<CellChangeAu
           tempCellPos[1] = cellY + y;
           tempCellPos[2] = cellZ + z;
           tempCell.tag = cellTag(tempCellPos[0], tempCellPos[1], tempCellPos[2], tempCellPos[3]);
-          callback(tempCell);
+          callback(this.cellUtils.cellAt(cellX + x, cellY + y, cellZ + z, this.cellSize));
+          // callback(tempCell);
         }
       }
     }

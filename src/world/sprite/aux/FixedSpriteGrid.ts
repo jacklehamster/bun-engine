@@ -12,16 +12,14 @@ interface Config {
   spriteLimit?: number;
 }
 
-const EMPTY: Sprite[] = [];
-
 export class FixedSpriteGrid extends SpriteGrid {
   private readonly cellSize: number;
-  private readonly spritesPerCell: Map<string, Sprite[]> = new Map();
+  private readonly spritesPerCell: Record<string, Sprite[]> = {};
   private readonly spritesList: Sprites[];
 
   constructor(private cellUtils: CellUtils, config: Config, ...spritesList: ((Sprites | Sprite[]) & Partial<Auxiliary>)[]) {
     super({}, {
-      getElemsAtCell: cell => this.spritesPerCell.get(cell.tag) ?? EMPTY,
+      getElemsAtCell: cell => this.spritesPerCell[cell.tag],
     });
     this.cellSize = config.cellSize ?? 1;
     this.spritesList = spritesList;
@@ -34,18 +32,20 @@ export class FixedSpriteGrid extends SpriteGrid {
       forEach(sprites, (sprite) => {
         if (sprite) {
           const pos = transformToPosition(sprite.transform);
-          const cell = this.cellUtils.getCell(pos, this.cellSize);
-          if (!this.spritesPerCell.has(cell.tag)) {
-            this.spritesPerCell.set(cell.tag, []);
+          const cell = this.cellUtils.cellFromPos(pos, this.cellSize);
+          if (!this.spritesPerCell[cell.tag]) {
+            this.spritesPerCell[cell.tag] = [];
           }
-          this.spritesPerCell.get(cell.tag)?.push(copySprite(sprite));
+          this.spritesPerCell[cell.tag]?.push(copySprite(sprite));
         }
       });
     });
   }
 
   deactivate(): void {
-    this.spritesPerCell.clear();
+    for (let tag in this.spritesPerCell) {
+      delete this.spritesPerCell[tag];
+    }
     super.deactivate();
   }
 }

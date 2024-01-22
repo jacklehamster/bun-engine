@@ -4,6 +4,10 @@ import { DemoWorld } from 'demo/DemoWorld';
 import { AuxiliaryHolder } from 'world/aux/AuxiliaryHolder';
 import { ResizeAux } from 'graphics/aux/ResizeAux';
 import { WebGlCanvas } from 'graphics/WebGlCanvas';
+import { UserInterface } from 'ui/UserInterface';
+import { Hud } from 'ui/Hud';
+import { Keyboard } from 'controls/Keyboard';
+import { KeyboardControls } from 'controls/KeyboardControls';
 
 export async function hello() {
   console.info(`Welcome!
@@ -14,7 +18,19 @@ https://github.com/jacklehamster/bun-engine`);
 let onStop: () => void;
 
 export async function testCanvas(canvas: HTMLCanvasElement) {
-  const webGlCanvas = new WebGlCanvas(canvas);
+  const motor = new Motor();
+  const keyboard = new Keyboard({ motor });
+  const gameControls = new KeyboardControls(keyboard);
+  const menuControls = new KeyboardControls(keyboard);
+
+  const ui: UserInterface = new Hud({ controls: menuControls });
+  const webGlCanvas = new WebGlCanvas(canvas).addAuxiliary(ui);
+  ui.addDialogListener({
+    onPopup(count) {
+      gameControls.setActive(count === 0);
+      menuControls.setActive(count !== 0);
+    },
+  });
 
   const pixelListener = {
     x: 0,
@@ -34,18 +50,24 @@ export async function testCanvas(canvas: HTMLCanvasElement) {
 
   const engine = new GraphicsEngine(webGlCanvas.gl);
   // engine.setPixelListener(pixelListener);
-  const motor = new Motor();
   const core = new AuxiliaryHolder();
-  const world = new DemoWorld({ engine, motor, webGlCanvas });
+  const world = new DemoWorld({
+    engine,
+    motor,
+    ui,
+    keyboard,
+    controls: gameControls,
+  });
   core.addAuxiliary(motor);
   core.addAuxiliary(world);
   core.addAuxiliary(webGlCanvas);
+  core.addAuxiliary(gameControls);
   webGlCanvas.addAuxiliary(new ResizeAux({ engine, camera: world.camera }));
 
   core.activate();
-  motor.loop(engine);
+  motor.loop(engine, undefined);
   onStop = () => core.deactivate();
-  return { engine, motor, world };
+  return { engine, motor, world, ui };
 }
 
 export function stop(): void {

@@ -1,5 +1,6 @@
 import { Auxiliary } from "./Auxiliary";
-import { ControlsListener, IControls } from "controls/IControls";
+import { IControls } from "controls/IControls";
+import { ControlsListener } from "controls/ControlsListener";
 
 interface Props {
   controls: IControls;

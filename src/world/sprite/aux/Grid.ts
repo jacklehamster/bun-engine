@@ -67,7 +67,7 @@ export class Grid<T> extends AuxiliaryHolder<ElemsHolder<T>> implements UpdateNo
     }
     let count = 0;
     const { tag } = cell;
-    this.factories.forEach(factory => {
+    for (let factory of this.factories) {
       const elems = factory.getElemsAtCell(cell);
       forEach(elems, elem => {
         if (elem) {
@@ -79,7 +79,7 @@ export class Grid<T> extends AuxiliaryHolder<ElemsHolder<T>> implements UpdateNo
         }
       });
       factory.doneCellTracking?.(cell);
-    });
+    }
     return !!count;
   }
 

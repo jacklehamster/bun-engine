@@ -41734,6 +41734,7 @@ var BG_COLOR_LOC = "bgColor";
 var MAX_TEXTURE_SIZE_LOC = "maxTextureSize";
 var TEXTURE_UNIFORM_LOC = "uTextures";
 var TIME_LOC = "time";
+var FADE_LOC = "fade";
 
 // src/gl/programs/GLProgram.ts
 var createProgram = function(gl, vertex, fragment) {
@@ -44830,6 +44831,12 @@ var vertexShader_default = `#version 300 es
 
 precision highp float;
 
+//  FUNCTIONS
+float rand(vec2 co){
+    return fract(sin(dot(co, vec2(12.9898, 78.233))) * 43758.5453);
+}
+
+
 
 //  CONST
 const mat4 identity = mat4(1.0);
@@ -44864,6 +44871,7 @@ out float vTextureIndex;
 out vec2 vTex;
 out float dist;
 out vec3 vInstanceColor;
+out vec2 var;
 
 void main() {
   vec2 slotSize = vec2(
@@ -44898,6 +44906,7 @@ void main() {
   basePosition = (isBillboard * billboardMatrix + (1. - isBillboard) * identity) * basePosition;
 
   vec4 worldPosition = transform * basePosition;
+  var = vec2(rand(worldPosition.xz), rand(worldPosition.xz - worldPosition.yx));
 
   // worldPosition => relativePositio
   vec4 relativePosition = camTilt * camTurn * camPos * worldPosition;
@@ -44942,6 +44951,7 @@ in float vTextureIndex;
 in vec2 vTex;
 in float dist;
 in vec3 vInstanceColor;
+in vec2 var;
 
 //  OUT
 out vec4 fragColor;
@@ -44951,6 +44961,7 @@ uniform sampler2D uTextures[NUM_TEXTURES];
 uniform vec3 bgColor;
 uniform float bgBlur;
 uniform float time;
+uniform float fade;
 
 //  FUNCTIONS
 vec4 getTextureColor(float textureSlot, vec2 vTexturePoint);
@@ -44974,11 +44985,13 @@ void main() {
   }
   color /= float(blurPass + 1);
 
-  color.a = 1.;
-  float colorFactor = 1.25 * pow(dist, -.12);
+  float colorFactor = 1.25 * pow(dist, -.12) * (1. - fade);
+  color.rg += var.x * .02;
+  color.gb += var.y * .03;
   color.rgb = color.rgb * colorFactor + bgColor * (1. - colorFactor);
-  fragColor = color;
-  fragColor.rgb += vInstanceColor / 10.;
+
+  color.rgb += vInstanceColor / 10.;
+  fragColor = vec4(color.rgb, 1.);
 }
 
 vec4 getTextureColor(float textureSlot, vec2 vTexturePoint) {
@@ -46133,6 +46146,7 @@ var FloatUniform;
   FloatUniform2[FloatUniform2["CURVATURE"] = 1] = "CURVATURE";
   FloatUniform2[FloatUniform2["CAM_DISTANCE"] = 2] = "CAM_DISTANCE";
   FloatUniform2[FloatUniform2["BG_BLUR"] = 3] = "BG_BLUR";
+  FloatUniform2[FloatUniform2["FADE"] = 4] = "FADE";
 })(FloatUniform || (FloatUniform = {}));
 var MatrixUniform;
 (function(MatrixUniform2) {
@@ -46229,7 +46243,8 @@ class GraphicsEngine extends Disposable {
       [FloatUniform.CURVATURE]: this.uniforms.getUniformLocation(CAM_CURVATURE_LOC, PROGRAM_NAME),
       [FloatUniform.CAM_DISTANCE]: this.uniforms.getUniformLocation(CAM_DISTANCE_LOC, PROGRAM_NAME),
       [FloatUniform.BG_BLUR]: this.uniforms.getUniformLocation(BG_BLUR_LOC, PROGRAM_NAME),
-      [FloatUniform.TIME]: this.uniforms.getUniformLocation(TIME_LOC, PROGRAM_NAME)
+      [FloatUniform.TIME]: this.uniforms.getUniformLocation(TIME_LOC, PROGRAM_NAME),
+      [FloatUniform.FADE]: this.uniforms.getUniformLocation(FADE_LOC, PROGRAM_NAME)
     };
     this.vec3Uniforms = {
       [VectorUniform.BG_COLOR]: this.uniforms.getUniformLocation(BG_COLOR_LOC, PROGRAM_NAME)
@@ -46269,7 +46284,7 @@ class GraphicsEngine extends Disposable {
     this.gl.clear(this.gl.COLOR_BUFFER_BIT);
   }
   ensureBuffers(instanceCount) {
-    if (instanceCount >= 1e4) {
+    if (instanceCount >= 1e5) {
       console.warn("Sprite count has already reached:", instanceCount);
     }
     if (!this.attributeBuffers.hasBuffer(INDEX_LOC)) {
@@ -46752,70 +46767,6 @@ class AuxiliaryHolder {
   }
 }
 
-// src/controls/Keyboard.ts
-var QUICK_TAP_TIME = 200;
-
-class Keyboard extends AuxiliaryHolder {
-  keys = {};
-  keysUp = {};
-  keyDownListener = new Set;
-  keyUpListener = new Set;
-  quickTapListener = new Set;
-  timeProvider;
-  constructor({ motor }) {
-    super();
-    this.keyDown = this.keyDown.bind(this);
-    this.keyUp = this.keyUp.bind(this);
-    this.timeProvider = motor;
-  }
-  keyDown(e) {
-    if (!this.keys[e.code]) {
-      const time = this.timeProvider.time;
-      this.keys[e.code] = time;
-      this.keyDownListener.forEach((listener) => listener.onKeyDown?.(e.code, time));
-    }
-    e.preventDefault();
-  }
-  keyUp(e) {
-    const quickTap = this.timeProvider.time - this.keys[e.code] < QUICK_TAP_TIME;
-    this.keysUp[e.code] = this.timeProvider.time;
-    this.keys[e.code] = 0;
-    this.keyUpListener.forEach((listener) => listener.onKeyUp?.(e.code, this.timeProvider.time));
-    if (quickTap) {
-      this.quickTapListener.forEach((listener) => listener.onQuickTap?.(e.code, this.timeProvider.time));
-    }
-  }
-  activate() {
-    super.activate();
-    document.addEventListener("keydown", this.keyDown);
-    document.addEventListener("keyup", this.keyUp);
-  }
-  deactivate() {
-    document.removeEventListener("keydown", this.keyDown);
-    document.removeEventListener("keyup", this.keyUp);
-    super.deactivate();
-  }
-  addListener(listener) {
-    if (listener.onKeyDown) {
-      this.keyDownListener.add(listener);
-    }
-    if (listener.onKeyUp) {
-      this.keyUpListener.add(listener);
-    }
-    if (listener.onQuickTap) {
-      this.quickTapListener.add(listener);
-    }
-    return () => {
-      this.removeListener(listener);
-    };
-  }
-  removeListener(listener) {
-    this.keyDownListener.delete(listener);
-    this.keyUpListener.delete(listener);
-    this.quickTapListener.delete(listener);
-  }
-}
-
 // src/core/value/Progressive.ts
 class Progressive {
   getValue;
@@ -47130,6 +47081,7 @@ class Camera extends AuxiliaryHolder {
   curvature = new NumVal(0.05, () => this.updateInformerFloat.informUpdate(FloatUniform.CURVATURE));
   distance = new NumVal(0.5, () => this.updateInformerFloat.informUpdate(FloatUniform.CAM_DISTANCE));
   blur = new NumVal(1, () => this.updateInformerFloat.informUpdate(FloatUniform.BG_BLUR));
+  fade = new NumVal(0, () => this.updateInformerFloat.informUpdate(FloatUniform.FADE));
   camMatrix = Matrix_default.create();
   _bgColor = [0, 0, 0];
   _viewportSize = [0, 0];
@@ -47161,7 +47113,8 @@ class Camera extends AuxiliaryHolder {
       [FloatUniform.BG_BLUR]: this.blur,
       [FloatUniform.CAM_DISTANCE]: this.distance,
       [FloatUniform.CURVATURE]: this.curvature,
-      [FloatUniform.TIME]: undefined
+      [FloatUniform.TIME]: undefined,
+      [FloatUniform.FADE]: this.fade
     };
     this.updateInformerFloat = new UpdateRegistry((ids, updatePayload) => {
       ids.forEach((type) => {
@@ -47226,7 +47179,7 @@ class CellChangeAuxiliary extends AuxiliaryHolder {
       return;
     }
     const pos = this.positionMatrix.position;
-    const cell = this.cellUtils.getCell(pos, this.previousCellPos[3]);
+    const cell = this.cellUtils.cellFromPos(pos, this.previousCellPos[3]);
     if (this.previousCellPos[0] !== cell.pos[0] || this.previousCellPos[1] !== cell.pos[1] || this.previousCellPos[2] !== cell.pos[2]) {
       this.previousCellPos[0] = cell.pos[0];
       this.previousCellPos[1] = cell.pos[1];
@@ -47529,10 +47482,7 @@ class ToggleAuxiliary {
 // src/world/pools/CellPool.ts
 class CellPool extends ObjectPool {
   constructor(onCreate) {
-    super((cell, [x, y, z], cellSize) => {
-      const cx = Math.round(x / cellSize);
-      const cy = Math.round(y / cellSize);
-      const cz = Math.round(z / cellSize);
+    super((cell, cx, cy, cz, cellSize) => {
       const tag = cellTag(cx, cy, cz, cellSize);
       if (!cell) {
         return { pos: [cx, cy, cz, cellSize], tag };
@@ -47544,6 +47494,13 @@ class CellPool extends ObjectPool {
       cell.tag = tag;
       return cell;
     }, onCreate);
+  }
+  createFromPos(pos, cellSize) {
+    const [x, y, z] = pos;
+    const cx = Math.round(x / cellSize);
+    const cy = Math.round(y / cellSize);
+    const cz = Math.round(z / cellSize);
+    return this.create(cx, cy, cz, cellSize);
   }
 }
 
@@ -47566,13 +47523,6 @@ class VectorPool extends ObjectPool {
 function cellTag(x, y, z, cellSize) {
   return `(${x},${y},${z})_${cellSize}`;
 }
-function positionFromCell(cellPos) {
-  const [cx, cy, cz, cellSize] = cellPos;
-  tempPos[0] = cx * cellSize;
-  tempPos[1] = cy * cellSize;
-  tempPos[2] = cz * cellSize;
-  return tempPos;
-}
 
 class CellUtils {
   cellPool;
@@ -47586,8 +47536,11 @@ class CellUtils {
     cellPool.reset();
     vectorPool.reset();
   }
-  getCell(pos, cellSize) {
-    return this.cellPool.create(pos, cellSize);
+  cellFromPos(pos, cellSize) {
+    return this.cellPool.createFromPos(pos, cellSize);
+  }
+  cellAt(x, y, z, cellSize) {
+    return this.cellPool.create(x, y, z, cellSize);
   }
   positionFromCell(cell) {
     return this.positionFromCellPos(...cell.pos);
@@ -47596,7 +47549,6 @@ class CellUtils {
     return this.vectorPool.create(cx * cellSize, cy * cellSize, cz * cellSize);
   }
 }
-var tempPos = [0, 0, 0];
 
 // src/utils/DoubleLinkList.ts
 class NodePool extends ObjectPool {
@@ -47695,19 +47647,21 @@ class DoubleLinkList {
 
 // src/world/grid/SurroundingTracker.ts
 class SurroundingTracker {
-  cellTrack;
   cellTags = new DoubleLinkList("");
+  cellTrack;
+  cellUtils;
   range;
   base;
   cellLimit;
   cellSize;
   tempCell;
-  constructor(cellTrack, { range, cellLimit, cellSize = 1 } = {}) {
-    this.cellTrack = cellTrack;
+  constructor({ cellTrack, cellUtils }, { range, cellLimit, cellSize = 1 } = {}) {
     this.range = [range?.[0] ?? 3, range?.[1] ?? 3, range?.[2] ?? 3];
     this.base = this.range.map((r) => Math.ceil(-r / 2));
     this.cellLimit = Math.max(0, cellLimit ?? 10);
     this.cellSize = cellSize ?? 1;
+    this.cellTrack = cellTrack;
+    this.cellUtils = cellUtils;
     this.tempCell = {
       pos: [0, 0, 0, this.cellSize],
       tag: ""
@@ -47733,7 +47687,7 @@ class SurroundingTracker {
           tempCellPos[1] = cellY + y;
           tempCellPos[2] = cellZ + z;
           tempCell.tag = cellTag(tempCellPos[0], tempCellPos[1], tempCellPos[2], tempCellPos[3]);
-          callback(tempCell);
+          callback(this.cellUtils.cellAt(cellX + x, cellY + y, cellZ + z, this.cellSize));
         }
       }
     }
@@ -47940,7 +47894,7 @@ class Grid extends AuxiliaryHolder {
     }
     let count = 0;
     const { tag } = cell;
-    this.factories.forEach((factory) => {
+    for (let factory of this.factories) {
       const elems = factory.getElemsAtCell(cell);
       forEach3(elems, (elem) => {
         if (elem) {
@@ -47952,7 +47906,7 @@ class Grid extends AuxiliaryHolder {
         }
       });
       factory.doneCellTracking?.(cell);
-    });
+    }
     return !!count;
   }
   untrackCell(cellTag2) {
@@ -47990,16 +47944,14 @@ class SpriteGrid extends Grid {
 }
 
 // src/world/sprite/aux/FixedSpriteGrid.ts
-var EMPTY = [];
-
 class FixedSpriteGrid extends SpriteGrid {
   cellUtils;
   cellSize;
-  spritesPerCell = new Map;
+  spritesPerCell = {};
   spritesList;
   constructor(cellUtils, config, ...spritesList) {
     super({}, {
-      getElemsAtCell: (cell) => this.spritesPerCell.get(cell.tag) ?? EMPTY
+      getElemsAtCell: (cell) => this.spritesPerCell[cell.tag]
     });
     this.cellUtils = cellUtils;
     this.cellSize = config.cellSize ?? 1;
@@ -48012,17 +47964,19 @@ class FixedSpriteGrid extends SpriteGrid {
       forEach3(sprites, (sprite) => {
         if (sprite) {
           const pos = transformToPosition(sprite.transform);
-          const cell = this.cellUtils.getCell(pos, this.cellSize);
-          if (!this.spritesPerCell.has(cell.tag)) {
-            this.spritesPerCell.set(cell.tag, []);
+          const cell = this.cellUtils.cellFromPos(pos, this.cellSize);
+          if (!this.spritesPerCell[cell.tag]) {
+            this.spritesPerCell[cell.tag] = [];
           }
-          this.spritesPerCell.get(cell.tag)?.push(copySprite(sprite));
+          this.spritesPerCell[cell.tag]?.push(copySprite(sprite));
         }
       });
     });
   }
   deactivate() {
-    this.spritesPerCell.clear();
+    for (let tag in this.spritesPerCell) {
+      delete this.spritesPerCell[tag];
+    }
     super.deactivate();
   }
 }
@@ -48080,73 +48034,7 @@ class SpriteUpdater {
   }
 }
 
-// src/controls/KeyboardControls.ts
-class KeyboardControls {
-  keyboard;
-  onRemoveListener = new Map;
-  constructor(keyboard) {
-    this.keyboard = keyboard;
-  }
-  addListener(listener) {
-    const onRemove = this.keyboard.addListener({
-      onQuickTap(keyCode) {
-        switch (keyCode) {
-          case "Space":
-            listener.onQuickAction?.();
-            break;
-          case "ShiftRight":
-            listener.onQuickTiltReset?.();
-            break;
-        }
-      },
-      onKeyDown: () => listener.onAction?.(this),
-      onKeyUp: () => listener.onActionUp?.(this)
-    });
-    this.onRemoveListener.set(listener, onRemove);
-  }
-  removeListener(listener) {
-    this.onRemoveListener.get(listener)?.();
-    this.onRemoveListener.delete(listener);
-  }
-  get forward() {
-    const { keys } = this.keyboard;
-    return !!(keys.KeyW || keys.ArrowUp && !keys.ShiftRight);
-  }
-  get backward() {
-    const { keys } = this.keyboard;
-    return !!(keys.KeyS || keys.ArrowDown && !keys.ShiftRight);
-  }
-  get left() {
-    const { keys } = this.keyboard;
-    return !!(keys.KeyA || keys.ArrowLeft && !keys.ShiftRight);
-  }
-  get right() {
-    const { keys } = this.keyboard;
-    return !!(keys.KeyD || keys.ArrowRight && !keys.ShiftRight);
-  }
-  get turnLeft() {
-    const { keys } = this.keyboard;
-    return !!(keys.KeyQ || keys.ArrowLeft && keys.ShiftRight);
-  }
-  get turnRight() {
-    const { keys } = this.keyboard;
-    return !!(keys.KeyE || keys.ArrowRight && keys.ShiftRight);
-  }
-  get up() {
-    const { keys } = this.keyboard;
-    return !!(keys.ArrowUp && keys.ShiftRight);
-  }
-  get down() {
-    const { keys } = this.keyboard;
-    return !!(keys.ArrowDown && keys.ShiftRight);
-  }
-  get action() {
-    const { keys } = this.keyboard;
-    return !!keys.Space;
-  }
-}
-
-// src/world/pools/Spritepool.ts
+// src/world/pools/SpritePool.ts
 class SpritePool extends ObjectPool {
   constructor() {
     super((sprite, imageId) => {
@@ -48229,33 +48117,27 @@ class JumpAuxiliary extends ControlledLooper {
       stopUpdate();
     }
   }
-  canJump(position) {
-    const [_x, y, _z] = position.position;
-    return y === 0;
-  }
   jump(deltaTime, data) {
     const speed = deltaTime / 80;
     const acceleration = deltaTime / 80;
     const { action } = data.controls;
-    if (this.canJump(data.position)) {
+    const onGround = data.position.position[1] <= 0;
+    const movingDown = !onGround && data.position.moveBy(0, speed * this.dy, 0);
+    if (onGround || !movingDown) {
       if (action) {
         this.dy = data.jump;
         data.position.moveBy(0, speed * this.dy, 0);
         return true;
       }
-    } else {
-      data.position.moveBy(0, speed * this.dy, 0);
-      const [x, y, z] = data.position.position;
-      if (y > 0) {
-        const mul4 = this.dy < 0 ? 1 / data.plane : 1;
-        this.dy += data.gravity * acceleration * mul4;
-        return true;
-      } else {
-        data.position.moveTo(x, 0, z);
-        this.dy = 0;
-      }
+      this.dy = 0;
     }
-    return false;
+    if (!onGround) {
+      const mul4 = this.dy < 0 ? 1 / data.plane : 1;
+      this.dy += data.gravity * acceleration * mul4;
+    } else {
+      data.position.moveTo(data.position.position[0], 0, data.position.position[2]);
+    }
+    return !onGround;
   }
 }
 
@@ -48566,41 +48448,6 @@ class FollowAuxiliary extends Looper {
   }
 }
 
-// src/ui/Hud.tsx
-var import_react = __toESM(require_react(), 1);
-var client = __toESM(require_client(), 1);
-var STYLE = {
-  position: "absolute",
-  pointerEvents: "none",
-  width: "100%",
-  height: "100%"
-};
-
-class Hud extends AuxiliaryHolder {
-  constructor() {
-    super(...arguments);
-  }
-  holder;
-  rootElem = document.createElement("div");
-  root = client.default.createRoot(this.rootElem);
-  activate() {
-    document.body.appendChild(this.rootElem);
-    this.root.render(this.createElement());
-  }
-  deactivate() {
-    this.root.unmount();
-    document.body.removeChild(this.rootElem);
-  }
-  createElement() {
-    const { offsetLeft: left, offsetTop: top } = this.holder?.elem ?? {};
-    return import_react.default.createElement("div", {
-      style: { ...STYLE, top, left }
-    }, import_react.default.createElement("div", {
-      style: { backgroundColor: "#ffffff66" }
-    }, "Hello World"));
-  }
-}
-
 // src/world/collision/DisplayBox.ts
 class DisplayBox {
   sprites;
@@ -48660,6 +48507,11 @@ class CollisionBox {
   collideWith(box) {
     return this.right > box.left && box.right > this.left && this.top > box.bottom && box.top > this.bottom && this.near > box.far && box.near > this.far;
   }
+  gotoPosition(pos) {
+    this.position[0] = pos[0];
+    this.position[1] = pos[1];
+    this.position[2] = pos[2];
+  }
   get top() {
     return this.box.top + this.position[1];
   }
@@ -48682,25 +48534,93 @@ class CollisionBox {
 
 // src/world/collision/CollisionDetector.ts
 class CollisionDetector {
-  onBlockChange;
   collisionBox;
   heroCollisionBox;
-  blocked = false;
-  constructor(blockerBox, blockerPosition, heroBox = NULLBOX, onBlockChange) {
-    this.onBlockChange = onBlockChange;
+  collide = false;
+  config;
+  listener;
+  constructor({ blockerBox, blockerPosition, heroBox = NULLBOX, listener = {} }, config = {}) {
     this.collisionBox = new CollisionBox(blockerBox, blockerPosition);
     this.heroCollisionBox = new CollisionBox(heroBox, [0, 0, 0]);
+    this.listener = listener;
+    this.config = { shouldBlock: config.shouldBlock ?? false };
   }
   isBlocked(to2) {
-    this.heroCollisionBox.position[0] = to2[0];
-    this.heroCollisionBox.position[1] = to2[1];
-    this.heroCollisionBox.position[2] = to2[2];
-    const blocked = this.heroCollisionBox.collideWith(this.collisionBox);
-    if (blocked !== this.blocked) {
-      this.blocked = blocked;
-      this.onBlockChange?.(this.blocked);
+    this.heroCollisionBox.gotoPosition(to2);
+    const collide = this.heroCollisionBox.collideWith(this.collisionBox);
+    if (collide !== this.collide) {
+      this.collide = collide;
+      this.listener.onBlockChange?.(this.collide);
+      if (this.collide) {
+        this.listener.onEnter?.();
+      } else {
+        this.listener.onLeave?.();
+      }
     }
-    return blocked;
+    return this.config.shouldBlock ? collide : false;
+  }
+}
+
+// src/world/collision/CollisionDetectors.ts
+class CollisionDetectors {
+  detectors;
+  constructor(detectors) {
+    this.detectors = detectors;
+  }
+  isBlocked(to2, from) {
+    const { length: length4 } = this.detectors;
+    for (let i = 0;i < length4; i++) {
+      if (this.detectors.at(i)?.isBlocked(to2, from)) {
+        return true;
+      }
+    }
+    return false;
+  }
+}
+
+// src/world/aux/FadeAuxiliary.ts
+var FADE_RATE = 0.002;
+
+class FadeAuxiliary {
+  camera;
+  config;
+  motor;
+  world;
+  constructor({ camera, motor }, config) {
+    this.camera = camera;
+    this.motor = motor;
+    this.config = {
+      speed: config?.speed ?? 1
+    };
+    this.fadeIn = this.fadeIn.bind(this);
+    this.fadeOut = this.fadeOut.bind(this);
+  }
+  set holder(world) {
+    this.world = world;
+  }
+  activate() {
+    const api = this.world?.api;
+    if (api) {
+      api.fadeIn = this.fadeIn;
+      api.fadeOut = this.fadeOut;
+    }
+  }
+  deactivate() {
+    const api = this.world?.api;
+    if (api) {
+      if (api.fadeIn === this.fadeIn) {
+        delete api.fadeIn;
+      }
+      if (api.fadeOut === this.fadeOut) {
+        delete api.fadeOut;
+      }
+    }
+  }
+  fadeOut() {
+    this.camera.fade.progressTowards(1, this.config.speed * FADE_RATE, this, this.motor);
+  }
+  fadeIn() {
+    this.camera.fade.progressTowards(0, this.config.speed * FADE_RATE, this, this.motor);
   }
 }
 
@@ -48718,6 +48638,7 @@ var Assets;
   Assets2[Assets2["DODO"] = 8] = "DODO";
   Assets2[Assets2["DODO_SHADOW"] = 9] = "DODO_SHADOW";
   Assets2[Assets2["TREE"] = 10] = "TREE";
+  Assets2[Assets2["BUN"] = 11] = "BUN";
 })(Assets || (Assets = {}));
 var Anims;
 (function(Anims2) {
@@ -48729,7 +48650,8 @@ var CELLSIZE = 2;
 
 class DemoWorld extends AuxiliaryHolder {
   camera;
-  constructor({ engine, motor, webGlCanvas }) {
+  api = {};
+  constructor({ engine, motor, ui, keyboard, controls }) {
     super();
     const cellUtils = new CellUtils({ motor });
     const spritesAccumulator = new Accumulator().addAuxiliary(new SpriteUpdater({ engine, motor }), new MaxSpriteCountAuxiliary({ engine }));
@@ -48739,6 +48661,11 @@ class DemoWorld extends AuxiliaryHolder {
         id: Assets.DOBUKI,
         type: "image",
         src: "dobuki.png"
+      },
+      {
+        id: Assets.BUN,
+        type: "image",
+        src: "bun.png"
       },
       {
         id: Assets.DODO,
@@ -48870,17 +48797,11 @@ class DemoWorld extends AuxiliaryHolder {
         type: "draw",
         draw: (ctx) => {
           const { canvas } = ctx;
-          canvas.width = 100;
-          canvas.height = 100;
+          canvas.width = 1024;
+          canvas.height = 1024;
           ctx.fillStyle = "green";
           ctx.lineWidth = canvas.width / 50;
           ctx.fillRect(0, 0, canvas.width, canvas.height);
-          ctx.strokeStyle = "black";
-          ctx.fillStyle = "#4f8";
-          ctx.beginPath();
-          ctx.rect(canvas.width * 0.2, canvas.height * 0.2, canvas.width * 0.6, canvas.height * 0.6);
-          ctx.fill();
-          ctx.stroke();
         }
       },
       {
@@ -48912,6 +48833,15 @@ class DemoWorld extends AuxiliaryHolder {
         fps: 24
       }
     ])));
+    const dobukiBlock = {
+      top: 1,
+      bottom: -1,
+      left: -0.1,
+      right: 0.1,
+      near: 0,
+      far: -0.5
+    };
+    const dobukiPosition = cellUtils.positionFromCellPos(0, 0, -1, CELLSIZE);
     const blockBox = {
       top: 1,
       bottom: -1,
@@ -48920,15 +48850,15 @@ class DemoWorld extends AuxiliaryHolder {
       near: 1,
       far: -1
     };
-    const blockPosition = positionFromCell([0, 0, -3, CELLSIZE]);
+    const blockPosition = cellUtils.positionFromCellPos(0, 0, -3, CELLSIZE);
     const blockBoxSprites = new DisplayBox(blockBox, Assets.GROUND, Assets.BRICK);
-    spritesAccumulator.addAuxiliary(new FixedSpriteGrid(cellUtils, { cellSize: CELLSIZE }, [
+    spritesAccumulator.addAuxiliary(new FixedSpriteGrid(cellUtils, { cellSize: CELLSIZE }, new SpriteGroup([
       {
         imageId: Assets.DOBUKI,
         spriteType: SpriteType.SPRITE,
-        transform: Matrix_default.create().translate(0, -0.5, -3)
+        transform: Matrix_default.create().translate(0, -0.5, -1)
       }
-    ], [
+    ], [Matrix_default.create().setVector(dobukiPosition)]), new SpriteGroup(new DisplayBox(dobukiBlock, Assets.WIREFRAME, Assets.WIREFRAME), [Matrix_default.create().setVector(dobukiPosition)]), [
       ...[
         Matrix_default.create().translate(-1, 0, 0).rotateY(Math.PI / 2),
         Matrix_default.create().translate(-1, 0, 0).rotateY(-Math.PI / 2),
@@ -48952,12 +48882,12 @@ class DemoWorld extends AuxiliaryHolder {
         const ceiling = bag.createSprite(Assets.WIREFRAME);
         ceiling.transform.translate(pos[0] * pos[3], 2, pos[2] * pos[3]).rotateX(Math.PI / 2);
         const rng = import_seedrandom.default(`${pos[0]}, ${pos[1]}, ${pos[2]}`);
-        const count = rng() * 30 - 25;
+        const count = rng() < 0.1 ? 3 + rng() * 10 : 0;
         for (let i = 0;i < count; i++) {
           const tree = bag.createSprite(Assets.TREE);
           tree.spriteType = SpriteType.SPRITE;
-          const size = Math.floor(3 * rng());
-          tree.transform.translate(pos[0] * pos[3] + (rng() - 0.5) * 2, -1 + size / 2, pos[2] * pos[3] + (rng() - 0.5) * 2).scale(0.2 + rng(), size, 0.2 + rng());
+          const size = 2 + Math.floor(2 * rng());
+          tree.transform.translate(pos[0] * pos[3] + (rng() - 0.5) * 2.5, -1 + size / 2, pos[2] * pos[3] + (rng() - 0.5) * 2.5).scale(0.2 + rng(), size, 0.2 + rng());
           bag.addSprite(tree);
         }
         bag.addSprite(ground, ceiling);
@@ -49002,9 +48932,39 @@ class DemoWorld extends AuxiliaryHolder {
       followY: false
     }));
     spritesAccumulator.addAuxiliary(shadowHeroSprites);
-    heroPos.moveBlocker = new CollisionDetector(blockBox, blockPosition, heroBox, (blocked) => {
-      displayBox.imageId = blocked ? Assets.WIREFRAME_RED : Assets.WIREFRAME;
-    });
+    heroPos.moveBlocker = new CollisionDetectors([
+      new CollisionDetector({
+        blockerBox: blockBox,
+        blockerPosition: blockPosition,
+        heroBox,
+        listener: {
+          onBlockChange(blocked) {
+            displayBox.imageId = blocked ? Assets.WIREFRAME_RED : Assets.WIREFRAME;
+          }
+        }
+      }, { shouldBlock: true }),
+      new CollisionDetector({
+        blockerBox: dobukiBlock,
+        blockerPosition: dobukiPosition,
+        heroBox,
+        listener: {
+          onEnter() {
+            displayBox.imageId = Assets.WIREFRAME_RED;
+            ui.showDialog({
+              conversation: {
+                messages: [
+                  { text: "Hello there." },
+                  { text: "Bye bye." }
+                ]
+              }
+            });
+          },
+          onLeave() {
+            displayBox.imageId = Assets.WIREFRAME;
+          }
+        }
+      }, { shouldBlock: false })
+    ]);
     spritesAccumulator.addAuxiliary(new SpriteGroup([
       {
         imageId: Assets.VIDEO,
@@ -49012,9 +48972,7 @@ class DemoWorld extends AuxiliaryHolder {
         transform: Matrix_default.create().translate(3000, 1000, -5000).scale(480, 270, 1)
       }
     ]));
-    const keyboard = new Keyboard({ motor });
-    const controls = new KeyboardControls(keyboard);
-    keyboard.addAuxiliary(new ToggleAuxiliary({
+    this.addAuxiliary(keyboard.addAuxiliary(new ToggleAuxiliary({
       auxiliariesMapping: [
         {
           key: "Tab",
@@ -49025,8 +48983,7 @@ class DemoWorld extends AuxiliaryHolder {
           aux: Auxiliaries.from(new TurnAuxiliary({ motor, controls, turn: camera.turn }), new TiltAuxiliary({ motor, controls, tilt: camera.tilt }), new MoveAuxiliary({ motor, controls, direction: camera.turn, position: heroPos }), new JumpAuxiliary({ motor, controls, position: heroPos }), new TiltResetAuxiliary({ motor, controls, tilt: camera.tilt }), new SmoothFollowAuxiliary({ motor, follower: camera.position, followee: heroPos }, { speed: 0.05 }))
         }
       ]
-    }));
-    this.addAuxiliary(keyboard).addAuxiliary(new DirAuxiliary({ controls }, (dx) => {
+    }))).addAuxiliary(new DirAuxiliary({ controls }, (dx) => {
       const flip = dx < 0;
       heroSprites.flip = flip;
       shadowHeroSprites.flip = flip;
@@ -49035,17 +48992,16 @@ class DemoWorld extends AuxiliaryHolder {
       heroSprites.setAnimationId(animId);
       shadowHeroSprites.setAnimationId(animId);
     }));
-    camera.position.addAuxiliary(new CellChangeAuxiliary(cellUtils, { cellSize: CELLSIZE }).addAuxiliary(new SurroundingTracker(this, {
-      cellLimit: 1e4,
-      range: [50, 3, 50],
+    this.addAuxiliary(heroPos.addAuxiliary(new CellChangeAuxiliary(cellUtils, { cellSize: CELLSIZE }).addAuxiliary(new SurroundingTracker({ cellTrack: this, cellUtils }, {
+      cellLimit: 5000,
+      range: [30, 3, 30],
       cellSize: CELLSIZE
-    })));
-    webGlCanvas.addAuxiliary(new Hud);
+    }))));
     camera.distance.setValue(5);
     camera.tilt.angle.setValue(1.1);
     camera.projection.zoom.setValue(0.25);
     camera.projection.perspective.setValue(0.05);
-    this.addAuxiliary(new TimeAuxiliary({ motor, engine }));
+    this.addAuxiliary(new TimeAuxiliary({ motor, engine })).addAuxiliary(new FadeAuxiliary({ camera, motor }));
   }
 }
 
@@ -49137,6 +49093,535 @@ class WebGlCanvas extends DOMWrap {
   }
 }
 
+// src/ui/Hud.tsx
+var import_react8 = __toESM(require_react(), 1);
+var client = __toESM(require_client(), 1);
+
+// src/ui/HudContent.tsx
+var import_react7 = __toESM(require_react(), 1);
+
+// src/ui/menu/Menu.tsx
+var import_react5 = __toESM(require_react(), 1);
+
+// src/ui/Popup.tsx
+var import_react = __toESM(require_react(), 1);
+function Popup({
+  children,
+  position: [left, top],
+  size: [width, height2]
+}) {
+  return import_react.default.createElement("div", {
+    style: {
+      position: "absolute",
+      left,
+      top,
+      outline: "3px solid #fff",
+      backgroundColor: "black",
+      borderRadius: 12,
+      padding: 3,
+      boxShadow: "10px 10px 0px #000000cc"
+    }
+  }, import_react.default.createElement("div", {
+    className: "double-border",
+    style: {
+      width,
+      height: height2,
+      border: "3px solid white",
+      borderRadius: 10,
+      outline: "3px solid black",
+      color: "white"
+    }
+  }, import_react.default.createElement("div", {
+    style: { padding: 10 }
+  }, children)));
+}
+
+// src/ui/useKeyboardLock.ts
+var import_react4 = __toESM(require_react(), 1);
+
+// node_modules/uuid/dist/esm-browser/rng.js
+var getRandomValues;
+var rnds8 = new Uint8Array(16);
+function rng() {
+  if (!getRandomValues) {
+    getRandomValues = typeof crypto !== "undefined" && crypto.getRandomValues && crypto.getRandomValues.bind(crypto);
+    if (!getRandomValues) {
+      throw new Error("crypto.getRandomValues() not supported. See https://github.com/uuidjs/uuid#getrandomvalues-not-supported");
+    }
+  }
+  return getRandomValues(rnds8);
+}
+
+// node_modules/uuid/dist/esm-browser/stringify.js
+function unsafeStringify(arr, offset = 0) {
+  return byteToHex[arr[offset + 0]] + byteToHex[arr[offset + 1]] + byteToHex[arr[offset + 2]] + byteToHex[arr[offset + 3]] + "-" + byteToHex[arr[offset + 4]] + byteToHex[arr[offset + 5]] + "-" + byteToHex[arr[offset + 6]] + byteToHex[arr[offset + 7]] + "-" + byteToHex[arr[offset + 8]] + byteToHex[arr[offset + 9]] + "-" + byteToHex[arr[offset + 10]] + byteToHex[arr[offset + 11]] + byteToHex[arr[offset + 12]] + byteToHex[arr[offset + 13]] + byteToHex[arr[offset + 14]] + byteToHex[arr[offset + 15]];
+}
+var byteToHex = [];
+for (let i = 0;i < 256; ++i) {
+  byteToHex.push((i + 256).toString(16).slice(1));
+}
+
+// node_modules/uuid/dist/esm-browser/native.js
+var randomUUID = typeof crypto !== "undefined" && crypto.randomUUID && crypto.randomUUID.bind(crypto);
+var native_default = {
+  randomUUID
+};
+
+// node_modules/uuid/dist/esm-browser/v4.js
+var v4 = function(options, buf, offset) {
+  if (native_default.randomUUID && !buf && !options) {
+    return native_default.randomUUID();
+  }
+  options = options || {};
+  const rnds = options.random || (options.rng || rng)();
+  rnds[6] = rnds[6] & 15 | 64;
+  rnds[8] = rnds[8] & 63 | 128;
+  if (buf) {
+    offset = offset || 0;
+    for (let i = 0;i < 16; ++i) {
+      buf[offset + i] = rnds[i];
+    }
+    return buf;
+  }
+  return unsafeStringify(rnds);
+};
+var v4_default = v4;
+// src/ui/Provider.tsx
+var import_react3 = __toESM(require_react(), 1);
+
+// src/ui/Context.tsx
+var import_react2 = __toESM(require_react(), 1);
+
+// src/ui/GameContextType.tsx
+var DEFAULT_GAME_CONTEXT = {
+  addControlsLock: function(_uid) {
+    throw new Error("Function not implemented.");
+  },
+  removeControlsLock: function(_uid) {
+    throw new Error("Function not implemented.");
+  },
+  setMenu: function(_value) {
+    throw new Error("Function not implemented.");
+  },
+  setDialog: function(_value) {
+    throw new Error("Function not implemented.");
+  }
+};
+
+// src/ui/Context.tsx
+var Context = import_react2.default.createContext(DEFAULT_GAME_CONTEXT);
+var Context_default = Context;
+
+// src/ui/Provider.tsx
+var Provider = ({ children, context }) => {
+  return import_react3.default.createElement(Context_default.Provider, {
+    value: context
+  }, children);
+};
+var useGameContext = () => {
+  const context = import_react3.useContext(Context_default);
+  if (!context) {
+    throw new Error("useMyContext must be used within a MyProvider");
+  }
+  return context;
+};
+
+// src/ui/useKeyboardLock.ts
+function useControlsLock() {
+  const context = useGameContext();
+  const [locked, setLocked] = import_react4.useState(false);
+  import_react4.useEffect(() => {
+    if (locked) {
+      const uid = v4_default();
+      context.addControlsLock(uid);
+      return () => {
+        context.removeControlsLock(uid);
+      };
+    }
+  }, [context, locked]);
+  return {
+    lock() {
+      setLocked(true);
+    },
+    unlock() {
+      setLocked(false);
+    }
+  };
+}
+
+// src/ui/menu/Menu.tsx
+function Menu({ menuData }) {
+  const { lock, unlock } = useControlsLock();
+  const { setMenu, controls } = useGameContext();
+  const [selected, setSelected] = import_react5.useState(0);
+  import_react5.useEffect(() => {
+    if (menuData) {
+      setSelected(0);
+    }
+  }, [menuData]);
+  import_react5.useEffect(() => {
+    if (menuData && controls) {
+      lock();
+      const listener = {
+        onAction(controls2) {
+          const dy2 = (controls2.forward ? -1 : 0) + (controls2.backward ? 1 : 0);
+          setSelected((value) => (value + dy2 + menuData.items.length) % menuData.items.length);
+          if (controls2.exit) {
+            setMenu(undefined);
+          }
+        }
+      };
+      controls.addListener(listener);
+      return () => {
+        controls.removeListener(listener);
+        unlock();
+      };
+    }
+  }, [menuData, setMenu, lock, unlock, controls]);
+  return menuData && import_react5.default.createElement(Popup, {
+    position: [50, 50],
+    size: [200, 200]
+  }, map(menuData.items, (item, index) => {
+    if (!item) {
+      return;
+    }
+    const { label } = item;
+    return import_react5.default.createElement("div", {
+      style: {
+        color: selected === index ? "black" : "white",
+        backgroundColor: selected === index ? "white" : "black"
+      },
+      key: index
+    }, label);
+  }));
+}
+
+// src/ui/dialog/Dialog.tsx
+var import_react6 = __toESM(require_react(), 1);
+function Dialog({ dialogData }) {
+  const { lock, unlock } = useControlsLock();
+  const [index, setIndex] = import_react6.useState(0);
+  const { setDialog, controls } = useGameContext();
+  import_react6.useEffect(() => {
+    if (dialogData) {
+      setIndex(0);
+    }
+  }, [dialogData]);
+  import_react6.useEffect(() => {
+    if (dialogData && controls) {
+      lock();
+      const listener = {
+        onAction(controls2) {
+          if (controls2.action) {
+            setIndex((value) => {
+              if (value === dialogData.conversation.messages.length - 1) {
+                setDialog(undefined);
+                return 0;
+              }
+              return value + 1;
+            });
+          }
+        }
+      };
+      controls.addListener(listener);
+      return () => {
+        controls.removeListener(listener);
+        unlock();
+      };
+    }
+  }, [dialogData, setDialog, lock, unlock, controls]);
+  return dialogData && import_react6.default.createElement(Popup, {
+    position: [50, 500],
+    size: [500, 150]
+  }, import_react6.default.createElement("div", {
+    style: {
+      padding: 10
+    }
+  }, dialogData?.conversation.messages.at(index)?.text));
+}
+
+// src/ui/HudContent.tsx
+function HudContent({ dialogManager, controls }) {
+  const [menu, setMenu] = import_react7.useState();
+  const [dialog, setDialog] = import_react7.useState();
+  const gameContext = import_react7.useMemo(() => ({
+    addControlsLock: dialogManager.showPopup,
+    removeControlsLock: dialogManager.dismiss,
+    isMenuVisible: !!menu,
+    setMenu,
+    isDialogVisible: !!dialog,
+    setDialog,
+    controls
+  }), [setMenu, menu, dialogManager, controls]);
+  import_react7.useEffect(() => {
+    dialogManager.showMenu = (menu2) => gameContext.setMenu(menu2);
+    dialogManager.dismissMenu = () => gameContext.setMenu(undefined);
+    dialogManager.showDialog = (dialog2) => gameContext.setDialog(dialog2);
+    dialogManager.dismissDialog = () => gameContext.setDialog(undefined);
+  }, [dialogManager, gameContext]);
+  return import_react7.default.createElement(Provider, {
+    context: gameContext
+  }, import_react7.default.createElement("div", null, "Title"), import_react7.default.createElement(Menu, {
+    menuData: menu
+  }), import_react7.default.createElement(Dialog, {
+    dialogData: dialog
+  }));
+}
+
+// src/ui/PopupManager.ts
+class PopupManager {
+  listeners;
+  popups = new Set;
+  constructor(listeners) {
+    this.listeners = listeners;
+    this.showPopup = this.showPopup.bind(this);
+    this.dismiss = this.dismiss.bind(this);
+  }
+  showPopup(uid) {
+    this.popups.add(uid);
+    this.listeners.forEach((listener) => listener.onPopup(this.popups.size));
+  }
+  dismiss(uid) {
+    this.popups.delete(uid);
+    this.listeners.forEach((listener) => listener.onPopup(this.popups.size));
+  }
+}
+
+// src/ui/Hud.tsx
+var STYLE = {
+  position: "absolute",
+  pointerEvents: "none",
+  width: "100%",
+  height: "100%"
+};
+
+class Hud extends AuxiliaryHolder {
+  holder;
+  rootElem = document.createElement("div");
+  root = client.default.createRoot(this.rootElem);
+  listeners = new Set;
+  popupManager = new PopupManager(this.listeners);
+  controls;
+  constructor({ controls }) {
+    super();
+    this.controls = controls;
+    this.rootElem.style.pointerEvents = "none";
+  }
+  showDialog(dialog) {
+    this.popupManager.showDialog?.(dialog);
+  }
+  dismissDialog() {
+    this.popupManager.dismissDialog?.();
+  }
+  showMenu(menuData) {
+    this.popupManager.showMenu?.(menuData);
+  }
+  dismissMenu() {
+    this.popupManager.dismissMenu?.();
+  }
+  activate() {
+    super.activate();
+    document.body.appendChild(this.rootElem);
+    this.root.render(this.createElement());
+  }
+  deactivate() {
+    this.root.unmount();
+    document.body.removeChild(this.rootElem);
+    super.deactivate();
+  }
+  addDialogListener(listener) {
+    this.listeners.add(listener);
+  }
+  removeDialogListener(listener) {
+    this.listeners.delete(listener);
+  }
+  createElement() {
+    const { offsetLeft: left, offsetTop: top } = this.holder?.elem ?? {};
+    return import_react8.default.createElement("div", {
+      style: { ...STYLE, top, left }
+    }, import_react8.default.createElement("div", {
+      style: {
+        backgroundColor: "#ffffff66"
+      }
+    }, import_react8.default.createElement(HudContent, {
+      dialogManager: this.popupManager,
+      controls: this.controls
+    })));
+  }
+}
+
+// src/controls/Keyboard.ts
+var QUICK_TAP_TIME = 200;
+
+class Keyboard extends AuxiliaryHolder {
+  keys = {};
+  keysUp = {};
+  keyDownListener = new Set;
+  keyUpListener = new Set;
+  quickTapListener = new Set;
+  timeProvider;
+  isActive = false;
+  constructor({ motor }) {
+    super();
+    this.keyDown = this.keyDown.bind(this);
+    this.keyUp = this.keyUp.bind(this);
+    this.timeProvider = motor;
+  }
+  keyDown(e) {
+    if (!this.keys[e.code]) {
+      const time = this.timeProvider.time;
+      this.keys[e.code] = time;
+      this.keyDownListener.forEach((listener) => listener.onKeyDown?.(e.code, time));
+    }
+    e.preventDefault();
+  }
+  keyUp(e) {
+    const quickTap = this.timeProvider.time - this.keys[e.code] < QUICK_TAP_TIME;
+    this.keysUp[e.code] = this.timeProvider.time;
+    this.keys[e.code] = 0;
+    this.keyUpListener.forEach((listener) => listener.onKeyUp?.(e.code, this.timeProvider.time));
+    if (quickTap) {
+      this.quickTapListener.forEach((listener) => listener.onQuickTap?.(e.code, this.timeProvider.time));
+    }
+  }
+  activate() {
+    if (!this.isActive) {
+      super.activate();
+      this.isActive = true;
+      document.addEventListener("keydown", this.keyDown);
+      document.addEventListener("keyup", this.keyUp);
+    }
+  }
+  deactivate() {
+    if (this.isActive) {
+      document.removeEventListener("keydown", this.keyDown);
+      document.removeEventListener("keyup", this.keyUp);
+      this.isActive = false;
+      super.deactivate();
+    }
+  }
+  addListener(listener) {
+    if (listener.onKeyDown) {
+      this.keyDownListener.add(listener);
+    }
+    if (listener.onKeyUp) {
+      this.keyUpListener.add(listener);
+    }
+    if (listener.onQuickTap) {
+      this.quickTapListener.add(listener);
+    }
+    return () => {
+      this.removeListener(listener);
+    };
+  }
+  removeListener(listener) {
+    this.keyDownListener.delete(listener);
+    this.keyUpListener.delete(listener);
+    this.quickTapListener.delete(listener);
+  }
+}
+
+// src/controls/KeyboardControls.ts
+class KeyboardControls {
+  keyboard;
+  listeners = new Set;
+  isActive = false;
+  keys = {};
+  constructor(keyboard) {
+    this.keyboard = keyboard;
+  }
+  activate() {
+    if (!this.isActive) {
+      this.keys = this.keyboard.keys;
+      this.isActive = true;
+      this.keyboard.addListener(this);
+    }
+  }
+  deactivate() {
+    if (this.isActive) {
+      this.keys = {};
+      this.onActionUp();
+      this.isActive = false;
+      this.keyboard.removeListener(this);
+    }
+  }
+  setActive(active) {
+    if (active) {
+      this.activate();
+    } else {
+      this.deactivate();
+    }
+  }
+  onQuickTap(keyCode) {
+    switch (keyCode) {
+      case "Space":
+        this.listeners.forEach((listener) => listener.onQuickAction?.());
+        break;
+      case "ShiftRight":
+        this.listeners.forEach((listener) => listener.onQuickTiltReset?.());
+        break;
+    }
+  }
+  onKeyDown(_keyCode, _time) {
+    this.onAction();
+  }
+  onKeyUp(_keyCode, _time) {
+    this.onActionUp();
+  }
+  onAction() {
+    this.listeners.forEach((listener) => listener.onAction?.(this));
+  }
+  onActionUp() {
+    this.listeners.forEach((listener) => listener.onAction?.(this));
+  }
+  addListener(listener) {
+    this.listeners.add(listener);
+  }
+  removeListener(listener) {
+    this.listeners.delete(listener);
+  }
+  get forward() {
+    const { keys } = this;
+    return !!(keys.KeyW || keys.ArrowUp && !keys.ShiftRight);
+  }
+  get backward() {
+    const { keys } = this;
+    return !!(keys.KeyS || keys.ArrowDown && !keys.ShiftRight);
+  }
+  get left() {
+    const { keys } = this;
+    return !!(keys.KeyA || keys.ArrowLeft && !keys.ShiftRight);
+  }
+  get right() {
+    const { keys } = this;
+    return !!(keys.KeyD || keys.ArrowRight && !keys.ShiftRight);
+  }
+  get turnLeft() {
+    const { keys } = this;
+    return !!(keys.KeyQ || keys.ArrowLeft && keys.ShiftRight);
+  }
+  get turnRight() {
+    const { keys } = this;
+    return !!(keys.KeyE || keys.ArrowRight && keys.ShiftRight);
+  }
+  get up() {
+    const { keys } = this;
+    return !!(keys.ArrowUp && keys.ShiftRight);
+  }
+  get down() {
+    const { keys } = this;
+    return !!(keys.ArrowDown && keys.ShiftRight);
+  }
+  get action() {
+    const { keys } = this;
+    return !!keys.Space;
+  }
+  get exit() {
+    const { keys } = this;
+    return !!keys.Escape;
+  }
+}
+
 // src/index.tsx
 async function hello() {
   console.info(`Welcome!
@@ -49144,7 +49629,18 @@ You are using Dok engine.
 https://github.com/jacklehamster/bun-engine`);
 }
 async function testCanvas(canvas) {
-  const webGlCanvas = new WebGlCanvas(canvas);
+  const motor = new Motor;
+  const keyboard = new Keyboard({ motor });
+  const gameControls = new KeyboardControls(keyboard);
+  const menuControls = new KeyboardControls(keyboard);
+  const ui = new Hud({ controls: menuControls });
+  const webGlCanvas = new WebGlCanvas(canvas).addAuxiliary(ui);
+  ui.addDialogListener({
+    onPopup(count) {
+      gameControls.setActive(count === 0);
+      menuControls.setActive(count !== 0);
+    }
+  });
   const pixelListener = {
     x: 0,
     y: 0,
@@ -49160,17 +49656,23 @@ async function testCanvas(canvas) {
     pixelListener.y = y;
   });
   const engine = new GraphicsEngine(webGlCanvas.gl);
-  const motor = new Motor;
   const core = new AuxiliaryHolder;
-  const world = new DemoWorld({ engine, motor, webGlCanvas });
+  const world = new DemoWorld({
+    engine,
+    motor,
+    ui,
+    keyboard,
+    controls: gameControls
+  });
   core.addAuxiliary(motor);
   core.addAuxiliary(world);
   core.addAuxiliary(webGlCanvas);
+  core.addAuxiliary(gameControls);
   webGlCanvas.addAuxiliary(new ResizeAux({ engine, camera: world.camera }));
   core.activate();
-  motor.loop(engine);
+  motor.loop(engine, undefined);
   onStop = () => core.deactivate();
-  return { engine, motor, world };
+  return { engine, motor, world, ui };
 }
 function stop() {
   onStop();
@@ -49182,4 +49684,4 @@ export {
   hello
 };
 
-//# debugId=FC4FB7630A0EFF7064756e2164756e21
+//# debugId=D789F6BA9ED8024A64756e2164756e21

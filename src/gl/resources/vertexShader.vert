@@ -3,6 +3,12 @@
 
 precision highp float;
 
+//  FUNCTIONS
+float rand(vec2 co){
+    return fract(sin(dot(co, vec2(12.9898, 78.233))) * 43758.5453);
+}
+
+
 
 //  CONST
 const mat4 identity = mat4(1.0);
@@ -37,6 +43,7 @@ out float vTextureIndex;
 out vec2 vTex;
 out float dist;
 out vec3 vInstanceColor;
+out vec2 var;
 
 void main() {
   vec2 slotSize = vec2(
@@ -71,6 +78,7 @@ void main() {
   basePosition = (isBillboard * billboardMatrix + (1. - isBillboard) * identity) * basePosition;
 
   vec4 worldPosition = transform * basePosition;
+  var = vec2(rand(worldPosition.xz), rand(worldPosition.xz - worldPosition.yx));
 
   // worldPosition => relativePositio
   vec4 relativePosition = camTilt * camTurn * camPos * worldPosition;

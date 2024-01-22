@@ -12,6 +12,7 @@ in float vTextureIndex;
 in vec2 vTex;
 in float dist;
 in vec3 vInstanceColor;
+in vec2 var;
 
 //  OUT
 out vec4 fragColor;
@@ -21,6 +22,7 @@ uniform sampler2D uTextures[NUM_TEXTURES];
 uniform vec3 bgColor;
 uniform float bgBlur;
 uniform float time;
+uniform float fade;
 
 //  FUNCTIONS
 vec4 getTextureColor(float textureSlot, vec2 vTexturePoint);
@@ -44,11 +46,13 @@ void main() {
   }
   color /= float(blurPass + 1);
 
-  color.a = 1.;
-  float colorFactor = 1.25 * pow(dist, -.12);
+  float colorFactor = 1.25 * pow(dist, -.12) * (1. - fade);
+  color.rg += var.x * .02;
+  color.gb += var.y * .03;
   color.rgb = color.rgb * colorFactor + bgColor * (1. - colorFactor);
-  fragColor = color;
-  fragColor.rgb += vInstanceColor / 10.;
+
+  color.rgb += vInstanceColor / 10.;
+  fragColor = vec4(color.rgb, 1.);
 }
 
 vec4 getTextureColor(float textureSlot, vec2 vTexturePoint) {

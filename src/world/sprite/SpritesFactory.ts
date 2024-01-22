@@ -3,7 +3,7 @@ import { Cell } from "world/grid/Cell";
 import { Sprite } from "./Sprite";
 import { MediaId } from "gl/texture/ImageManager";
 import { IElemFactory } from "./aux/IElemFactory";
-import { SpritePool } from "world/pools/Spritepool";
+import { SpritePool } from "world/pools/SpritePool";
 
 interface SpriteBag {
   createSprite(imageId?: MediaId): Sprite;

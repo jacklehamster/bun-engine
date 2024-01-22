@@ -19,6 +19,7 @@
     "@types/react": "^18.2.47",
     "@types/react-dom": "^18.2.18",
     "@types/seedrandom": "^3.0.8",
+    "@types/uuid": "^9.0.7",
     "bun": "^1.0.7",
     "bun-types": "latest",
     "jest": "^29.7.0",
@@ -32,6 +33,7 @@
   "dependencies": {
     "gl-matrix": "^3.4.3",
     "seedrandom": "^3.0.5",
-    "texture-slot-allocator": "github:jacklehamster/texture-slot-allocator"
+    "texture-slot-allocator": "github:jacklehamster/texture-slot-allocator",
+    "uuid": "^9.0.1"
   }
 }

@@ -1,7 +1,8 @@
 import { Refresh } from "updates/Refresh";
 import { IMotor } from "./IMotor";
 import { Looper } from "./Looper";
-import { ControlsListener, IControls } from "controls/IControls";
+import { IControls } from "controls/IControls";
+import { ControlsListener } from "controls/ControlsListener";
 
 export class ControlledLooper<T = undefined> extends Looper<T> implements ControlsListener {
   private _listener: ControlsListener;
