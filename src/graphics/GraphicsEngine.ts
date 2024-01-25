@@ -35,7 +35,8 @@ import { replaceTilda } from 'gl/utils/replaceTilda';
 import { FloatUniform, VectorUniform } from "./Uniforms";
 import { MatrixUniform } from "./Uniforms";
 import { MediaData } from 'gl/texture/MediaData';
-import { Sprite, SpriteId, SpriteType } from 'world/sprite/Sprite';
+import { Sprite, SpriteId } from 'world/sprite/Sprite';
+import { SpriteType } from "world/sprite/SpriteType";
 import { IGraphicsEngine } from './IGraphicsEngine';
 import { IMatrix } from 'gl/transform/IMatrix';
 import { Vector } from "core/types/Vector";
@@ -301,12 +302,9 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
     attributeBuffers.bindBuffer(TRANSFORM_LOC);
     spriteIds.forEach(spriteId => {
       const sprite = sprites.at(spriteId);
-      this.gl.bufferSubData(GL.ARRAY_BUFFER, 4 * 4 * Float32Array.BYTES_PER_ELEMENT * spriteId, (sprite?.transform ?? Matrix.HIDDEN).getMatrix());
-      if (sprite) {
-        this.visibleSprites[spriteId] = true;
-      } else {
-        this.visibleSprites[spriteId] = false;
-      }
+      const visible = !!(sprite && !sprite?.hidden);
+      this.gl.bufferSubData(GL.ARRAY_BUFFER, 4 * 4 * Float32Array.BYTES_PER_ELEMENT * spriteId, (!visible ? Matrix.HIDDEN : sprite.transform).getMatrix());
+      this.visibleSprites[spriteId] = visible;
     });
     spriteIds.clear();
 
@@ -326,7 +324,7 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
       }
       const slotObj = this.textureSlots.get(sprite.imageId);
       let buffer = slotObj?.buffer ?? EMPTY_TEX;
-      if (sprite.flip) {
+      if ((sprite.orientation ?? 1) < 0) {
         this.tempBuffer[0] = buffer[0];
         this.tempBuffer[1] = buffer[1];
         this.tempBuffer[2] = -buffer[2];
@@ -376,8 +374,8 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
 
   updateAnimationDefinitions(ids: Set<AnimationId>, animations: List<Animation>) {
     for (let id of ids) {
-      const animation = animations.at(id);
-      if (animation?.id !== undefined) {
+      const animation = animations.at(id.valueOf());
+      if (animation !== undefined) {
         this.animationSlots.set(animation.id, animation);
       }
     }

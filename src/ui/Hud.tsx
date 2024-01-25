@@ -39,8 +39,8 @@ export class Hud
     this.rootElem.style.pointerEvents = 'none';
   }
 
-  showDialog(dialog: DialogData): void {
-    this.popupManager.showDialog?.(dialog);
+  showDialog(dialog: DialogData, onClose?: () => void): void {
+    this.popupManager.showDialog?.(dialog, onClose);
   }
 
   dismissDialog(): void {

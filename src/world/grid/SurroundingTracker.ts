@@ -47,7 +47,7 @@ export class SurroundingTracker implements VisitableCell, Auxiliary<CellChangeAu
 
   iterateCells(visitedCell: Cell, callback: (cell: Cell) => void) {
     const { range, base } = this;
-    const { pos } = visitedCell;
+    const { pos: pos } = visitedCell;
     const cellX = pos[0] + base[0];
     const cellY = pos[1] + base[1];
     const cellZ = pos[2] + base[2];

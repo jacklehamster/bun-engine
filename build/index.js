@@ -44843,6 +44843,7 @@ const mat4 identity = mat4(1.0);
 const float SPRITE = 1.0;
 const float HUD = 2.0;
 const float DISTANT = 3.0;
+const float WAVE = 4.0;
 
 //  IN
 //  shape
@@ -44872,6 +44873,7 @@ out vec2 vTex;
 out float dist;
 out vec3 vInstanceColor;
 out vec2 var;
+out vec3 vNormal;
 
 void main() {
   vec2 slotSize = vec2(
@@ -44900,6 +44902,7 @@ void main() {
   float isHud = max(0., 1. - 2. * abs(spriteType - HUD));
   float isSprite = max(0., 1. - 2. * abs(spriteType - SPRITE));
   float isDistant = max(0., 1. - 2. * abs(spriteType - DISTANT));
+  float isWave = max(0., 1. - 2. * abs(spriteType - WAVE));
 
   mat4 billboardMatrix = inverse(camTilt * camTurn);
   float isBillboard = max(isDistant, isSprite);
@@ -44908,6 +44911,13 @@ void main() {
   vec4 worldPosition = transform * basePosition;
   var = vec2(rand(worldPosition.xz), rand(worldPosition.xz - worldPosition.yx));
 
+	float noise = rand(worldPosition.xz) * 13.;
+  worldPosition.y += isWave * sin(noise + time/1000.);
+
+  vNormal.y = 1.5 + isWave * sin(noise + 1333. + time/777.);
+  vNormal.x = isWave * sin(noise + time/1000.);
+  vNormal.z = isWave * cos(noise + time/1001.);
+
   // worldPosition => relativePositio
   vec4 relativePosition = camTilt * camTurn * camPos * worldPosition;
 
@@ -44915,7 +44925,6 @@ void main() {
   relativePosition.y -= actualCurvature * ((relativePosition.z * relativePosition.z) + (relativePosition.x * relativePosition.x) / 4.) / 10.;
   relativePosition.x /= (1. + actualCurvature * 1.4);
 
-  //relativePosition.z *= -1.0;
   relativePosition.z -= camDist;
 
   dist = max(isDistant, isHud) + (1. - max(isDistant, isHud)) * (relativePosition.z*relativePosition.z + relativePosition.x*relativePosition.x);
@@ -44952,6 +44961,7 @@ in vec2 vTex;
 in float dist;
 in vec3 vInstanceColor;
 in vec2 var;
+in vec3 vNormal;
 
 //  OUT
 out vec4 fragColor;
@@ -44968,6 +44978,23 @@ vec4 getTextureColor(float textureSlot, vec2 vTexturePoint);
 
 float rand(vec2 co){
     return fract(sin(dot(co, vec2(12.9898, 78.233))) * 43758.5453);
+}
+
+struct DirectionalLight {
+    vec3 direction;
+    vec3 ambient;
+    vec3 diffuse;
+    vec3 specular;
+};
+
+// Function to calculate combined color with directional light
+vec3 calculateDirectionalLight(DirectionalLight dirLight, vec3 existingColor, vec3 normal) {
+    // Calculate diffuse reflection
+    float diff = max(dot(normal, -dirLight.direction), 0.0);
+    vec3 diffuse = dirLight.diffuse * diff;
+
+    // Combine existing color with diffuse reflection
+    return existingColor * (dirLight.ambient + diffuse);
 }
 
 void main() {
@@ -44991,6 +45018,16 @@ void main() {
   color.rgb = color.rgb * colorFactor + bgColor * (1. - colorFactor);
 
   color.rgb += vInstanceColor / 10.;
+
+  // Hardcoded DirectionalLight
+  DirectionalLight dirLight;
+  dirLight.direction = normalize(vec3(-1.0, -1.0, -1.0)); // Example direction
+  dirLight.ambient = vec3(0.1, 0.1, 0.1); // Example ambient color
+  dirLight.diffuse = vec3(1.0, 1.0, 1.0) * 1.5; // More intense diffuse color
+  dirLight.specular = vec3(1.0, 1.0, 1.0); // Example specular color
+
+  color.rgb = calculateDirectionalLight(dirLight, color.rgb, vNormal);
+
   fragColor = vec4(color.rgb, 1.);
 }
 
@@ -46160,19 +46197,15 @@ var VectorUniform;
   VectorUniform2[VectorUniform2["BG_COLOR"] = 0] = "BG_COLOR";
 })(VectorUniform || (VectorUniform = {}));
 
-// src/world/sprite/Sprite.ts
+// src/world/sprite/SpriteType.ts
 var SpriteType;
 (function(SpriteType2) {
   SpriteType2[SpriteType2["DEFAULT"] = 0] = "DEFAULT";
   SpriteType2[SpriteType2["SPRITE"] = 1] = "SPRITE";
   SpriteType2[SpriteType2["HUD"] = 2] = "HUD";
   SpriteType2[SpriteType2["DISTANT"] = 3] = "DISTANT";
-  SpriteType2[SpriteType2["SHADOW"] = 4] = "SHADOW";
+  SpriteType2[SpriteType2["WAVE"] = 4] = "WAVE";
 })(SpriteType || (SpriteType = {}));
-var EMPTY_SPRITE = {
-  imageId: 0,
-  transform: new Matrix_default
-};
 
 // src/updates/Priority.ts
 var Priority;
@@ -46413,12 +46446,9 @@ class GraphicsEngine extends Disposable {
     attributeBuffers.bindBuffer(TRANSFORM_LOC);
     spriteIds.forEach((spriteId) => {
       const sprite = sprites.at(spriteId);
-      this.gl.bufferSubData(GL.ARRAY_BUFFER, 16 * Float32Array.BYTES_PER_ELEMENT * spriteId, (sprite?.transform ?? Matrix_default.HIDDEN).getMatrix());
-      if (sprite) {
-        this.visibleSprites[spriteId] = true;
-      } else {
-        this.visibleSprites[spriteId] = false;
-      }
+      const visible = !!(sprite && !sprite?.hidden);
+      this.gl.bufferSubData(GL.ARRAY_BUFFER, 16 * Float32Array.BYTES_PER_ELEMENT * spriteId, (!visible ? Matrix_default.HIDDEN : sprite.transform).getMatrix());
+      this.visibleSprites[spriteId] = visible;
     });
     spriteIds.clear();
     while (this.visibleSprites.length && !this.visibleSprites[this.visibleSprites.length - 1]) {
@@ -46436,7 +46466,7 @@ class GraphicsEngine extends Disposable {
       }
       const slotObj = this.textureSlots.get(sprite.imageId);
       let buffer = slotObj?.buffer ?? EMPTY_TEX;
-      if (sprite.flip) {
+      if ((sprite.orientation ?? 1) < 0) {
         this.tempBuffer[0] = buffer[0];
         this.tempBuffer[1] = buffer[1];
         this.tempBuffer[2] = -buffer[2];
@@ -46483,8 +46513,8 @@ class GraphicsEngine extends Disposable {
   }
   updateAnimationDefinitions(ids, animations) {
     for (let id of ids) {
-      const animation = animations.at(id);
-      if (animation?.id !== undefined) {
+      const animation = animations.at(id.valueOf());
+      if (animation !== undefined) {
         this.animationSlots.set(animation.id, animation);
       }
     }
@@ -46533,7 +46563,6 @@ class ObjectPool {
   }
   recycle(element) {
     this._recycler.push(element);
-    this.checkObjectExistence();
   }
   create(...params) {
     const recycledElem = this._recycler.pop();
@@ -46547,7 +46576,8 @@ class ObjectPool {
     return elem;
   }
   reset() {
-    for (let i = 0;i < this._allObjectsCreated.length; i++) {
+    const len3 = this._recycler.length = this._allObjectsCreated.length;
+    for (let i = 0;i < len3; i++) {
       this._recycler[i] = this._allObjectsCreated[i];
     }
   }
@@ -46557,7 +46587,7 @@ class ObjectPool {
   }
   checkObjectExistence() {
     if (this._allObjectsCreated.length === ObjectPool.warningLimit) {
-      console.warn("ObjectPool already created", this._allObjectsCreated.length);
+      console.warn("ObjectPool already created", this._allObjectsCreated.length, "in", this.constructor.name);
     }
   }
 }
@@ -47020,6 +47050,10 @@ class PositionMatrix extends AuxiliaryHolder {
     }
     return !blocked;
   }
+  movedTo(x, y, z) {
+    this.moveTo(x, y, z);
+    return this;
+  }
   get position() {
     return this._position;
   }
@@ -47140,7 +47174,7 @@ class Camera extends AuxiliaryHolder {
       this.projection.configure(this._viewportSize);
     }
   }
-  set bgColor(rgb) {
+  setBackgroundColor(rgb) {
     const red = rgb >> 16 & 255;
     const green = rgb >> 8 & 255;
     const blue = rgb & 255;
@@ -47379,7 +47413,10 @@ class PositionStepAuxiliary extends ControlledLooper {
     if (!dx && !dz) {
       this.stepCount = 0;
     }
-    const speed = (dx || dz ? deltaTime / 150 : deltaTime / 100) * data.speed;
+    let speed = (dx || dz ? deltaTime / 150 : deltaTime / 100) * data.speed;
+    if (data.position.position[1] > 0) {
+      speed *= 2;
+    }
     const didMove = data.position.gotoPos(this.goalPos[0], pos[1], this.goalPos[2], speed) || dx && data.position.gotoPos(this.goalPos[0], pos[1], pos[2], speed) || dz && data.position.gotoPos(pos[0], pos[1], this.goalPos[2], speed);
     if (!didMove) {
       const gx = Math.round(pos[0] / step) * step;
@@ -47678,25 +47715,31 @@ class ItemsGroup {
   }
 }
 
+// src/world/sprite/Sprite.ts
+var EMPTY_SPRITE = {
+  imageId: 0,
+  transform: new Matrix_default
+};
+
 // src/world/sprite/aux/SpriteModel.ts
 class SpriteModel {
   sprite = EMPTY_SPRITE;
   animationId = 0;
-  flip = false;
+  orientation = 1;
   imageId = 0;
   transform = Matrix_default.create();
-  get name() {
-    return this.sprite.name;
-  }
   get spriteType() {
     return this.sprite.spriteType;
+  }
+  get hidden() {
+    return this.sprite.hidden;
   }
 }
 
 // src/world/sprite/aux/SpritesGroup.ts
 class SpriteGroup extends ItemsGroup {
   transforms;
-  _flip;
+  _orientation = 1;
   _animationId;
   _imageId;
   spriteModel = new SpriteModel;
@@ -47704,9 +47747,9 @@ class SpriteGroup extends ItemsGroup {
     super(sprites);
     this.transforms = transforms;
   }
-  set flip(value) {
-    if (this._flip !== value) {
-      this._flip = value;
+  setOrientation(value) {
+    if (this._orientation !== value) {
+      this._orientation = value;
       forEach3(this.elems, (_, index) => this.informUpdate(index, SpriteUpdateType.TEX_SLOT));
     }
   }
@@ -47716,10 +47759,7 @@ class SpriteGroup extends ItemsGroup {
       forEach3(this.elems, (_, index) => this.informUpdate(index, SpriteUpdateType.ANIM));
     }
   }
-  get flip() {
-    return !!this._flip;
-  }
-  set imageId(value) {
+  setImageId(value) {
     if (this._imageId !== value) {
       this._imageId = value;
       forEach3(this.elems, (_, index) => this.informUpdate(index, SpriteUpdateType.TEX_SLOT));
@@ -47735,7 +47775,7 @@ class SpriteGroup extends ItemsGroup {
     for (let transform of this.transforms) {
       this.spriteModel.transform.multiply2(transform, this.spriteModel.transform);
     }
-    this.spriteModel.flip = !!this.flip;
+    this.spriteModel.orientation = this._orientation * (s.orientation ?? 1);
     this.spriteModel.animationId = this._animationId ?? s.animationId ?? 0;
     this.spriteModel.imageId = this._imageId ?? s.imageId;
     return this.spriteModel;
@@ -47749,20 +47789,20 @@ class SpriteGroup extends ItemsGroup {
 function copySprite(sprite, dest) {
   if (!dest) {
     return {
-      name: sprite.name,
       transform: Matrix_default.create().copy(sprite.transform),
       imageId: sprite.imageId,
       spriteType: sprite.spriteType,
-      flip: sprite.flip,
-      animationId: sprite.animationId
+      orientation: sprite.orientation,
+      animationId: sprite.animationId,
+      hidden: sprite.hidden
     };
   }
-  dest.name = sprite.name;
   dest.imageId = sprite.imageId;
   dest.spriteType = sprite.spriteType;
   dest.transform.copy(sprite.transform);
-  dest.flip = sprite.flip;
+  dest.orientation = sprite.orientation;
   dest.animationId = sprite.animationId;
+  dest.hidden = sprite.hidden;
   return dest;
 }
 
@@ -47855,21 +47895,14 @@ class SlotPool extends ObjectPool {
   }
 }
 
-// src/world/sprite/aux/SpriteGrid.ts
-class SpriteGrid extends Grid {
-  constructor(config, ...factories) {
-    super(copySprite, config, ...factories);
-  }
-}
-
 // src/world/sprite/aux/FixedSpriteGrid.ts
-class FixedSpriteGrid extends SpriteGrid {
+class FixedSpriteGrid extends Grid {
   cellUtils;
   cellSize;
   spritesPerCell = new Map;
   spritesList;
   constructor(cellUtils, config, ...spritesList) {
-    super({}, {
+    super(copySprite, {}, {
       getElemsAtCell: (cell) => this.spritesPerCell.get(cell.tag)
     });
     this.cellUtils = cellUtils;
@@ -48424,6 +48457,7 @@ class FollowAuxiliary extends Looper {
   activate() {
     super.activate();
     this.followee.onChange(this.listener);
+    this.start();
   }
   deactivate() {
     this.followee.removeChangeListener(this.listener);
@@ -48445,29 +48479,33 @@ class FollowAuxiliary extends Looper {
 class DisplayBox {
   sprites;
   constructor(box, imageId, insideImageId) {
-    const cX = (box.left + box.right) / 2;
-    const cY = (box.top + box.bottom) / 2;
-    const cZ = (box.near + box.far) / 2;
-    const groundScale = [box.right - box.left, 2, box.near - box.far];
-    const sideScale = [2, box.top - box.bottom, box.near - box.far];
-    const faceScale = [box.right - box.left, box.top - box.bottom, 2];
-    const outside = [
-      Matrix_default.create().translate(cX, box.bottom, cZ).scale(...groundScale).scale(0.5).rotateX(Math.PI / 2),
-      Matrix_default.create().translate(cX, box.top, cZ).scale(...groundScale).scale(0.5).rotateX(-Math.PI / 2),
-      Matrix_default.create().translate(box.left, cY, cZ).scale(...sideScale).scale(0.5).rotateY(-Math.PI / 2),
-      Matrix_default.create().translate(box.right, cY, cZ).scale(...sideScale).scale(0.5).rotateY(Math.PI / 2),
-      Matrix_default.create().translate(cX, cY, box.near).scale(...faceScale).scale(0.5).rotateY(0),
-      Matrix_default.create().translate(cX, cY, box.far).scale(...faceScale).scale(0.5).rotateY(Math.PI)
-    ].map((transform) => ({ imageId, transform }));
-    const inside = !insideImageId ? [] : [
-      Matrix_default.create().translate(cX, box.bottom, cZ).scale(...groundScale).scale(0.5).rotateX(-Math.PI / 2),
-      Matrix_default.create().translate(cX, box.top, cZ).scale(...groundScale).scale(0.5).rotateX(+Math.PI / 2),
-      Matrix_default.create().translate(box.left, cY, cZ).scale(...sideScale).scale(0.5).rotateY(+Math.PI / 2),
-      Matrix_default.create().translate(box.right, cY, cZ).scale(...sideScale).scale(0.5).rotateY(-Math.PI / 2),
-      Matrix_default.create().translate(cX, cY, box.near).scale(...faceScale).scale(0.5).rotateY(Math.PI),
-      Matrix_default.create().translate(cX, cY, box.far).scale(...faceScale).scale(0.5).rotateY(0)
-    ].map((transform) => ({ imageId: insideImageId, transform }));
-    this.sprites = [...inside, ...outside];
+    if (!box.disabled) {
+      const cX = (box.left + box.right) / 2;
+      const cY = (box.top + box.bottom) / 2;
+      const cZ = (box.near + box.far) / 2;
+      const groundScale = [box.right - box.left, 2, box.near - box.far];
+      const sideScale = [2, box.top - box.bottom, box.near - box.far];
+      const faceScale = [box.right - box.left, box.top - box.bottom, 2];
+      const outside = [
+        Matrix_default.create().translate(cX, box.bottom, cZ).scale(...groundScale).scale(0.5).rotateX(Math.PI / 2),
+        Matrix_default.create().translate(cX, box.top, cZ).scale(...groundScale).scale(0.5).rotateX(-Math.PI / 2),
+        Matrix_default.create().translate(box.left, cY, cZ).scale(...sideScale).scale(0.5).rotateY(-Math.PI / 2),
+        Matrix_default.create().translate(box.right, cY, cZ).scale(...sideScale).scale(0.5).rotateY(Math.PI / 2),
+        Matrix_default.create().translate(cX, cY, box.near).scale(...faceScale).scale(0.5).rotateY(0),
+        Matrix_default.create().translate(cX, cY, box.far).scale(...faceScale).scale(0.5).rotateY(Math.PI)
+      ].map((transform) => ({ imageId, transform }));
+      const inside = !insideImageId ? [] : [
+        Matrix_default.create().translate(cX, box.bottom, cZ).scale(...groundScale).scale(0.5).rotateX(-Math.PI / 2),
+        Matrix_default.create().translate(cX, box.top, cZ).scale(...groundScale).scale(0.5).rotateX(+Math.PI / 2),
+        Matrix_default.create().translate(box.left, cY, cZ).scale(...sideScale).scale(0.5).rotateY(+Math.PI / 2),
+        Matrix_default.create().translate(box.right, cY, cZ).scale(...sideScale).scale(0.5).rotateY(-Math.PI / 2),
+        Matrix_default.create().translate(cX, cY, box.near).scale(...faceScale).scale(0.5).rotateY(Math.PI),
+        Matrix_default.create().translate(cX, cY, box.far).scale(...faceScale).scale(0.5).rotateY(0)
+      ].map((transform) => ({ imageId: insideImageId, transform }));
+      this.sprites = [...inside, ...outside];
+    } else {
+      this.sprites = [];
+    }
   }
   get length() {
     return this.sprites.length;
@@ -48486,7 +48524,8 @@ var NULLBOX = {
   left: 0,
   right: 0,
   near: 0,
-  far: 0
+  far: 0,
+  disabled: false
 };
 
 // src/world/collision/CollisionBox.ts
@@ -48532,13 +48571,18 @@ class CollisionDetector {
   collide = false;
   config;
   listener;
+  disabled;
   constructor({ blockerBox, blockerPosition, heroBox = NULLBOX, listener = {} }, config = {}) {
     this.collisionBox = new CollisionBox(blockerBox, blockerPosition);
     this.heroCollisionBox = new CollisionBox(heroBox, [0, 0, 0]);
     this.listener = listener;
     this.config = { shouldBlock: config.shouldBlock ?? false };
+    this.disabled = blockerBox.disabled;
   }
   isBlocked(to2) {
+    if (this.disabled) {
+      return false;
+    }
     this.heroCollisionBox.gotoPosition(to2);
     const collide = this.heroCollisionBox.collideWith(this.collisionBox);
     if (collide !== this.collide) {
@@ -48635,6 +48679,9 @@ var Assets;
   Assets2[Assets2["BUN_SHADOW"] = 12] = "BUN_SHADOW";
   Assets2[Assets2["WOLF"] = 13] = "WOLF";
   Assets2[Assets2["WOLF_SHADOW"] = 14] = "WOLF_SHADOW";
+  Assets2[Assets2["WATER"] = 15] = "WATER";
+  Assets2[Assets2["BUSHES"] = 16] = "BUSHES";
+  Assets2[Assets2["GRASS_GROUND"] = 17] = "GRASS_GROUND";
 })(Assets || (Assets = {}));
 var Anims;
 (function(Anims2) {
@@ -48742,9 +48789,7 @@ class DemoWorld extends AuxiliaryHolder {
           const centerX = canvas.width / 2, centerY = canvas.height / 2;
           const halfSize = canvas.width / 2;
           ctx.imageSmoothingEnabled = true;
-          ctx.fillStyle = "#ddd";
           ctx.lineWidth = canvas.width / 50;
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
           ctx.strokeStyle = "black";
           ctx.fillStyle = "gold";
           ctx.beginPath();
@@ -48774,6 +48819,24 @@ class DemoWorld extends AuxiliaryHolder {
           ctx.fillRect(0, 0, canvas.width, canvas.height);
           ctx.strokeStyle = "black";
           ctx.fillStyle = "silver";
+          ctx.beginPath();
+          ctx.rect(canvas.width * 0.2, canvas.height * 0.2, canvas.width * 0.6, canvas.height * 0.6);
+          ctx.fill();
+          ctx.stroke();
+        }
+      },
+      {
+        id: Assets.GRASS_GROUND,
+        type: "draw",
+        draw: (ctx) => {
+          const { canvas } = ctx;
+          canvas.width = LOGO_SIZE;
+          canvas.height = LOGO_SIZE;
+          ctx.fillStyle = "green";
+          ctx.lineWidth = canvas.width / 50;
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.strokeStyle = "#6f6";
+          ctx.fillStyle = "lightgreen";
           ctx.beginPath();
           ctx.rect(canvas.width * 0.2, canvas.height * 0.2, canvas.width * 0.6, canvas.height * 0.6);
           ctx.fill();
@@ -48844,6 +48907,30 @@ class DemoWorld extends AuxiliaryHolder {
         }
       },
       {
+        id: Assets.BUSHES,
+        type: "draw",
+        draw: (ctx) => {
+          const { canvas } = ctx;
+          canvas.width = 1024;
+          canvas.height = 1024;
+          ctx.fillStyle = "#050";
+          ctx.lineWidth = canvas.width / 50;
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+      },
+      {
+        id: Assets.WATER,
+        type: "draw",
+        draw: (ctx) => {
+          const { canvas } = ctx;
+          canvas.width = 1024;
+          canvas.height = 1024;
+          ctx.fillStyle = "#68f";
+          ctx.lineWidth = canvas.width / 50;
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+      },
+      {
         id: Assets.TREE,
         type: "draw",
         draw: (ctx) => {
@@ -48877,80 +48964,101 @@ class DemoWorld extends AuxiliaryHolder {
         fps: 15
       }
     ])));
-    const dobukiBlock = {
-      top: 1,
+    const exitBlock = {
+      top: 2,
       bottom: -1,
       left: -0.1,
       right: 0.1,
       near: 0,
       far: -0.5
     };
+    const exitPosition = cellUtils.positionFromCellPos(0, 0, 0, CELLSIZE);
+    const dobukiBlock = {
+      top: 1,
+      bottom: -1,
+      left: -0.1,
+      right: 0.1,
+      near: 0,
+      far: -0.5,
+      disabled: true
+    };
     const dobukiPosition = cellUtils.positionFromCellPos(0, 0, -1, CELLSIZE);
     const blockBox = {
-      top: 1,
+      top: 2,
       bottom: -1,
       left: -1,
       right: 1,
       near: 1,
       far: -1
     };
-    const blockPosition = cellUtils.positionFromCellPos(0, 0, -3, CELLSIZE);
-    const blockBoxSprites = new DisplayBox(blockBox, Assets.GROUND, Assets.BRICK);
+    const blockPositions = [
+      [-1, 0, -1],
+      [1, 0, -1],
+      [0, 0, -1],
+      [-1, 0, 0],
+      [1, 0, 0]
+    ].map(([x, y, z]) => cellUtils.positionFromCellPos(x, y, z, CELLSIZE));
+    blockPositions.forEach((blockPosition) => {
+      const blockBoxSprites = new DisplayBox(blockBox, Assets.GROUND, Assets.BRICK);
+      spritesAccumulator.addAuxiliary(new FixedSpriteGrid(cellUtils, { cellSize: CELLSIZE }, new SpriteGroup(blockBoxSprites, [Matrix_default.create().setVector(blockPosition)])));
+    });
     spritesAccumulator.addAuxiliary(new FixedSpriteGrid(cellUtils, { cellSize: CELLSIZE }, new SpriteGroup([
       {
         imageId: Assets.DOBUKI,
         spriteType: SpriteType.SPRITE,
-        transform: Matrix_default.create().translate(0, -0.5, -1)
+        transform: Matrix_default.create().translate(0, -0.3, -1),
+        hidden: true
       }
-    ], [Matrix_default.create().setVector(dobukiPosition)]), new SpriteGroup(new DisplayBox(dobukiBlock, Assets.WIREFRAME, Assets.WIREFRAME), [Matrix_default.create().setVector(dobukiPosition)]), [
+    ], [Matrix_default.create().setVector(dobukiPosition)]), new SpriteGroup(new DisplayBox(dobukiBlock, Assets.WIREFRAME, Assets.WIREFRAME), [Matrix_default.create().setVector(dobukiPosition)]), new SpriteGroup(new DisplayBox(exitBlock, Assets.WIREFRAME, Assets.WIREFRAME), [Matrix_default.create().setVector(exitPosition)]), [
       ...[
-        Matrix_default.create().translate(-1, 0, 0).rotateY(Math.PI / 2),
-        Matrix_default.create().translate(-1, 0, 0).rotateY(-Math.PI / 2),
-        Matrix_default.create().translate(1, 0, 0).rotateY(-Math.PI / 2),
-        Matrix_default.create().translate(1, 0, 0).rotateY(Math.PI / 2)
+        Matrix_default.create().translate(-3.01, 0, 0).rotateY(Math.PI / 2),
+        Matrix_default.create().translate(-3.01, 0, 0).rotateY(-Math.PI / 2),
+        Matrix_default.create().translate(3.01, 0, 0).rotateY(-Math.PI / 2),
+        Matrix_default.create().translate(3.01, 0, 0).rotateY(Math.PI / 2)
       ].map((transform) => ({ imageId: Assets.LOGO, transform })),
       ...[
         Matrix_default.create().translate(0, -0.9, 0).rotateX(-Math.PI / 2),
         Matrix_default.create().translate(0, -0.9, 2).rotateX(-Math.PI / 2),
         Matrix_default.create().translate(-2, -0.9, 2).rotateX(-Math.PI / 2),
         Matrix_default.create().translate(2, -0.9, 2).rotateX(-Math.PI / 2)
-      ].map((transform) => ({ imageId: Assets.GROUND, transform }))
-    ], new SpriteGroup(blockBoxSprites, [Matrix_default.create().setVector(blockPosition)])));
-    const camera = new Camera({ engine, motor });
+      ].map((transform) => ({ imageId: Assets.GRASS_GROUND, transform }))
+    ]));
+    const camera = this.camera = new Camera({ engine, motor });
     this.addAuxiliary(camera);
-    this.camera = camera;
-    spritesAccumulator.addAuxiliary(new SpriteGrid({ yRange: [0, 0] }, new SpriteFactory({
-      fillSpriteBag({ pos }, bag, rng) {
-        const ground = bag.createSprite(Assets.GRASS);
-        ground.transform.translate(pos[0] * pos[3], -1, pos[2] * pos[3]).rotateX(-Math.PI / 2);
-        const ceiling = bag.createSprite(Assets.WIREFRAME);
-        ceiling.transform.translate(pos[0] * pos[3], 2, pos[2] * pos[3]).rotateX(Math.PI / 2);
-        const count = rng() < 0.1 ? 3 + rng() * 10 : 0;
+    spritesAccumulator.addAuxiliary(new Grid(copySprite, { yRange: [0, 0] }, new SpriteFactory({
+      fillSpriteBag({ pos: cellPos }, bag, rng) {
+        const distSq2 = cellPos[0] * cellPos[0] + cellPos[2] * cellPos[2];
+        const isWater = distSq2 > 1000;
+        const hasTree = distSq2 > 10 && rng() < 0.1 && !isWater;
+        const ground = bag.createSprite(hasTree ? Assets.BUSHES : isWater ? Assets.WATER : Assets.GRASS);
+        ground.spriteType = isWater ? SpriteType.WAVE : SpriteType.DEFAULT;
+        ground.transform.translate(cellPos[0] * cellPos[3], -1 - (isWater ? 1 : 0), cellPos[2] * cellPos[3]).rotateX(-Math.PI / 2);
+        bag.addSprite(ground);
+        const count = hasTree ? 5 + rng() * 10 : 0;
         for (let i = 0;i < count; i++) {
           const tree = bag.createSprite(Assets.TREE);
           tree.spriteType = SpriteType.SPRITE;
-          const size = 4 + Math.floor(2 * rng());
-          tree.transform.translate(pos[0] * pos[3] + (rng() - 0.5) * 2.5, -1 + size / 2, pos[2] * pos[3] + (rng() - 0.5) * 2.5).scale(0.2 + rng(), size, 0.2 + rng());
+          const size = 1 + Math.floor(2 * rng());
+          tree.transform.translate(cellPos[0] * cellPos[3] + (rng() - 0.5) * 2.5, -1 + size / 2, cellPos[2] * cellPos[3] + (rng() - 0.5) * 2.5).scale(0.2 + rng(), size, 0.2 + rng());
           bag.addSprite(tree);
         }
-        if (rng() < 0.02) {
+        if (!isWater && !count && rng() < 0.02) {
           const bun = bag.createSprite(Assets.BUN);
           bun.spriteType = SpriteType.SPRITE;
-          bun.transform.translate(pos[0] * pos[3], -0.5, pos[2] * pos[3]).scale(0.5);
+          bun.transform.translate(cellPos[0] * cellPos[3], -0.7, cellPos[2] * cellPos[3]).scale(0.5);
           const bunShadow = bag.createSprite(Assets.BUN_SHADOW);
-          bunShadow.transform.translate(pos[0] * pos[3], -1, pos[2] * pos[3]).rotateX(-Math.PI / 2).scale(0.5);
+          bunShadow.transform.translate(cellPos[0] * cellPos[3], -1, cellPos[2] * cellPos[3]).rotateX(-Math.PI / 2).scale(0.5);
           bag.addSprite(bun, bunShadow);
         }
-        if (rng() < 0.01) {
+        if (!isWater && !count && rng() < 0.01) {
           const scale5 = 1.5;
           const wolf = bag.createSprite(Assets.WOLF);
           wolf.spriteType = SpriteType.SPRITE;
-          wolf.transform.translate(pos[0] * pos[3], 0, pos[2] * pos[3]).scale(scale5);
+          wolf.transform.translate(cellPos[0] * cellPos[3], 0, cellPos[2] * cellPos[3]).scale(scale5);
           const shadow = bag.createSprite(Assets.WOLF_SHADOW);
-          shadow.transform.translate(pos[0] * pos[3], -1, pos[2] * pos[3]).rotateX(-Math.PI / 2).scale(scale5);
+          shadow.transform.translate(cellPos[0] * cellPos[3], -0.99, cellPos[2] * cellPos[3] - 0.5).rotateX(-Math.PI / 2).scale(scale5);
           bag.addSprite(wolf, shadow);
         }
-        bag.addSprite(ground, ceiling);
       }
     })));
     const heroBox = {
@@ -48961,14 +49069,14 @@ class DemoWorld extends AuxiliaryHolder {
       near: 0.9,
       far: -0.9
     };
-    const heroPos = new PositionMatrix().onChange(() => {
+    const heroPos = new PositionMatrix().movedTo(0, 0, 3).onChange(() => {
       forEach3(heroSprites, (_, index) => heroSprites.informUpdate(index, SpriteUpdateType.TRANSFORM));
       forEach3(displayBox, (_, index) => displayBox.informUpdate(index, SpriteUpdateType.TRANSFORM));
     });
     const heroSprites = new SpriteGroup([{
       imageId: Assets.DODO,
       spriteType: SpriteType.SPRITE,
-      transform: Matrix_default.create().translate(0, -0.5, 0),
+      transform: Matrix_default.create().translate(0, -0.3, 0),
       animationId: Anims.STILL
     }], [heroPos]);
     spritesAccumulator.addAuxiliary(heroSprites);
@@ -48993,23 +49101,23 @@ class DemoWorld extends AuxiliaryHolder {
     }));
     spritesAccumulator.addAuxiliary(shadowHeroSprites);
     heroPos.moveBlocker = new CollisionDetectors([
-      new CollisionDetector({
+      new CollisionDetectors(blockPositions.map((blockPosition) => new CollisionDetector({
         blockerBox: blockBox,
         blockerPosition: blockPosition,
         heroBox,
         listener: {
           onBlockChange(blocked) {
-            displayBox.imageId = blocked ? Assets.WIREFRAME_RED : Assets.WIREFRAME;
+            displayBox.setImageId(blocked ? Assets.WIREFRAME_RED : Assets.WIREFRAME);
           }
         }
-      }, { shouldBlock: true }),
+      }, { shouldBlock: true }))),
       new CollisionDetector({
         blockerBox: dobukiBlock,
         blockerPosition: dobukiPosition,
         heroBox,
         listener: {
           onEnter() {
-            displayBox.imageId = Assets.WIREFRAME_RED;
+            displayBox.setImageId(Assets.WIREFRAME_RED);
             ui.showDialog({
               conversation: {
                 messages: [
@@ -49020,7 +49128,29 @@ class DemoWorld extends AuxiliaryHolder {
             });
           },
           onLeave() {
-            displayBox.imageId = Assets.WIREFRAME;
+            displayBox.setImageId(Assets.WIREFRAME);
+          }
+        }
+      }, { shouldBlock: false }),
+      new CollisionDetector({
+        blockerBox: exitBlock,
+        blockerPosition: exitPosition,
+        heroBox,
+        listener: {
+          onEnter() {
+            displayBox.setImageId(Assets.WIREFRAME_RED);
+            ui.showDialog({
+              conversation: {
+                messages: [
+                  { text: "Going down..." }
+                ]
+              }
+            }, () => {
+              camera.fade.progressTowards(1, 0.005, this, motor);
+            });
+          },
+          onLeave() {
+            displayBox.setImageId(Assets.WIREFRAME);
           }
         }
       }, { shouldBlock: false })
@@ -49044,9 +49174,8 @@ class DemoWorld extends AuxiliaryHolder {
         }
       ]
     }))).addAuxiliary(new DirAuxiliary({ controls }, (dx) => {
-      const flip = dx < 0;
-      heroSprites.flip = flip;
-      shadowHeroSprites.flip = flip;
+      heroSprites.setOrientation(dx);
+      shadowHeroSprites.setOrientation(dx);
     })).addAuxiliary(new MotionAuxiliary({ controls }, (moving) => {
       const animId = moving ? Anims.RUN : Anims.STILL;
       heroSprites.setAnimationId(animId);
@@ -49054,13 +49183,14 @@ class DemoWorld extends AuxiliaryHolder {
     }));
     this.addAuxiliary(heroPos.addAuxiliary(new CellChangeAuxiliary(cellUtils, { cellSize: CELLSIZE }).addAuxiliary(new SurroundingTracker({ cellTrack: this, cellUtils }, {
       cellLimit: 5000,
-      range: [30, 3, 30],
+      range: [30, 3, 40],
       cellSize: CELLSIZE
     }))));
     camera.distance.setValue(5);
-    camera.tilt.angle.setValue(1.1);
+    camera.tilt.angle.setValue(0.8);
     camera.projection.zoom.setValue(0.25);
     camera.projection.perspective.setValue(0.05);
+    camera.setBackgroundColor(0);
     this.addAuxiliary(new TimeAuxiliary({ motor, engine })).addAuxiliary(new FadeAuxiliary({ camera, motor }));
   }
 }
@@ -49404,6 +49534,7 @@ function Dialog({ dialogData }) {
 function HudContent({ dialogManager, controls }) {
   const [menu, setMenu] = import_react7.useState();
   const [dialog, setDialog] = import_react7.useState();
+  const [onClose, setOnClose] = import_react7.useState();
   const gameContext = import_react7.useMemo(() => ({
     addControlsLock: dialogManager.showPopup,
     removeControlsLock: dialogManager.dismiss,
@@ -49416,9 +49547,19 @@ function HudContent({ dialogManager, controls }) {
   import_react7.useEffect(() => {
     dialogManager.showMenu = (menu2) => gameContext.setMenu(menu2);
     dialogManager.dismissMenu = () => gameContext.setMenu(undefined);
-    dialogManager.showDialog = (dialog2) => gameContext.setDialog(dialog2);
-    dialogManager.dismissDialog = () => gameContext.setDialog(undefined);
-  }, [dialogManager, gameContext]);
+    dialogManager.showDialog = (dialog2, onClose2) => {
+      gameContext.setDialog(dialog2);
+      setOnClose(() => onClose2);
+    };
+    dialogManager.dismissDialog = () => {
+      gameContext.setDialog(undefined);
+    };
+  }, [dialogManager, gameContext, setOnClose]);
+  import_react7.useEffect(() => {
+    if (!dialog) {
+      onClose?.();
+    }
+  }, [dialog]);
   return import_react7.default.createElement(Provider, {
     context: gameContext
   }, import_react7.default.createElement("div", null, "Title"), import_react7.default.createElement(Menu, {
@@ -49467,8 +49608,8 @@ class Hud extends AuxiliaryHolder {
     this.controls = controls;
     this.rootElem.style.pointerEvents = "none";
   }
-  showDialog(dialog) {
-    this.popupManager.showDialog?.(dialog);
+  showDialog(dialog, onClose) {
+    this.popupManager.showDialog?.(dialog, onClose);
   }
   dismissDialog() {
     this.popupManager.dismissDialog?.();
@@ -49744,4 +49885,4 @@ export {
   hello
 };
 
-//# debugId=B89DC2098C2497C964756e2164756e21
+//# debugId=71FB8B6A2DCC145664756e2164756e21

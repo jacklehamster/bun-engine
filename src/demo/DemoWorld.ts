@@ -15,9 +15,9 @@ import { SurroundingTracker } from "world/grid/SurroundingTracker";
 import { SpriteGroup } from "world/sprite/aux/SpritesGroup";
 import { FixedSpriteGrid } from "world/sprite/aux/FixedSpriteGrid";
 import { MaxSpriteCountAuxiliary } from "world/sprite/aux/MaxSpriteCountAuxiliary";
-import { SpriteGrid } from "world/sprite/aux/SpriteGrid";
 import { SpriteUpdater } from "world/sprite/update/SpriteUpdater";
-import { Sprite, SpriteType } from "world/sprite/Sprite";
+import { Sprite } from "world/sprite/Sprite";
+import { SpriteType } from "world/sprite/SpriteType";
 import { ICamera } from "camera/ICamera";
 import { SpriteFactory } from "world/sprite/SpritesFactory";
 import { MoveAuxiliary } from "world/aux/MoveAuxiliary";
@@ -45,6 +45,10 @@ import { CollisionDetectors } from "world/collision/CollisionDetectors";
 import { UserInterface } from "ui/UserInterface";
 import { IControls } from "controls/IControls";
 import { IFade, FadeAuxiliary } from "world/aux/FadeAuxiliary";
+import { Grid } from "world/sprite/aux/Grid";
+import { copySprite } from "world/sprite/utils/sprite-utils";
+import { Box } from "world/collision/Box";
+import { Vector } from "core/types/Vector";
 
 enum Assets {
   DOBUKI = 0,
@@ -62,6 +66,9 @@ enum Assets {
   BUN_SHADOW = 12,
   WOLF = 13,
   WOLF_SHADOW = 14,
+  WATER = 15,
+  BUSHES = 16,
+  GRASS_GROUND = 17,
 }
 
 enum Anims {
@@ -187,9 +194,9 @@ export class DemoWorld extends AuxiliaryHolder<DemoWorld> implements IWorld {
               const centerX = canvas.width / 2, centerY = canvas.height / 2;
               const halfSize = canvas.width / 2;
               ctx.imageSmoothingEnabled = true;
-              ctx.fillStyle = '#ddd';
+              // ctx.fillStyle = '#ddd';
               ctx.lineWidth = canvas.width / 50;
-              ctx.fillRect(0, 0, canvas.width, canvas.height);
+              // ctx.fillRect(0, 0, canvas.width, canvas.height);
 
               ctx.strokeStyle = 'black';
               ctx.fillStyle = 'gold';
@@ -227,6 +234,26 @@ export class DemoWorld extends AuxiliaryHolder<DemoWorld> implements IWorld {
 
               ctx.strokeStyle = 'black';
               ctx.fillStyle = 'silver';
+
+              ctx.beginPath();
+              ctx.rect(canvas.width * .2, canvas.height * .2, canvas.width * .6, canvas.height * .6);
+              ctx.fill();
+              ctx.stroke();
+            },
+          },
+          {
+            id: Assets.GRASS_GROUND,
+            type: "draw",
+            draw: ctx => {
+              const { canvas } = ctx;
+              canvas.width = LOGO_SIZE;
+              canvas.height = LOGO_SIZE;
+              ctx.fillStyle = 'green';
+              ctx.lineWidth = canvas.width / 50;
+              ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+              ctx.strokeStyle = '#6f6';
+              ctx.fillStyle = 'lightgreen';
 
               ctx.beginPath();
               ctx.rect(canvas.width * .2, canvas.height * .2, canvas.width * .6, canvas.height * .6);
@@ -302,6 +329,30 @@ export class DemoWorld extends AuxiliaryHolder<DemoWorld> implements IWorld {
             },
           },
           {
+            id: Assets.BUSHES,
+            type: "draw",
+            draw: ctx => {
+              const { canvas } = ctx;
+              canvas.width = 1024;
+              canvas.height = 1024;
+              ctx.fillStyle = '#050';
+              ctx.lineWidth = canvas.width / 50;
+              ctx.fillRect(0, 0, canvas.width, canvas.height);
+            },
+          },
+          {
+            id: Assets.WATER,
+            type: "draw",
+            draw: ctx => {
+              const { canvas } = ctx;
+              canvas.width = 1024;
+              canvas.height = 1024;
+              ctx.fillStyle = '#68f';
+              ctx.lineWidth = canvas.width / 50;
+              ctx.fillRect(0, 0, canvas.width, canvas.height);
+            },
+          },
+          {
             id: Assets.TREE,
             type: "draw",
             draw: ctx => {
@@ -343,6 +394,16 @@ export class DemoWorld extends AuxiliaryHolder<DemoWorld> implements IWorld {
         ]),
       ));
 
+    const exitBlock = {
+      top: 2,
+      bottom: -1,
+      left: -.1,
+      right: .1,
+      near: 0,
+      far: -.5,
+    };
+    const exitPosition = cellUtils.positionFromCellPos(0, 0, 0, CELLSIZE);
+
     //  Adding a FixedSpriteGrid to the sprite accumulator.
     //  * You add sprite collections as "SpriteGrid". That way, the engine
     //  * will hide sprites if you're too far, and show them again if you're close.
@@ -353,19 +414,37 @@ export class DemoWorld extends AuxiliaryHolder<DemoWorld> implements IWorld {
       right: .1,
       near: 0,
       far: -.5,
+      disabled: true,
     };
     const dobukiPosition = cellUtils.positionFromCellPos(0, 0, -1, CELLSIZE);
 
-    const blockBox = {
-      top: 1,
+    const blockBox: Box = {
+      top: 2,
       bottom: -1,
       left: -1,
       right: 1,
       near: 1,
       far: -1,
     };
-    const blockPosition = cellUtils.positionFromCellPos(0, 0, -3, CELLSIZE);
-    const blockBoxSprites = new DisplayBox(blockBox, Assets.GROUND, Assets.BRICK);
+
+    const blockPositions: Vector[] = [
+      [-1, 0, -1],
+      [1, 0, -1],
+      [0, 0, -1],
+      [-1, 0, 0],
+      [1, 0, 0],
+    ].map(([x, y, z]) => cellUtils.positionFromCellPos(x, y, z, CELLSIZE));
+
+    blockPositions.forEach(blockPosition => {
+      const blockBoxSprites = new DisplayBox(blockBox, Assets.GROUND, Assets.BRICK);
+      spritesAccumulator.addAuxiliary(new FixedSpriteGrid(
+        cellUtils,
+        { cellSize: CELLSIZE },
+        new SpriteGroup(blockBoxSprites, [Matrix.create().setVector(blockPosition)]),
+      ));
+    });
+
+
     spritesAccumulator.addAuxiliary(new FixedSpriteGrid(
       cellUtils,
       { cellSize: CELLSIZE },
@@ -374,22 +453,27 @@ export class DemoWorld extends AuxiliaryHolder<DemoWorld> implements IWorld {
         {
           imageId: Assets.DOBUKI,
           spriteType: SpriteType.SPRITE,
-          transform: Matrix.create().translate(0, -.5, -1),
+          transform: Matrix.create().translate(0, -.3, -1),
+          hidden: true,
         },
       ], [Matrix.create().setVector(dobukiPosition)]),
       new SpriteGroup(
         new DisplayBox(dobukiBlock, Assets.WIREFRAME, Assets.WIREFRAME),
         [Matrix.create().setVector(dobukiPosition)]
       ),
+      new SpriteGroup(
+        new DisplayBox(exitBlock, Assets.WIREFRAME, Assets.WIREFRAME),
+        [Matrix.create().setVector(exitPosition)]
+      ),
 
       //  Side walls with happy face logo
       [
         //  side walls
         ...[
-          Matrix.create().translate(-1, 0, 0).rotateY(Math.PI / 2),
-          Matrix.create().translate(-1, 0, 0).rotateY(-Math.PI / 2),
-          Matrix.create().translate(1, 0, 0).rotateY(-Math.PI / 2),
-          Matrix.create().translate(1, 0, 0).rotateY(Math.PI / 2),
+          Matrix.create().translate(-3.01, 0, 0).rotateY(Math.PI / 2),
+          Matrix.create().translate(-3.01, 0, 0).rotateY(-Math.PI / 2),
+          Matrix.create().translate(3.01, 0, 0).rotateY(-Math.PI / 2),
+          Matrix.create().translate(3.01, 0, 0).rotateY(Math.PI / 2),
         ].map(transform => ({ imageId: Assets.LOGO, transform })),
         //  floor
         ...[
@@ -397,62 +481,63 @@ export class DemoWorld extends AuxiliaryHolder<DemoWorld> implements IWorld {
           Matrix.create().translate(0, -.9, 2).rotateX(-Math.PI / 2),
           Matrix.create().translate(-2, -.9, 2).rotateX(-Math.PI / 2),
           Matrix.create().translate(2, -.9, 2).rotateX(-Math.PI / 2),
-        ].map(transform => ({ imageId: Assets.GROUND, transform })),
+        ].map(transform => ({ imageId: Assets.GRASS_GROUND, transform })),
       ],
-      //  This is a block, moved 3 spaces back
-      new SpriteGroup(blockBoxSprites, [Matrix.create().setVector(blockPosition)]),
     ));
 
-    const camera = new Camera({ engine, motor });
+    const camera = this.camera = new Camera({ engine, motor });
     this.addAuxiliary(camera);
-    this.camera = camera;
+
+    // const collisionAccumulator = new Accumulator<ICollisionDetector>();
+    // collisionAccumulator.add()
 
     //  Dynamic SpriteGrid
     //  * This SpriteGrid is dynamic, meaning that the cell gets generated on the
     //  * fly. This allows us to produce an infinite amounts of cells.
-    spritesAccumulator.addAuxiliary(new SpriteGrid(
-      { yRange: [0, 0] }, new SpriteFactory({
-        fillSpriteBag({ pos }, bag, rng) {
-          const ground = bag.createSprite(Assets.GRASS);
-          ground.transform.translate(pos[0] * pos[3], -1, pos[2] * pos[3]).rotateX(-Math.PI / 2);
-          const ceiling = bag.createSprite(Assets.WIREFRAME);
-          ceiling.transform.translate(pos[0] * pos[3], 2, pos[2] * pos[3]).rotateX(Math.PI / 2);
+    spritesAccumulator.addAuxiliary(new Grid<Sprite>(
+      copySprite, { yRange: [0, 0] }, new SpriteFactory({
+        fillSpriteBag({ pos: cellPos }, bag, rng) {
+          const distSq = cellPos[0] * cellPos[0] + cellPos[2] * cellPos[2];
+          const isWater = distSq > 1000;
+          const hasTree = (distSq > 10) && rng() < .1 && !isWater;
+          const ground = bag.createSprite(hasTree ? Assets.BUSHES : isWater ? Assets.WATER : Assets.GRASS);
+          ground.spriteType = isWater ? SpriteType.WAVE : SpriteType.DEFAULT;
+          ground.transform.translate(cellPos[0] * cellPos[3], -1 - (isWater ? 1 : 0), cellPos[2] * cellPos[3]).rotateX(-Math.PI / 2);
+          bag.addSprite(ground);
 
-          const count = rng() < .1 ? 3 + rng() * 10 : 0;
+          const count = hasTree ? 5 + rng() * 10 : 0;
           for (let i = 0; i < count; i++) {
             const tree = bag.createSprite(Assets.TREE);
             tree.spriteType = SpriteType.SPRITE;
-            const size = 4 + Math.floor(2 * rng());
-            tree.transform.translate(pos[0] * pos[3] + (rng() - .5) * 2.5, -1 + size / 2, pos[2] * pos[3] + (rng() - .5) * 2.5).scale(.2 + rng(), size, .2 + rng());
+            const size = 1 + Math.floor(2 * rng());
+            tree.transform.translate(cellPos[0] * cellPos[3] + (rng() - .5) * 2.5, -1 + size / 2, cellPos[2] * cellPos[3] + (rng() - .5) * 2.5).scale(.2 + rng(), size, .2 + rng());
             bag.addSprite(tree);
           }
 
           //  Add bun
-          if (rng() < .02) {
+          if (!isWater && !count && rng() < .02) {
             const bun = bag.createSprite(Assets.BUN);
             bun.spriteType = SpriteType.SPRITE;
-            bun.transform.translate(pos[0] * pos[3], -.5, pos[2] * pos[3]).scale(.5);
+            bun.transform.translate(cellPos[0] * cellPos[3], -.7, cellPos[2] * cellPos[3]).scale(.5);
 
             const bunShadow = bag.createSprite(Assets.BUN_SHADOW);
-            bunShadow.transform.translate(pos[0] * pos[3], -1, pos[2] * pos[3]).rotateX(-Math.PI / 2).scale(.5);
+            bunShadow.transform.translate(cellPos[0] * cellPos[3], -1, cellPos[2] * cellPos[3]).rotateX(-Math.PI / 2).scale(.5);
 
             bag.addSprite(bun, bunShadow);
           }
 
           //  Add wolf
-          if (rng() < .01) {
+          if (!isWater && !count && rng() < .01) {
             const scale = 1.5;
             const wolf = bag.createSprite(Assets.WOLF);
             wolf.spriteType = SpriteType.SPRITE;
-            wolf.transform.translate(pos[0] * pos[3], 0, pos[2] * pos[3]).scale(scale);
+            wolf.transform.translate(cellPos[0] * cellPos[3], 0, cellPos[2] * cellPos[3]).scale(scale);
 
             const shadow = bag.createSprite(Assets.WOLF_SHADOW);
-            shadow.transform.translate(pos[0] * pos[3], -1, pos[2] * pos[3]).rotateX(-Math.PI / 2).scale(scale);
+            shadow.transform.translate(cellPos[0] * cellPos[3], -.99, cellPos[2] * cellPos[3] - .5).rotateX(-Math.PI / 2).scale(scale);
 
             bag.addSprite(wolf, shadow);
           }
-
-          bag.addSprite(ground, ceiling);
         },
       })
     ));
@@ -466,6 +551,7 @@ export class DemoWorld extends AuxiliaryHolder<DemoWorld> implements IWorld {
       far: -.9,
     };
     const heroPos: IPositionMatrix = new PositionMatrix()
+      .movedTo(0, 0, 3)
       .onChange(() => {
         forEach(heroSprites, (_, index) => heroSprites.informUpdate(index, SpriteUpdateType.TRANSFORM));
         forEach(displayBox, (_, index) => displayBox.informUpdate(index, SpriteUpdateType.TRANSFORM));
@@ -473,12 +559,13 @@ export class DemoWorld extends AuxiliaryHolder<DemoWorld> implements IWorld {
     const heroSprites = new SpriteGroup([{
       imageId: Assets.DODO,
       spriteType: SpriteType.SPRITE,
-      transform: Matrix.create().translate(0, -.5, 0),
+      transform: Matrix.create().translate(0, -.3, 0),
       animationId: Anims.STILL,
     },], [heroPos]);
     spritesAccumulator.addAuxiliary(heroSprites);
 
     const displayBox = new SpriteGroup(new DisplayBox(heroBox, Assets.WIREFRAME), [heroPos]);
+
     spritesAccumulator.addAuxiliary(displayBox);
 
     const shadowPos: IPositionMatrix = new PositionMatrix()
@@ -502,40 +589,58 @@ export class DemoWorld extends AuxiliaryHolder<DemoWorld> implements IWorld {
     spritesAccumulator.addAuxiliary(shadowHeroSprites);
 
     heroPos.moveBlocker = new CollisionDetectors([
-      new CollisionDetector(
-        {
+      new CollisionDetectors(blockPositions.map(blockPosition =>
+        new CollisionDetector({
           blockerBox: blockBox, blockerPosition: blockPosition, heroBox,
           listener: {
             onBlockChange(blocked) {
-              displayBox.imageId = blocked ? Assets.WIREFRAME_RED : Assets.WIREFRAME;
+              displayBox.setImageId(blocked ? Assets.WIREFRAME_RED : Assets.WIREFRAME);
             },
           }
-        },
-        { shouldBlock: true }
+        }, { shouldBlock: true }))
       ),
+      new CollisionDetector({
+        blockerBox: dobukiBlock, blockerPosition: dobukiPosition, heroBox,
+        listener: {
+          onEnter() {
+            displayBox.setImageId(Assets.WIREFRAME_RED);
+            ui.showDialog({
+              conversation: {
+                messages: [
+                  { text: "Hello there." },
+                  { text: "Bye bye." },
+                ]
+              },
+            });
+          },
+          onLeave() {
+            displayBox.setImageId(Assets.WIREFRAME);
+          }
+        }
+      }, { shouldBlock: false }),
       new CollisionDetector(
         {
-          blockerBox: dobukiBlock, blockerPosition: dobukiPosition, heroBox,
+          blockerBox: exitBlock, blockerPosition: exitPosition, heroBox,
           listener: {
             onEnter() {
-              displayBox.imageId = Assets.WIREFRAME_RED;
+              displayBox.setImageId(Assets.WIREFRAME_RED);
               ui.showDialog({
                 conversation: {
                   messages: [
-                    { text: "Hello there." },
-                    { text: "Bye bye." },
+                    { text: "Going down..." },
                   ]
                 },
+              }, () => {
+                camera.fade.progressTowards(1, .005, this, motor);
               });
             },
             onLeave() {
-              displayBox.imageId = Assets.WIREFRAME;
+              displayBox.setImageId(Assets.WIREFRAME);
             }
           }
-        },
-        { shouldBlock: false }
-      ),
+        }, { shouldBlock: false }),
     ]);
+
 
     //  Static Sprites
     //  * Those are just sprites, which will appear regardless of where
@@ -582,9 +687,8 @@ export class DemoWorld extends AuxiliaryHolder<DemoWorld> implements IWorld {
         }),
       ))
       .addAuxiliary(new DirAuxiliary({ controls }, dx => {
-        const flip = dx < 0;
-        heroSprites.flip = flip;
-        shadowHeroSprites.flip = flip;
+        heroSprites.setOrientation(dx);
+        shadowHeroSprites.setOrientation(dx);
       }))
       .addAuxiliary(new MotionAuxiliary({ controls }, moving => {
         const animId = moving ? Anims.RUN : Anims.STILL;
@@ -600,15 +704,16 @@ export class DemoWorld extends AuxiliaryHolder<DemoWorld> implements IWorld {
       new CellChangeAuxiliary(cellUtils, { cellSize: CELLSIZE })
         .addAuxiliary(new SurroundingTracker({ cellTrack: this, cellUtils }, {
           cellLimit: 5000,
-          range: [30, 3, 30],
+          range: [30, 3, 40],
           cellSize: CELLSIZE,
         }))));
 
     //  Hack some base settings
     camera.distance.setValue(5)
-    camera.tilt.angle.setValue(1.1);
+    camera.tilt.angle.setValue(.8);
     camera.projection.zoom.setValue(.25);
     camera.projection.perspective.setValue(.05);
+    camera.setBackgroundColor(0x000000);
     this.addAuxiliary(new TimeAuxiliary({ motor, engine }))
       .addAuxiliary(new FadeAuxiliary({ camera, motor }));
   }

@@ -4,19 +4,19 @@ import { Sprite } from "../Sprite";
 export function copySprite(sprite: Sprite, dest?: Sprite): Sprite {
   if (!dest) {
     return {
-      name: sprite.name,
       transform: Matrix.create().copy(sprite.transform),
       imageId: sprite.imageId,
       spriteType: sprite.spriteType,
-      flip: sprite.flip,
+      orientation: sprite.orientation,
       animationId: sprite.animationId,
+      hidden: sprite.hidden,
     };
   }
-  dest.name = sprite.name;
   dest.imageId = sprite.imageId;
   dest.spriteType = sprite.spriteType;
   dest.transform.copy(sprite.transform);
-  dest.flip = sprite.flip;
+  dest.orientation = sprite.orientation;
   dest.animationId = sprite.animationId;
+  dest.hidden = sprite.hidden;
   return dest;
 }

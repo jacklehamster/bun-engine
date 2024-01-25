@@ -1,7 +1,8 @@
 import { MediaId } from "gl/texture/ImageManager";
 import Matrix from "gl/transform/Matrix";
 import { ObjectPool } from "utils/ObjectPool";
-import { Sprite, SpriteType } from "world/sprite/Sprite";
+import { Sprite } from "world/sprite/Sprite";
+import { SpriteType } from "world/sprite/SpriteType";
 
 export class SpritePool extends ObjectPool<Sprite, [MediaId]> {
   constructor() {

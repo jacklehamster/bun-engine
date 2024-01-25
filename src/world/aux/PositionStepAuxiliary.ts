@@ -79,7 +79,10 @@ export class PositionStepAuxiliary extends ControlledLooper<Data> implements Aux
     if (!dx && !dz) {
       this.stepCount = 0;
     }
-    const speed = ((dx || dz) ? deltaTime / 150 : deltaTime / 100) * data.speed;
+    let speed = ((dx || dz) ? deltaTime / 150 : deltaTime / 100) * data.speed;
+    if (data.position.position[1] > 0) {
+      speed *= 2;
+    }
 
     const didMove = data.position.gotoPos(this.goalPos[0], pos[1], this.goalPos[2], speed)
       || dx && data.position.gotoPos(this.goalPos[0], pos[1], pos[2], speed)

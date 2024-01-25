@@ -65,7 +65,7 @@ export class Camera extends AuxiliaryHolder<ICamera> implements ICamera {
       ids.clear();
     }, motor);
 
-    const cameraVal: Record<FloatUniform, Val<number> | undefined> = {
+    const cameraVal: Record<FloatUniform, Val<number, [number]> | undefined> = {
       [FloatUniform.BG_BLUR]: this.blur,
       [FloatUniform.CAM_DISTANCE]: this.distance,
       [FloatUniform.CURVATURE]: this.curvature,
@@ -104,7 +104,7 @@ export class Camera extends AuxiliaryHolder<ICamera> implements ICamera {
     }
   }
 
-  set bgColor(rgb: number) {
+  setBackgroundColor(rgb: number) {
     const red = (rgb >> 16) & 0xFF;
     const green = (rgb >> 8) & 0xFF;
     const blue = rgb & 0xFF;

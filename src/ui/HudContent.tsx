@@ -16,6 +16,7 @@ interface Props {
 export function HudContent({ dialogManager, controls }: Props) {
   const [menu, setMenu] = useState<MenuData>();
   const [dialog, setDialog] = useState<DialogData>();
+  const [onClose, setOnClose] = useState<() => void>();
 
   const gameContext: GameContextType = useMemo<GameContextType>(
     () => ({
@@ -33,10 +34,20 @@ export function HudContent({ dialogManager, controls }: Props) {
   useEffect(() => {
     dialogManager.showMenu = (menu: MenuData) => gameContext.setMenu(menu);
     dialogManager.dismissMenu = () => gameContext.setMenu(undefined);
-    dialogManager.showDialog = (dialog: DialogData) =>
+    dialogManager.showDialog = (dialog: DialogData, onClose?: () => void) => {
       gameContext.setDialog(dialog);
-    dialogManager.dismissDialog = () => gameContext.setDialog(undefined);
-  }, [dialogManager, gameContext]);
+      setOnClose(() => onClose);
+    };
+    dialogManager.dismissDialog = () => {
+      gameContext.setDialog(undefined);
+    };
+  }, [dialogManager, gameContext, setOnClose]);
+
+  useEffect(() => {
+    if (!dialog) {
+      onClose?.();
+    }
+  }, [dialog]);
 
   return (
     <Provider context={gameContext}>

@@ -9,6 +9,7 @@ export interface IPositionMatrix extends IMatrix, Auxiliary, Holder<IPositionMat
   moveBy(x: number, y: number, z: number, turnMatrix?: IMatrix): boolean;
   moveTo(x: number, y: number, z: number): boolean;
   gotoPos(x: number, y: number, z: number, speed?: number): boolean;
+  movedTo(x: number, y: number, z: number): this;
   get position(): Vector;
   onChange(listener: ChangeListener): this;
   removeChangeListener(listener: ChangeListener): void;

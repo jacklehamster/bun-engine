@@ -45,6 +45,7 @@ export class FollowAuxiliary extends Looper<Data> implements Auxiliary {
   activate(): void {
     super.activate();
     this.followee.onChange(this.listener);
+    this.start();
   }
 
   deactivate(): void {

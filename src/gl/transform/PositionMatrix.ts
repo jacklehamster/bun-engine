@@ -65,6 +65,11 @@ export class PositionMatrix extends AuxiliaryHolder<PositionMatrix> implements I
     return !blocked;
   }
 
+  movedTo(x: number, y: number, z: number): this {
+    this.moveTo(x, y, z);
+    return this;
+  }
+
   get position() {
     return this._position;
   }

@@ -26,6 +26,7 @@ export class CollisionDetector implements ICollisionDetector {
   private collide = false;
   private config: Config;
   private listener: Listener;
+  private disabled?: boolean;
 
   constructor({ blockerBox, blockerPosition, heroBox = NULLBOX, listener = {} }: Props,
     config: Partial<Config> = {}) {
@@ -33,9 +34,13 @@ export class CollisionDetector implements ICollisionDetector {
     this.heroCollisionBox = new CollisionBox(heroBox, [0, 0, 0]);
     this.listener = listener;
     this.config = { shouldBlock: config.shouldBlock ?? false };
+    this.disabled = blockerBox.disabled;
   }
 
   isBlocked(to: Vector): boolean {
+    if (this.disabled) {
+      return false;
+    }
     this.heroCollisionBox.gotoPosition(to);
     const collide = this.heroCollisionBox.collideWith(this.collisionBox);
     if (collide !== this.collide) {

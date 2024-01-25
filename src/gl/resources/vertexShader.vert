@@ -15,6 +15,7 @@ const mat4 identity = mat4(1.0);
 const float SPRITE = 1.0;
 const float HUD = 2.0;
 const float DISTANT = 3.0;
+const float WAVE = 4.0;
 
 //  IN
 //  shape
@@ -44,6 +45,7 @@ out vec2 vTex;
 out float dist;
 out vec3 vInstanceColor;
 out vec2 var;
+out vec3 vNormal;
 
 void main() {
   vec2 slotSize = vec2(
@@ -72,6 +74,7 @@ void main() {
   float isHud = max(0., 1. - 2. * abs(spriteType - HUD));
   float isSprite = max(0., 1. - 2. * abs(spriteType - SPRITE));
   float isDistant = max(0., 1. - 2. * abs(spriteType - DISTANT));
+  float isWave = max(0., 1. - 2. * abs(spriteType - WAVE));
 
   mat4 billboardMatrix = inverse(camTilt * camTurn);
   float isBillboard = max(isDistant, isSprite);
@@ -80,6 +83,13 @@ void main() {
   vec4 worldPosition = transform * basePosition;
   var = vec2(rand(worldPosition.xz), rand(worldPosition.xz - worldPosition.yx));
 
+	float noise = rand(worldPosition.xz) * 13.;
+  worldPosition.y += isWave * sin(noise + time/1000.);
+
+  vNormal.y = 1.5 + isWave * sin(noise + 1333. + time/777.);
+  vNormal.x = isWave * sin(noise + time/1000.);
+  vNormal.z = isWave * cos(noise + time/1001.);
+
   // worldPosition => relativePositio
   vec4 relativePosition = camTilt * camTurn * camPos * worldPosition;
 
@@ -87,7 +97,6 @@ void main() {
   relativePosition.y -= actualCurvature * ((relativePosition.z * relativePosition.z) + (relativePosition.x * relativePosition.x) / 4.) / 10.;
   relativePosition.x /= (1. + actualCurvature * 1.4);
 
-  //relativePosition.z *= -1.0;
   relativePosition.z -= camDist;
 
   dist = max(isDistant, isHud) + (1. - max(isDistant, isHud)) * (relativePosition.z*relativePosition.z + relativePosition.x*relativePosition.x);

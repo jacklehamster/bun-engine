@@ -7,31 +7,35 @@ import { Sprites } from "world/sprite/Sprites";
 export class DisplayBox implements Sprites {
   private readonly sprites: Sprite[];
   constructor(box: Box, imageId: MediaId, insideImageId?: MediaId) {
-    const cX = (box.left + box.right) / 2;
-    const cY = (box.top + box.bottom) / 2;
-    const cZ = (box.near + box.far) / 2;
-    const groundScale: [number, number, number] = [box.right - box.left, 2, box.near - box.far];
-    const sideScale: [number, number, number] = [2, box.top - box.bottom, box.near - box.far];
-    const faceScale: [number, number, number] = [box.right - box.left, box.top - box.bottom, 2];
+    if (!box.disabled) {
+      const cX = (box.left + box.right) / 2;
+      const cY = (box.top + box.bottom) / 2;
+      const cZ = (box.near + box.far) / 2;
+      const groundScale: [number, number, number] = [box.right - box.left, 2, box.near - box.far];
+      const sideScale: [number, number, number] = [2, box.top - box.bottom, box.near - box.far];
+      const faceScale: [number, number, number] = [box.right - box.left, box.top - box.bottom, 2];
 
-    const outside = [
-      Matrix.create().translate(cX, box.bottom, cZ).scale(...groundScale).scale(1 / 2).rotateX(Math.PI / 2),
-      Matrix.create().translate(cX, box.top, cZ).scale(...groundScale).scale(1 / 2).rotateX(-Math.PI / 2),
-      Matrix.create().translate(box.left, cY, cZ).scale(...sideScale).scale(1 / 2).rotateY(-Math.PI / 2),
-      Matrix.create().translate(box.right, cY, cZ).scale(...sideScale).scale(1 / 2).rotateY(Math.PI / 2),
-      Matrix.create().translate(cX, cY, box.near).scale(...faceScale).scale(1 / 2).rotateY(0),
-      Matrix.create().translate(cX, cY, box.far).scale(...faceScale).scale(1 / 2).rotateY(Math.PI),
-    ].map(transform => ({ imageId, transform }));
+      const outside = [
+        Matrix.create().translate(cX, box.bottom, cZ).scale(...groundScale).scale(1 / 2).rotateX(Math.PI / 2),
+        Matrix.create().translate(cX, box.top, cZ).scale(...groundScale).scale(1 / 2).rotateX(-Math.PI / 2),
+        Matrix.create().translate(box.left, cY, cZ).scale(...sideScale).scale(1 / 2).rotateY(-Math.PI / 2),
+        Matrix.create().translate(box.right, cY, cZ).scale(...sideScale).scale(1 / 2).rotateY(Math.PI / 2),
+        Matrix.create().translate(cX, cY, box.near).scale(...faceScale).scale(1 / 2).rotateY(0),
+        Matrix.create().translate(cX, cY, box.far).scale(...faceScale).scale(1 / 2).rotateY(Math.PI),
+      ].map(transform => ({ imageId, transform }));
 
-    const inside = !insideImageId ? [] : [
-      Matrix.create().translate(cX, box.bottom, cZ).scale(...groundScale).scale(1 / 2).rotateX(-Math.PI / 2),
-      Matrix.create().translate(cX, box.top, cZ).scale(...groundScale).scale(1 / 2).rotateX(+Math.PI / 2),
-      Matrix.create().translate(box.left, cY, cZ).scale(...sideScale).scale(1 / 2).rotateY(+Math.PI / 2),
-      Matrix.create().translate(box.right, cY, cZ).scale(...sideScale).scale(1 / 2).rotateY(-Math.PI / 2),
-      Matrix.create().translate(cX, cY, box.near).scale(...faceScale).scale(1 / 2).rotateY(Math.PI),
-      Matrix.create().translate(cX, cY, box.far).scale(...faceScale).scale(1 / 2).rotateY(0),
-    ].map(transform => ({ imageId: insideImageId, transform }));
-    this.sprites = [...inside, ...outside];
+      const inside = !insideImageId ? [] : [
+        Matrix.create().translate(cX, box.bottom, cZ).scale(...groundScale).scale(1 / 2).rotateX(-Math.PI / 2),
+        Matrix.create().translate(cX, box.top, cZ).scale(...groundScale).scale(1 / 2).rotateX(+Math.PI / 2),
+        Matrix.create().translate(box.left, cY, cZ).scale(...sideScale).scale(1 / 2).rotateY(+Math.PI / 2),
+        Matrix.create().translate(box.right, cY, cZ).scale(...sideScale).scale(1 / 2).rotateY(-Math.PI / 2),
+        Matrix.create().translate(cX, cY, box.near).scale(...faceScale).scale(1 / 2).rotateY(Math.PI),
+        Matrix.create().translate(cX, cY, box.far).scale(...faceScale).scale(1 / 2).rotateY(0),
+      ].map(transform => ({ imageId: insideImageId, transform }));
+      this.sprites = [...inside, ...outside];
+    } else {
+      this.sprites = [];
+    }
   }
 
   get length(): number {

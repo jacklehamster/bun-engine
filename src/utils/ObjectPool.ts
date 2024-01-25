@@ -1,4 +1,6 @@
-export class ObjectPool<T, A extends any[] = []> {
+import { ItemPool } from "./ItemPool";
+
+export class ObjectPool<T, A extends any[] = []> implements ItemPool<T, A> {
   static warningLimit = 50000;
 
   private readonly _allObjectsCreated: T[] = [];
@@ -6,9 +8,8 @@ export class ObjectPool<T, A extends any[] = []> {
   constructor(private initCall: (elem: T | undefined, ...params: A) => T, private onCreate?: (elem: T) => void) {
   }
 
-  recycle(element: T) {
+  recycle(element: T): undefined {
     this._recycler.push(element);
-    this.checkObjectExistence();
   }
 
   create(...params: A): T {
@@ -25,19 +26,21 @@ export class ObjectPool<T, A extends any[] = []> {
   }
 
   reset() {
-    for (let i = 0; i < this._allObjectsCreated.length; i++) {
+    const len = this._recycler.length = this._allObjectsCreated.length;
+    for (let i = 0; i < len; i++) {
       this._recycler[i] = this._allObjectsCreated[i];
     }
   }
 
   clear() {
+    //  dispose of objects, leave it to garbage collector
     this._recycler.length = 0;
     this._allObjectsCreated.length = 0;
   }
 
   private checkObjectExistence() {
     if (this._allObjectsCreated.length === ObjectPool.warningLimit) {
-      console.warn("ObjectPool already created", this._allObjectsCreated.length);
+      console.warn("ObjectPool already created", this._allObjectsCreated.length, "in", this.constructor.name);
     }
   }
 }

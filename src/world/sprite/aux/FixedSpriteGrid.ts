@@ -1,4 +1,3 @@
-import { SpriteGrid } from "./SpriteGrid";
 import { Sprites } from "../Sprites";
 import { Sprite } from "../Sprite";
 import { copySprite } from "../utils/sprite-utils";
@@ -7,19 +6,20 @@ import { transformToPosition } from "world/grid/utils/position-utils";
 import { CellUtils } from "world/grid/utils/cell-utils";
 import { Auxiliary } from "world/aux/Auxiliary";
 import { Tag } from "world/grid/Cell";
+import { Grid } from "./Grid";
 
 interface Config {
   cellSize?: number;
   spriteLimit?: number;
 }
 
-export class FixedSpriteGrid extends SpriteGrid {
+export class FixedSpriteGrid extends Grid<Sprite> {
   private readonly cellSize: number;
   private readonly spritesPerCell: Map<Tag, Sprite[]> = new Map();
   private readonly spritesList: Sprites[];
 
   constructor(private cellUtils: CellUtils, config: Config, ...spritesList: ((Sprites | Sprite[]) & Partial<Auxiliary>)[]) {
-    super({}, {
+    super(copySprite, {}, {
       getElemsAtCell: cell => this.spritesPerCell.get(cell.tag),
     });
     this.cellSize = config.cellSize ?? 1;

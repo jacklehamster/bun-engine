@@ -20,7 +20,7 @@ export class PopupManager {
     this.listeners.forEach(listener => listener.onPopup(this.popups.size));
   }
 
-  showDialog?(dialog: DialogData): void;
+  showDialog?(dialog: DialogData, onClose?: () => void): void;
   dismissDialog?(): void;
 
   showMenu?(menu: MenuData): void;

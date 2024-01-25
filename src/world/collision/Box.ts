@@ -5,6 +5,7 @@ export interface Box {
   get right(): number;
   get near(): number;
   get far(): number;
+  disabled?: boolean;
 }
 
 export const NULLBOX: Box = {
@@ -13,5 +14,6 @@ export const NULLBOX: Box = {
   left: 0,
   right: 0,
   near: 0,
-  far: 0
+  far: 0,
+  disabled: false,
 };
