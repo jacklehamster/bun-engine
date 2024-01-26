@@ -1,6 +1,5 @@
 import { AuxiliaryHolder } from "world/aux/AuxiliaryHolder";
 import { ObjectPool } from "utils/ObjectPool";
-import { forEach } from "../List";
 import { IdType } from "core/IdType";
 import { ElemsHolder } from "./ElemsHolder";
 import { IAccumulator } from "../IAccumulator";
@@ -9,7 +8,7 @@ import { UpdatableList } from "../UpdatableList";
 interface Slot<T> {
   elems: UpdatableList<T>;
   index: IdType;
-  id?: IdType;
+  id: IdType;
 }
 
 export class Accumulator<T> extends AuxiliaryHolder implements ElemsHolder<T>, IAccumulator<T> {
@@ -54,43 +53,50 @@ export class Accumulator<T> extends AuxiliaryHolder implements ElemsHolder<T>, I
 
   add(...elemsList: (UpdatableList<T> | T[] & { informUpdate: undefined, activate: undefined })[]): void {
     elemsList.forEach(elems => {
-      const slots: Slot<T>[] = [];
+      const indexMaping: (number | undefined)[] = [];
       if (elems.informUpdate) {
         //  overwrite if it's defined to informUpdate through SpriteAccumulator.
         elems.informUpdate = (index, type) => {
-          const slot = slots[index] ?? (slots[index] = this.pool.create(elems, index));
-          const elem = slot.elems.at(index);
-          if (elem) {
-            if (slot.id === undefined) {
-              slot.id = this.indices.length;
-              this.indices.push(slot);
-              this.onSizeChange();
+          const elem = elems.at(index);
+          let id = indexMaping[index];
+          if (id === undefined) {
+            if (!elem) {
+              //  no update needed on non-existing item
+              return;
             }
-            this.informUpdate?.(slot.id, type);
+            //  create new entry
+            id = this.indices.length;
+            indexMaping[index] = id;
+            this.informUpdate?.(id);
+            this.indices.push(this.pool.create(elems, index, id));
+            this.onSizeChange();
+
+            return;
           } else {
-            if (slot.id !== undefined) {
-              const id = slot.id;
-              slot.id = undefined;
-              if (this.indices.length) {
-                const lastSlotId = this.indices.length - 1;
-                if (id !== lastSlotId) {
-                  this.indices[id] = this.indices[lastSlotId];
-                  this.indices[id].id = id;
-                }
-                this.indices.pop();
+            if (!elem) {
+              //  remove entry
+              indexMaping[index] = undefined;
+              const slot = this.indices[id];
+              this.pool.recycle(slot);
+
+              const lastSlotId = this.indices.length - 1;
+              if (id !== lastSlotId) {
+                this.indices[id] = this.indices[lastSlotId];
+                this.indices[id].id = id;
                 this.informUpdate?.(lastSlotId);
-                this.onSizeChange();
               }
+              this.indices.pop();
               this.informUpdate?.(id);
+              this.onSizeChange();
+              return;
             }
           }
+
+          //  Inform update
+          this.informUpdate?.(id, type);
         };
       } else {
-        forEach(elems, (_, index) => {
-          const slot = this.pool.create(elems, index);
-          slot.id = this.indices.length;
-          this.indices.push(slot);
-        });
+        throw new Error("informUpdate must be defined");
       }
     });
   }
@@ -104,15 +110,15 @@ export class Accumulator<T> extends AuxiliaryHolder implements ElemsHolder<T>, I
   }
 }
 
-class SlotPool<T> extends ObjectPool<Slot<T>, [UpdatableList<T>, IdType]> {
+class SlotPool<T> extends ObjectPool<Slot<T>, [UpdatableList<T>, IdType, IdType]> {
   constructor() {
-    super((slot, elems, index) => {
+    super((slot, elems, index, id) => {
       if (!slot) {
-        return { elems, index };
+        return { elems, index, id };
       }
       slot.elems = elems;
       slot.index = index;
-      slot.id = undefined;
+      slot.id = id;
       return slot;
     });
   }

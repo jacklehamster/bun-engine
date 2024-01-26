@@ -34,7 +34,7 @@ export class Grid<T> extends AuxiliaryHolder<ElemsHolder<T>> implements UpdateNo
   constructor(copy: (elem: T, previousElem?: T) => T, config?: Config, ...factories: IElemFactory<T>[]) {
     super();
     this.factories = factories;
-    this.slotPool = new SlotPool(copy);
+    this.slotPool = new GridSlotPool(copy);
     this.boundaries = {
       minX: config?.xRange?.[0] ?? Number.NEGATIVE_INFINITY,
       maxX: config?.xRange?.[1] ?? Number.POSITIVE_INFINITY,
@@ -94,10 +94,10 @@ export class Grid<T> extends AuxiliaryHolder<ElemsHolder<T>> implements UpdateNo
     return !!count;
   }
 
-  untrackCell(cellTag: string): void {
+  untrackCells(cellTags: Set<string>): void {
     for (let i = this.slots.length - 1; i >= 0; i--) {
       const slot = this.slots[i];
-      if (slot.tag === cellTag) {
+      if (cellTags.has(slot.tag)) {
         this.informUpdate(i);
         this.informUpdate(this.slots.length - 1, SpriteUpdateType.TRANSFORM);
         this.slots[i] = this.slots[this.slots.length - 1];
@@ -108,7 +108,7 @@ export class Grid<T> extends AuxiliaryHolder<ElemsHolder<T>> implements UpdateNo
   }
 }
 
-class SlotPool<T> extends ObjectPool<Slot<T>, [T, string]> {
+class GridSlotPool<T> extends ObjectPool<Slot<T>, [T, string]> {
   constructor(copy: (elem: T, dest?: T) => T) {
     super((slot, elem: T, tag: string) => {
       if (!slot) {

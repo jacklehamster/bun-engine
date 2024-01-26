@@ -35,11 +35,11 @@ export class Auxiliaries implements List<Auxiliary>, Auxiliary {
     return didTrack;
   }
 
-  untrackCell(cellTag: string): void {
+  untrackCells(cellTags: Set<string>): void {
     if (!this.active) {
       return;
     }
-    forEach(this.auxiliaries, aux => aux?.untrackCell?.(cellTag));
+    forEach(this.auxiliaries, aux => aux?.untrackCells?.(cellTags));
   }
 
   activate(): void {

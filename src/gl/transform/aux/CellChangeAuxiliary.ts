@@ -3,7 +3,7 @@ import { CellUtils } from "world/grid/utils/cell-utils";
 import { VisitableCell } from "../../../world/grid/VisitCell";
 import { AuxiliaryHolder } from "world/aux/AuxiliaryHolder";
 import { ChangeListener, IPositionMatrix } from "../IPositionMatrix";
-import { CellPos } from "world/grid/CellPos";
+import { Cell } from "world/grid/Cell";
 
 interface Config {
   cellSize?: number;
@@ -13,7 +13,7 @@ export class CellChangeAuxiliary extends AuxiliaryHolder implements Auxiliary<IP
   visitableCell?: VisitableCell;
   private positionMatrix?: IPositionMatrix;
   private readonly cellSize: number;
-  private readonly previousCellPos: CellPos;
+  private readonly previousCellPos: Cell["pos"];
   private readonly listener: ChangeListener = () => this.checkPosition();
 
   constructor(private cellUtils: CellUtils, config?: Config) {

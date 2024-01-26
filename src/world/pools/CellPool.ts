@@ -4,7 +4,7 @@ import { cellTag } from "world/grid/Cell";
 import { Vector } from "core/types/Vector";
 
 export class CellPool extends ObjectPool<Cell, [number, number, number, number]> {
-  constructor(onCreate?: () => void) {
+  constructor() {
     super((cell, cx, cy, cz, cellSize) => {
       const tag = cellTag(cx, cy, cz, cellSize);
       if (!cell) {
@@ -16,14 +16,13 @@ export class CellPool extends ObjectPool<Cell, [number, number, number, number]>
       cell.pos[3] = cellSize;
       cell.tag = tag;
       return cell;
-    }, onCreate);
+    });
   }
 
   createFromPos(pos: Vector, cellSize: number): Cell {
-    const [x, y, z] = pos;
-    const cx = Math.round(x / cellSize);
-    const cy = Math.round(y / cellSize);
-    const cz = Math.round(z / cellSize);
+    const cx = Math.round(pos[0] / cellSize);
+    const cy = Math.round(pos[1] / cellSize);
+    const cz = Math.round(pos[2] / cellSize);
     return this.create(cx, cy, cz, cellSize);
   }
 }

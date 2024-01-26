@@ -19006,9 +19006,9 @@ var require_seedrandom = __commonJS((exports, module) => {
         s[i] = s[j = mask & j + key[i % keylen] + (t = s[i])];
         s[j] = t;
       }
-      (me.g = function(count) {
+      (me.g = function(count2) {
         var t2, r = 0, i2 = me.i, j2 = me.j, s3 = me.S;
-        while (count--) {
+        while (count2--) {
           t2 = s3[i2 = mask & i2 + 1];
           r = r * width + s3[mask & (s3[i2] = s3[j2 = mask & j2 + t2]) + (s3[j2] = t2)];
         }
@@ -19753,9 +19753,9 @@ var require_react_development = __commonJS((exports, module) => {
           return children;
         }
         var result = [];
-        var count = 0;
+        var count2 = 0;
         mapIntoArray(children, result, "", "", function(child) {
-          return func.call(context, child, count++);
+          return func.call(context, child, count2++);
         });
         return result;
       }
@@ -46553,16 +46553,18 @@ class GraphicsEngine extends Disposable {
 // src/utils/ObjectPool.ts
 class ObjectPool {
   initCall;
-  onCreate;
+  onRecycle;
   static warningLimit = 50000;
-  _allObjectsCreated = [];
+  _usedObjects = new Set;
   _recycler = [];
-  constructor(initCall, onCreate) {
+  constructor(initCall, onRecycle) {
     this.initCall = initCall;
-    this.onCreate = onCreate;
+    this.onRecycle = onRecycle;
   }
   recycle(element) {
+    this._usedObjects.delete(element);
     this._recycler.push(element);
+    this.onRecycle?.(element);
   }
   create(...params) {
     const recycledElem = this._recycler.pop();
@@ -46570,27 +46572,31 @@ class ObjectPool {
       return this.initCall(recycledElem, ...params);
     }
     const elem = this.initCall(undefined, ...params);
-    this._allObjectsCreated.push(elem);
+    this._usedObjects.add(elem);
     this.checkObjectExistence();
-    this.onCreate?.(elem);
     return elem;
   }
   reset() {
-    const len3 = this._recycler.length = this._allObjectsCreated.length;
-    for (let i = 0;i < len3; i++) {
-      this._recycler[i] = this._allObjectsCreated[i];
+    for (const elem of this._usedObjects) {
+      this._recycler.push(elem);
     }
+    this._usedObjects.clear();
   }
   clear() {
     this._recycler.length = 0;
-    this._allObjectsCreated.length = 0;
+    this._usedObjects.clear();
   }
   checkObjectExistence() {
-    if (this._allObjectsCreated.length === ObjectPool.warningLimit) {
-      console.warn("ObjectPool already created", this._allObjectsCreated.length, "in", this.constructor.name);
+    if (this._usedObjects.size + this._recycler.length === ObjectPool.warningLimit) {
+      console.warn("ObjectPool already created", this._usedObjects.size + this._recycler.length, "in", this.constructor.name);
+    }
+    if (this._usedObjects.size + this._recycler.length > count) {
+      count = this._usedObjects.size + this._recycler.length + 1000;
+      console.warn("ObjectPool already created", this._usedObjects.size, "used", this._recycler.length, "recycled in", this.constructor.name);
     }
   }
 }
+var count = 0;
 
 // src/motor/Motor.ts
 var MILLIS_IN_SEC = 1000;
@@ -46755,9 +46761,9 @@ class AuxiliaryHolder {
     }
     return didTrack;
   }
-  untrackCell(cellTag) {
+  untrackCells(cellTags) {
     for (const v of this.cellTracks) {
-      v.untrackCell(cellTag);
+      v.untrackCells(cellTags);
     }
   }
   addAuxiliary(...aux) {
@@ -46788,7 +46794,7 @@ class AuxiliaryHolder {
     this.onAuxiliariesChange();
   }
   onAuxiliariesChange() {
-    this.cellTracks = this.auxiliaries?.filter((a) => !!a.trackCell || !!a.untrackCell) ?? EMPTY_CELLTRACK;
+    this.cellTracks = this.auxiliaries?.filter((a) => !!a.trackCell || !!a.untrackCells) ?? EMPTY_CELLTRACK;
   }
 }
 
@@ -47088,12 +47094,12 @@ class UpdateRegistry {
     if (!this.updatedIds.has(id)) {
       this.updatedIds.add(id);
     }
-    this.motor.scheduleUpdate(this);
+    this.motor.scheduleUpdate(this, undefined);
   }
   refresh(update) {
     this.applyUpdate(this.updatedIds, update);
     if (this.updatedIds.size) {
-      update.motor.scheduleUpdate(this);
+      update.motor.scheduleUpdate(this, undefined);
     }
   }
 }
@@ -47261,11 +47267,11 @@ class Auxiliaries {
     });
     return didTrack;
   }
-  untrackCell(cellTag) {
+  untrackCells(cellTags) {
     if (!this.active) {
       return;
     }
-    forEach3(this.auxiliaries, (aux) => aux?.untrackCell?.(cellTag));
+    forEach3(this.auxiliaries, (aux) => aux?.untrackCells?.(cellTags));
   }
   activate() {
     if (this.active) {
@@ -47615,6 +47621,7 @@ class SurroundingTracker {
   base;
   cellLimit;
   cellSize;
+  _trimmedTags = new Set;
   constructor({ cellTrack, cellUtils }, { range, cellLimit, cellSize = 1 } = {}) {
     this.range = [range?.[0] ?? 3, range?.[1] ?? 3, range?.[2] ?? 3];
     this.base = this.range.map((r) => Math.ceil(-r / 2));
@@ -47660,9 +47667,13 @@ class SurroundingTracker {
     while (this.cellTags.size > this.cellLimit) {
       const removedTag = this.cellTags.popBottom();
       if (removedTag) {
-        this.cellTrack.untrackCell?.(removedTag);
+        this._trimmedTags.add(removedTag);
+      } else {
+        break;
       }
     }
+    this.cellTrack.untrackCells?.(this._trimmedTags);
+    this._trimmedTags.clear();
   }
   deactivate() {
     this.cellTags.clear();
@@ -47816,7 +47827,7 @@ class Grid extends AuxiliaryHolder {
   constructor(copy5, config, ...factories) {
     super();
     this.factories = factories;
-    this.slotPool = new SlotPool(copy5);
+    this.slotPool = new GridSlotPool(copy5);
     this.boundaries = {
       minX: config?.xRange?.[0] ?? Number.NEGATIVE_INFINITY,
       maxX: config?.xRange?.[1] ?? Number.POSITIVE_INFINITY,
@@ -47851,7 +47862,7 @@ class Grid extends AuxiliaryHolder {
     if (x < minX || maxX < x || y < minY || maxY < y || z < minZ || maxZ < z) {
       return false;
     }
-    let count = 0;
+    let count2 = 0;
     const { tag } = cell;
     for (let factory of this.factories) {
       const elems = factory.getElemsAtCell(cell);
@@ -47861,17 +47872,17 @@ class Grid extends AuxiliaryHolder {
           const spriteId = this.slots.length;
           this.slots.push(slot);
           this.informUpdate(spriteId);
-          count++;
+          count2++;
         }
       });
       factory.doneCellTracking?.(cell);
     }
-    return !!count;
+    return !!count2;
   }
-  untrackCell(cellTag) {
+  untrackCells(cellTags) {
     for (let i = this.slots.length - 1;i >= 0; i--) {
       const slot = this.slots[i];
-      if (slot.tag === cellTag) {
+      if (cellTags.has(slot.tag)) {
         this.informUpdate(i);
         this.informUpdate(this.slots.length - 1, SpriteUpdateType.TRANSFORM);
         this.slots[i] = this.slots[this.slots.length - 1];
@@ -47882,7 +47893,7 @@ class Grid extends AuxiliaryHolder {
   }
 }
 
-class SlotPool extends ObjectPool {
+class GridSlotPool extends ObjectPool {
   constructor(copy5) {
     super((slot, elem, tag) => {
       if (!slot) {
@@ -48055,12 +48066,12 @@ class MoveAuxiliary extends ControlledLooper {
 
 // src/world/grid/Cell.ts
 function cellTag(x, y, z, cellSize) {
-  return x + "|" + y + "|" + z + "|" + cellSize;
+  return x + "," + y + "," + z + "|" + cellSize;
 }
 
 // src/world/pools/CellPool.ts
 class CellPool extends ObjectPool {
-  constructor(onCreate) {
+  constructor() {
     super((cell, cx, cy, cz, cellSize) => {
       const tag = cellTag(cx, cy, cz, cellSize);
       if (!cell) {
@@ -48072,20 +48083,19 @@ class CellPool extends ObjectPool {
       cell.pos[3] = cellSize;
       cell.tag = tag;
       return cell;
-    }, onCreate);
+    });
   }
   createFromPos(pos, cellSize) {
-    const [x, y, z] = pos;
-    const cx = Math.round(x / cellSize);
-    const cy = Math.round(y / cellSize);
-    const cz = Math.round(z / cellSize);
+    const cx = Math.round(pos[0] / cellSize);
+    const cy = Math.round(pos[1] / cellSize);
+    const cz = Math.round(pos[2] / cellSize);
     return this.create(cx, cy, cz, cellSize);
   }
 }
 
 // src/world/pools/VectorPool.ts
 class VectorPool extends ObjectPool {
-  constructor(onCreate) {
+  constructor() {
     super((vector, x, y, z) => {
       if (!vector) {
         return [x, y, z];
@@ -48094,7 +48104,7 @@ class VectorPool extends ObjectPool {
       vector[1] = y;
       vector[2] = z;
       return vector;
-    }, onCreate);
+    });
   }
 }
 
@@ -48102,16 +48112,20 @@ class VectorPool extends ObjectPool {
 class CellUtils {
   cellPool;
   vectorPool;
+  motor;
+  data;
   constructor({ motor }) {
-    this.cellPool = new CellPool(() => motor.scheduleUpdate(this, data));
-    this.vectorPool = new VectorPool(() => motor.scheduleUpdate(this, data));
-    const data = { cellPool: this.cellPool, vectorPool: this.vectorPool };
+    this.motor = motor;
+    this.cellPool = new CellPool;
+    this.vectorPool = new VectorPool;
+    this.data = { cellPool: this.cellPool, vectorPool: this.vectorPool };
   }
   refresh({ data: { cellPool, vectorPool } }) {
     cellPool.reset();
     vectorPool.reset();
   }
   cellFromPos(pos, cellSize) {
+    this.motor.scheduleUpdate(this, this.data);
     return this.cellPool.createFromPos(pos, cellSize);
   }
   cellAt(x, y, z, cellSize) {
@@ -48299,7 +48313,7 @@ class Accumulator extends AuxiliaryHolder {
   }
   indices = [];
   newElemsListener = new Set;
-  pool = new SlotPool2;
+  pool = new SlotPool;
   at(id) {
     const slot = this.indices[id];
     return slot?.elems.at(slot.index);
@@ -48329,42 +48343,42 @@ class Accumulator extends AuxiliaryHolder {
   }
   add(...elemsList) {
     elemsList.forEach((elems) => {
-      const slots = [];
+      const indexMaping = [];
       if (elems.informUpdate) {
         elems.informUpdate = (index, type) => {
-          const slot = slots[index] ?? (slots[index] = this.pool.create(elems, index));
-          const elem = slot.elems.at(index);
-          if (elem) {
-            if (slot.id === undefined) {
-              slot.id = this.indices.length;
-              this.indices.push(slot);
-              this.onSizeChange();
+          const elem = elems.at(index);
+          let id = indexMaping[index];
+          if (id === undefined) {
+            if (!elem) {
+              return;
             }
-            this.informUpdate?.(slot.id, type);
+            id = this.indices.length;
+            indexMaping[index] = id;
+            this.informUpdate?.(id);
+            this.indices.push(this.pool.create(elems, index, id));
+            this.onSizeChange();
+            return;
           } else {
-            if (slot.id !== undefined) {
-              const id = slot.id;
-              slot.id = undefined;
-              if (this.indices.length) {
-                const lastSlotId = this.indices.length - 1;
-                if (id !== lastSlotId) {
-                  this.indices[id] = this.indices[lastSlotId];
-                  this.indices[id].id = id;
-                }
-                this.indices.pop();
+            if (!elem) {
+              indexMaping[index] = undefined;
+              const slot = this.indices[id];
+              this.pool.recycle(slot);
+              const lastSlotId = this.indices.length - 1;
+              if (id !== lastSlotId) {
+                this.indices[id] = this.indices[lastSlotId];
+                this.indices[id].id = id;
                 this.informUpdate?.(lastSlotId);
-                this.onSizeChange();
               }
+              this.indices.pop();
               this.informUpdate?.(id);
+              this.onSizeChange();
+              return;
             }
           }
+          this.informUpdate?.(id, type);
         };
       } else {
-        forEach3(elems, (_, index) => {
-          const slot = this.pool.create(elems, index);
-          slot.id = this.indices.length;
-          this.indices.push(slot);
-        });
+        throw new Error("informUpdate must be defined");
       }
     });
   }
@@ -48376,15 +48390,15 @@ class Accumulator extends AuxiliaryHolder {
   }
 }
 
-class SlotPool2 extends ObjectPool {
+class SlotPool extends ObjectPool {
   constructor() {
-    super((slot, elems, index) => {
+    super((slot, elems, index, id) => {
       if (!slot) {
-        return { elems, index };
+        return { elems, index, id };
       }
       slot.elems = elems;
       slot.index = index;
-      slot.id = undefined;
+      slot.id = id;
       return slot;
     });
   }
@@ -49034,15 +49048,15 @@ class DemoWorld extends AuxiliaryHolder {
         ground.spriteType = isWater ? SpriteType.WAVE : SpriteType.DEFAULT;
         ground.transform.translate(cellPos[0] * cellPos[3], -1 - (isWater ? 1 : 0), cellPos[2] * cellPos[3]).rotateX(-Math.PI / 2);
         bag.addSprite(ground);
-        const count = hasTree ? 5 + rng() * 10 : 0;
-        for (let i = 0;i < count; i++) {
+        const count2 = hasTree ? 5 + rng() * 10 : 0;
+        for (let i = 0;i < count2; i++) {
           const tree = bag.createSprite(Assets.TREE);
           tree.spriteType = SpriteType.SPRITE;
           const size = 1 + Math.floor(2 * rng());
           tree.transform.translate(cellPos[0] * cellPos[3] + (rng() - 0.5) * 2.5, -1 + size / 2, cellPos[2] * cellPos[3] + (rng() - 0.5) * 2.5).scale(0.2 + rng(), size, 0.2 + rng());
           bag.addSprite(tree);
         }
-        if (!isWater && !count && rng() < 0.02) {
+        if (!isWater && !count2 && rng() < 0.02) {
           const bun = bag.createSprite(Assets.BUN);
           bun.spriteType = SpriteType.SPRITE;
           bun.transform.translate(cellPos[0] * cellPos[3], -0.7, cellPos[2] * cellPos[3]).scale(0.5);
@@ -49050,7 +49064,7 @@ class DemoWorld extends AuxiliaryHolder {
           bunShadow.transform.translate(cellPos[0] * cellPos[3], -1, cellPos[2] * cellPos[3]).rotateX(-Math.PI / 2).scale(0.5);
           bag.addSprite(bun, bunShadow);
         }
-        if (!isWater && !count && rng() < 0.01) {
+        if (!isWater && !count2 && rng() < 0.01) {
           const scale5 = 1.5;
           const wolf = bag.createSprite(Assets.WOLF);
           wolf.spriteType = SpriteType.SPRITE;
@@ -49837,9 +49851,9 @@ async function testCanvas(canvas) {
   const ui = new Hud({ controls: menuControls });
   const webGlCanvas = new WebGlCanvas(canvas).addAuxiliary(ui);
   ui.addDialogListener({
-    onPopup(count) {
-      gameControls.setActive(count === 0);
-      menuControls.setActive(count !== 0);
+    onPopup(count2) {
+      gameControls.setActive(count2 === 0);
+      menuControls.setActive(count2 !== 0);
     }
   });
   const pixelListener = {
@@ -49885,4 +49899,4 @@ export {
   hello
 };
 
-//# debugId=71FB8B6A2DCC145664756e2164756e21
+//# debugId=27F54E283094773264756e2164756e21

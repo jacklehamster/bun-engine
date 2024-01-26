@@ -37,9 +37,9 @@ export class AuxiliaryHolder<H extends Holder = any> implements IAuxiliaryHolder
     return didTrack;
   }
 
-  untrackCell(cellTag: string): void {
+  untrackCells(cellTags: Set<string>): void {
     for (const v of this.cellTracks!) {
-      v.untrackCell!(cellTag);
+      v.untrackCells!(cellTags);
     }
   }
 
@@ -73,6 +73,6 @@ export class AuxiliaryHolder<H extends Holder = any> implements IAuxiliaryHolder
   }
 
   private onAuxiliariesChange() {
-    this.cellTracks = this.auxiliaries?.filter((a): a is CellTrack => !!a.trackCell || !!a.untrackCell) ?? EMPTY_CELLTRACK;
+    this.cellTracks = this.auxiliaries?.filter((a): a is CellTrack => !!a.trackCell || !!a.untrackCells) ?? EMPTY_CELLTRACK;
   }
 }

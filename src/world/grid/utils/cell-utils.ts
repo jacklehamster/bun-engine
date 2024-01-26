@@ -18,11 +18,14 @@ interface Data {
 export class CellUtils implements Refresh<Data> {
   private readonly cellPool: CellPool;
   private readonly vectorPool: VectorPool;
+  private readonly motor;
+  private readonly data;
 
   constructor({ motor }: Props) {
-    this.cellPool = new CellPool(() => motor.scheduleUpdate(this, data));
-    this.vectorPool = new VectorPool(() => motor.scheduleUpdate(this, data));
-    const data: Data = { cellPool: this.cellPool, vectorPool: this.vectorPool };
+    this.motor = motor;
+    this.cellPool = new CellPool();
+    this.vectorPool = new VectorPool();
+    this.data = { cellPool: this.cellPool, vectorPool: this.vectorPool };
   }
 
   refresh({ data: { cellPool, vectorPool } }: UpdatePayload<Data>): void {
@@ -31,6 +34,7 @@ export class CellUtils implements Refresh<Data> {
   }
 
   cellFromPos(pos: Vector, cellSize: number): Cell {
+    this.motor.scheduleUpdate(this, this.data);
     return this.cellPool.createFromPos(pos, cellSize);
   }
 

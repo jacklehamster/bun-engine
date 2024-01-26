@@ -27,6 +27,7 @@ export class SurroundingTracker implements VisitableCell, Auxiliary<CellChangeAu
   private base: [number, number, number];
   private cellLimit: number;
   private cellSize: number;
+  private readonly _trimmedTags: Set<string> = new Set();
 
   constructor({ cellTrack, cellUtils }: Props, { range, cellLimit, cellSize = 1 }: Config = {}) {
     this.range = [range?.[0] ?? 3, range?.[1] ?? 3, range?.[2] ?? 3];
@@ -80,9 +81,13 @@ export class SurroundingTracker implements VisitableCell, Auxiliary<CellChangeAu
     while (this.cellTags.size > this.cellLimit) {
       const removedTag = this.cellTags.popBottom();
       if (removedTag) {
-        this.cellTrack.untrackCell?.(removedTag);
+        this._trimmedTags.add(removedTag);
+      } else {
+        break;
       }
     }
+    this.cellTrack.untrackCells?.(this._trimmedTags);
+    this._trimmedTags.clear();
   }
 
   deactivate(): void {
