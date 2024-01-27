@@ -42,5 +42,8 @@
         }
       }
     ]
+  },
+  "[glsl]": {
+    "editor.defaultFormatter": "xaver.clang-format"
   }
 }

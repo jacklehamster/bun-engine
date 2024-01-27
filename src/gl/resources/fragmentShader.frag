@@ -1,4 +1,5 @@
 #version 300 es
+#pragma vscode_glsllint_stage : vert
 //  ~{AUTHOR}
 precision highp float;
 
@@ -28,25 +29,26 @@ uniform float fade;
 //  FUNCTIONS
 vec4 getTextureColor(float textureSlot, vec2 vTexturePoint);
 
-float rand(vec2 co){
-    return fract(sin(dot(co, vec2(12.9898, 78.233))) * 43758.5453);
+float rand(vec2 co) {
+  return fract(sin(dot(co, vec2(12.9898, 78.233))) * 43758.5453);
 }
 
 struct DirectionalLight {
-    vec3 direction;
-    vec3 ambient;
-    vec3 diffuse;
-    vec3 specular;
+  vec3 direction;
+  vec3 ambient;
+  vec3 diffuse;
+  vec3 specular;
 };
 
 // Function to calculate combined color with directional light
-vec3 calculateDirectionalLight(DirectionalLight dirLight, vec3 existingColor, vec3 normal) {
-    // Calculate diffuse reflection
-    float diff = max(dot(normal, -dirLight.direction), 0.0);
-    vec3 diffuse = dirLight.diffuse * diff;
+vec3 calculateDirectionalLight(DirectionalLight dirLight, vec3 existingColor,
+                               vec3 normal) {
+  // Calculate diffuse reflection
+  float diff = max(dot(normal, -dirLight.direction), 0.0);
+  vec3 diffuse = dirLight.diffuse * diff;
 
-    // Combine existing color with diffuse reflection
-    return existingColor * (dirLight.ambient + diffuse);
+  // Combine existing color with diffuse reflection
+  return existingColor * (dirLight.ambient + diffuse);
 }
 
 void main() {
@@ -74,9 +76,9 @@ void main() {
   // Hardcoded DirectionalLight
   DirectionalLight dirLight;
   dirLight.direction = normalize(vec3(-1.0, -1.0, -1.0)); // Example direction
-  dirLight.ambient = vec3(0.1, 0.1, 0.1); // Example ambient color
+  dirLight.ambient = vec3(0.1, 0.1, 0.1);       // Example ambient color
   dirLight.diffuse = vec3(1.0, 1.0, 1.0) * 1.5; // More intense diffuse color
-  dirLight.specular = vec3(1.0, 1.0, 1.0); // Example specular color
+  dirLight.specular = vec3(1.0, 1.0, 1.0);      // Example specular color
 
   color.rgb = calculateDirectionalLight(dirLight, color.rgb, vNormal);
 

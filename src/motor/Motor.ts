@@ -5,6 +5,7 @@ import { IMotor } from "./IMotor";
 import { Duration } from "core/Time";
 import { ObjectPool } from "utils/ObjectPool";
 import { Priority } from "updates/Priority";
+import { MapPool } from "world/pools/MapPool";
 
 /**
  * Continously runs a loop which feeds a world into the GL Engine.
@@ -14,43 +15,43 @@ const MAX_DELTA_TIME = MILLIS_IN_SEC / 20;
 const FRAME_PERIOD = 16.5;  //  base of 60fps
 const MAX_LOOP_JUMP = 10;
 
-interface Schedule {
-  triggerTime: Time;
+interface Appointment {
+  meetingTime: Time;
   period: Duration;
   frameRate: number;
   data: any;
 }
 
-interface Update {
-  refresher: Refresh;
-  data: any;
-}
+type Schedule = Map<Refresh<any>, Appointment>;
 
 export class Motor implements IMotor {
-  private readonly schedulePool = new SchedulePool();
-  private readonly updatePool = new UpdatePool();
-  private readonly schedule: Map<Refresh<any>, Schedule> = new Map();
+  private readonly apptPool = new AppointmentPool();
+  private readonly schedulePool = new MapPool<Refresh<any>, Appointment>();
+  private schedule: Schedule = this.schedulePool.create();
   time: Time = 0;
 
   loop<T>(update: Refresh<T>, data: T, frameRate?: number) {
     this.scheduleUpdate<T>(update, data, frameRate ?? 1000);
   }
 
-  scheduleUpdate<T>(update: Refresh<T>, data?: T, refreshRate: number = 0) {
-    const schedule = this.schedule.get(update);
-    if (!schedule) {
-      this.schedule.set(update, this.schedulePool.create(refreshRate, data));
-    } else if (schedule.frameRate !== refreshRate) {
-      schedule.frameRate = refreshRate;
-      schedule.period = refreshRate ? 1000 / refreshRate : 0;
-      schedule.data = data;
+  scheduleUpdate<T>(update: Refresh<T>, data?: T, refreshRate: number = 0, future?: boolean) {
+    let appt = this.schedule.get(update);
+    if (!appt) {
+      this.schedule.set(update, appt = this.apptPool.create(refreshRate, data));
+    } else if (appt.frameRate !== refreshRate) {
+      appt.frameRate = refreshRate;
+      appt.period = refreshRate ? 1000 / refreshRate : 0;
+      appt.data = data;
+    }
+    if (future) {
+      appt.meetingTime = this.time + FRAME_PERIOD;
     }
   }
 
   stopUpdate<T>(update: Refresh<T>) {
-    const schedule = this.schedule.get(update);
-    if (schedule) {
-      this.schedulePool.recycle(schedule);
+    const appt = this.schedule.get(update);
+    if (appt) {
+      this.apptPool.recycle(appt);
     }
     this.schedule.delete(update);
   }
@@ -77,38 +78,62 @@ export class Motor implements IMotor {
     };
     updatePayload.stopUpdate = updatePayload.stopUpdate.bind(updatePayload);
 
-    const updateGroups: [Update[], Update[]] = [
-      [], [],
-    ];
-
-    const performUpdate = (time: number, updatePayload: UpdatePayload, updatePool: UpdatePool) => {
+    const performUpdate = (time: number, updatePayload: UpdatePayload) => {
       updatePayload.deltaTime = Math.min(time - updatePayload.time, MAX_DELTA_TIME);
       this.time = updatePayload.time = time;
 
-      this.schedule.forEach((schedule, update) => {
-        if (time < schedule.triggerTime) {
-          return;
+      let agenda: Schedule | undefined = this.schedule;
+      const futureSchedule = this.schedulePool.create();
+      const finalSchedule = this.schedulePool.create();
+
+      let limit = 100;
+      let final = false;
+      while (agenda) {
+        if (limit-- < 0) {
+          throw new Error("We keep scheduling updates within updates.");
         }
-        if (schedule.period) {
-          schedule.triggerTime = Math.max(schedule.triggerTime + schedule.period, time);
+        this.schedule = this.schedulePool.create();
+        agenda.forEach((appt, update) => {
+          if (time < appt.meetingTime) {
+            futureSchedule.set(update, appt);
+            return;
+          }
+          if (!final && update.priority === Priority.LAST) {
+            finalSchedule.set(update, appt);  //  defer
+            return;
+          }
+          updatePayload.data = appt.data;
+          updatePayload.refresher = update;
+          update.refresh(updatePayload);
+          if (appt.period) {
+            appt.meetingTime = Math.max(appt.meetingTime + appt.period, time);
+            futureSchedule.set(update, appt);
+          } else {
+            this.apptPool.recycle(appt);
+          }
+        });
+        this.schedulePool.recycle(agenda);
+
+        //  agenda complete. Check if other updates got scheduled
+        if (!final) {
+          if (this.schedule.size) {
+            agenda = this.schedule;
+          } else {
+            this.schedulePool.recycle(this.schedule);
+            final = true;
+            agenda = finalSchedule;
+          }
         } else {
-          this.stopUpdate(update);
-        }
-        updateGroups[update.priority ?? Priority.DEFAULT].push(updatePool.create(update, schedule.data));
-      });
-      for (let updates of updateGroups) {
-        for (let update of updates) {
-          updatePayload.data = update.data;
-          updatePayload.refresher = update.refresher;
-          update.refresher.refresh?.(updatePayload);
+          this.schedulePool.recycle(this.schedule);
+          agenda = undefined;
+          this.schedule = futureSchedule;
         }
       }
-      updateGroups[Priority.DEFAULT].length = 0;
-      updateGroups[Priority.LAST].length = 0;
     }
 
     let timeOffset = 0;
     let gameTime = 0;
+
     const loop: FrameRequestCallback = (time) => {
       handle = requestAnimationFrame(loop);
       let loopCount = Math.ceil((time + timeOffset - gameTime) / FRAME_PERIOD);
@@ -119,47 +144,32 @@ export class Motor implements IMotor {
       for (let i = 0; i < loopCount; i++) {
         gameTime += FRAME_PERIOD;
         updatePayload.renderFrame = i === loopCount - 1;
-        performUpdate(gameTime, updatePayload, this.updatePool);
+        performUpdate(gameTime, updatePayload);
       }
-      this.updatePool.reset();
     };
     let handle = requestAnimationFrame(loop);
 
     this.stopLoop = () => {
       cancelAnimationFrame(handle);
       this.stopLoop = undefined;
-      this.updatePool.clear();
-      this.schedulePool.clear();
+      this.apptPool.clear();
     };
   }
 
   stopLoop?(): void;
 }
 
-class SchedulePool extends ObjectPool<Schedule, [number, any]> {
+class AppointmentPool extends ObjectPool<Appointment, [number, any]> {
   constructor() {
-    super((schedule, frameRate, data) => {
-      if (!schedule) {
-        return { triggerTime: 0, frameRate, period: frameRate ? MILLIS_IN_SEC / frameRate : 0, data }
+    super((appt, frameRate, data) => {
+      if (!appt) {
+        return { meetingTime: 0, frameRate, period: frameRate ? MILLIS_IN_SEC / frameRate : 0, data }
       }
-      schedule.triggerTime = 0;
-      schedule.period = frameRate ? MILLIS_IN_SEC / frameRate : 0;
-      schedule.frameRate = frameRate;
-      schedule.data = data;
-      return schedule;
+      appt.meetingTime = 0;
+      appt.period = frameRate ? MILLIS_IN_SEC / frameRate : 0;
+      appt.frameRate = frameRate;
+      appt.data = data;
+      return appt;
     });
-  }
-}
-
-class UpdatePool extends ObjectPool<Update, [Refresh, any]> {
-  constructor() {
-    super((update, refresher, data) => {
-      if (!update) {
-        return { refresher, data };
-      }
-      update.refresher = refresher;
-      update.data = data;
-      return update;
-    })
   }
 }

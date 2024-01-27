@@ -33,7 +33,7 @@
   "dependencies": {
     "gl-matrix": "^3.4.3",
     "seedrandom": "^3.0.5",
-    "texture-slot-allocator": "github:jacklehamster/texture-slot-allocator",
+    "texture-slot-allocator": "^1.0.15",
     "uuid": "^9.0.1"
   }
 }

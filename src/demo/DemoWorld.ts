@@ -703,8 +703,8 @@ export class DemoWorld extends AuxiliaryHolder<DemoWorld> implements IWorld {
     this.addAuxiliary(heroPos.addAuxiliary(
       new CellChangeAuxiliary(cellUtils, { cellSize: CELLSIZE })
         .addAuxiliary(new SurroundingTracker({ cellTrack: this, cellUtils }, {
-          cellLimit: 5000,
-          range: [30, 3, 40],
+          cellLimit: 200,
+          range: [7, 3, 7],
           cellSize: CELLSIZE,
         }))));
 

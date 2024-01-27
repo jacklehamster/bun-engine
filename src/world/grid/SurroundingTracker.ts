@@ -86,8 +86,10 @@ export class SurroundingTracker implements VisitableCell, Auxiliary<CellChangeAu
         break;
       }
     }
-    this.cellTrack.untrackCells?.(this._trimmedTags);
-    this._trimmedTags.clear();
+    if (this._trimmedTags.size) {
+      this.cellTrack.untrackCells?.(this._trimmedTags);
+      this._trimmedTags.clear();
+    }
   }
 
   deactivate(): void {

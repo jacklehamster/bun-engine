@@ -19,7 +19,7 @@ export class UpdateRegistry<T extends IdType = IdType> implements Refresh, Updat
   refresh(update: UpdatePayload): void {
     this.applyUpdate(this.updatedIds, update);
     if (this.updatedIds.size) { //  re-register if some updates are remaining
-      update.motor.scheduleUpdate(this, undefined);
+      update.motor.scheduleUpdate(this, undefined, undefined, true);
     }
   }
 }

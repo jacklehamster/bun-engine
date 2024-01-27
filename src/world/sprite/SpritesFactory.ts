@@ -32,7 +32,7 @@ export class SpriteFactory implements IElemFactory<Sprite> {
   }
 
   doneCellTracking(): void {
-    this.pool.reset();
+    this.pool.recycleAll();
     this.sprites.length = 0;
   }
 }

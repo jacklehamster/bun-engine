@@ -29,8 +29,8 @@ export class CellUtils implements Refresh<Data> {
   }
 
   refresh({ data: { cellPool, vectorPool } }: UpdatePayload<Data>): void {
-    cellPool.reset();
-    vectorPool.reset();
+    cellPool.recycleAll();
+    vectorPool.recycleAll();
   }
 
   cellFromPos(pos: Vector, cellSize: number): Cell {

@@ -2,21 +2,21 @@ import { GLUniforms } from 'gl/uniforms/GLUniforms';
 import { Disposable } from '../lifecycle/Disposable';
 import { GL, MAX_TEXTURE_SIZE_LOC, TEXTURE_UNIFORM_LOC } from '../attributes/Constants';
 import { MediaData } from './MediaData';
-import { Slot, TextureIndex } from "texture-slot-allocator/dist/src/texture/TextureSlot";
-import { TextureSlotAllocator } from 'texture-slot-allocator/dist/src/texture/TextureSlotAllocator';
+import { Slot, TextureSlotAllocator } from "texture-slot-allocator";
+import { TextureIndex } from 'texture-slot-allocator';
 
 export type TextureId = `TEXTURE${TextureIndex}`;
-export const TEXTURE_INDEX_FOR_VIDEO = 15;
+export const TEXTURE_INDEX_FOR_VIDEO: TextureIndex = 15;
 
 export type Url = string;
 
 export class TextureManager extends Disposable {
   private textureBuffers: Record<TextureId | string, WebGLTexture> = {};
   private tempContext = (new OffscreenCanvas(1, 1)).getContext('2d')!;
-  private textureSlotAllocator = new TextureSlotAllocator({
+  private textureSlotAllocator: TextureSlotAllocator = new TextureSlotAllocator({
     excludeTexture: tex => tex === TEXTURE_INDEX_FOR_VIDEO,
   });
-  private textureSlotAllocatorForVideo = new TextureSlotAllocator({
+  private textureSlotAllocatorForVideo: TextureSlotAllocator = new TextureSlotAllocator({
     excludeTexture: tex => tex !== TEXTURE_INDEX_FOR_VIDEO,
   });
   private activeMedias: Set<MediaData> = new Set();
@@ -128,7 +128,7 @@ export class TextureManager extends Disposable {
   }
 
   allocateSlotForImage(mediaInfo: MediaData): { slot: Slot, refreshCallback: () => void } {
-    const allocator = mediaInfo.isVideo ? this.textureSlotAllocatorForVideo : this.textureSlotAllocator;
+    const allocator: TextureSlotAllocator = mediaInfo.isVideo ? this.textureSlotAllocatorForVideo : this.textureSlotAllocator;
     const slot = allocator.allocate(mediaInfo.width, mediaInfo.height);
     const textureId: TextureId = `TEXTURE${slot.textureIndex}`;
     const webGLTexture = this.getTexture(textureId);
@@ -141,7 +141,7 @@ export class TextureManager extends Disposable {
       textureId,
       webGLTexture,
       [0, 0, mediaInfo.width, mediaInfo.height],
-      [slot.x, slot.y, ...slot.size],
+      [slot.x, slot.y, slot.size[0], slot.size[1]],
     );
     return { slot, refreshCallback };
   }
