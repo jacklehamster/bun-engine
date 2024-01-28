@@ -1,8 +1,7 @@
 import { Cell, Tag } from "./Cell";
 import { CellUtils } from "./utils/cell-utils";
 import { VisitableCell } from "./VisitCell";
-import { DoubleLinkList } from "../../utils/DoubleLinkList";
-import { FreeStack } from "utils/FreeStack";
+import { DoubleLinkList, FreeStack } from "free-stack";
 import { CellTrack } from "./CellTrack";
 import { Auxiliary } from "world/aux/Auxiliary";
 import { CellChangeAuxiliary } from "gl/transform/aux/CellChangeAuxiliary";
