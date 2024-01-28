@@ -1,6 +1,6 @@
-import { ObjectPool } from "utils/ObjectPool";
 import { Progressive } from "./Progressive";
 import { NumVal } from "./NumVal";
+import { ObjectPool } from "bun-pool";
 
 export class ProgressivePool extends ObjectPool<Progressive<NumVal>, [NumVal]> {
   constructor() {

@@ -1,6 +1,6 @@
 import { List } from "world/sprite/List";
 import { FreeStack } from "./FreeStack";
-import { ObjectPool } from "./ObjectPool";
+import { ObjectPool } from "bun-pool";
 
 interface DoubleLinkListNode<T> {
   value: T;

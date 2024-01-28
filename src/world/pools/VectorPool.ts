@@ -1,5 +1,5 @@
+import { ObjectPool } from "bun-pool";
 import { Vector } from "core/types/Vector";
-import { ObjectPool } from "utils/ObjectPool";
 
 export class VectorPool extends ObjectPool<Vector, [number, number, number]> {
   constructor() {

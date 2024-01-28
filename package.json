@@ -32,9 +32,10 @@
     "typescript": "^5.2.2"
   },
   "dependencies": {
+    "bun-pool": "latest",
     "gl-matrix": "^3.4.3",
     "seedrandom": "^3.0.5",
-    "texture-slot-allocator": "^1.0.15",
+    "texture-slot-allocator": "latest",
     "uuid": "^9.0.1"
   }
 }

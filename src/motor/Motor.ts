@@ -3,9 +3,9 @@ import { Refresh } from "../updates/Refresh";
 import { UpdatePayload } from "updates/UpdatePayload";
 import { IMotor } from "./IMotor";
 import { Duration } from "core/Time";
-import { ObjectPool } from "utils/ObjectPool";
 import { Priority } from "updates/Priority";
 import { MapPool } from "world/pools/MapPool";
+import { ObjectPool } from "bun-pool";
 
 /**
  * Continously runs a loop which feeds a world into the GL Engine.

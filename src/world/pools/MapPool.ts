@@ -1,4 +1,4 @@
-import { ObjectPool } from "utils/ObjectPool";
+import { ObjectPool } from "bun-pool";
 
 export class MapPool<K, T> extends ObjectPool<Map<K, T>, []> {
   constructor() {

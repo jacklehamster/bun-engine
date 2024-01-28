@@ -1,9 +1,9 @@
 import { AuxiliaryHolder } from "world/aux/AuxiliaryHolder";
-import { ObjectPool } from "utils/ObjectPool";
 import { IdType } from "core/IdType";
 import { ElemsHolder } from "./ElemsHolder";
 import { IAccumulator } from "../IAccumulator";
 import { UpdatableList } from "../UpdatableList";
+import { ObjectPool } from "bun-pool";
 
 interface Slot<T> {
   elems: UpdatableList<T>;

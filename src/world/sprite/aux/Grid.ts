@@ -5,7 +5,7 @@ import { UpdateNotifier } from "updates/UpdateNotifier";
 import { AuxiliaryHolder } from "world/aux/AuxiliaryHolder";
 import { ElemsHolder } from "./ElemsHolder";
 import { IElemFactory } from "./IElemFactory";
-import { ObjectPool } from "utils/ObjectPool";
+import { ObjectPool } from "bun-pool";
 
 interface Boundaries {
   minX: number; maxX: number;
