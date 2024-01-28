@@ -1,6 +1,6 @@
 import { Refresh } from "motor/update/Refresh";
-import { IMotor } from "./IMotor";
-import { Looper } from "./Looper";
+import { IMotor } from "../motor/IMotor";
+import { Looper } from "../motor/Looper";
 import { IControls } from "controls/IControls";
 import { ControlsListener } from "controls/ControlsListener";
 

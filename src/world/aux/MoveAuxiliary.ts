@@ -3,7 +3,7 @@ import { Auxiliary } from "./Auxiliary";
 import { IControls } from "controls/IControls";
 import { IMatrix } from "gl/transform/IMatrix";
 import { IMotor } from "motor/IMotor";
-import { ControlledLooper } from "motor/ControlledLooper";
+import { ControlledLooper } from "updates/ControlledLooper";
 import { IPositionMatrix } from "gl/transform/IPositionMatrix";
 
 interface Props {
