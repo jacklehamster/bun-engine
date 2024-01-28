@@ -45767,7 +45767,7 @@ var SpriteType;
   SpriteType2[SpriteType2["WAVE"] = 4] = "WAVE";
 })(SpriteType || (SpriteType = {}));
 
-// src/updates/Priority.ts
+// src/motor/Priority.ts
 var Priority;
 (function(Priority2) {
   Priority2[Priority2["DEFAULT"] = 0] = "DEFAULT";
@@ -49495,4 +49495,4 @@ export {
   hello
 };
 
-//# debugId=38EF9AB342E1A5DB64756e2164756e21
+//# debugId=2F98C87CE873BE8764756e2164756e21

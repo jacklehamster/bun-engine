@@ -1,5 +1,5 @@
-import { Refresh } from "updates/Refresh";
-import { ITimeProvider } from "core/Time";
+import { Refresh } from "motor/update/Refresh";
+import { ITimeProvider } from "motor/Time";
 
 export interface IMotor extends ITimeProvider {
   loop<T>(update: Refresh<T>, data: T, frameRate?: number): void;

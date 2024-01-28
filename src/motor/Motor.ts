@@ -1,9 +1,9 @@
-import { Time } from "core/Time";
-import { Refresh } from "../updates/Refresh";
-import { UpdatePayload } from "updates/UpdatePayload";
+import { Time } from "motor/Time";
+import { Refresh } from "./update/Refresh";
+import { UpdatePayload } from "motor/update/UpdatePayload";
 import { IMotor } from "./IMotor";
-import { Duration } from "core/Time";
-import { Priority } from "updates/Priority";
+import { Duration } from "motor/Time";
+import { Priority } from "motor/Priority";
 import { MapPool } from "world/pools/MapPool";
 import { ObjectPool } from "bun-pool";
 

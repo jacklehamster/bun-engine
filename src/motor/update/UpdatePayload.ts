@@ -1,5 +1,5 @@
-import { Duration } from "core/Time";
-import { Time } from "core/Time";
+import { Duration } from "motor/Time";
+import { Time } from "motor/Time";
 import { IMotor } from "motor/IMotor";
 import { Refresh } from "./Refresh";
 

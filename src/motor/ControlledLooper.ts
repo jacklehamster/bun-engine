@@ -1,4 +1,4 @@
-import { Refresh } from "updates/Refresh";
+import { Refresh } from "motor/update/Refresh";
 import { IMotor } from "./IMotor";
 import { Looper } from "./Looper";
 import { IControls } from "controls/IControls";

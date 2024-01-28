@@ -2,7 +2,7 @@ import { ChangeListener, IPositionMatrix } from "gl/transform/IPositionMatrix";
 import { Auxiliary } from "./Auxiliary";
 import { Looper } from "motor/Looper";
 import { IMotor } from "motor/IMotor";
-import { UpdatePayload } from "updates/UpdatePayload";
+import { UpdatePayload } from "motor/update/UpdatePayload";
 
 interface Props {
   followee: IPositionMatrix;

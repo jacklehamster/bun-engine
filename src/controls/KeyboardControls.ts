@@ -1,7 +1,7 @@
 import { IControls } from "./IControls";
 import { ControlsListener } from "./ControlsListener";
 import { IKeyboard, KeyListener } from "./IKeyboard";
-import { Time } from "core/Time";
+import { Time } from "motor/Time";
 
 export class KeyboardControls implements IControls, KeyListener {
   private readonly listeners: Set<ControlsListener> = new Set();

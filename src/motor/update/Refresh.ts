@@ -1,4 +1,4 @@
-import { Priority } from "./Priority";
+import { Priority } from "../Priority";
 import { UpdatePayload } from "./UpdatePayload";
 
 export interface Refresh<T = undefined> {

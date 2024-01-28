@@ -41,10 +41,10 @@ import { IGraphicsEngine } from './IGraphicsEngine';
 import { IMatrix } from 'gl/transform/IMatrix';
 import { Vector } from "core/types/Vector";
 import { SpriteSheet } from 'gl/texture/spritesheet/SpriteSheet';
-import { Priority } from "updates/Priority";
+import { Priority } from "motor/Priority";
 import { List, map } from 'world/sprite/List';
 import { Animation, AnimationId } from 'animation/Animation';
-import { UpdatePayload } from "updates/UpdatePayload";
+import { UpdatePayload } from "motor/update/UpdatePayload";
 import { Media } from 'gl/texture/Media';
 
 const VERTICES_PER_SPRITE = 6;

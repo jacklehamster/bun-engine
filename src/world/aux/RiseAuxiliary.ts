@@ -1,4 +1,4 @@
-import { UpdatePayload } from "updates/UpdatePayload";
+import { UpdatePayload } from "motor/update/UpdatePayload";
 import { Auxiliary } from "./Auxiliary";
 import { IControls } from "controls/IControls";
 import { ControlsListener } from "controls/ControlsListener";

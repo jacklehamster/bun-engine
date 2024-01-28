@@ -33,7 +33,7 @@ describe('TextureManager', () => {
 
   it('should construct properly', () => {
     expect(textureManager).toBeDefined();
-    expect(textureManager['gl']).toBe(gl);
+    expect(textureManager['gl']).toBe(gl as WebGL2RenderingContext);
     expect(textureManager['tempContext'].imageSmoothingEnabled).toBe(true);
   });
 

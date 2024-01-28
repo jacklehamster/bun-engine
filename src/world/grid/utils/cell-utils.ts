@@ -3,8 +3,8 @@ import { CellPool } from "../../pools/CellPool";
 import { Cell } from "../Cell";
 import { VectorPool } from "world/pools/VectorPool";
 import { IMotor } from "motor/IMotor";
-import { Refresh } from "updates/Refresh";
-import { UpdatePayload } from "updates/UpdatePayload";
+import { Refresh } from "motor/update/Refresh";
+import { UpdatePayload } from "motor/update/UpdatePayload";
 
 interface Props {
   motor: IMotor;

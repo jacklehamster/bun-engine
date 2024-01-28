@@ -1,5 +1,5 @@
-import { Refresh } from "updates/Refresh";
-import { UpdatePayload } from "updates/UpdatePayload";
+import { Refresh } from "motor/update/Refresh";
+import { UpdatePayload } from "motor/update/UpdatePayload";
 import { IMotor } from "./IMotor";
 import { Active } from "core/Active";
 

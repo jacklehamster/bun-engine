@@ -29,7 +29,7 @@ describe('MediaInfo', () => {
     };
     const mediaInfo = new MediaData(0, texImageSource as any);
 
-    expect(mediaInfo.texImgSrc).toBe(texImageSource);
+    expect(mediaInfo.texImgSrc).toBe(texImageSource as OffscreenCanvas);
     expect(mediaInfo.width).toBe(600);
     expect(mediaInfo.height).toBe(700);
   });
@@ -47,7 +47,7 @@ describe('MediaInfo', () => {
     };
     const mediaInfo = MediaData.createFromCanvas(0, canvas as any);
 
-    expect(mediaInfo.texImgSrc).toBe(canvas);
+    expect(mediaInfo.texImgSrc).toBe(canvas as TexImageSource);
     expect(mediaInfo.width).toBe(100);
     expect(mediaInfo.height).toBe(200);
   });

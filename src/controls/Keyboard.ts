@@ -1,4 +1,4 @@
-import { ITimeProvider, Time } from "core/Time";
+import { ITimeProvider, Time } from "motor/Time";
 import { IKeyboard, KeyListener } from "./IKeyboard";
 import { AuxiliaryHolder } from "world/aux/AuxiliaryHolder";
 import { IMotor } from "motor/IMotor";
