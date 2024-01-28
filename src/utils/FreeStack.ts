@@ -1,12 +1,7 @@
-import { List } from "world/sprite/List";
+import { Queue, UpsidedownQueue } from "./Queue";
+import { Stack } from "./Stack";
 
-export interface FreeStack<T> {
-  getList(): List<T>;
+export interface FreeStack<T> extends Stack<T>, Queue<T>, UpsidedownQueue<T> {
   contains(value: T): boolean;
-  remove(value: T): boolean;
-  pushTop(value: T): void;
-  moveTop(value: T): boolean;
-  popBottom(): T | undefined;
   clear(): void;
-  get size(): number;
 }

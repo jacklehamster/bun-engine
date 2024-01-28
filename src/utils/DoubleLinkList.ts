@@ -1,6 +1,110 @@
-import { List } from "world/sprite/List";
 import { FreeStack } from "./FreeStack";
-import { ObjectPool } from "bun-pool";
+import { ItemPool, ObjectPool } from "bun-pool";
+
+export class DoubleLinkList<T> implements FreeStack<T> {
+  readonly #start: DoubleLinkListNode<T>;
+  readonly #end: DoubleLinkListNode<T>;
+  readonly #nodeMap: Map<T, DoubleLinkListNode<T>> = new Map();
+
+  constructor(edgeValue: T, private readonly pool: ItemPool<DoubleLinkListNode<T>, [T]> = new NodePool<T>()) {
+    this.#start = { value: edgeValue };
+    this.#end = { value: edgeValue };
+    this.#start.next = this.#end;
+    this.#end.prev = this.#start;
+  }
+
+  clear(): void {
+    while (this.#deleteEntry(this.#start.next!)) {
+    }
+  }
+
+  get size(): number {
+    return this.#nodeMap.size;
+  }
+
+  contains(value: T): boolean {
+    return this.#nodeMap.has(value);
+  }
+
+  pushTop(value: T): void {
+    this.#insertEntryToTop(this.#createEntry(value));
+  }
+
+  pushBottom(value: T): void {
+    this.#insertEntryToBottom(this.#createEntry(value));
+  }
+
+  moveToTop(value: T): boolean {
+    const entry = this.#nodeMap.get(value);
+    if (entry) {
+      this.#removeEntry(entry);
+      this.#insertEntryToTop(entry);
+      return true;
+    }
+    return false;
+  }
+
+  moveToBottom(value: T): boolean {
+    const entry = this.#nodeMap.get(value);
+    if (entry) {
+      this.#removeEntry(entry);
+      this.#insertEntryToBottom(entry);
+      return true;
+    }
+    return false;
+  }
+
+  popBottom(): T | undefined {
+    return this.#deleteEntry(this.#start.next!);
+  }
+
+  popTop(): T | undefined {
+    return this.#deleteEntry(this.#end.next!);
+  }
+
+  #removeEntry(entry: DoubleLinkListNode<T>): boolean {
+    if (entry === this.#end || entry === this.#start) {
+      return false;
+    }
+    if (entry.prev && entry.next) {
+      entry.prev.next = entry.next;
+      entry.next.prev = entry.prev;
+    }
+    entry.prev = entry.next = undefined;
+    return true;
+  }
+
+  #createEntry(value: T): DoubleLinkListNode<T> {
+    const entry: DoubleLinkListNode<T> = this.pool.create(value);
+    this.#nodeMap.set(value, entry);
+    return entry;
+  }
+
+  #deleteEntry(entry: DoubleLinkListNode<T>): T | undefined {
+    if (!this.#removeEntry(entry)) {
+      return;
+    }
+    this.pool.recycle(entry);
+    this.#nodeMap.delete(entry.value);
+    return entry.value;
+  }
+
+  #insertEntryToTop(entry: DoubleLinkListNode<T>): void {
+    const formerTop = this.#end.prev!;
+    const newTop: DoubleLinkListNode<T> = entry;
+    newTop.prev = formerTop;
+    newTop.next = this.#end;
+    formerTop.next = this.#end.prev = newTop;
+  }
+
+  #insertEntryToBottom(entry: DoubleLinkListNode<T>): void {
+    const formerBottom = this.#start.next!;
+    const newBottom: DoubleLinkListNode<T> = entry;
+    newBottom.next = formerBottom;
+    newBottom.prev = this.#start;
+    formerBottom.prev = this.#start.next = newBottom;
+  }
+}
 
 interface DoubleLinkListNode<T> {
   value: T;
@@ -19,99 +123,5 @@ class NodePool<T> extends ObjectPool<DoubleLinkListNode<T>, [T]> {
       elem.next = undefined;
       return elem;
     });
-  }
-}
-
-export class DoubleLinkList<T> implements FreeStack<T> {
-  private readonly start: DoubleLinkListNode<T>;
-  private readonly end: DoubleLinkListNode<T>;
-  private readonly nodeMap: Map<T, DoubleLinkListNode<T>> = new Map();
-  private readonly pool = new NodePool<T>();
-
-  constructor(edgeValue: T) {
-    this.start = { value: edgeValue };
-    this.end = { value: edgeValue };
-    this.start.next = this.end;
-    this.end.prev = this.start;
-  }
-
-  clear(): void {
-    while (this.removeEntry(this.start.next!)) {
-    }
-  }
-
-  get size(): number {
-    return this.nodeMap.size;
-  }
-
-  private readonly tags: T[] = [];
-  getList(): List<T> {
-    this.tags.length = 0;
-    for (let e = this.start.next; e !== this.end; e = e!.next) {
-      this.tags.push(e!.value);
-    }
-    return this.tags;
-  }
-
-  pushTop(value: T): void {
-    // const formerTop = this.end.prev!;
-    const newTop: DoubleLinkListNode<T> = this.pool.create(value);
-    this.nodeMap.set(value, newTop);
-    this.moveTop(value);
-  }
-
-  contains(value: T): boolean {
-    return this.nodeMap.has(value);
-  }
-
-  moveTop(value: T): boolean {
-    const entry = this.nodeMap.get(value);
-    if (entry) {
-      //  remove entry
-      if (entry.prev && entry.next) {
-        entry.prev.next = entry.next;
-        entry.next.prev = entry.prev;
-      }
-
-      //  re-insert at top
-      const formerTop = this.end.prev!;
-      const newTop: DoubleLinkListNode<T> = entry;
-      newTop.prev = formerTop;
-      newTop.next = this.end;
-      formerTop.next = this.end.prev = newTop;
-      return true;
-    }
-    return false;
-  }
-
-  remove(value: T): boolean {
-    const entry = this.nodeMap.get(value);
-    if (entry) {
-      this.removeEntry(entry);
-      return true;
-    } else {
-      return false;
-    }
-  }
-
-  private removeEntry(entry: DoubleLinkListNode<T>): boolean {
-    if (entry === this.end || entry === this.start) {
-      return false;
-    }
-    entry.prev!.next = entry.next;
-    entry.next!.prev = entry.prev;
-    entry.prev = entry.next = undefined;
-    this.pool.recycle(entry);
-    this.nodeMap.delete(entry.value);
-    return true;
-  }
-
-  popBottom(): T | undefined {
-    const entryToRemove = this.start.next!;
-    if (entryToRemove !== this.end) {
-      this.removeEntry(entryToRemove);
-      return entryToRemove.value;
-    }
-    return;
   }
 }

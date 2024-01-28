@@ -1,4 +1,3 @@
-import { List } from "world/sprite/List";
 import { Cell, Tag } from "./Cell";
 import { CellUtils } from "./utils/cell-utils";
 import { VisitableCell } from "./VisitCell";
@@ -42,10 +41,6 @@ export class SurroundingTracker implements VisitableCell, Auxiliary<CellChangeAu
     aux.visitableCell = this;
   }
 
-  getCellTags(): List<string> {
-    return this.cellTags.getList();
-  }
-
   iterateCells(visitedCell: Cell, callback: (cell: Cell) => void) {
     const { range, base } = this;
     const { pos: pos } = visitedCell;
@@ -67,7 +62,7 @@ export class SurroundingTracker implements VisitableCell, Auxiliary<CellChangeAu
         this.cellTags.pushTop(cell.tag);
       }
     } else {
-      this.cellTags.moveTop(cell.tag);
+      this.cellTags.moveToTop(cell.tag);
     }
   }
 
