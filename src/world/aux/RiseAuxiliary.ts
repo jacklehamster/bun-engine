@@ -1,9 +1,7 @@
-import { UpdatePayload } from "motor/update/UpdatePayload";
+import { UpdatePayload, IMotor, Looper } from "motor-loop";
 import { Auxiliary } from "./Auxiliary";
 import { IControls } from "controls/IControls";
 import { ControlsListener } from "controls/ControlsListener";
-import { IMotor } from "motor/IMotor";
-import { Looper } from "motor/Looper";
 import { IPositionMatrix } from "gl/transform/IPositionMatrix";
 
 interface Props {
@@ -25,7 +23,7 @@ export class RiseAuxiliary extends Looper<Data> implements Auxiliary {
   };
 
   constructor({ position, controls, motor }: Props) {
-    super(motor, false, { controls, position });
+    super({ motor, data: { controls, position } }, { autoStart: false });
     this.controls = controls;
   }
 

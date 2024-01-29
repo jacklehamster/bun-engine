@@ -1,5 +1,5 @@
 import { GraphicsEngine } from 'graphics/GraphicsEngine';
-import { Motor } from 'motor/Motor';
+import { Motor } from 'motor-loop';
 import { DemoWorld } from 'demo/DemoWorld';
 import { AuxiliaryHolder } from 'world/aux/AuxiliaryHolder';
 import { ResizeAux } from 'graphics/aux/ResizeAux';

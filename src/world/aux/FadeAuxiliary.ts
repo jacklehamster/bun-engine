@@ -1,5 +1,5 @@
 import { ICamera } from "camera/ICamera";
-import { IMotor } from "motor/IMotor";
+import { IMotor } from "motor-loop";
 import IWorld from "world/IWorld";
 import { Auxiliary } from "./Auxiliary";
 

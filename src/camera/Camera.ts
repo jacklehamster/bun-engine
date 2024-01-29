@@ -6,7 +6,7 @@ import { TiltMatrix } from "gl/transform/TiltMatrix";
 import { TurnMatrix } from "gl/transform/TurnMatrix";
 import { ICamera } from "./ICamera";
 import { IGraphicsEngine } from "graphics/IGraphicsEngine";
-import { IMotor } from "motor/IMotor";
+import { IMotor } from "motor-loop";
 import { PositionMatrix } from "gl/transform/PositionMatrix";
 import { AuxiliaryHolder } from "world/aux/AuxiliaryHolder";
 import { MatrixUniform, VectorUniform } from "graphics/Uniforms";

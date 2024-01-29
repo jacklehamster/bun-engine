@@ -1,4 +1,4 @@
-import { Refresh } from 'motor/update/Refresh';
+import { Refresh } from 'motor-loop';
 import { Disposable } from '../lifecycle/Disposable';
 import { MediaId } from './ImageManager';
 

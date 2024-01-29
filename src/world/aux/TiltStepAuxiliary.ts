@@ -1,9 +1,8 @@
-import { UpdatePayload } from "motor/update/UpdatePayload";
+import { UpdatePayload, IMotor } from "motor-loop";
 import { Auxiliary } from "./Auxiliary";
 import { angleStep } from "gl/utils/angleUtils";
 import { IControls } from "controls/IControls";
 import { IAngleMatrix } from "gl/transform/IAngleMatrix";
-import { IMotor } from "motor/IMotor";
 import { ControlledLooper } from "updates/ControlledLooper";
 
 interface Props {

@@ -1,8 +1,6 @@
 import { ChangeListener, IPositionMatrix } from "gl/transform/IPositionMatrix";
 import { Auxiliary } from "./Auxiliary";
-import { Looper } from "motor/Looper";
-import { IMotor } from "motor/IMotor";
-import { UpdatePayload } from "motor/update/UpdatePayload";
+import { Looper, IMotor, UpdatePayload } from "motor-loop";
 
 interface Props {
   followee: IPositionMatrix;
@@ -25,7 +23,7 @@ export class SmoothFollowAuxiliary extends Looper<Data> implements Auxiliary {
   private listener: ChangeListener = () => this.start();
 
   constructor({ followee, follower, motor }: Props, config?: Partial<Config>) {
-    super(motor, false, { followee, follower, speed: config?.speed ?? 1 });
+    super({ motor, data: { followee, follower, speed: config?.speed ?? 1 } }, { autoStart: false });
     this.followee = followee;
   }
 

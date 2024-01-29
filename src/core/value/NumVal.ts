@@ -1,7 +1,6 @@
 import { Progressive } from "./Progressive";
 import { Val } from "./Val";
-import { IMotor } from "motor/IMotor";
-import { UpdatePayload } from "motor/update/UpdatePayload";
+import { IMotor, UpdatePayload } from "motor-loop";
 import { ProgressivePool } from "./ProgressivePool";
 
 const progressivePool = new ProgressivePool();

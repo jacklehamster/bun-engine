@@ -2,9 +2,7 @@ import { Vector } from "core/types/Vector";
 import { CellPool } from "../../pools/CellPool";
 import { Cell } from "../Cell";
 import { VectorPool } from "world/pools/VectorPool";
-import { IMotor } from "motor/IMotor";
-import { Refresh } from "motor/update/Refresh";
-import { UpdatePayload } from "motor/update/UpdatePayload";
+import { IMotor, Refresh, UpdatePayload } from "motor-loop";
 
 interface Props {
   motor: IMotor;

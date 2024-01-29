@@ -1,9 +1,8 @@
-import { UpdatePayload } from "motor/update/UpdatePayload";
+import { UpdatePayload, IMotor } from "motor-loop";
 import { Auxiliary } from "./Auxiliary";
 import { IControls } from "controls/IControls";
 import { IPositionMatrix } from "gl/transform/IPositionMatrix";
 import { NumVal } from "core/value/NumVal";
-import { IMotor } from "motor/IMotor";
 import { ControlledLooper } from "updates/ControlledLooper";
 import { Vector } from "core/types/Vector";
 import { equal } from "core/utils/vector-utils";

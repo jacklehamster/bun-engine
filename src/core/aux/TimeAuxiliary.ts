@@ -1,8 +1,6 @@
 import { IGraphicsEngine } from "graphics/IGraphicsEngine";
 import { FloatUniform } from "graphics/Uniforms";
-import { IMotor } from "motor/IMotor";
-import { Looper } from "motor/Looper";
-import { UpdatePayload } from "motor/update/UpdatePayload";
+import { IMotor, Looper, UpdatePayload } from "motor-loop";
 import { Auxiliary } from "world/aux/Auxiliary";
 
 interface Props {
@@ -12,7 +10,7 @@ interface Props {
 
 export class TimeAuxiliary extends Looper<IGraphicsEngine> implements Auxiliary {
   constructor({ engine, motor }: Props) {
-    super(motor, true, engine);
+    super({ motor, data: engine }, { autoStart: true });
   }
 
   refresh({ time, data }: UpdatePayload<IGraphicsEngine>): void {

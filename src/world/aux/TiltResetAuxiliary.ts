@@ -2,7 +2,7 @@ import { Auxiliary } from "./Auxiliary";
 import { IControls } from "controls/IControls";
 import { ControlsListener } from "controls/ControlsListener";
 import { IAngleMatrix } from "gl/transform/IAngleMatrix";
-import { IMotor } from "motor/IMotor";
+import { IMotor } from "motor-loop";
 
 interface Props {
   motor: IMotor;

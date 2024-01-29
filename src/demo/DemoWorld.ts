@@ -2,7 +2,7 @@ import IWorld from "world/IWorld";
 import Matrix from "gl/transform/Matrix";
 import { Keyboard } from "controls/Keyboard";
 import { IGraphicsEngine } from "graphics/IGraphicsEngine";
-import { IMotor } from "motor/IMotor";
+import { IMotor } from "motor-loop";
 import { Camera } from "camera/Camera";
 import { CellChangeAuxiliary } from "gl/transform/aux/CellChangeAuxiliary";
 import { Auxiliaries } from "world/aux/Auxiliaries";

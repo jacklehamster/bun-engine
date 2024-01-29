@@ -1,6 +1,6 @@
 import { Media } from "gl/texture/Media";
 import { IGraphicsEngine } from "graphics/IGraphicsEngine";
-import { IMotor } from "motor/IMotor";
+import { IMotor } from "motor-loop";
 import { UpdateRegistry } from "updates/UpdateRegistry";
 import { Updater } from "./Updater";
 

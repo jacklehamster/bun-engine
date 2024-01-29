@@ -1,7 +1,6 @@
-import { ITimeProvider, Time } from "motor/Time";
+import { Time, IMotor } from "motor-loop";
 import { IKeyboard, KeyListener } from "./IKeyboard";
 import { AuxiliaryHolder } from "world/aux/AuxiliaryHolder";
-import { IMotor } from "motor/IMotor";
 
 const QUICK_TAP_TIME = 200;
 
@@ -16,7 +15,7 @@ export class Keyboard extends AuxiliaryHolder<IKeyboard> implements IKeyboard {
   private readonly keyDownListener = new Set<KeyListener>();
   private readonly keyUpListener = new Set<KeyListener>();
   private readonly quickTapListener = new Set<KeyListener>();
-  private readonly timeProvider: ITimeProvider;
+  private readonly timeProvider: IMotor;
 
   isActive: boolean = false;
 
