@@ -8,24 +8,14 @@ import {
   INDEX_LOC,
   TRANSFORM_LOC,
   SLOT_SIZE_LOC,
-  CAM_POS_LOC,
-  CAM_PROJECTION_LOC,
   INSTANCE_LOC,
-  CAM_TILT_LOC,
-  CAM_TURN_LOC,
-  CAM_CURVATURE_LOC,
-  CAM_DISTANCE_LOC,
-  BG_COLOR_LOC,
-  BG_BLUR_LOC,
   SPRITE_TYPE_LOC,
-  TIME_LOC,
   ANIM_LOC,
-  FADE_LOC,
 } from '../gl/attributes/Constants';
 
 import { GLPrograms } from '../gl/programs/GLPrograms';
 import { Disposable } from '../gl/lifecycle/Disposable';
-import { GLAttributeBuffers } from '../gl/attributes/GLAttributeBuffers';
+import { GLAttributeBuffers, LocationName } from '../gl/attributes/GLAttributeBuffers';
 import { GLUniforms } from '../gl/uniforms/GLUniforms';
 
 import Matrix from 'gl/transform/Matrix';
@@ -33,8 +23,6 @@ import vertexShader from 'generated/src/gl/resources/vertexShader.txt';
 import fragmentShader from 'generated/src/gl/resources/fragmentShader.txt';
 import { TEXTURE_INDEX_FOR_VIDEO, TextureId, TextureManager, MediaId, MediaData, Media, ImageManager, SpriteSheet } from 'gl-texture-manager';
 import { replaceTilda } from 'gl/utils/replaceTilda';
-import { FloatUniform, VectorUniform } from "./Uniforms";
-import { MatrixUniform } from "./Uniforms";
 import { Sprite, SpriteId } from 'world/sprite/Sprite';
 import { SpriteType } from "world/sprite/SpriteType";
 import { IGraphicsEngine } from './IGraphicsEngine';
@@ -44,6 +32,10 @@ import { Priority, UpdatePayload } from "motor-loop";
 import { List, map } from 'world/sprite/List';
 import { Animation, AnimationId } from 'animation/Animation';
 import { TextureUniformInitializer } from './TextureUniformsInitializer';
+import { MatrixUniformHandler } from 'gl/uniforms/MatrixUniformHandler';
+import { FloatUniformHandler } from 'gl/uniforms/FloatUniformHandler';
+import { NumVal } from 'core/value/NumVal';
+import { VectorUniformHandler } from 'gl/uniforms/VectorUniformHandler';
 
 const VERTICES_PER_SPRITE = 6;
 
@@ -57,7 +49,7 @@ export interface Props {
 export class GraphicsEngine extends Disposable implements IGraphicsEngine {
   priority = Priority.LAST;
 
-  private programs: GLPrograms;
+  programs: GLPrograms;
   private attributeBuffers: GLAttributeBuffers;
   private uniforms: GLUniforms;
 
@@ -69,9 +61,6 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
 
   private pixelListener?: { x: number; y: number; setPixel(value: number): void };
   private maxSpriteCount = 0;
-  private matrixUniforms: Record<MatrixUniform, WebGLUniformLocation>;
-  private floatUniforms: Record<FloatUniform, WebGLUniformLocation>;
-  private vec3Uniforms: Record<VectorUniform, WebGLUniformLocation>;
 
   private tempBuffer = new Float32Array(4).fill(0);
   private visibleSprites: boolean[] = [];
@@ -91,23 +80,6 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
       replaceTilda(vertexShader, replacementMap),
       replaceTilda(fragmentShader, replacementMap),
     );
-
-    this.matrixUniforms = {
-      [MatrixUniform.PROJECTION]: this.uniforms.getUniformLocation(CAM_PROJECTION_LOC, PROGRAM_NAME),
-      [MatrixUniform.CAM_POS]: this.uniforms.getUniformLocation(CAM_POS_LOC, PROGRAM_NAME),
-      [MatrixUniform.CAM_TURN]: this.uniforms.getUniformLocation(CAM_TURN_LOC, PROGRAM_NAME),
-      [MatrixUniform.CAM_TILT]: this.uniforms.getUniformLocation(CAM_TILT_LOC, PROGRAM_NAME),
-    };
-    this.floatUniforms = {
-      [FloatUniform.CURVATURE]: this.uniforms.getUniformLocation(CAM_CURVATURE_LOC, PROGRAM_NAME),
-      [FloatUniform.CAM_DISTANCE]: this.uniforms.getUniformLocation(CAM_DISTANCE_LOC, PROGRAM_NAME),
-      [FloatUniform.BG_BLUR]: this.uniforms.getUniformLocation(BG_BLUR_LOC, PROGRAM_NAME),
-      [FloatUniform.TIME]: this.uniforms.getUniformLocation(TIME_LOC, PROGRAM_NAME),
-      [FloatUniform.FADE]: this.uniforms.getUniformLocation(FADE_LOC, PROGRAM_NAME),
-    };
-    this.vec3Uniforms = {
-      [VectorUniform.BG_COLOR]: this.uniforms.getUniformLocation(BG_COLOR_LOC, PROGRAM_NAME),
-    };
 
     this.attributeBuffers = this.own(new GLAttributeBuffers(this.gl, this.programs));
 
@@ -383,18 +355,6 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
     ids.clear();
   }
 
-  updateUniformMatrix(type: MatrixUniform, matrix: IMatrix) {
-    this.gl.uniformMatrix4fv(this.matrixUniforms[type], false, matrix.getMatrix());
-  }
-
-  updateUniformFloat(type: FloatUniform, value: number) {
-    this.gl.uniform1f(this.floatUniforms[type], value);
-  }
-
-  updateUniformVector(type: VectorUniform, vector: Vector) {
-    this.gl.uniform3fv(this.vec3Uniforms[type], vector);
-  }
-
   setPixelListener(listener?: { x: number, y: number, setPixel(value: number): void }) {
     this.pixelListener = listener;
   }
@@ -415,5 +375,26 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
         this.pixelListener?.setPixel(this.getPixel(this.pixelListener.x, this.pixelListener.y));
       }
     }
+  }
+
+  createMatrixUniformHandler(name: LocationName, matrix: IMatrix): MatrixUniformHandler {
+    return new MatrixUniformHandler({
+      gl: this.gl,
+      program: this.programs.getProgram(this.programs.activeProgramId)!,
+    }, { name }, matrix);
+  }
+
+  createFloatUniformHandler(name: LocationName, val?: NumVal): FloatUniformHandler {
+    return new FloatUniformHandler({
+      gl: this.gl,
+      program: this.programs.getProgram(this.programs.activeProgramId)!,
+    }, { name }, val);
+  }
+
+  createVectorUniformHandler(name: LocationName, vector: Vector): VectorUniformHandler {
+    return new VectorUniformHandler({
+      gl: this.gl,
+      program: this.programs.getProgram(this.programs.activeProgramId)!,
+    }, { name }, vector);
   }
 }

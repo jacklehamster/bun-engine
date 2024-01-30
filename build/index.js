@@ -45636,27 +45636,6 @@ function replaceTilda(inputString, replacementMap) {
   });
 }
 
-// src/graphics/Uniforms.ts
-var FloatUniform;
-(function(FloatUniform2) {
-  FloatUniform2[FloatUniform2["TIME"] = 0] = "TIME";
-  FloatUniform2[FloatUniform2["CURVATURE"] = 1] = "CURVATURE";
-  FloatUniform2[FloatUniform2["CAM_DISTANCE"] = 2] = "CAM_DISTANCE";
-  FloatUniform2[FloatUniform2["BG_BLUR"] = 3] = "BG_BLUR";
-  FloatUniform2[FloatUniform2["FADE"] = 4] = "FADE";
-})(FloatUniform || (FloatUniform = {}));
-var MatrixUniform;
-(function(MatrixUniform2) {
-  MatrixUniform2[MatrixUniform2["PROJECTION"] = 0] = "PROJECTION";
-  MatrixUniform2[MatrixUniform2["CAM_POS"] = 1] = "CAM_POS";
-  MatrixUniform2[MatrixUniform2["CAM_TURN"] = 2] = "CAM_TURN";
-  MatrixUniform2[MatrixUniform2["CAM_TILT"] = 3] = "CAM_TILT";
-})(MatrixUniform || (MatrixUniform = {}));
-var VectorUniform;
-(function(VectorUniform2) {
-  VectorUniform2[VectorUniform2["BG_COLOR"] = 0] = "BG_COLOR";
-})(VectorUniform || (VectorUniform = {}));
-
 // src/world/sprite/SpriteType.ts
 var SpriteType;
 (function(SpriteType2) {
@@ -45891,6 +45870,62 @@ class TextureUniformInitializer {
   }
 }
 
+// src/gl/uniforms/BaseUniformHandler.ts
+class BaseUniformHandler {
+  updateCall;
+  gl;
+  location;
+  constructor({ gl, program }, { name }, updateCall) {
+    this.updateCall = updateCall;
+    this.gl = gl;
+    this.location = gl.getUniformLocation(program, name);
+  }
+  updateValue(value) {
+    this.updateCall(this.gl, this.location, value);
+  }
+}
+
+// src/gl/uniforms/MatrixUniformHandler.ts
+class MatrixUniformHandler extends BaseUniformHandler {
+  matrix;
+  constructor(props, config, matrix) {
+    super(props, config, (gl, location, matrix2) => gl.uniformMatrix4fv(location, false, matrix2.getMatrix()));
+    this.matrix = matrix;
+  }
+  update() {
+    this.updateValue(this.matrix);
+  }
+}
+
+// src/gl/uniforms/FloatUniformHandler.ts
+class FloatUniformHandler extends BaseUniformHandler {
+  val;
+  constructor(props, config, val) {
+    super(props, config, (gl, location, value) => gl.uniform1f(location, value));
+    this.val = val;
+    if (val === undefined) {
+      this.update = () => {
+        throw new Error("Illegal call.");
+      };
+    }
+  }
+  update() {
+    this.updateValue(this.val.valueOf());
+  }
+}
+
+// src/gl/uniforms/VectorUniformHandler.ts
+class VectorUniformHandler extends BaseUniformHandler {
+  vector;
+  constructor(props, config, vector) {
+    super(props, config, (gl, location, vector2) => gl.uniform3fv(location, vector2));
+    this.vector = vector;
+  }
+  update() {
+    this.updateValue(this.vector);
+  }
+}
+
 // src/graphics/GraphicsEngine.ts
 var VERTICES_PER_SPRITE = 6;
 var TEX_BUFFER_ELEMS = 4;
@@ -45908,9 +45943,6 @@ class GraphicsEngine extends Disposable {
   animationSlots = new Map;
   pixelListener;
   maxSpriteCount = 0;
-  matrixUniforms;
-  floatUniforms;
-  vec3Uniforms;
   tempBuffer = new Float32Array(4).fill(0);
   visibleSprites = [];
   constructor(gl) {
@@ -45924,22 +45956,6 @@ class GraphicsEngine extends Disposable {
       AUTHOR: "Jack le hamster"
     };
     this.programs.addProgram(PROGRAM_NAME, replaceTilda(vertexShader_default, replacementMap), replaceTilda(fragmentShader_default, replacementMap));
-    this.matrixUniforms = {
-      [MatrixUniform.PROJECTION]: this.uniforms.getUniformLocation(CAM_PROJECTION_LOC, PROGRAM_NAME),
-      [MatrixUniform.CAM_POS]: this.uniforms.getUniformLocation(CAM_POS_LOC, PROGRAM_NAME),
-      [MatrixUniform.CAM_TURN]: this.uniforms.getUniformLocation(CAM_TURN_LOC, PROGRAM_NAME),
-      [MatrixUniform.CAM_TILT]: this.uniforms.getUniformLocation(CAM_TILT_LOC, PROGRAM_NAME)
-    };
-    this.floatUniforms = {
-      [FloatUniform.CURVATURE]: this.uniforms.getUniformLocation(CAM_CURVATURE_LOC, PROGRAM_NAME),
-      [FloatUniform.CAM_DISTANCE]: this.uniforms.getUniformLocation(CAM_DISTANCE_LOC, PROGRAM_NAME),
-      [FloatUniform.BG_BLUR]: this.uniforms.getUniformLocation(BG_BLUR_LOC, PROGRAM_NAME),
-      [FloatUniform.TIME]: this.uniforms.getUniformLocation(TIME_LOC, PROGRAM_NAME),
-      [FloatUniform.FADE]: this.uniforms.getUniformLocation(FADE_LOC, PROGRAM_NAME)
-    };
-    this.vec3Uniforms = {
-      [VectorUniform.BG_COLOR]: this.uniforms.getUniformLocation(BG_COLOR_LOC, PROGRAM_NAME)
-    };
     this.attributeBuffers = this.own(new GLAttributeBuffers(this.gl, this.programs));
     this.textureManager = new D({ gl: this.gl });
     this.addOnDestroy(() => this.textureManager.dispose());
@@ -46181,15 +46197,6 @@ class GraphicsEngine extends Disposable {
     }
     ids.clear();
   }
-  updateUniformMatrix(type, matrix) {
-    this.gl.uniformMatrix4fv(this.matrixUniforms[type], false, matrix.getMatrix());
-  }
-  updateUniformFloat(type, value) {
-    this.gl.uniform1f(this.floatUniforms[type], value);
-  }
-  updateUniformVector(type, vector) {
-    this.gl.uniform3fv(this.vec3Uniforms[type], vector);
-  }
   setPixelListener(listener) {
     this.pixelListener = listener;
   }
@@ -46208,6 +46215,24 @@ class GraphicsEngine extends Disposable {
         this.pixelListener?.setPixel(this.getPixel(this.pixelListener.x, this.pixelListener.y));
       }
     }
+  }
+  createMatrixUniformHandler(name, matrix) {
+    return new MatrixUniformHandler({
+      gl: this.gl,
+      program: this.programs.getProgram(this.programs.activeProgramId)
+    }, { name }, matrix);
+  }
+  createFloatUniformHandler(name, val) {
+    return new FloatUniformHandler({
+      gl: this.gl,
+      program: this.programs.getProgram(this.programs.activeProgramId)
+    }, { name }, val);
+  }
+  createVectorUniformHandler(name, vector) {
+    return new VectorUniformHandler({
+      gl: this.gl,
+      program: this.programs.getProgram(this.programs.activeProgramId)
+    }, { name }, vector);
   }
 }
 
@@ -46602,6 +46627,27 @@ class PositionMatrix extends AuxiliaryHolder {
   }
 }
 
+// src/graphics/Uniforms.ts
+var FloatUniform;
+(function(FloatUniform2) {
+  FloatUniform2[FloatUniform2["TIME"] = 0] = "TIME";
+  FloatUniform2[FloatUniform2["CURVATURE"] = 1] = "CURVATURE";
+  FloatUniform2[FloatUniform2["CAM_DISTANCE"] = 2] = "CAM_DISTANCE";
+  FloatUniform2[FloatUniform2["BG_BLUR"] = 3] = "BG_BLUR";
+  FloatUniform2[FloatUniform2["FADE"] = 4] = "FADE";
+})(FloatUniform || (FloatUniform = {}));
+var MatrixUniform;
+(function(MatrixUniform2) {
+  MatrixUniform2[MatrixUniform2["PROJECTION"] = 0] = "PROJECTION";
+  MatrixUniform2[MatrixUniform2["CAM_POS"] = 1] = "CAM_POS";
+  MatrixUniform2[MatrixUniform2["CAM_TURN"] = 2] = "CAM_TURN";
+  MatrixUniform2[MatrixUniform2["CAM_TILT"] = 3] = "CAM_TILT";
+})(MatrixUniform || (MatrixUniform = {}));
+var VectorUniform;
+(function(VectorUniform2) {
+  VectorUniform2[VectorUniform2["BG_COLOR"] = 0] = "BG_COLOR";
+})(VectorUniform || (VectorUniform = {}));
+
 // src/updates/UpdateRegistry.ts
 class UpdateRegistry {
   applyUpdate;
@@ -46648,36 +46694,33 @@ class Camera extends AuxiliaryHolder {
   constructor({ engine, motor }) {
     super();
     this.engine = engine;
-    const cameraMatrices = {
-      [MatrixUniform.PROJECTION]: this.projection,
-      [MatrixUniform.CAM_POS]: this.camMatrix,
-      [MatrixUniform.CAM_TURN]: this.turn,
-      [MatrixUniform.CAM_TILT]: this.tilt
+    const matrixUniformUpdaters = {
+      [MatrixUniform.PROJECTION]: engine.createMatrixUniformHandler(CAM_PROJECTION_LOC, this.projection),
+      [MatrixUniform.CAM_POS]: engine.createMatrixUniformHandler(CAM_POS_LOC, this.camMatrix),
+      [MatrixUniform.CAM_TURN]: engine.createMatrixUniformHandler(CAM_TURN_LOC, this.turn),
+      [MatrixUniform.CAM_TILT]: engine.createMatrixUniformHandler(CAM_TILT_LOC, this.tilt)
     };
     this.updateInformer = new UpdateRegistry((ids) => {
-      ids.forEach((type) => this.engine.updateUniformMatrix(type, cameraMatrices[type]));
+      ids.forEach((type) => matrixUniformUpdaters[type].update());
       ids.clear();
     }, motor);
-    const cameraVectors = {
-      [VectorUniform.BG_COLOR]: this._bgColor
+    const vectorUniformUpdaters = {
+      [VectorUniform.BG_COLOR]: engine.createVectorUniformHandler(BG_COLOR_LOC, this._bgColor)
     };
     this.updateInformerVector = new UpdateRegistry((ids) => {
-      ids.forEach((type) => this.engine.updateUniformVector(type, cameraVectors[type]));
+      ids.forEach((type) => vectorUniformUpdaters[type].update());
       ids.clear();
     }, motor);
-    const cameraVal = {
-      [FloatUniform.BG_BLUR]: this.blur,
-      [FloatUniform.CAM_DISTANCE]: this.distance,
-      [FloatUniform.CURVATURE]: this.curvature,
+    const valUniformUpdaters = {
+      [FloatUniform.BG_BLUR]: engine.createFloatUniformHandler(BG_BLUR_LOC, this.blur),
+      [FloatUniform.CAM_DISTANCE]: engine.createFloatUniformHandler(CAM_DISTANCE_LOC, this.distance),
+      [FloatUniform.CURVATURE]: engine.createFloatUniformHandler(CAM_CURVATURE_LOC, this.curvature),
       [FloatUniform.TIME]: undefined,
-      [FloatUniform.FADE]: this.fade
+      [FloatUniform.FADE]: engine.createFloatUniformHandler(FADE_LOC, this.fade)
     };
-    this.updateInformerFloat = new UpdateRegistry((ids, updatePayload) => {
+    this.updateInformerFloat = new UpdateRegistry((ids) => {
       ids.forEach((type) => {
-        const val = cameraVal[type];
-        if (val) {
-          this.engine.updateUniformFloat(type, val.valueOf(updatePayload.time));
-        }
+        valUniformUpdaters[type]?.update();
       });
       ids.clear();
     }, motor);
@@ -47700,10 +47743,10 @@ class JumpAuxiliary extends ControlledLooper {
 // src/core/aux/TimeAuxiliary.ts
 class TimeAuxiliary extends E2 {
   constructor({ engine, motor }) {
-    super({ motor, data: engine }, { autoStart: true });
+    super({ motor, data: engine.createFloatUniformHandler(TIME_LOC) }, { autoStart: true });
   }
   refresh({ time, data }) {
-    data.updateUniformFloat(FloatUniform.TIME, time);
+    data.updateValue(time);
   }
 }
 
@@ -49437,4 +49480,4 @@ export {
   hello
 };
 
-//# debugId=5F74353B6D9AB24D64756e2164756e21
+//# debugId=1F4DC9956A75C12764756e2164756e21

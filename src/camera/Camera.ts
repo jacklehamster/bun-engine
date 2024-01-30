@@ -1,5 +1,4 @@
 import Matrix from "gl/transform/Matrix";
-import { IMatrix } from "gl/transform/IMatrix";
 import { Vector } from "core/types/Vector";
 import { ProjectionMatrix } from "gl/transform/ProjectionMatrix";
 import { TiltMatrix } from "gl/transform/TiltMatrix";
@@ -11,10 +10,13 @@ import { PositionMatrix } from "gl/transform/PositionMatrix";
 import { AuxiliaryHolder } from "world/aux/AuxiliaryHolder";
 import { MatrixUniform, VectorUniform } from "graphics/Uniforms";
 import { FloatUniform } from "graphics/Uniforms";
-import { Val } from "core/value/Val";
 import { NumVal } from "core/value/NumVal";
 import { UpdateRegistry } from "updates/UpdateRegistry";
 import { IPositionMatrix } from "gl/transform/IPositionMatrix";
+import { MatrixUniformHandler } from "gl/uniforms/MatrixUniformHandler";
+import { BG_BLUR_LOC, BG_COLOR_LOC, CAM_CURVATURE_LOC, CAM_DISTANCE_LOC, CAM_POS_LOC, CAM_PROJECTION_LOC, CAM_TILT_LOC, CAM_TURN_LOC, FADE_LOC } from "gl/attributes/Constants";
+import { FloatUniformHandler } from "gl/uniforms/FloatUniformHandler";
+import { VectorUniformHandler } from "gl/uniforms/VectorUniformHandler";
 
 interface Props {
   engine: IGraphicsEngine;
@@ -46,38 +48,36 @@ export class Camera extends AuxiliaryHolder<ICamera> implements ICamera {
     super();
     this.engine = engine;
 
-    const cameraMatrices: Record<MatrixUniform, IMatrix> = {
-      [MatrixUniform.PROJECTION]: this.projection,
-      [MatrixUniform.CAM_POS]: this.camMatrix,
-      [MatrixUniform.CAM_TURN]: this.turn,
-      [MatrixUniform.CAM_TILT]: this.tilt,
+    const matrixUniformUpdaters: Record<MatrixUniform, MatrixUniformHandler> = {
+      [MatrixUniform.PROJECTION]: engine.createMatrixUniformHandler(CAM_PROJECTION_LOC, this.projection),
+      [MatrixUniform.CAM_POS]: engine.createMatrixUniformHandler(CAM_POS_LOC, this.camMatrix),
+      [MatrixUniform.CAM_TURN]: engine.createMatrixUniformHandler(CAM_TURN_LOC, this.turn),
+      [MatrixUniform.CAM_TILT]: engine.createMatrixUniformHandler(CAM_TILT_LOC, this.tilt),
     };
+
     this.updateInformer = new UpdateRegistry<MatrixUniform>(ids => {
-      ids.forEach(type => this.engine.updateUniformMatrix(type, cameraMatrices[type]));
+      ids.forEach(type => matrixUniformUpdaters[type].update());
       ids.clear();
     }, motor);
 
-    const cameraVectors: Record<VectorUniform, Vector> = {
-      [VectorUniform.BG_COLOR]: this._bgColor,
+    const vectorUniformUpdaters: Record<VectorUniform, VectorUniformHandler> = {
+      [VectorUniform.BG_COLOR]: engine.createVectorUniformHandler(BG_COLOR_LOC, this._bgColor),
     };
-    this.updateInformerVector = new UpdateRegistry<VectorUniform>(ids => {
-      ids.forEach(type => this.engine.updateUniformVector(type, cameraVectors[type]));
+    this.updateInformerVector = new UpdateRegistry<VectorUniform>((ids) => {
+      ids.forEach(type => vectorUniformUpdaters[type].update());
       ids.clear();
     }, motor);
 
-    const cameraVal: Record<FloatUniform, Val<number, [number]> | undefined> = {
-      [FloatUniform.BG_BLUR]: this.blur,
-      [FloatUniform.CAM_DISTANCE]: this.distance,
-      [FloatUniform.CURVATURE]: this.curvature,
+    const valUniformUpdaters: Record<FloatUniform, FloatUniformHandler | undefined> = {
+      [FloatUniform.BG_BLUR]: engine.createFloatUniformHandler(BG_BLUR_LOC, this.blur),
+      [FloatUniform.CAM_DISTANCE]: engine.createFloatUniformHandler(CAM_DISTANCE_LOC, this.distance),
+      [FloatUniform.CURVATURE]: engine.createFloatUniformHandler(CAM_CURVATURE_LOC, this.curvature),
       [FloatUniform.TIME]: undefined,
-      [FloatUniform.FADE]: this.fade,
+      [FloatUniform.FADE]: engine.createFloatUniformHandler(FADE_LOC, this.fade),
     };
-    this.updateInformerFloat = new UpdateRegistry<FloatUniform>((ids, updatePayload) => {
+    this.updateInformerFloat = new UpdateRegistry<FloatUniform>(ids => {
       ids.forEach(type => {
-        const val = cameraVal[type];
-        if (val) {
-          this.engine.updateUniformFloat(type, val.valueOf(updatePayload.time));
-        }
+        valUniformUpdaters[type]?.update();
       });
       ids.clear();
     }, motor);

@@ -1,12 +1,15 @@
 import { Animation, AnimationId } from "animation/Animation";
-import { FloatUniform, VectorUniform } from "./Uniforms";
-import { MatrixUniform } from "./Uniforms";
 import { MediaId, Media, MediaData } from "gl-texture-manager";
 import { IMatrix } from "gl/transform/IMatrix";
 import { Vector } from "core/types/Vector";
 import { Auxiliary } from "world/aux/Auxiliary";
 import { Sprite, SpriteId } from "world/sprite/Sprite";
 import { List } from "world/sprite/List";
+import { LocationName } from "gl/attributes/GLAttributeBuffers";
+import { MatrixUniformHandler } from "gl/uniforms/MatrixUniformHandler";
+import { FloatUniformHandler } from "gl/uniforms/FloatUniformHandler";
+import { Val } from "core/value/Val";
+import { VectorUniformHandler } from "gl/uniforms/VectorUniformHandler";
 
 export interface IGraphicsEngine extends Auxiliary {
   setMaxSpriteCount(spriteCount: number): void;
@@ -17,9 +20,9 @@ export interface IGraphicsEngine extends Auxiliary {
   updateSpriteTypes(spriteIds: Set<SpriteId>, sprites: List<Sprite>): void;
   updateSpriteAnimations(spriteIds: Set<SpriteId>, sprites: List<Sprite>): void;
   updateAnimationDefinitions(ids: Set<AnimationId>, animations: List<Animation>): void;
-  updateUniformMatrix(type: MatrixUniform, matrix: IMatrix): void;
-  updateUniformFloat(type: FloatUniform, value: number): void;
-  updateUniformVector(type: VectorUniform, value: Vector): void;
   setPixelListener(listener: { x: number, y: number, setPixel(value: number): void }): void;
   resetViewportSize(): void;
+  createMatrixUniformHandler(name: LocationName, matrix: IMatrix): MatrixUniformHandler;
+  createFloatUniformHandler(name: LocationName, val?: Val<number>): FloatUniformHandler;
+  createVectorUniformHandler(name: LocationName, vector: Vector): VectorUniformHandler;
 }
