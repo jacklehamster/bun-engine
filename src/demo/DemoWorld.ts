@@ -31,7 +31,7 @@ import { DirAuxiliary } from "world/aux/DirAuxiliary";
 import { SpriteUpdateType } from "world/sprite/update/SpriteUpdateType";
 import { MediaUpdater } from "world/sprite/update/MediaUpdater";
 import { Accumulator } from "world/sprite/aux/Accumulator";
-import { Media } from "gl/texture/Media";
+import { Media } from "gl-texture-manager";
 import { AnimationUpdater } from "world/sprite/update/AnimationUpdater";
 import { Animation } from "animation/Animation";
 import { MotionAuxiliary } from "world/aux/MotionAuxiliary";

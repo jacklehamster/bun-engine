@@ -2,10 +2,6 @@
 /// <reference lib="dom" />
 /// <reference lib="dom.iterable" />
 
-import { GLPrograms } from '../gl/programs/GLPrograms';
-import { Disposable } from '../gl/lifecycle/Disposable';
-import { GLAttributeBuffers } from '../gl/attributes/GLAttributeBuffers';
-import { GLUniforms } from '../gl/uniforms/GLUniforms';
 import {
   GL,
   POSITION_LOC,
@@ -26,25 +22,28 @@ import {
   ANIM_LOC,
   FADE_LOC,
 } from '../gl/attributes/Constants';
+
+import { GLPrograms } from '../gl/programs/GLPrograms';
+import { Disposable } from '../gl/lifecycle/Disposable';
+import { GLAttributeBuffers } from '../gl/attributes/GLAttributeBuffers';
+import { GLUniforms } from '../gl/uniforms/GLUniforms';
+
 import Matrix from 'gl/transform/Matrix';
 import vertexShader from 'generated/src/gl/resources/vertexShader.txt';
 import fragmentShader from 'generated/src/gl/resources/fragmentShader.txt';
-import { TEXTURE_INDEX_FOR_VIDEO, TextureId, TextureManager } from '../gl/texture/TextureManager';
-import { MediaId, ImageManager } from 'gl/texture/ImageManager';
+import { TEXTURE_INDEX_FOR_VIDEO, TextureId, TextureManager, MediaId, MediaData, Media, ImageManager, SpriteSheet } from 'gl-texture-manager';
 import { replaceTilda } from 'gl/utils/replaceTilda';
 import { FloatUniform, VectorUniform } from "./Uniforms";
 import { MatrixUniform } from "./Uniforms";
-import { MediaData } from 'gl/texture/MediaData';
 import { Sprite, SpriteId } from 'world/sprite/Sprite';
 import { SpriteType } from "world/sprite/SpriteType";
 import { IGraphicsEngine } from './IGraphicsEngine';
 import { IMatrix } from 'gl/transform/IMatrix';
 import { Vector } from "core/types/Vector";
-import { SpriteSheet } from 'gl/texture/spritesheet/SpriteSheet';
 import { Priority, UpdatePayload } from "motor-loop";
 import { List, map } from 'world/sprite/List';
 import { Animation, AnimationId } from 'animation/Animation';
-import { Media } from 'gl/texture/Media';
+import { TextureUniformInitializer } from './TextureUniformsInitializer';
 
 const VERTICES_PER_SPRITE = 6;
 
@@ -82,7 +81,6 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
     this.programs = this.own(new GLPrograms(this.gl));
     this.uniforms = new GLUniforms(this.gl, this.programs);
 
-    this.textureManager = new TextureManager(this.gl, this.uniforms);
     this.imageManager = new ImageManager();
 
     const PROGRAM_NAME = 'main';
@@ -113,6 +111,9 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
 
     this.attributeBuffers = this.own(new GLAttributeBuffers(this.gl, this.programs));
 
+    this.textureManager = new TextureManager({ gl: this.gl });
+    this.addOnDestroy(() => this.textureManager.dispose());
+
     this.initialize(PROGRAM_NAME);
   }
 
@@ -140,7 +141,8 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
     // clear background color
     this.gl.clearColor(0.0, 0.0, 0.0, 1.0);
 
-    this.textureManager.initialize();
+    const textureInitializer = new TextureUniformInitializer({ gl: this.gl, uniforms: this.uniforms });
+    textureInitializer.initialize();
   }
 
   deactivate(): void {

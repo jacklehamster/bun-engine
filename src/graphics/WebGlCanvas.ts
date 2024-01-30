@@ -14,7 +14,7 @@ const DEFAULT_ATTRIBUTES: WebGLContextAttributes = {
 };
 
 interface Props {
-  attributes?: WebGLContextAttributes;
+  attributes: WebGLContextAttributes;
 }
 
 interface Config {
@@ -23,7 +23,7 @@ interface Config {
 
 export class WebGlCanvas extends DOMWrap<HTMLCanvasElement> {
   readonly gl: GL;
-  constructor(canvas: HTMLCanvasElement, { attributes }: Props = {}, config?: Partial<Config>) {
+  constructor(canvas: HTMLCanvasElement, { attributes }: Partial<Props> = {}, config?: Partial<Config>) {
     super(canvas);
     const gl: WebGL2RenderingContext = canvas.getContext('webgl2', { ...DEFAULT_ATTRIBUTES, ...attributes })! as WebGL2RenderingContext;
     this.gl = config?.logGL ? logProxy(gl) : gl;

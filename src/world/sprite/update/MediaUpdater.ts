@@ -1,4 +1,4 @@
-import { Media } from "gl/texture/Media";
+import { Media, MediaData, MediaId } from "gl-texture-manager";
 import { IGraphicsEngine } from "graphics/IGraphicsEngine";
 import { IMotor } from "motor-loop";
 import { UpdateRegistry } from "updates/UpdateRegistry";
@@ -10,15 +10,38 @@ interface Props {
 }
 
 export class MediaUpdater extends Updater<Media> {
+  #savedMediaInfo = new Map<MediaId, MediaData>();
+  private motor: IMotor;
+
   constructor({ engine, motor }: Props) {
     super(new UpdateRegistry(ids => {
       if (!this.elems) {
         return;
       }
+      ids.forEach(id => this.removeMedia(id));
       engine.updateTextures(ids, this.elems)
-        .then((mediaInfos) => mediaInfos.filter(({ isVideo }) => isVideo)
-          .forEach(mediaInfo => motor.scheduleUpdate(mediaInfo, undefined, mediaInfo.refreshRate))
-        );
+        .then((mediaInfos) => mediaInfos.forEach(mediaInfo => {
+          if (mediaInfo.isVideo) {
+            motor.scheduleUpdate(mediaInfo, undefined, mediaInfo.refreshRate);
+            this.#savedMediaInfo.set(mediaInfo.id, mediaInfo);
+          } else {
+            mediaInfo.dispose();
+          }
+        }));
     }, motor));
+    this.motor = motor;
+  }
+
+  removeMedia(id: MediaId) {
+    const mediaInfo = this.#savedMediaInfo.get(id);
+    if (mediaInfo) {
+      this.motor.stopUpdate(mediaInfo);
+      mediaInfo.dispose();
+      this.#savedMediaInfo.delete(id);
+    }
+  }
+
+  dispose() {
+    this.#savedMediaInfo.forEach(mediaInfo => this.removeMedia(mediaInfo.id));
   }
 }

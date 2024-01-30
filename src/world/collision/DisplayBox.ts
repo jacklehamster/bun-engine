@@ -1,4 +1,4 @@
-import { MediaId } from "gl/texture/ImageManager";
+import { MediaId } from "gl-texture-manager";
 import { Box } from "./Box";
 import Matrix from "gl/transform/Matrix";
 import { Sprite } from "world/sprite/Sprite";

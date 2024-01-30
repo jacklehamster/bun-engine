@@ -35,9 +35,10 @@
     "bun-pool": "^1.0.4",
     "free-stack": "^1.0.2",
     "gl-matrix": "^3.4.3",
-    "motor-loop": "^1.0.4",
+    "gl-texture-manager": "^1.0.9",
+    "motor-loop": "^1.0.5",
     "seedrandom": "^3.0.5",
-    "texture-slot-allocator": "^1.0.17",
+    "texture-slot-allocator": "^1.0.24",
     "uuid": "^9.0.1"
   }
 }

@@ -1,5 +1,5 @@
 import { ObjectPool } from "bun-pool";
-import { MediaId } from "gl/texture/ImageManager";
+import { MediaId } from "gl-texture-manager";
 import Matrix from "gl/transform/Matrix";
 import { Sprite } from "world/sprite/Sprite";
 import { SpriteType } from "world/sprite/SpriteType";

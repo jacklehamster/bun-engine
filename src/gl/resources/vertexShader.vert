@@ -1,5 +1,4 @@
 #version 300 es
-#pragma vscode_glsllint_stage : vert
 //  ~{AUTHOR}
 
 precision highp float;

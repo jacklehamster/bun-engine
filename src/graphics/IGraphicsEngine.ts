@@ -1,13 +1,11 @@
 import { Animation, AnimationId } from "animation/Animation";
 import { FloatUniform, VectorUniform } from "./Uniforms";
 import { MatrixUniform } from "./Uniforms";
-import { MediaId } from "gl/texture/ImageManager";
-import { MediaData } from "gl/texture/MediaData";
+import { MediaId, Media, MediaData } from "gl-texture-manager";
 import { IMatrix } from "gl/transform/IMatrix";
 import { Vector } from "core/types/Vector";
 import { Auxiliary } from "world/aux/Auxiliary";
 import { Sprite, SpriteId } from "world/sprite/Sprite";
-import { Media } from "gl/texture/Media";
 import { List } from "world/sprite/List";
 
 export interface IGraphicsEngine extends Auxiliary {

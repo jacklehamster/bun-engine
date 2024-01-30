@@ -4,12 +4,10 @@ import { GLProgram } from './GLProgram';
 
 export class GLPrograms extends Disposable {
   activeProgramId: string = '';
-  private gl: GL;
   private programs: Record<string, GLProgram> = {};
 
-  constructor(gl: GL) {
+  constructor(private gl: GL) {
     super();
-    this.gl = gl;
   }
 
   addProgram(id: string, vertex: string, fragment: string) {

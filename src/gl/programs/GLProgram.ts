@@ -2,11 +2,9 @@ import { GL } from 'gl/attributes/Constants';
 import { Disposable } from '../lifecycle/Disposable';
 
 export class GLProgram extends Disposable {
-  gl: GL;
   program: WebGLProgram;
-  constructor(gl: GL, vertex: string, fragment: string) {
+  constructor(private gl: GL, vertex: string, fragment: string) {
     super();
-    this.gl = gl;
     this.program = createProgram(gl, vertex.trim(), fragment.trim());
   }
 

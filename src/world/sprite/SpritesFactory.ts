@@ -1,7 +1,7 @@
 import { Sprites } from "./Sprites";
 import { Cell } from "world/grid/Cell";
 import { Sprite } from "./Sprite";
-import { MediaId } from "gl/texture/ImageManager";
+import { MediaId } from "gl-texture-manager";
 import { IElemFactory } from "./aux/IElemFactory";
 import { SpritePool } from "world/pools/SpritePool";
 import seedrandom from "seedrandom"

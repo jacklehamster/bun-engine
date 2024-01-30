@@ -8,7 +8,7 @@ import { AnimationId } from "animation/Animation";
 import { ItemsGroup } from "./ItemsGroup";
 import { Animatable as Animating } from "animation/Animatable";
 import { SpriteModel } from "./SpriteModel";
-import { MediaId } from "gl/texture/ImageManager";
+import { MediaId } from "gl-texture-manager";
 
 export class SpriteGroup extends ItemsGroup<Sprite> implements Animating {
   private _orientation: number = 1;
