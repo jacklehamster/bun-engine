@@ -24,6 +24,7 @@
     "dist"
   ],
   "devDependencies": {
+    "@dobuki/autocommit": "^1.0.8",
     "@types/bun": "^1.0.4",
     "@types/jest": "^29.5.6",
     "@types/mocha": "^10.0.3",
@@ -59,7 +60,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/jacklehamster/bun-engine"
+    "url": "git@github.com:jacklehamster/bun-engine.git"
   },
   "author": {
     "name": "Jack Le Hamster",
