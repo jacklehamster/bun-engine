@@ -4,6 +4,16 @@
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "keywords": [
+    "game",
+    "engine",
+    "webgl",
+    "bun",
+    "napl",
+    "json",
+    "typescript",
+    "javascript"
+  ],
   "scripts": {
     "start": "bun run src/index.tsx",
     "test": "bun test",
