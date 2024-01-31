@@ -1,4 +1,4 @@
-import { List } from "core/List";
+import { List } from "abstract-list";
 import { MenuItem } from '../MenuItem';
 
 export interface MenuData {

@@ -1,5 +1,5 @@
 import { Auxiliary } from "world/aux/Auxiliary";
-import { List } from "../../core/List";
+import { List } from "abstract-list";
 import { UpdatableList } from "./UpdatableList";
 
 export interface IAccumulator<T> extends List<T>, Auxiliary {

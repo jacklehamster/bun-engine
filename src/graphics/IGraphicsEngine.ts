@@ -4,7 +4,7 @@ import { IMatrix } from "gl/transform/IMatrix";
 import { Vector } from "core/types/Vector";
 import { Auxiliary } from "world/aux/Auxiliary";
 import { Sprite, SpriteId } from "world/sprite/Sprite";
-import { List } from "core/List";
+import { List } from "abstract-list";
 import { LocationName } from "gl/attributes/GLAttributeBuffers";
 import { MatrixUniformHandler } from "gl/uniforms/update/MatrixUniformHandler";
 import { FloatUniformHandler } from "gl/uniforms/update/FloatUniformHandler";

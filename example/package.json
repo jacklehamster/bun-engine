@@ -1,9 +1,10 @@
 {
   "name": "example",
-  "module": "index.ts",
+  "module": "src/index.ts",
   "type": "module",
   "scripts": {
-    "start": "bun run build-icon && bun run index.ts --watch",
+    "start": "bun run build && bun run index.ts --watch",
+    "build": "bun i && bun run build-icon && bun build --target=node ./src/index.ts --outfile=dist/index.js",
     "build-icon": "png-to-ico ../icon.png > favicon.ico"
   },
   "devDependencies": {
@@ -15,6 +16,7 @@
   "dependencies": {
     "baojs": "^0.2.1",
     "png-to-ico": "^2.1.8",
-    "serve-static-bun": "^0.5.3"
+    "serve-static-bun": "^0.5.3",
+    "bun-engine": "file:.."
   }
 }

@@ -1,1 +1,1 @@
-bun run start
+bun start

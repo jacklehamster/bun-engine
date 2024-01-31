@@ -1,4 +1,4 @@
-import { List, forEach } from "core/List";
+import { List, forEach } from "abstract-list";
 import { Auxiliary } from "./Auxiliary";
 import { Cell } from "world/grid/Cell";
 

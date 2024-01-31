@@ -1,7 +1,7 @@
 import { UpdateNotifier } from "updates/UpdateNotifier";
 import { Auxiliary } from "world/aux/Auxiliary";
 import { UpdateRegistry } from "updates/UpdateRegistry";
-import { List } from "../core/List";
+import { List } from "abstract-list";
 import { ElemsHolder } from "../world/sprite/aux/ElemsHolder";
 
 export class Updater<T> implements UpdateNotifier, Auxiliary<ElemsHolder<T>> {

@@ -1,5 +1,5 @@
 import { IImageManager, ITextureManager, Media, MediaData, MediaId, SpriteSheet, TEXTURE_INDEX_FOR_VIDEO, TextureId } from "gl-texture-manager";
-import { List, map } from "core/List";
+import { List, map } from "abstract-list";
 
 export class TextureUpdateHandler {
   private textureSlots: Map<MediaId, { buffer: Float32Array }> = new Map();

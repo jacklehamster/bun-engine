@@ -73,5 +73,3 @@ export async function testCanvas(canvas: HTMLCanvasElement) {
 export function stop(): void {
   onStop();
 }
-
-export {};

@@ -46,7 +46,7 @@
     window.global = globalThis;
   </script>
   <script type="module">
-    import { testCanvas, hello } from './build/index.js';
+    import { testCanvas, hello } from './dist/index.js';
 
     const game = await testCanvas(document.querySelector('#root'));
     window.game = game;

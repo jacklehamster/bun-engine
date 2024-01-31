@@ -1,7 +1,7 @@
 import Matrix from "gl/transform/Matrix";
 import { EMPTY_SPRITE, Sprite } from "../Sprite";
 import { SpriteType } from "../SpriteType";
-import { MediaId } from "gl/texture/ImageManager";
+import { MediaId } from "gl-texture-manager";
 
 export class SpriteModel implements Sprite {
   sprite: Sprite = EMPTY_SPRITE;

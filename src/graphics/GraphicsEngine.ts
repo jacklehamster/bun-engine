@@ -29,7 +29,7 @@ import { IGraphicsEngine } from './IGraphicsEngine';
 import { IMatrix } from 'gl/transform/IMatrix';
 import { Vector } from "core/types/Vector";
 import { Priority, UpdatePayload } from "motor-loop";
-import { List, map } from 'core/List';
+import { List, map } from 'abstract-list';
 import { Animation, AnimationId } from 'animation/Animation';
 import { TextureUniformInitializer } from '../gl/uniforms/TextureUniformsInitializer';
 import { MatrixUniformHandler } from 'gl/uniforms/update/MatrixUniformHandler';
