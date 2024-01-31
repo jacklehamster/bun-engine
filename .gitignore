@@ -171,3 +171,5 @@ dist
 # IntelliJ based IDEs
 .idea
 src/generated
+
+*.tsbuildinfo
