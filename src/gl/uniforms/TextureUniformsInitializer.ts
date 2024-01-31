@@ -1,44 +1,26 @@
-import { GLUniforms } from 'gl/uniforms/GLUniforms';
 import { GL, MAX_TEXTURE_SIZE_LOC, TEXTURE_UNIFORM_LOC } from 'gl/attributes/Constants';
+
+const DEFAULT_MAX_TEXTURE_SIZE = 4096;
 
 interface Props {
   gl: GL;
-  uniforms: GLUniforms;
+  program: WebGLProgram
 }
 
 interface Config {
+  textureUniformLoc: string;
+  maxTextureSizeLoc: string;
   maxTextureSize: number;
 }
 
 export class TextureUniformInitializer {
-  #gl;
-  #uniforms;
-  #maxTextureSize;
-  constructor({ gl, uniforms }: Props, { maxTextureSize }: Partial<Config> = {}) {
-    this.#gl = gl;
-    this.#uniforms = uniforms;
-    this.#maxTextureSize = maxTextureSize ?? 4096;
-  }
+  static initialize({ gl, program }: Props, { maxTextureSize, textureUniformLoc = TEXTURE_UNIFORM_LOC, maxTextureSizeLoc = MAX_TEXTURE_SIZE_LOC }: Partial<Config> = {}) {
+    const maxTextureUniform = gl.getUniformLocation(program, maxTextureSizeLoc);
+    gl.uniform1f(maxTextureUniform, maxTextureSize ?? DEFAULT_MAX_TEXTURE_SIZE);
 
-  initialize() {
-    this.#initTextureUniforms();
-    this.#initMaxTexture();
-  }
-
-  static initialize(props: Props, config: Partial<Config> = {}): void {
-    const initializer = new TextureUniformInitializer(props, config);
-    initializer.initialize();
-  }
-
-  #initTextureUniforms() {
-    const maxTextureUnits = this.#gl.getParameter(GL.MAX_TEXTURE_IMAGE_UNITS);
+    const maxTextureUnits = gl.getParameter(GL.MAX_TEXTURE_IMAGE_UNITS);
     const arrayOfTextureIndex = new Array(maxTextureUnits).fill(null).map((_, index) => index);	//	0, 1, 2, 3... 16
-    const textureUniformLocation = this.#uniforms.getUniformLocation(TEXTURE_UNIFORM_LOC);
-    this.#gl.uniform1iv(textureUniformLocation, arrayOfTextureIndex);
-  }
-
-  #initMaxTexture() {
-    const loc = this.#uniforms.getUniformLocation(MAX_TEXTURE_SIZE_LOC);
-    this.#gl.uniform1f(loc, this.#maxTextureSize);
+    const texturesUniform = gl.getUniformLocation(program, textureUniformLoc)!;
+    gl.uniform1iv(texturesUniform, arrayOfTextureIndex);
   }
 }

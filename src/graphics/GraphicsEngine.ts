@@ -42,10 +42,6 @@ const VERTICES_PER_SPRITE = 6;
 const TEX_BUFFER_ELEMS = 4;
 const EMPTY_TEX = new Float32Array(TEX_BUFFER_ELEMS).fill(0);
 
-export interface Props {
-  attributes?: WebGLContextAttributes;
-}
-
 export class GraphicsEngine extends Disposable implements IGraphicsEngine {
   priority = Priority.LAST;
 
@@ -87,7 +83,7 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
     this.addOnDestroy(() => this.textureManager.dispose());
 
     this.initialize(PROGRAM_NAME);
-    TextureUniformInitializer.initialize({ gl: this.gl, uniforms: this.uniforms });
+    TextureUniformInitializer.initialize({ gl: this.gl, program: this.programs.getProgram()! });
   }
 
   resetViewportSize() {
