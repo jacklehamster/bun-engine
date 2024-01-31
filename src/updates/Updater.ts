@@ -1,8 +1,8 @@
 import { UpdateNotifier } from "updates/UpdateNotifier";
 import { Auxiliary } from "world/aux/Auxiliary";
 import { UpdateRegistry } from "updates/UpdateRegistry";
-import { List } from "../List";
-import { ElemsHolder } from "../aux/ElemsHolder";
+import { List } from "../core/List";
+import { ElemsHolder } from "../world/sprite/aux/ElemsHolder";
 
 export class Updater<T> implements UpdateNotifier, Auxiliary<ElemsHolder<T>> {
   protected elems?: List<T> & Partial<UpdateNotifier>;

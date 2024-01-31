@@ -25,6 +25,11 @@ export class TextureUniformInitializer {
     this.#initMaxTexture();
   }
 
+  static initialize(props: Props, config: Partial<Config> = {}): void {
+    const initializer = new TextureUniformInitializer(props, config);
+    initializer.initialize();
+  }
+
   #initTextureUniforms() {
     const maxTextureUnits = this.#gl.getParameter(GL.MAX_TEXTURE_IMAGE_UNITS);
     const arrayOfTextureIndex = new Array(maxTextureUnits).fill(null).map((_, index) => index);	//	0, 1, 2, 3... 16

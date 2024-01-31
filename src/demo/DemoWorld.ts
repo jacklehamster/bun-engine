@@ -35,7 +35,7 @@ import { Media } from "gl-texture-manager";
 import { AnimationUpdater } from "world/sprite/update/AnimationUpdater";
 import { Animation } from "animation/Animation";
 import { MotionAuxiliary } from "world/aux/MotionAuxiliary";
-import { forEach } from "world/sprite/List";
+import { forEach } from "core/List";
 import { FollowAuxiliary } from "world/aux/FollowAuxiliary";
 import { ItemsGroup } from "world/sprite/aux/ItemsGroup";
 import { IPositionMatrix } from "gl/transform/IPositionMatrix";

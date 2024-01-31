@@ -1,5 +1,5 @@
 import { Cell } from "world/grid/Cell";
-import { List } from "../List";
+import { List } from "../../../core/List";
 
 export interface IElemFactory<T> {
   getElemsAtCell(cell: Cell): List<T> | undefined;

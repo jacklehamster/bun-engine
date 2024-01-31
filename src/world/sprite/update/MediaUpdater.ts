@@ -2,7 +2,7 @@ import { Media, MediaData, MediaId } from "gl-texture-manager";
 import { IGraphicsEngine } from "graphics/IGraphicsEngine";
 import { IMotor } from "motor-loop";
 import { UpdateRegistry } from "updates/UpdateRegistry";
-import { Updater } from "./Updater";
+import { Updater } from "../../../updates/Updater";
 
 interface Props {
   engine: IGraphicsEngine;

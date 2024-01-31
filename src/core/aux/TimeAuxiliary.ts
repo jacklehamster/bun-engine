@@ -1,5 +1,5 @@
 import { TIME_LOC } from "gl/attributes/Constants";
-import { FloatUniformHandler } from "gl/uniforms/FloatUniformHandler";
+import { FloatUniformHandler } from "gl/uniforms/update/FloatUniformHandler";
 import { IGraphicsEngine } from "graphics/IGraphicsEngine";
 import { IMotor, Looper, UpdatePayload } from "motor-loop";
 import { Auxiliary } from "world/aux/Auxiliary";

@@ -1,4 +1,4 @@
-import { List } from "world/sprite/List";
+import { List } from "core/List";
 import { Message } from "./Message";
 
 export interface Conversation {

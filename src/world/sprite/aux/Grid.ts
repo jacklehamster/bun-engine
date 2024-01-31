@@ -1,6 +1,6 @@
 import { Cell, Tag } from "world/grid/Cell";
 import { SpriteUpdateType } from "../update/SpriteUpdateType";
-import { forEach } from "../List";
+import { forEach } from "../../../core/List";
 import { UpdateNotifier } from "updates/UpdateNotifier";
 import { AuxiliaryHolder } from "world/aux/AuxiliaryHolder";
 import { ElemsHolder } from "./ElemsHolder";

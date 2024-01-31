@@ -29,13 +29,13 @@ import { IGraphicsEngine } from './IGraphicsEngine';
 import { IMatrix } from 'gl/transform/IMatrix';
 import { Vector } from "core/types/Vector";
 import { Priority, UpdatePayload } from "motor-loop";
-import { List, map } from 'world/sprite/List';
+import { List, map } from 'core/List';
 import { Animation, AnimationId } from 'animation/Animation';
-import { TextureUniformInitializer } from './TextureUniformsInitializer';
-import { MatrixUniformHandler } from 'gl/uniforms/MatrixUniformHandler';
-import { FloatUniformHandler } from 'gl/uniforms/FloatUniformHandler';
+import { TextureUniformInitializer } from '../gl/uniforms/TextureUniformsInitializer';
+import { MatrixUniformHandler } from 'gl/uniforms/update/MatrixUniformHandler';
+import { FloatUniformHandler } from 'gl/uniforms/update/FloatUniformHandler';
 import { NumVal } from 'core/value/NumVal';
-import { VectorUniformHandler } from 'gl/uniforms/VectorUniformHandler';
+import { VectorUniformHandler } from 'gl/uniforms/update/VectorUniformHandler';
 
 const VERTICES_PER_SPRITE = 6;
 
@@ -49,7 +49,7 @@ export interface Props {
 export class GraphicsEngine extends Disposable implements IGraphicsEngine {
   priority = Priority.LAST;
 
-  programs: GLPrograms;
+  private programs: GLPrograms;
   private attributeBuffers: GLAttributeBuffers;
   private uniforms: GLUniforms;
 
@@ -87,6 +87,7 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
     this.addOnDestroy(() => this.textureManager.dispose());
 
     this.initialize(PROGRAM_NAME);
+    TextureUniformInitializer.initialize({ gl: this.gl, uniforms: this.uniforms });
   }
 
   resetViewportSize() {
@@ -112,9 +113,6 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
 
     // clear background color
     this.gl.clearColor(0.0, 0.0, 0.0, 1.0);
-
-    const textureInitializer = new TextureUniformInitializer({ gl: this.gl, uniforms: this.uniforms });
-    textureInitializer.initialize();
   }
 
   deactivate(): void {
@@ -261,15 +259,6 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
     return mediaInfos.map(({ mediaData }) => mediaData);;
   }
 
-  private drawElementsInstanced(vertexCount: GLsizei, instances: GLsizei) {
-    this.gl.drawElementsInstanced(
-      GL.TRIANGLES,
-      vertexCount,
-      GL.UNSIGNED_SHORT,
-      0,
-      instances);
-  }
-
   updateSpriteTransforms(spriteIds: Set<SpriteId>, sprites: List<Sprite>) {
     const attributeBuffers = this.attributeBuffers;
     attributeBuffers.bindBuffer(TRANSFORM_LOC);
@@ -371,7 +360,7 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
     if (updatePayload.renderFrame) {
       this.gl.clear(GraphicsEngine.clearBit);
       if (this.visibleSprites.length) {
-        this.drawElementsInstanced(VERTICES_PER_SPRITE, this.visibleSprites.length);
+        this.#drawElementsInstanced(VERTICES_PER_SPRITE, this.visibleSprites.length);
         this.pixelListener?.setPixel(this.getPixel(this.pixelListener.x, this.pixelListener.y));
       }
     }
@@ -396,5 +385,14 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
       gl: this.gl,
       program: this.programs.getProgram(this.programs.activeProgramId)!,
     }, { name }, vector);
+  }
+
+  #drawElementsInstanced(vertexCount: GLsizei, instances: GLsizei) {
+    this.gl.drawElementsInstanced(
+      GL.TRIANGLES,
+      vertexCount,
+      GL.UNSIGNED_SHORT,
+      0,
+      instances);
   }
 }

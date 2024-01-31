@@ -4,12 +4,12 @@ import { IMatrix } from "gl/transform/IMatrix";
 import { Vector } from "core/types/Vector";
 import { Auxiliary } from "world/aux/Auxiliary";
 import { Sprite, SpriteId } from "world/sprite/Sprite";
-import { List } from "world/sprite/List";
+import { List } from "core/List";
 import { LocationName } from "gl/attributes/GLAttributeBuffers";
-import { MatrixUniformHandler } from "gl/uniforms/MatrixUniformHandler";
-import { FloatUniformHandler } from "gl/uniforms/FloatUniformHandler";
+import { MatrixUniformHandler } from "gl/uniforms/update/MatrixUniformHandler";
+import { FloatUniformHandler } from "gl/uniforms/update/FloatUniformHandler";
 import { Val } from "core/value/Val";
-import { VectorUniformHandler } from "gl/uniforms/VectorUniformHandler";
+import { VectorUniformHandler } from "gl/uniforms/update/VectorUniformHandler";
 
 export interface IGraphicsEngine extends Auxiliary {
   setMaxSpriteCount(spriteCount: number): void;

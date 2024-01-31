@@ -1,7 +1,7 @@
 import { IMatrix } from "gl/transform/IMatrix";
 import Matrix from "gl/transform/Matrix";
 import { Vector } from "core/types/Vector";
-import { List, forEach } from "world/sprite/List";
+import { List, forEach } from "core/List";
 
 const _position: Vector = [0, 0, 0];
 const _matrix: Matrix = Matrix.create();

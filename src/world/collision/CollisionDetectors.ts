@@ -1,6 +1,6 @@
 import { Vector } from "core/types/Vector";
 import { ICollisionDetector } from "./ICollisionDetector";
-import { List } from "world/sprite/List";
+import { List } from "core/List";
 
 export class CollisionDetectors implements ICollisionDetector {
   private readonly detectors;

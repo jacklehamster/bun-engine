@@ -1,6 +1,6 @@
 import { IKeyboard, KeyListener } from "controls/IKeyboard";
 import { Auxiliary } from "./Auxiliary";
-import { List, map } from "world/sprite/List";
+import { List, map } from "core/List";
 
 type KeyMap = { key: string; aux: Auxiliary };
 

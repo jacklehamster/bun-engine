@@ -1,7 +1,7 @@
 import { Sprites } from "../Sprites";
 import { Sprite } from "../Sprite";
 import { copySprite } from "../utils/sprite-utils";
-import { forEach } from "../List";
+import { forEach } from "../../../core/List";
 import { transformToPosition } from "world/grid/utils/position-utils";
 import { CellUtils } from "world/grid/utils/cell-utils";
 import { Auxiliary } from "world/aux/Auxiliary";

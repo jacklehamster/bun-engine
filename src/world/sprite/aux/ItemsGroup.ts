@@ -1,6 +1,6 @@
 import { UpdateNotifier } from "updates/UpdateNotifier";
 import { Auxiliary } from "world/aux/Auxiliary";
-import { forEach } from "../List";
+import { forEach } from "../../../core/List";
 import { ElemsHolder } from "./ElemsHolder";
 import { UpdatableList } from "../UpdatableList";
 

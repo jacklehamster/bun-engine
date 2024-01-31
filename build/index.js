@@ -45844,7 +45844,7 @@ function map(list, callback) {
   return r;
 }
 
-// src/graphics/TextureUniformsInitializer.ts
+// src/gl/uniforms/TextureUniformsInitializer.ts
 class TextureUniformInitializer {
   #gl;
   #uniforms;
@@ -45858,6 +45858,10 @@ class TextureUniformInitializer {
     this.#initTextureUniforms();
     this.#initMaxTexture();
   }
+  static initialize(props, config = {}) {
+    const initializer = new TextureUniformInitializer(props, config);
+    initializer.initialize();
+  }
   #initTextureUniforms() {
     const maxTextureUnits = this.#gl.getParameter(GL.MAX_TEXTURE_IMAGE_UNITS);
     const arrayOfTextureIndex = new Array(maxTextureUnits).fill(null).map((_, index) => index);
@@ -45870,7 +45874,7 @@ class TextureUniformInitializer {
   }
 }
 
-// src/gl/uniforms/BaseUniformHandler.ts
+// src/gl/uniforms/update/BaseUniformHandler.ts
 class BaseUniformHandler {
   updateCall;
   gl;
@@ -45885,7 +45889,7 @@ class BaseUniformHandler {
   }
 }
 
-// src/gl/uniforms/MatrixUniformHandler.ts
+// src/gl/uniforms/update/MatrixUniformHandler.ts
 class MatrixUniformHandler extends BaseUniformHandler {
   matrix;
   constructor(props, config, matrix) {
@@ -45897,7 +45901,7 @@ class MatrixUniformHandler extends BaseUniformHandler {
   }
 }
 
-// src/gl/uniforms/FloatUniformHandler.ts
+// src/gl/uniforms/update/FloatUniformHandler.ts
 class FloatUniformHandler extends BaseUniformHandler {
   val;
   constructor(props, config, val) {
@@ -45914,7 +45918,7 @@ class FloatUniformHandler extends BaseUniformHandler {
   }
 }
 
-// src/gl/uniforms/VectorUniformHandler.ts
+// src/gl/uniforms/update/VectorUniformHandler.ts
 class VectorUniformHandler extends BaseUniformHandler {
   vector;
   constructor(props, config, vector) {
@@ -45960,6 +45964,7 @@ class GraphicsEngine extends Disposable {
     this.textureManager = new D({ gl: this.gl });
     this.addOnDestroy(() => this.textureManager.dispose());
     this.initialize(PROGRAM_NAME);
+    TextureUniformInitializer.initialize({ gl: this.gl, uniforms: this.uniforms });
   }
   resetViewportSize() {
     this.gl.viewport(0, 0, this.gl.drawingBufferWidth, this.gl.drawingBufferHeight);
@@ -45975,8 +45980,6 @@ class GraphicsEngine extends Disposable {
     this.gl.enable(GL.CULL_FACE);
     this.gl.cullFace(GL.BACK);
     this.gl.clearColor(0, 0, 0, 1);
-    const textureInitializer = new TextureUniformInitializer({ gl: this.gl, uniforms: this.uniforms });
-    textureInitializer.initialize();
   }
   deactivate() {
     this.textureSlots.clear();
@@ -46115,9 +46118,6 @@ class GraphicsEngine extends Disposable {
     });
     return mediaInfos.map(({ mediaData }) => mediaData);
   }
-  drawElementsInstanced(vertexCount, instances) {
-    this.gl.drawElementsInstanced(GL.TRIANGLES, vertexCount, GL.UNSIGNED_SHORT, 0, instances);
-  }
   updateSpriteTransforms(spriteIds, sprites) {
     const attributeBuffers = this.attributeBuffers;
     attributeBuffers.bindBuffer(TRANSFORM_LOC);
@@ -46211,7 +46211,7 @@ class GraphicsEngine extends Disposable {
     if (updatePayload.renderFrame) {
       this.gl.clear(GraphicsEngine.clearBit);
       if (this.visibleSprites.length) {
-        this.drawElementsInstanced(VERTICES_PER_SPRITE, this.visibleSprites.length);
+        this.#drawElementsInstanced(VERTICES_PER_SPRITE, this.visibleSprites.length);
         this.pixelListener?.setPixel(this.getPixel(this.pixelListener.x, this.pixelListener.y));
       }
     }
@@ -46233,6 +46233,9 @@ class GraphicsEngine extends Disposable {
       gl: this.gl,
       program: this.programs.getProgram(this.programs.activeProgramId)
     }, { name }, vector);
+  }
+  #drawElementsInstanced(vertexCount, instances) {
+    this.gl.drawElementsInstanced(GL.TRIANGLES, vertexCount, GL.UNSIGNED_SHORT, 0, instances);
   }
 }
 
@@ -46627,7 +46630,7 @@ class PositionMatrix extends AuxiliaryHolder {
   }
 }
 
-// src/graphics/Uniforms.ts
+// src/gl/uniforms/Uniforms.ts
 var FloatUniform;
 (function(FloatUniform2) {
   FloatUniform2[FloatUniform2["TIME"] = 0] = "TIME";
@@ -49480,4 +49483,4 @@ export {
   hello
 };
 
-//# debugId=1F4DC9956A75C12764756e2164756e21
+//# debugId=395321C4B6535F5364756e2164756e21

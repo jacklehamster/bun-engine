@@ -2,7 +2,7 @@ import { Animation } from "animation/Animation";
 import { UpdateRegistry } from "updates/UpdateRegistry";
 import { IGraphicsEngine } from "graphics/IGraphicsEngine";
 import { IMotor } from "motor-loop";
-import { Updater } from "./Updater";
+import { Updater } from "../../../updates/Updater";
 
 interface Props {
   engine: IGraphicsEngine;

@@ -8,15 +8,13 @@ import { IGraphicsEngine } from "graphics/IGraphicsEngine";
 import { IMotor } from "motor-loop";
 import { PositionMatrix } from "gl/transform/PositionMatrix";
 import { AuxiliaryHolder } from "world/aux/AuxiliaryHolder";
-import { MatrixUniform, VectorUniform } from "graphics/Uniforms";
-import { FloatUniform } from "graphics/Uniforms";
 import { NumVal } from "core/value/NumVal";
 import { UpdateRegistry } from "updates/UpdateRegistry";
 import { IPositionMatrix } from "gl/transform/IPositionMatrix";
-import { MatrixUniformHandler } from "gl/uniforms/MatrixUniformHandler";
+import { MatrixUniformHandler } from "gl/uniforms/update/MatrixUniformHandler";
 import { BG_BLUR_LOC, BG_COLOR_LOC, CAM_CURVATURE_LOC, CAM_DISTANCE_LOC, CAM_POS_LOC, CAM_PROJECTION_LOC, CAM_TILT_LOC, CAM_TURN_LOC, FADE_LOC } from "gl/attributes/Constants";
-import { FloatUniformHandler } from "gl/uniforms/FloatUniformHandler";
-import { VectorUniformHandler } from "gl/uniforms/VectorUniformHandler";
+import { FloatUniformHandler } from "gl/uniforms/update/FloatUniformHandler";
+import { VectorUniformHandler } from "gl/uniforms/update/VectorUniformHandler";
 
 interface Props {
   engine: IGraphicsEngine;
@@ -25,45 +23,45 @@ interface Props {
 
 export class Camera extends AuxiliaryHolder<ICamera> implements ICamera {
   readonly position: IPositionMatrix = new PositionMatrix(() => {
-    this.camMatrix.invert(this.position);
-    this.updateInformer.informUpdate(MatrixUniform.CAM_POS);
+    this.#camMatrix.invert(this.position);
+    this.#updateInformer.informUpdate(MatrixUniform.CAM_POS);
   });
-  readonly projection = new ProjectionMatrix(() => this.updateInformer.informUpdate(MatrixUniform.PROJECTION));
-  readonly tilt = new TiltMatrix(() => this.updateInformer.informUpdate(MatrixUniform.CAM_TILT));
-  readonly turn = new TurnMatrix(() => this.updateInformer.informUpdate(MatrixUniform.CAM_TURN));
-  readonly curvature = new NumVal(0.05, () => this.updateInformerFloat.informUpdate(FloatUniform.CURVATURE));
-  readonly distance = new NumVal(.5, () => this.updateInformerFloat.informUpdate(FloatUniform.CAM_DISTANCE));
-  readonly blur = new NumVal(1, () => this.updateInformerFloat.informUpdate(FloatUniform.BG_BLUR));
-  readonly fade = new NumVal(0, () => this.updateInformerFloat.informUpdate(FloatUniform.FADE));
+  readonly projection = new ProjectionMatrix(() => this.#updateInformer.informUpdate(MatrixUniform.PROJECTION));
+  readonly tilt = new TiltMatrix(() => this.#updateInformer.informUpdate(MatrixUniform.CAM_TILT));
+  readonly turn = new TurnMatrix(() => this.#updateInformer.informUpdate(MatrixUniform.CAM_TURN));
+  readonly curvature = new NumVal(0.05, () => this.#updateInformerFloat.informUpdate(FloatUniform.CURVATURE));
+  readonly distance = new NumVal(.5, () => this.#updateInformerFloat.informUpdate(FloatUniform.CAM_DISTANCE));
+  readonly blur = new NumVal(1, () => this.#updateInformerFloat.informUpdate(FloatUniform.BG_BLUR));
+  readonly fade = new NumVal(0, () => this.#updateInformerFloat.informUpdate(FloatUniform.FADE));
 
-  private readonly camMatrix = Matrix.create();
-  private readonly _bgColor: Vector = [0, 0, 0];
-  private readonly _viewportSize: [number, number] = [0, 0];
-  private readonly updateInformer;
-  private readonly updateInformerFloat;
-  private readonly updateInformerVector;
-  private readonly engine;
+  readonly #camMatrix = Matrix.create();
+  readonly #bgColor: Vector = [0, 0, 0];
+  readonly #viewportSize: [number, number] = [0, 0];
+  readonly #updateInformer;
+  readonly #updateInformerFloat;
+  readonly #updateInformerVector;
+  readonly #engine;
 
   constructor({ engine, motor }: Props) {
     super();
-    this.engine = engine;
+    this.#engine = engine;
 
     const matrixUniformUpdaters: Record<MatrixUniform, MatrixUniformHandler> = {
       [MatrixUniform.PROJECTION]: engine.createMatrixUniformHandler(CAM_PROJECTION_LOC, this.projection),
-      [MatrixUniform.CAM_POS]: engine.createMatrixUniformHandler(CAM_POS_LOC, this.camMatrix),
+      [MatrixUniform.CAM_POS]: engine.createMatrixUniformHandler(CAM_POS_LOC, this.#camMatrix),
       [MatrixUniform.CAM_TURN]: engine.createMatrixUniformHandler(CAM_TURN_LOC, this.turn),
       [MatrixUniform.CAM_TILT]: engine.createMatrixUniformHandler(CAM_TILT_LOC, this.tilt),
     };
 
-    this.updateInformer = new UpdateRegistry<MatrixUniform>(ids => {
+    this.#updateInformer = new UpdateRegistry<MatrixUniform>(ids => {
       ids.forEach(type => matrixUniformUpdaters[type].update());
       ids.clear();
     }, motor);
 
     const vectorUniformUpdaters: Record<VectorUniform, VectorUniformHandler> = {
-      [VectorUniform.BG_COLOR]: engine.createVectorUniformHandler(BG_COLOR_LOC, this._bgColor),
+      [VectorUniform.BG_COLOR]: engine.createVectorUniformHandler(BG_COLOR_LOC, this.#bgColor),
     };
-    this.updateInformerVector = new UpdateRegistry<VectorUniform>((ids) => {
+    this.#updateInformerVector = new UpdateRegistry<VectorUniform>((ids) => {
       ids.forEach(type => vectorUniformUpdaters[type].update());
       ids.clear();
     }, motor);
@@ -75,7 +73,7 @@ export class Camera extends AuxiliaryHolder<ICamera> implements ICamera {
       [FloatUniform.TIME]: undefined,
       [FloatUniform.FADE]: engine.createFloatUniformHandler(FADE_LOC, this.fade),
     };
-    this.updateInformerFloat = new UpdateRegistry<FloatUniform>(ids => {
+    this.#updateInformerFloat = new UpdateRegistry<FloatUniform>(ids => {
       ids.forEach(type => {
         valUniformUpdaters[type]?.update();
       });
@@ -86,21 +84,21 @@ export class Camera extends AuxiliaryHolder<ICamera> implements ICamera {
 
   activate() {
     super.activate();
-    this.updateInformer.informUpdate(MatrixUniform.PROJECTION);
-    this.updateInformer.informUpdate(MatrixUniform.CAM_POS);
-    this.updateInformer.informUpdate(MatrixUniform.CAM_TURN);
-    this.updateInformer.informUpdate(MatrixUniform.CAM_TILT);
-    this.updateInformerFloat.informUpdate(FloatUniform.CURVATURE);
-    this.updateInformerFloat.informUpdate(FloatUniform.CAM_DISTANCE);
-    this.updateInformerFloat.informUpdate(FloatUniform.BG_BLUR);
-    this.updateInformerVector.informUpdate(VectorUniform.BG_COLOR);
+    this.#updateInformer.informUpdate(MatrixUniform.PROJECTION);
+    this.#updateInformer.informUpdate(MatrixUniform.CAM_POS);
+    this.#updateInformer.informUpdate(MatrixUniform.CAM_TURN);
+    this.#updateInformer.informUpdate(MatrixUniform.CAM_TILT);
+    this.#updateInformerFloat.informUpdate(FloatUniform.CURVATURE);
+    this.#updateInformerFloat.informUpdate(FloatUniform.CAM_DISTANCE);
+    this.#updateInformerFloat.informUpdate(FloatUniform.BG_BLUR);
+    this.#updateInformerVector.informUpdate(VectorUniform.BG_COLOR);
   }
 
   resizeViewport(width: number, height: number) {
-    if (this._viewportSize[0] !== width || this._viewportSize[1] !== height) {
-      this._viewportSize[0] = width;
-      this._viewportSize[1] = height;
-      this.projection.configure(this._viewportSize);
+    if (this.#viewportSize[0] !== width || this.#viewportSize[1] !== height) {
+      this.#viewportSize[0] = width;
+      this.#viewportSize[1] = height;
+      this.projection.configure(this.#viewportSize);
     }
   }
 
@@ -108,10 +106,29 @@ export class Camera extends AuxiliaryHolder<ICamera> implements ICamera {
     const red = (rgb >> 16) & 0xFF;
     const green = (rgb >> 8) & 0xFF;
     const blue = rgb & 0xFF;
-    this._bgColor[0] = red / 255.0;
-    this._bgColor[1] = green / 255.0;
-    this._bgColor[2] = blue / 255.0;
-    this.updateInformerVector.informUpdate(VectorUniform.BG_COLOR);
-    this.engine.setBgColor(this._bgColor);
+    this.#bgColor[0] = red / 255.0;
+    this.#bgColor[1] = green / 255.0;
+    this.#bgColor[2] = blue / 255.0;
+    this.#updateInformerVector.informUpdate(VectorUniform.BG_COLOR);
+    this.#engine.setBgColor(this.#bgColor);
   }
+}
+
+enum MatrixUniform {
+  PROJECTION = 0,
+  CAM_POS = 1,
+  CAM_TURN = 2,
+  CAM_TILT = 3
+}
+
+enum VectorUniform {
+  BG_COLOR = 0
+}
+
+enum FloatUniform {
+  TIME = 0,
+  CURVATURE = 1,
+  CAM_DISTANCE = 2,
+  BG_BLUR = 3,
+  FADE = 4
 }

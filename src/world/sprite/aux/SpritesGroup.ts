@@ -3,7 +3,7 @@ import { Sprite } from "../Sprite";
 import { IMatrix } from "gl/transform/IMatrix";
 import { SpriteUpdateType } from "../update/SpriteUpdateType";
 import { UpdateNotifier } from "updates/UpdateNotifier";
-import { forEach } from "../List";
+import { forEach } from "../../../core/List";
 import { AnimationId } from "animation/Animation";
 import { ItemsGroup } from "./ItemsGroup";
 import { Animatable as Animating } from "animation/Animatable";
