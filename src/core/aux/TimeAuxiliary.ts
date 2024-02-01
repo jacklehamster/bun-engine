@@ -14,7 +14,9 @@ export class TimeAuxiliary extends Looper<FloatUniformHandler> implements Auxili
     super({ motor, data: engine.createFloatUniformHandler(TIME_LOC) }, { autoStart: true });
   }
 
-  refresh({ time, data }: UpdatePayload<FloatUniformHandler>): void {
-    data.updateValue(time);
+  refresh({ time, data, renderFrame }: UpdatePayload<FloatUniformHandler>): void {
+    if (renderFrame) {
+      data.updateValue(time);
+    }
   }
 }

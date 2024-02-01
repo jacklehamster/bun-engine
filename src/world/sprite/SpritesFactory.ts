@@ -4,7 +4,7 @@ import { Sprite } from "./Sprite";
 import { MediaId } from "gl-texture-manager";
 import { IElemFactory } from "./aux/IElemFactory";
 import { SpritePool } from "world/pools/SpritePool";
-import seedrandom from "seedrandom"
+import { alea } from "seedrandom"
 
 interface SpriteBag {
   createSprite(imageId?: MediaId): Sprite;
@@ -27,7 +27,7 @@ export class SpriteFactory implements IElemFactory<Sprite> {
   }
 
   getElemsAtCell(cell: Cell): Sprites {
-    this.filler.fillSpriteBag(cell, this.spriteBag, seedrandom(cell.tag));
+    this.filler.fillSpriteBag(cell, this.spriteBag, alea(cell.tag));
     return this.sprites;
   }
 

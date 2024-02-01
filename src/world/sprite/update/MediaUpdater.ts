@@ -11,7 +11,7 @@ interface Props {
 
 export class MediaUpdater extends Updater<Media> {
   #savedMediaInfo = new Map<MediaId, MediaData>();
-  private motor: IMotor;
+  private readonly motor: IMotor;
 
   constructor({ engine, motor }: Props) {
     super(new UpdateRegistry(ids => {

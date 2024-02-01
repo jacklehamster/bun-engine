@@ -49,6 +49,8 @@ import { Grid } from "world/sprite/aux/Grid";
 import { copySprite } from "world/sprite/utils/sprite-utils";
 import { Box } from "world/collision/Box";
 import { Vector } from "core/types/Vector";
+import { shadowProcessor } from "canvas-processor";
+import { PositionUtils } from "world/grid/utils/position-utils";
 
 enum Assets {
   DOBUKI = 0,
@@ -96,6 +98,7 @@ export class DemoWorld extends AuxiliaryHolder<DemoWorld> implements IWorld {
     super();
 
     const cellUtils = new CellUtils({ motor });
+    const positionUtils = new PositionUtils({ motor });
 
     //  Add a sprite accumulator.
     //  * Sprite accumulators are used to collect sprite definitions, so that the engine can display them.
@@ -125,16 +128,7 @@ export class DemoWorld extends AuxiliaryHolder<DemoWorld> implements IWorld {
           {
             id: Assets.BUN_SHADOW,
             type: "image", src: "bun.png",
-            postProcessing(context) {
-              if (context) {
-                const imageData = context.getImageData(0, 0, context.canvas.width, context.canvas.height);
-                const { data } = imageData;
-                for (let i = 0; i < data.length; i += 4) {
-                  data[i] = data[i + 1] = data[i + 2] = 0;
-                }
-                context.putImageData(imageData, 0, 0);
-              }
-            },
+            postProcess: shadowProcessor,
           },
           {
             id: Assets.DODO,
@@ -149,16 +143,7 @@ export class DemoWorld extends AuxiliaryHolder<DemoWorld> implements IWorld {
             spriteSheet: {
               spriteSize: [190, 209],
             },
-            postProcessing(context) {
-              if (context) {
-                const imageData = context.getImageData(0, 0, context.canvas.width, context.canvas.height);
-                const { data } = imageData;
-                for (let i = 0; i < data.length; i += 4) {
-                  data[i] = data[i + 1] = data[i + 2] = 0;
-                }
-                context.putImageData(imageData, 0, 0);
-              }
-            },
+            postProcess: shadowProcessor,
           },
           {
             id: Assets.WOLF,
@@ -173,16 +158,7 @@ export class DemoWorld extends AuxiliaryHolder<DemoWorld> implements IWorld {
             spriteSheet: {
               spriteSize: [200, 256],
             },
-            postProcessing(context) {
-              if (context) {
-                const imageData = context.getImageData(0, 0, context.canvas.width, context.canvas.height);
-                const { data } = imageData;
-                for (let i = 0; i < data.length; i += 4) {
-                  data[i] = data[i + 1] = data[i + 2] = 0;
-                }
-                context.putImageData(imageData, 0, 0);
-              }
-            },
+            postProcess: shadowProcessor,
           },
           {
             id: Assets.LOGO,
@@ -438,7 +414,7 @@ export class DemoWorld extends AuxiliaryHolder<DemoWorld> implements IWorld {
     blockPositions.forEach(blockPosition => {
       const blockBoxSprites = new DisplayBox(blockBox, Assets.GROUND, Assets.BRICK);
       spritesAccumulator.addAuxiliary(new FixedSpriteGrid(
-        cellUtils,
+        { cellUtils, positionUtils },
         { cellSize: CELLSIZE },
         new SpriteGroup(blockBoxSprites, [Matrix.create().setVector(blockPosition)]),
       ));
@@ -446,7 +422,7 @@ export class DemoWorld extends AuxiliaryHolder<DemoWorld> implements IWorld {
 
 
     spritesAccumulator.addAuxiliary(new FixedSpriteGrid(
-      cellUtils,
+      { cellUtils, positionUtils },
       { cellSize: CELLSIZE },
       //  Dobuki logo
       new SpriteGroup([
@@ -485,7 +461,7 @@ export class DemoWorld extends AuxiliaryHolder<DemoWorld> implements IWorld {
       ],
     ));
 
-    const camera = this.camera = new Camera({ engine, motor });
+    const camera = this.camera = new Camera({ engine, motor, positionUtils });
     this.addAuxiliary(camera);
 
     // const collisionAccumulator = new Accumulator<ICollisionDetector>();
@@ -550,7 +526,7 @@ export class DemoWorld extends AuxiliaryHolder<DemoWorld> implements IWorld {
       near: .9,
       far: -.9,
     };
-    const heroPos: IPositionMatrix = new PositionMatrix()
+    const heroPos: IPositionMatrix = new PositionMatrix(positionUtils)
       .movedTo(0, 0, 3)
       .onChange(() => {
         forEach(heroSprites, (_, index) => heroSprites.informUpdate(index, SpriteUpdateType.TRANSFORM));
@@ -568,7 +544,7 @@ export class DemoWorld extends AuxiliaryHolder<DemoWorld> implements IWorld {
 
     spritesAccumulator.addAuxiliary(displayBox);
 
-    const shadowPos: IPositionMatrix = new PositionMatrix()
+    const shadowPos: IPositionMatrix = new PositionMatrix(positionUtils)
       .onChange(() => {
         forEach(shadowHeroSprites, (_, index) => shadowHeroSprites.informUpdate(index, SpriteUpdateType.TRANSFORM));
       });;

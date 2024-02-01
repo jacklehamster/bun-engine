@@ -16,12 +16,11 @@ import {
 import { GLPrograms } from '../gl/programs/GLPrograms';
 import { Disposable } from '../gl/lifecycle/Disposable';
 import { GLAttributeBuffers, LocationName } from '../gl/attributes/GLAttributeBuffers';
-import { GLUniforms } from '../gl/uniforms/GLUniforms';
 
 import Matrix from 'gl/transform/Matrix';
 import vertexShader from 'generated/src/gl/resources/vertexShader.txt';
 import fragmentShader from 'generated/src/gl/resources/fragmentShader.txt';
-import { TEXTURE_INDEX_FOR_VIDEO, TextureId, TextureManager, MediaId, MediaData, Media, ImageManager, SpriteSheet } from 'gl-texture-manager';
+import { TextureManager, MediaId, MediaData, Media, ImageManager } from 'gl-texture-manager';
 import { replaceTilda } from 'gl/utils/replaceTilda';
 import { Sprite, SpriteId } from 'world/sprite/Sprite';
 import { SpriteType } from "world/sprite/SpriteType";
@@ -36,6 +35,7 @@ import { MatrixUniformHandler } from 'gl/uniforms/update/MatrixUniformHandler';
 import { FloatUniformHandler } from 'gl/uniforms/update/FloatUniformHandler';
 import { NumVal } from 'core/value/NumVal';
 import { VectorUniformHandler } from 'gl/uniforms/update/VectorUniformHandler';
+import { TextureUpdateHandler } from 'updates/texture/TextureUpdateHandler';
 
 const VERTICES_PER_SPRITE = 6;
 
@@ -47,26 +47,28 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
 
   private programs: GLPrograms;
   private attributeBuffers: GLAttributeBuffers;
-  private uniforms: GLUniforms;
 
-  private textureManager: TextureManager;
-  private imageManager: ImageManager;
-
-  private textureSlots: Map<MediaId, { buffer: Float32Array }> = new Map();
   private animationSlots: Map<AnimationId, Animation> = new Map();
 
   private pixelListener?: { x: number; y: number; setPixel(value: number): void };
   private maxSpriteCount = 0;
+
+  private textureUpdateHandler: TextureUpdateHandler;
 
   private tempBuffer = new Float32Array(4).fill(0);
   private visibleSprites: boolean[] = [];
 
   constructor(private gl: GL) {
     super();
-    this.programs = this.own(new GLPrograms(this.gl));
-    this.uniforms = new GLUniforms(this.gl, this.programs);
+    this.programs = this.own(new GLPrograms(gl));
 
-    this.imageManager = new ImageManager();
+
+    const textureManager = new TextureManager({ gl });
+    this.textureUpdateHandler = new TextureUpdateHandler({
+      imageManager: new ImageManager(),
+      textureManager,
+    })
+    this.addOnDestroy(() => textureManager.dispose());
 
     const PROGRAM_NAME = 'main';
     const replacementMap = {
@@ -77,13 +79,10 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
       replaceTilda(fragmentShader, replacementMap),
     );
 
-    this.attributeBuffers = this.own(new GLAttributeBuffers(this.gl, this.programs));
-
-    this.textureManager = new TextureManager({ gl: this.gl });
-    this.addOnDestroy(() => this.textureManager.dispose());
+    this.attributeBuffers = this.own(new GLAttributeBuffers(gl, this.programs));
 
     this.initialize(PROGRAM_NAME);
-    TextureUniformInitializer.initialize({ gl: this.gl, program: this.programs.getProgram()! });
+    TextureUniformInitializer.initialize({ gl, program: this.programs.getProgram()! });
   }
 
   resetViewportSize() {
@@ -112,7 +111,6 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
   }
 
   deactivate(): void {
-    this.textureSlots.clear();
     this.animationSlots.clear();
     this.visibleSprites.length = 0;
   }
@@ -224,35 +222,7 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
   }
 
   async updateTextures(ids: Set<MediaId>, medias: List<Media>): Promise<MediaData[]> {
-    const mediaList = Array.from(ids).map(index => medias.at(index));
-    ids.clear();
-    const mediaInfos = (await Promise.all(map(mediaList, async media => {
-      if (media?.id === undefined) {
-        return;
-      }
-      const mediaData = await this.imageManager.renderMedia(media.id, media);
-      return { mediaData, mediaId: media.id, spriteSheet: media.spriteSheet };
-    }))).filter((data): data is { mediaData: MediaData, mediaId: MediaId, spriteSheet: SpriteSheet | undefined } => !!data);
-    const textureIndices = await Promise.all(mediaInfos.map(async ({ mediaData, mediaId, spriteSheet }) => {
-      const { slot, refreshCallback } = this.textureManager.allocateSlotForImage(mediaData);
-      const slotW = Math.log2(slot.size[0]), slotH = Math.log2(slot.size[1]);
-      const wh = slotW * 16 + slotH;
-      const [spriteWidth, spriteHeight] = spriteSheet?.spriteSize ?? [mediaData.width, mediaData.height];
-      this.textureSlots.set(mediaId, {
-        buffer: Float32Array.from([wh, slot.slotNumber, spriteWidth / mediaData.width, spriteHeight / mediaData.height]),
-      });
-      mediaData.refreshCallback = refreshCallback;
-      return slot.textureIndex;
-    }));
-    const textureIndicesSet = new Set(textureIndices);
-    textureIndicesSet.forEach(textureIndex => {
-      if (textureIndex === TEXTURE_INDEX_FOR_VIDEO) {
-        this.textureManager.setupTextureForVideo(`TEXTURE${textureIndex}` as TextureId);
-      } else {
-        this.textureManager.generateMipMap(`TEXTURE${textureIndex}` as TextureId);
-      }
-    });
-    return mediaInfos.map(({ mediaData }) => mediaData);;
+    return this.textureUpdateHandler.updateTextures(ids, medias);
   }
 
   updateSpriteTransforms(spriteIds: Set<SpriteId>, sprites: List<Sprite>) {
@@ -280,8 +250,8 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
         spriteIds.delete(spriteId);
         return;
       }
-      const slotObj = this.textureSlots.get(sprite.imageId);
-      let buffer = slotObj?.buffer ?? EMPTY_TEX;
+      const slotBuffer = this.textureUpdateHandler.getSlotBuffer(sprite.imageId);
+      let buffer = slotBuffer ?? EMPTY_TEX;
       if ((sprite.orientation ?? 1) < 0) {
         this.tempBuffer[0] = buffer[0];
         this.tempBuffer[1] = buffer[1];
@@ -290,7 +260,7 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
         buffer = this.tempBuffer;
       }
       this.gl.bufferSubData(GL.ARRAY_BUFFER, TEX_BUFFER_ELEMS * Float32Array.BYTES_PER_ELEMENT * spriteId, buffer);
-      const spriteWaitingForTexture = sprite && !slotObj;
+      const spriteWaitingForTexture = sprite && !slotBuffer;
       if (!spriteWaitingForTexture) {
         spriteIds.delete(spriteId);
       }

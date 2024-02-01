@@ -11,7 +11,7 @@ export class UpdateRegistry<T extends IdType = IdType> implements Refresh, Updat
     if (!this.updatedIds.has(id)) {
       this.updatedIds.add(id);
     }
-    this.motor.scheduleUpdate(this, undefined);
+    this.motor.scheduleUpdate(this);
   }
 
   refresh(update: UpdatePayload): void {

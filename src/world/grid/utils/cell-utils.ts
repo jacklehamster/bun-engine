@@ -4,7 +4,7 @@ import { Cell } from "../Cell";
 import { VectorPool } from "world/pools/VectorPool";
 import { IMotor, Refresh, UpdatePayload } from "motor-loop";
 
-interface Props {
+interface Props extends Partial<Data> {
   motor: IMotor;
 }
 
@@ -19,10 +19,10 @@ export class CellUtils implements Refresh<Data> {
   private readonly motor;
   private readonly data;
 
-  constructor({ motor }: Props) {
+  constructor({ motor, cellPool, vectorPool }: Props) {
     this.motor = motor;
-    this.cellPool = new CellPool();
-    this.vectorPool = new VectorPool();
+    this.cellPool = cellPool ?? new CellPool();
+    this.vectorPool = vectorPool ?? new VectorPool();
     this.data = { cellPool: this.cellPool, vectorPool: this.vectorPool };
   }
 
@@ -37,14 +37,16 @@ export class CellUtils implements Refresh<Data> {
   }
 
   cellAt(x: number, y: number, z: number, cellSize: number): Cell {
+    this.motor.scheduleUpdate(this, this.data);
     return this.cellPool.create(x, y, z, cellSize);
   }
 
   positionFromCell(cell: Cell): Vector {
-    return this.positionFromCellPos(...cell.pos);
+    return this.positionFromCellPos(cell.pos[0], cell.pos[1], cell.pos[2], cell.pos[3]);
   }
 
   positionFromCellPos(cx: number, cy: number, cz: number, cellSize: number) {
+    this.motor.scheduleUpdate(this, this.data);
     return this.vectorPool.create(cx * cellSize, cy * cellSize, cz * cellSize);
   }
 }

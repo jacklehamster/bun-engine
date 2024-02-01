@@ -1,27 +1,45 @@
 import { IMatrix } from "gl/transform/IMatrix";
-import Matrix from "gl/transform/Matrix";
 import { Vector } from "core/types/Vector";
-import { List, forEach } from "abstract-list";
+import { IMotor, Refresh, UpdatePayload } from "motor-loop";
+import { VectorPool } from "world/pools/VectorPool";
 
-const _position: Vector = [0, 0, 0];
-const _matrix: Matrix = Matrix.create();
-export function transformsToPosition(transforms: List<Matrix>) {
-  _matrix.identity();
-  forEach(transforms, transform => { if (transform) { _matrix.multiply(transform); } });
-  return transformToPosition(_matrix);
+interface Props extends Partial<Data> {
+  motor: IMotor;
 }
 
-export function toVector(x: number, y: number, z: number): Vector {
-  _position[0] = x;
-  _position[1] = y;
-  _position[2] = z;
-  return _position;
+interface Data {
+  vectorPool: VectorPool;
 }
 
-export function transformToPosition(transform: IMatrix, pos: Vector = _position) {
-  const m = transform.getMatrix();
-  pos[0] = m[12]; // Value in the 4th column, 1st row (indices start from 0)
-  pos[1] = m[13]; // Value in the 4th column, 2nd row
-  pos[2] = m[14]; // Value in the 4th column, 3rd row
-  return pos;
+export class PositionUtils implements Refresh<Data> {
+  private readonly vectorPool: VectorPool;
+  private readonly motor;
+  private readonly data;
+
+  constructor({ motor, vectorPool }: Props) {
+    this.motor = motor;
+    this.vectorPool = vectorPool ?? new VectorPool();
+    this.data = { vectorPool: this.vectorPool };
+  }
+
+  refresh({ data: { vectorPool } }: UpdatePayload<Data>): void {
+    vectorPool.recycleAll();
+  }
+
+  transformToPosition(transform: IMatrix) {
+    this.motor.scheduleUpdate(this, this.data);
+    const m = transform.getMatrix();
+    return this.vectorPool.create(m[12], m[13], m[14]);
+  }
+
+  toVector(x: number, y: number, z: number): Vector {
+    return this.vectorPool.create(x, y, z);
+  }
+
+  static transformToPosition(transform: IMatrix, pos: Vector) {
+    const m = transform.getMatrix();
+    pos[0] = m[12]; // Value in the 4th column, 1st row (indices start from 0)
+    pos[1] = m[13]; // Value in the 4th column, 2nd row
+    pos[2] = m[14]; // Value in the 4th column, 3rd row
+  }
 }

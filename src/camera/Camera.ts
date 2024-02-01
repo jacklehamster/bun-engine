@@ -15,17 +15,16 @@ import { MatrixUniformHandler } from "gl/uniforms/update/MatrixUniformHandler";
 import { BG_BLUR_LOC, BG_COLOR_LOC, CAM_CURVATURE_LOC, CAM_DISTANCE_LOC, CAM_POS_LOC, CAM_PROJECTION_LOC, CAM_TILT_LOC, CAM_TURN_LOC, FADE_LOC } from "gl/attributes/Constants";
 import { FloatUniformHandler } from "gl/uniforms/update/FloatUniformHandler";
 import { VectorUniformHandler } from "gl/uniforms/update/VectorUniformHandler";
+import { PositionUtils } from "world/grid/utils/position-utils";
 
 interface Props {
   engine: IGraphicsEngine;
   motor: IMotor;
+  positionUtils: PositionUtils;
 }
 
 export class Camera extends AuxiliaryHolder<ICamera> implements ICamera {
-  readonly position: IPositionMatrix = new PositionMatrix(() => {
-    this.#camMatrix.invert(this.position);
-    this.#updateInformer.informUpdate(MatrixUniform.CAM_POS);
-  });
+  readonly position: IPositionMatrix;
   readonly projection = new ProjectionMatrix(() => this.#updateInformer.informUpdate(MatrixUniform.PROJECTION));
   readonly tilt = new TiltMatrix(() => this.#updateInformer.informUpdate(MatrixUniform.CAM_TILT));
   readonly turn = new TurnMatrix(() => this.#updateInformer.informUpdate(MatrixUniform.CAM_TURN));
@@ -42,9 +41,14 @@ export class Camera extends AuxiliaryHolder<ICamera> implements ICamera {
   readonly #updateInformerVector;
   readonly #engine;
 
-  constructor({ engine, motor }: Props) {
+  constructor({ engine, motor, positionUtils }: Props) {
     super();
     this.#engine = engine;
+
+    this.position = new PositionMatrix(positionUtils, () => {
+      this.#camMatrix.invert(this.position);
+      this.#updateInformer.informUpdate(MatrixUniform.CAM_POS);
+    });
 
     const matrixUniformUpdaters: Record<MatrixUniform, MatrixUniformHandler> = {
       [MatrixUniform.PROJECTION]: engine.createMatrixUniformHandler(CAM_PROJECTION_LOC, this.projection),

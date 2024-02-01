@@ -1,4 +1,4 @@
-import { toVector, transformToPosition } from "world/grid/utils/position-utils";
+import { PositionUtils } from "world/grid/utils/position-utils";
 import { IMatrix } from "./IMatrix";
 import Matrix from "./Matrix";
 import { AuxiliaryHolder } from "world/aux/AuxiliaryHolder";
@@ -9,11 +9,11 @@ import { ChangeListener } from "./IPositionMatrix";
 
 export class PositionMatrix extends AuxiliaryHolder<PositionMatrix> implements IPositionMatrix {
   private readonly matrix: Matrix = Matrix.create().setPosition(0, 0, 0);
-  private readonly _position: Vector = [0, 0, 0];
   private readonly changeListeners: Set<ChangeListener> = new Set();
+  readonly position: Vector = [0, 0, 0];
   moveBlocker?: ICollisionDetector;
 
-  constructor(onChange?: (dx: number, dy: number, dz: number) => void) {
+  constructor(private positionUtils: PositionUtils, onChange?: (dx: number, dy: number, dz: number) => void) {
     super();
     if (onChange) {
       this.onChange(onChange);
@@ -30,7 +30,7 @@ export class PositionMatrix extends AuxiliaryHolder<PositionMatrix> implements I
   }
 
   private changedPosition(dx: number, dy: number, dz: number) {
-    transformToPosition(this.matrix, this._position);
+    PositionUtils.transformToPosition(this.matrix, this.position);
     for (let listener of this.changeListeners) {
       listener(dx, dy, dz);
     }
@@ -38,7 +38,7 @@ export class PositionMatrix extends AuxiliaryHolder<PositionMatrix> implements I
 
   moveBy(x: number, y: number, z: number, turnMatrix?: IMatrix) {
     const vector = Matrix.getMoveVector(x, y, z, turnMatrix);
-    const blocked = this.moveBlocker?.isBlocked(toVector(
+    const blocked = this.moveBlocker?.isBlocked(this.positionUtils.toVector(
       this.position[0] + vector[0],
       this.position[1] + vector[1],
       this.position[2] + vector[2],
@@ -53,7 +53,7 @@ export class PositionMatrix extends AuxiliaryHolder<PositionMatrix> implements I
   }
 
   moveTo(x: number, y: number, z: number) {
-    const blocked = this.moveBlocker?.isBlocked(toVector(x, y, z), this.position);
+    const blocked = this.moveBlocker?.isBlocked(this.positionUtils.toVector(x, y, z), this.position);
     if (!blocked) {
       const [curX, curY, curZ] = this.matrix.getPosition();
       if (curX !== x || curY !== y || curZ !== z) {
@@ -68,10 +68,6 @@ export class PositionMatrix extends AuxiliaryHolder<PositionMatrix> implements I
   movedTo(x: number, y: number, z: number): this {
     this.moveTo(x, y, z);
     return this;
-  }
-
-  get position() {
-    return this._position;
   }
 
   gotoPos(x: number, y: number, z: number, speed: number = .1): boolean {

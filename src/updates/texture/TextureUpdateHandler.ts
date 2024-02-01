@@ -1,10 +1,28 @@
 import { IImageManager, ITextureManager, Media, MediaData, MediaId, SpriteSheet, TEXTURE_INDEX_FOR_VIDEO, TextureId } from "gl-texture-manager";
 import { List, map } from "abstract-list";
 
-export class TextureUpdateHandler {
-  private textureSlots: Map<MediaId, { buffer: Float32Array }> = new Map();
+interface Props {
+  textureManager: ITextureManager;
+  imageManager: IImageManager;
+}
 
-  constructor(private textureManager: ITextureManager, private imageManager: IImageManager) {
+export class TextureUpdateHandler {
+  private readonly textureSlots: Map<MediaId, { buffer: Float32Array }> = new Map();
+  private textureManager: ITextureManager;
+  private imageManager: IImageManager;
+
+  constructor({ textureManager, imageManager }: Props) {
+    this.textureManager = textureManager;
+    this.imageManager = imageManager;
+  }
+
+  getSlotBuffer(id: MediaId): Float32Array | undefined {
+    const slot = this.textureSlots.get(id);
+    return slot?.buffer;
+  }
+
+  dispose(): void {
+    this.textureSlots.clear();
   }
 
   async updateTextures(ids: Set<MediaId>, medias: List<Media>): Promise<MediaData[]> {

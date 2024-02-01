@@ -18,7 +18,7 @@ https://github.com/jacklehamster/bun-engine`);
 let onStop: () => void;
 
 export async function testCanvas(canvas: HTMLCanvasElement) {
-  const motor = new Motor();
+  const motor = new Motor({}, { frameRate: 120 });
   const keyboard = new Keyboard({ motor });
   const gameControls = new KeyboardControls(keyboard);
   const menuControls = new KeyboardControls(keyboard);

@@ -16,7 +16,7 @@ interface Props {
 export class SpriteUpdater implements UpdateNotifier, Auxiliary<SpritesHolder> {
   private sprites?: Sprites;
 
-  private updateRegistries: Record<SpriteUpdateType, UpdateRegistry | undefined>;
+  private readonly updateRegisteries: Record<SpriteUpdateType, UpdateRegistry | undefined>;
 
   set holder(value: SpritesHolder) {
     this.sprites = value;
@@ -24,7 +24,7 @@ export class SpriteUpdater implements UpdateNotifier, Auxiliary<SpritesHolder> {
   }
 
   constructor({ engine, motor }: Props) {
-    this.updateRegistries = {
+    this.updateRegisteries = {
       [SpriteUpdateType.NONE]: undefined,
       [SpriteUpdateType.TRANSFORM]: new UpdateRegistry(ids => engine.updateSpriteTransforms(ids, this.sprites!), motor),
       [SpriteUpdateType.TEX_SLOT]: new UpdateRegistry(ids => engine.updateSpriteTexSlots(ids, this.sprites!), motor),
@@ -36,16 +36,16 @@ export class SpriteUpdater implements UpdateNotifier, Auxiliary<SpritesHolder> {
 
   informUpdate(id: SpriteId, type: SpriteUpdateType = SpriteUpdateType.ALL): void {
     if (type & SpriteUpdateType.TRANSFORM) {
-      this.updateRegistries[SpriteUpdateType.TRANSFORM]?.informUpdate(id);
+      this.updateRegisteries[SpriteUpdateType.TRANSFORM]!.informUpdate(id);
     }
     if (type & SpriteUpdateType.TEX_SLOT) {
-      this.updateRegistries[SpriteUpdateType.TEX_SLOT]?.informUpdate(id);
+      this.updateRegisteries[SpriteUpdateType.TEX_SLOT]!.informUpdate(id);
     }
     if (type & SpriteUpdateType.TYPE) {
-      this.updateRegistries[SpriteUpdateType.TYPE]?.informUpdate(id);
+      this.updateRegisteries[SpriteUpdateType.TYPE]!.informUpdate(id);
     }
     if (type & SpriteUpdateType.ANIM) {
-      this.updateRegistries[SpriteUpdateType.ANIM]?.informUpdate(id);
+      this.updateRegisteries[SpriteUpdateType.ANIM]!.informUpdate(id);
     }
   }
 }
