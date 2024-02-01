@@ -1,7 +1,7 @@
 import { UpdatePayload, IMotor } from "motor-loop";
 import { Auxiliary } from "./Auxiliary";
 import { IControls } from "controls/IControls";
-import { IPositionMatrix } from "gl/transform/IPositionMatrix";
+import { IPositionMatrix, MoveResult } from "gl/transform/IPositionMatrix";
 import { NumVal } from "core/value/NumVal";
 import { ControlledLooper } from "updates/ControlledLooper";
 import { Vector } from "core/types/Vector";
@@ -83,10 +83,15 @@ export class PositionStepAuxiliary extends ControlledLooper<Data> implements Aux
       speed *= 2;
     }
 
-    const didMove = data.position.gotoPos(this.goalPos[0], pos[1], this.goalPos[2], speed)
-      || dx && data.position.gotoPos(this.goalPos[0], pos[1], pos[2], speed)
-      || dz && data.position.gotoPos(pos[0], pos[1], this.goalPos[2], speed);
-    if (!didMove) {
+    let moveResult = data.position.gotoPos(this.goalPos[0], pos[1], this.goalPos[2], speed);
+    if (moveResult === MoveResult.BLOCKED && dx) {
+      moveResult = data.position.gotoPos(this.goalPos[0], pos[1], pos[2], speed);
+    }
+    if (moveResult === MoveResult.BLOCKED && dz) {
+      moveResult = data.position.gotoPos(pos[0], pos[1], this.goalPos[2], speed);
+    }
+
+    if (moveResult === MoveResult.BLOCKED) {
       const gx = Math.round(pos[0] / step) * step;
       const gz = Math.round(pos[2] / step) * step;
       this.goalPos[0] = gx;

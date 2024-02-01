@@ -33,6 +33,7 @@ export class PositionUtils implements Refresh<Data> {
   }
 
   toVector(x: number, y: number, z: number): Vector {
+    this.motor.scheduleUpdate(this, this.data);
     return this.vectorPool.create(x, y, z);
   }
 

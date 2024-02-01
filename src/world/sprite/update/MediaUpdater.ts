@@ -10,7 +10,7 @@ interface Props {
 }
 
 export class MediaUpdater extends Updater<Media> {
-  #savedMediaInfo = new Map<MediaId, MediaData>();
+  readonly #savedMediaInfo = new Map<MediaId, MediaData>();
   private readonly motor: IMotor;
 
   constructor({ engine, motor }: Props) {

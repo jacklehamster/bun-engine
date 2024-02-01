@@ -6,6 +6,7 @@ import { ICollisionDetector } from "../../world/collision/ICollisionDetector";
 import { IPositionMatrix } from "./IPositionMatrix";
 import { Vector } from "../../core/types/Vector";
 import { ChangeListener } from "./IPositionMatrix";
+import { MoveResult } from "./IPositionMatrix";
 
 export class PositionMatrix extends AuxiliaryHolder<PositionMatrix> implements IPositionMatrix {
   private readonly matrix: Matrix = Matrix.create().setPosition(0, 0, 0);
@@ -47,12 +48,17 @@ export class PositionMatrix extends AuxiliaryHolder<PositionMatrix> implements I
       if (vector[0] || vector[1] || vector[2]) {
         this.matrix.move(vector);
         this.changedPosition(x, y, z);
+      } else {
+        return MoveResult.AT_POSITION;
       }
     }
-    return !blocked;
+    return blocked ? MoveResult.BLOCKED : MoveResult.MOVED;
   }
 
   moveTo(x: number, y: number, z: number) {
+    if (this.position[0] === x && this.position[1] === y && this.position[2] === z) {
+      return MoveResult.AT_POSITION;
+    }
     const blocked = this.moveBlocker?.isBlocked(this.positionUtils.toVector(x, y, z), this.position);
     if (!blocked) {
       const [curX, curY, curZ] = this.matrix.getPosition();
@@ -62,7 +68,7 @@ export class PositionMatrix extends AuxiliaryHolder<PositionMatrix> implements I
         this.changedPosition(dx, dy, dz);
       }
     }
-    return !blocked;
+    return blocked ? MoveResult.BLOCKED : MoveResult.MOVED;;
   }
 
   movedTo(x: number, y: number, z: number): this {
@@ -70,7 +76,7 @@ export class PositionMatrix extends AuxiliaryHolder<PositionMatrix> implements I
     return this;
   }
 
-  gotoPos(x: number, y: number, z: number, speed: number = .1): boolean {
+  gotoPos(x: number, y: number, z: number, speed: number = .1): MoveResult {
     const curPos = this.position;
     const dx = x - curPos[0];
     const dy = y - curPos[1];
