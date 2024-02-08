@@ -57,10 +57,10 @@
     "abstract-list": "^1.0.4",
     "bun-pool": "^1.0.7",
     "canvas-processor": "^1.0.3",
-    "free-stack": "^1.0.2",
+    "free-stack": "^1.0.3",
     "gl-matrix": "^3.4.3",
     "gl-texture-manager": "^1.0.14",
-    "motor-loop": "^1.0.8",
+    "motor-loop": "^1.0.9",
     "seedrandom": "^3.0.5",
     "texture-slot-allocator": "^1.0.24",
     "uuid": "^9.0.1"

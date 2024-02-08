@@ -5,25 +5,20 @@ import { IMotor } from "motor-loop";
 import { UpdateRegistry } from "updates/UpdateRegistry";
 import { SpriteUpdateType } from "./SpriteUpdateType";
 import { Auxiliary } from "world/aux/Auxiliary";
-import { SpritesHolder } from "../aux/SpritesHolder";
 import { SpriteId } from "../Sprite";
 
 interface Props {
   engine: IGraphicsEngine;
   motor: IMotor;
+  sprites: Sprites;
 }
 
-export class SpriteUpdater implements UpdateNotifier, Auxiliary<SpritesHolder> {
-  private sprites?: Sprites;
-
+export class SpriteUpdater implements UpdateNotifier, Auxiliary {
+  private readonly sprites: Sprites;
   private readonly updateRegisteries: Record<SpriteUpdateType, UpdateRegistry | undefined>;
 
-  set holder(value: SpritesHolder) {
-    this.sprites = value;
-    this.sprites.informUpdate = this.informUpdate.bind(this);
-  }
-
-  constructor({ engine, motor }: Props) {
+  constructor({ engine, motor, sprites }: Props) {
+    this.sprites = sprites;
     this.updateRegisteries = {
       [SpriteUpdateType.NONE]: undefined,
       [SpriteUpdateType.TRANSFORM]: new UpdateRegistry(ids => engine.updateSpriteTransforms(ids, this.sprites!), motor),
@@ -32,6 +27,10 @@ export class SpriteUpdater implements UpdateNotifier, Auxiliary<SpritesHolder> {
       [SpriteUpdateType.ANIM]: new UpdateRegistry(ids => engine.updateSpriteAnimations(ids, this.sprites!), motor),
       [SpriteUpdateType.ALL]: undefined,
     };
+  }
+
+  activate(): void {
+    this.sprites.informUpdate = this.informUpdate.bind(this);
   }
 
   informUpdate(id: SpriteId, type: SpriteUpdateType = SpriteUpdateType.ALL): void {

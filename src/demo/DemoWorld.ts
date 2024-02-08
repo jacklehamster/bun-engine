@@ -13,8 +13,7 @@ import { TiltResetAuxiliary } from "world/aux/TiltResetAuxiliary";
 import { ToggleAuxiliary } from "world/aux/ToggleAuxiliary";
 import { SurroundingTracker } from "world/grid/SurroundingTracker";
 import { SpriteGroup } from "world/sprite/aux/SpritesGroup";
-import { FixedSpriteGrid } from "world/sprite/aux/FixedSpriteGrid";
-import { MaxSpriteCountAuxiliary } from "world/sprite/aux/MaxSpriteCountAuxiliary";
+import { MaxCountAuxiliary } from "world/sprite/aux/MaxCountAuxiliary";
 import { SpriteUpdater } from "world/sprite/update/SpriteUpdater";
 import { Sprite } from "world/sprite/Sprite";
 import { SpriteType } from "world/sprite/SpriteType";
@@ -51,6 +50,9 @@ import { Box } from "world/collision/Box";
 import { Vector } from "core/types/Vector";
 import { shadowProcessor } from "canvas-processor";
 import { PositionUtils } from "world/grid/utils/position-utils";
+import { CellBoundary } from "world/sprite/aux/CellBoundary";
+import { SpriteCellCreator } from "world/sprite/aux/SpriteCellCreator";
+import { FixedSpriteFactory } from "world/sprite/aux/FixedSpriteFactory";
 
 enum Assets {
   DOBUKI = 0,
@@ -100,21 +102,12 @@ export class DemoWorld extends AuxiliaryHolder<DemoWorld> implements IWorld {
     const cellUtils = new CellUtils({ motor });
     const positionUtils = new PositionUtils({ motor });
 
-    //  Add a sprite accumulator.
-    //  * Sprite accumulators are used to collect sprite definitions, so that the engine can display them.
-    const spritesAccumulator = new Accumulator<Sprite>()
-      .addAuxiliary(
-        new SpriteUpdater({ engine, motor }),
-        new MaxSpriteCountAuxiliary({ engine }),
-      );
-    this.addAuxiliary(spritesAccumulator);
-
     //  Add medias
     //  * Each media is a texture that can be shown on a sprite.
     //  * You can show videos, images, or you can have instructions to draw on a canvas.
     this.addAuxiliary(new Accumulator<Media>()
+      .addAuxiliary(new MediaUpdater({ engine, motor }))
       .addAuxiliary(
-        new MediaUpdater({ engine, motor }),
         new ItemsGroup<Media>([
           {
             id: Assets.DOBUKI,
@@ -351,7 +344,9 @@ export class DemoWorld extends AuxiliaryHolder<DemoWorld> implements IWorld {
 
     this.addAuxiliary(new Accumulator<Animation>()
       .addAuxiliary(
-        new AnimationUpdater({ engine, motor }),
+        new AnimationUpdater({ engine, motor })
+      )
+      .addAuxiliary(
         new ItemsGroup<Animation>([
           {
             id: Anims.STILL,
@@ -369,6 +364,13 @@ export class DemoWorld extends AuxiliaryHolder<DemoWorld> implements IWorld {
           },
         ]),
       ));
+
+    //  Add a sprite accumulator.
+    //  * Sprite accumulators are used to collect sprite definitions, so that the engine can display them.
+    const spritesAccumulator = new Accumulator<Sprite>();
+    this.addAuxiliary(new MaxCountAuxiliary({ engine, elems: spritesAccumulator }));
+    this.addAuxiliary(new SpriteUpdater({ engine, motor, sprites: spritesAccumulator }));
+    this.addAuxiliary(spritesAccumulator);
 
     const exitBlock = {
       top: 2,
@@ -413,53 +415,111 @@ export class DemoWorld extends AuxiliaryHolder<DemoWorld> implements IWorld {
 
     blockPositions.forEach(blockPosition => {
       const blockBoxSprites = new DisplayBox(blockBox, Assets.GROUND, Assets.BRICK);
-      spritesAccumulator.addAuxiliary(new FixedSpriteGrid(
-        { cellUtils, positionUtils },
-        { cellSize: CELLSIZE },
-        new SpriteGroup(blockBoxSprites, [Matrix.create().setVector(blockPosition)]),
-      ));
+      // spritesAccumulator.addAuxiliary(new FixedSpriteGrid(
+      //   { cellUtils, positionUtils },
+      //   { cellSize: CELLSIZE },
+      //   new SpriteGroup(blockBoxSprites, [Matrix.create().setVector(blockPosition)]),
+      // ));
+      const factory = new FixedSpriteFactory({ cellUtils, positionUtils }, { cellSize: CELLSIZE },
+        new SpriteGroup(blockBoxSprites, [Matrix.create().setVector(blockPosition)]));
+      this.addAuxiliary(factory);
+
+      const creator = new SpriteCellCreator({
+        factory,
+      });
+      spritesAccumulator.addAuxiliary(creator);
+      this.addAuxiliary(new Grid({
+        cellCreator: creator,
+      }));
     });
 
+    {
+      const factory = new FixedSpriteFactory({ cellUtils, positionUtils }, { cellSize: CELLSIZE },
+        //  Dobuki logo
+        new SpriteGroup([
+          {
+            imageId: Assets.DOBUKI,
+            spriteType: SpriteType.SPRITE,
+            transform: Matrix.create().translate(0, -.3, -1),
+            hidden: true,
+          },
+        ], [Matrix.create().setVector(dobukiPosition)]),
+        new SpriteGroup(
+          new DisplayBox(dobukiBlock, Assets.WIREFRAME, Assets.WIREFRAME),
+          [Matrix.create().setVector(dobukiPosition)]
+        ),
+        new SpriteGroup(
+          new DisplayBox(exitBlock, Assets.WIREFRAME, Assets.WIREFRAME),
+          [Matrix.create().setVector(exitPosition)]
+        ),
 
-    spritesAccumulator.addAuxiliary(new FixedSpriteGrid(
-      { cellUtils, positionUtils },
-      { cellSize: CELLSIZE },
-      //  Dobuki logo
-      new SpriteGroup([
-        {
-          imageId: Assets.DOBUKI,
-          spriteType: SpriteType.SPRITE,
-          transform: Matrix.create().translate(0, -.3, -1),
-          hidden: true,
-        },
-      ], [Matrix.create().setVector(dobukiPosition)]),
-      new SpriteGroup(
-        new DisplayBox(dobukiBlock, Assets.WIREFRAME, Assets.WIREFRAME),
-        [Matrix.create().setVector(dobukiPosition)]
-      ),
-      new SpriteGroup(
-        new DisplayBox(exitBlock, Assets.WIREFRAME, Assets.WIREFRAME),
-        [Matrix.create().setVector(exitPosition)]
-      ),
+        //  Side walls with happy face logo
+        [
+          //  side walls
+          ...[
+            Matrix.create().translate(-3.01, 0, 0).rotateY(Math.PI / 2),
+            Matrix.create().translate(-3.01, 0, 0).rotateY(-Math.PI / 2),
+            Matrix.create().translate(3.01, 0, 0).rotateY(-Math.PI / 2),
+            Matrix.create().translate(3.01, 0, 0).rotateY(Math.PI / 2),
+          ].map(transform => ({ imageId: Assets.LOGO, transform })),
+          //  floor
+          ...[
+            Matrix.create().translate(0, -.9, 0).rotateX(-Math.PI / 2),
+            Matrix.create().translate(0, -.9, 2).rotateX(-Math.PI / 2),
+            Matrix.create().translate(-2, -.9, 2).rotateX(-Math.PI / 2),
+            Matrix.create().translate(2, -.9, 2).rotateX(-Math.PI / 2),
+          ].map(transform => ({ imageId: Assets.GRASS_GROUND, transform })),
+        ]);
 
-      //  Side walls with happy face logo
-      [
-        //  side walls
-        ...[
-          Matrix.create().translate(-3.01, 0, 0).rotateY(Math.PI / 2),
-          Matrix.create().translate(-3.01, 0, 0).rotateY(-Math.PI / 2),
-          Matrix.create().translate(3.01, 0, 0).rotateY(-Math.PI / 2),
-          Matrix.create().translate(3.01, 0, 0).rotateY(Math.PI / 2),
-        ].map(transform => ({ imageId: Assets.LOGO, transform })),
-        //  floor
-        ...[
-          Matrix.create().translate(0, -.9, 0).rotateX(-Math.PI / 2),
-          Matrix.create().translate(0, -.9, 2).rotateX(-Math.PI / 2),
-          Matrix.create().translate(-2, -.9, 2).rotateX(-Math.PI / 2),
-          Matrix.create().translate(2, -.9, 2).rotateX(-Math.PI / 2),
-        ].map(transform => ({ imageId: Assets.GRASS_GROUND, transform })),
-      ],
-    ));
+      const creator = new SpriteCellCreator({
+        factory
+      });
+      spritesAccumulator.addAuxiliary(creator);
+      this.addAuxiliary(new Grid({
+        cellCreator: creator,
+      }));
+      this.addAuxiliary(factory);
+    }
+
+    // spritesAccumulator.addAuxiliary(new FixedSpriteGrid(
+    //   { cellUtils, positionUtils },
+    //   { cellSize: CELLSIZE },
+    //   //  Dobuki logo
+    //   new SpriteGroup([
+    //     {
+    //       imageId: Assets.DOBUKI,
+    //       spriteType: SpriteType.SPRITE,
+    //       transform: Matrix.create().translate(0, -.3, -1),
+    //       hidden: true,
+    //     },
+    //   ], [Matrix.create().setVector(dobukiPosition)]),
+    //   new SpriteGroup(
+    //     new DisplayBox(dobukiBlock, Assets.WIREFRAME, Assets.WIREFRAME),
+    //     [Matrix.create().setVector(dobukiPosition)]
+    //   ),
+    //   new SpriteGroup(
+    //     new DisplayBox(exitBlock, Assets.WIREFRAME, Assets.WIREFRAME),
+    //     [Matrix.create().setVector(exitPosition)]
+    //   ),
+
+    //   //  Side walls with happy face logo
+    //   [
+    //     //  side walls
+    //     ...[
+    //       Matrix.create().translate(-3.01, 0, 0).rotateY(Math.PI / 2),
+    //       Matrix.create().translate(-3.01, 0, 0).rotateY(-Math.PI / 2),
+    //       Matrix.create().translate(3.01, 0, 0).rotateY(-Math.PI / 2),
+    //       Matrix.create().translate(3.01, 0, 0).rotateY(Math.PI / 2),
+    //     ].map(transform => ({ imageId: Assets.LOGO, transform })),
+    //     //  floor
+    //     ...[
+    //       Matrix.create().translate(0, -.9, 0).rotateX(-Math.PI / 2),
+    //       Matrix.create().translate(0, -.9, 2).rotateX(-Math.PI / 2),
+    //       Matrix.create().translate(-2, -.9, 2).rotateX(-Math.PI / 2),
+    //       Matrix.create().translate(2, -.9, 2).rotateX(-Math.PI / 2),
+    //     ].map(transform => ({ imageId: Assets.GRASS_GROUND, transform })),
+    //   ],
+    // ));
 
     const camera = this.camera = new Camera({ engine, motor, positionUtils });
     this.addAuxiliary(camera);
@@ -467,11 +527,8 @@ export class DemoWorld extends AuxiliaryHolder<DemoWorld> implements IWorld {
     // const collisionAccumulator = new Accumulator<ICollisionDetector>();
     // collisionAccumulator.add()
 
-    //  Dynamic SpriteGrid
-    //  * This SpriteGrid is dynamic, meaning that the cell gets generated on the
-    //  * fly. This allows us to produce an infinite amounts of cells.
-    spritesAccumulator.addAuxiliary(new Grid<Sprite>(
-      copySprite, { yRange: [0, 0] }, new SpriteFactory({
+    const spriteCellCreator = new SpriteCellCreator({
+      factory: new SpriteFactory({
         fillSpriteBag({ pos: cellPos }, bag, rng) {
           const distSq = cellPos[0] * cellPos[0] + cellPos[2] * cellPos[2];
           const isWater = distSq > 1000;
@@ -515,8 +572,18 @@ export class DemoWorld extends AuxiliaryHolder<DemoWorld> implements IWorld {
             bag.addSprite(wolf, shadow);
           }
         },
-      })
-    ));
+      }),
+    });
+
+    //  Dynamic SpriteGrid
+    //  * This SpriteGrid is dynamic, meaning that the cell gets generated on the
+    //  * fly. This allows us to produce an infinite amounts of cells.
+    spritesAccumulator.addAuxiliary(spriteCellCreator);
+
+    this.addAuxiliary(new Grid({
+      boundary: new CellBoundary({ yRange: [0, 0] }),
+      cellCreator: spriteCellCreator,
+    }));
 
     const heroBox = {
       top: 1,
@@ -676,13 +743,19 @@ export class DemoWorld extends AuxiliaryHolder<DemoWorld> implements IWorld {
     //  * This is needed to indicate when the player is changing cell
     //  * as they move. Every cell change, a new set of surrounding cells
     //  * is evaluated, and some are created as needed.
-    this.addAuxiliary(heroPos.addAuxiliary(
-      new CellChangeAuxiliary(cellUtils, { cellSize: CELLSIZE })
-        .addAuxiliary(new SurroundingTracker({ cellTrack: this, cellUtils }, {
-          cellLimit: 200,
-          range: [7, 3, 7],
-          cellSize: CELLSIZE,
-        }))));
+    const surroundingTracker = new SurroundingTracker({ cellTrack: this, cellUtils }, {
+      cellLimit: 200,
+      range: [7, 3, 7],
+      cellSize: CELLSIZE,
+    });
+    this.addAuxiliary(surroundingTracker)
+      .addAuxiliary(
+        new CellChangeAuxiliary({
+          cellUtils,
+          visitableCell: surroundingTracker,
+          positionMatrix: heroPos,
+        }, { cellSize: CELLSIZE })
+      );
 
     //  Hack some base settings
     camera.distance.setValue(5)

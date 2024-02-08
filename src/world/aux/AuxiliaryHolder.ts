@@ -1,14 +1,14 @@
 import { Auxiliary } from "./Auxiliary";
 import { Cell } from "world/grid/Cell";
-import { CellTrack } from "world/grid/CellTrack";
+import { ICellTracker } from "world/grid/ICellTracker";
 import { Holder } from "./Holder";
 import { IAuxiliaryHolder } from "./IAuxiliaryHolder";
 
-const EMPTY_CELLTRACK: CellTrack[] = [];
+const EMPTY_CELLTRACK: ICellTracker[] = [];
 
 export class AuxiliaryHolder<H extends Holder = any> implements IAuxiliaryHolder<H> {
   private auxiliaries: Auxiliary[] = [];
-  private cellTracks: CellTrack[] = EMPTY_CELLTRACK;
+  private cellTracks: ICellTracker[] = EMPTY_CELLTRACK;
   active: boolean = false;
 
   activate(): void {
@@ -43,24 +43,21 @@ export class AuxiliaryHolder<H extends Holder = any> implements IAuxiliaryHolder
     }
   }
 
-  addAuxiliary(...aux: Auxiliary<any>[]): this {
-    aux.forEach(a => {
-      a.holder = this;
-      this.auxiliaries.push(a);
-      if (this.active) {
-        a.activate?.();
-      }
-    });
+  addAuxiliary(aux: Auxiliary<any>): this {
+    aux.holder = this;
+    this.auxiliaries.push(aux);
+    if (this.active) {
+      aux.activate?.();
+    }
     this.onAuxiliariesChange();
     return this;
   }
 
-  removeAuxiliary(...aux: Auxiliary<any>[]) {
-    const removeSet = new Set(aux);
+  removeAuxiliary(aux: Auxiliary<any>) {
     let j = 0;
     for (let i = 0; i < this.auxiliaries.length; i++) {
       const a = this.auxiliaries[i];
-      if (!removeSet.has(a)) {
+      if (a !== aux) {
         this.auxiliaries[j] = a;
         j++;
       } else {
@@ -73,6 +70,6 @@ export class AuxiliaryHolder<H extends Holder = any> implements IAuxiliaryHolder
   }
 
   private onAuxiliariesChange() {
-    this.cellTracks = this.auxiliaries?.filter((a): a is CellTrack => !!a.trackCell || !!a.untrackCells) ?? EMPTY_CELLTRACK;
+    this.cellTracks = this.auxiliaries?.filter((a): a is ICellTracker => !!a.trackCell || !!a.untrackCells) ?? EMPTY_CELLTRACK;
   }
 }

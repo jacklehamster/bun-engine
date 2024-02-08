@@ -29,7 +29,6 @@ export class ItemsGroup<T> implements UpdatableList<T>, Auxiliary<ElemsHolder<T>
   activate(): void {
     if (!this._active) {
       this._active = true;
-      this.holder?.add?.(this);
       forEach(this.elems, (_, index) => this.informUpdate(index));
     }
   }

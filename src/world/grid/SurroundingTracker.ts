@@ -1,10 +1,8 @@
 import { Cell, Tag } from "./Cell";
 import { CellUtils } from "./utils/cell-utils";
-import { VisitableCell } from "./VisitCell";
+import { IVisitableCell } from "./IVisitableCell";
 import { DoubleLinkList, FreeStack } from "free-stack";
-import { CellTrack } from "./CellTrack";
-import { Auxiliary } from "world/aux/Auxiliary";
-import { CellChangeAuxiliary } from "gl/transform/aux/CellChangeAuxiliary";
+import { ICellTracker } from "./ICellTracker";
 
 interface Config {
   range?: [number, number, number];
@@ -13,11 +11,11 @@ interface Config {
 }
 
 interface Props {
-  cellTrack: CellTrack;
+  cellTrack: ICellTracker;
   cellUtils: CellUtils;
 }
 
-export class SurroundingTracker implements VisitableCell, Auxiliary<CellChangeAuxiliary> {
+export class SurroundingTracker implements IVisitableCell {
   private readonly cellTags: FreeStack<Tag> = new DoubleLinkList<Tag>("");
   private readonly cellTrack;
   private readonly cellUtils;
@@ -34,10 +32,6 @@ export class SurroundingTracker implements VisitableCell, Auxiliary<CellChangeAu
     this.cellSize = cellSize ?? 1;
     this.cellTrack = cellTrack;
     this.cellUtils = cellUtils;
-  }
-
-  set holder(aux: CellChangeAuxiliary) {
-    aux.visitableCell = this;
   }
 
   iterateCells(visitedCell: Cell, callback: (cell: Cell) => void) {

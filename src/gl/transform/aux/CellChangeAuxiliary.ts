@@ -1,6 +1,6 @@
 import { Auxiliary } from "world/aux/Auxiliary";
 import { CellUtils } from "world/grid/utils/cell-utils";
-import { VisitableCell } from "../../../world/grid/VisitCell";
+import { IVisitableCell } from "../../../world/grid/IVisitableCell";
 import { AuxiliaryHolder } from "world/aux/AuxiliaryHolder";
 import { ChangeListener, IPositionMatrix } from "../IPositionMatrix";
 import { Cell } from "world/grid/Cell";
@@ -9,21 +9,27 @@ interface Config {
   cellSize?: number;
 }
 
+interface Props {
+  cellUtils: CellUtils;
+  visitableCell: IVisitableCell;
+  positionMatrix: IPositionMatrix;
+}
+
 export class CellChangeAuxiliary extends AuxiliaryHolder implements Auxiliary<IPositionMatrix> {
-  visitableCell?: VisitableCell;
-  private positionMatrix?: IPositionMatrix;
+  private readonly positionMatrix: IPositionMatrix;
+  private readonly visitableCell?: IVisitableCell;
+  private readonly cellUtils: CellUtils;
   private readonly cellSize: number;
   private readonly previousCellPos: Cell["pos"];
   private readonly listener: ChangeListener = () => this.checkPosition();
 
-  constructor(private cellUtils: CellUtils, config?: Config) {
+  constructor({ cellUtils, visitableCell, positionMatrix }: Props, config?: Config) {
     super();
+    this.visitableCell = visitableCell;
+    this.cellUtils = cellUtils;
     this.cellSize = config?.cellSize ?? 1;
     this.previousCellPos = [Number.NaN, Number.NaN, Number.NaN, this.cellSize];
-  }
-
-  set holder(value: IPositionMatrix) {
-    this.positionMatrix = value;
+    this.positionMatrix = positionMatrix;
   }
 
   checkPosition(): void {
@@ -42,7 +48,7 @@ export class CellChangeAuxiliary extends AuxiliaryHolder implements Auxiliary<IP
 
   activate(): void {
     super.activate();
-    this.positionMatrix?.onChange(this.listener);
+    this.positionMatrix.onChange(this.listener);
     this.previousCellPos[0] = Number.NaN;
     this.previousCellPos[1] = Number.NaN;
     this.previousCellPos[2] = Number.NaN;
@@ -50,7 +56,7 @@ export class CellChangeAuxiliary extends AuxiliaryHolder implements Auxiliary<IP
   }
 
   deactivate(): void {
-    this.positionMatrix?.removeChangeListener(this.listener);
+    this.positionMatrix.removeChangeListener(this.listener);
     super.deactivate();
   }
 }
