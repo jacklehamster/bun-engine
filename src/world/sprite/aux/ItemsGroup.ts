@@ -1,12 +1,10 @@
 import { UpdateNotifier } from "updates/UpdateNotifier";
 import { Auxiliary } from "world/aux/Auxiliary";
 import { forEach } from "../../../core/List";
-import { ElemsHolder } from "./ElemsHolder";
 import { UpdatableList } from "../UpdatableList";
 
-export class ItemsGroup<T> implements UpdatableList<T>, Auxiliary<ElemsHolder<T>> {
+export class ItemsGroup<T> implements UpdatableList<T>, Auxiliary {
   private _active = false;
-  holder?: ElemsHolder<T>;
 
   constructor(protected elems: UpdatableList<T> | (T[] & Partial<UpdateNotifier>)) {
   }

@@ -8,7 +8,6 @@ import { Sprites } from "../Sprites";
 import { copySprite } from "../utils/sprite-utils";
 import { Auxiliary } from "world/aux/Auxiliary";
 import { AuxiliaryHolder } from "world/aux/AuxiliaryHolder";
-import { ElemsHolder } from "./ElemsHolder";
 
 interface Config {
   cellSize?: number;
@@ -20,7 +19,7 @@ interface Props {
   positionUtils: PositionUtils;
 }
 
-export class FixedSpriteFactory extends AuxiliaryHolder<ElemsHolder<Sprite>> implements IElemFactory<Sprite>, Auxiliary {
+export class FixedSpriteFactory extends AuxiliaryHolder implements IElemFactory<Sprite>, Auxiliary {
   private readonly spritesPerCell: Map<Tag, Sprite[]> = new Map();
   private readonly spritesList: Sprites[];
   private readonly cellUtils: CellUtils;

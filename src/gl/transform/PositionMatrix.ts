@@ -8,7 +8,7 @@ import { Vector } from "../../core/types/Vector";
 import { ChangeListener } from "./IPositionMatrix";
 import { MoveResult } from "./IPositionMatrix";
 
-export class PositionMatrix extends AuxiliaryHolder<PositionMatrix> implements IPositionMatrix {
+export class PositionMatrix extends AuxiliaryHolder implements IPositionMatrix {
   private readonly matrix: Matrix = Matrix.create().setPosition(0, 0, 0);
   private readonly changeListeners: Set<ChangeListener> = new Set();
   readonly position: Vector = [0, 0, 0];

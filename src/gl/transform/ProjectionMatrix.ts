@@ -6,7 +6,7 @@ import { NumVal } from "core/value/NumVal";
 const DEFAULT_PERSPECTIVE_LEVEL = 1;
 const DEFAULT_ZOOM = 1;
 
-export class ProjectionMatrix extends AuxiliaryHolder<ProjectionMatrix> implements IMatrix {
+export class ProjectionMatrix extends AuxiliaryHolder implements IMatrix {
   private readonly baseMatrix = Matrix.create();
   private readonly perspectiveMatrix = Matrix.create();
   private readonly orthoMatrix = Matrix.create();

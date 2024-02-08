@@ -9,15 +9,20 @@ interface Config {
   auxiliariesMapping: List<KeyMap>;
 }
 
-export class ToggleAuxiliary implements Auxiliary<IKeyboard> {
-  private keyboard?: IKeyboard;
+interface Props {
+  keyboard: IKeyboard;
+}
+
+export class ToggleAuxiliary implements Auxiliary {
+  private readonly keyboard: IKeyboard;
   private active: boolean = false;
   private toggleIndex: number;
   private readonly keys: (string | undefined)[];
   private readonly auxiliaries: List<Auxiliary>;
   private readonly keyListener: KeyListener;
 
-  constructor(config: Config) {
+  constructor({ keyboard }: Props, config: Config) {
+    this.keyboard = keyboard;
     this.keys = map(config.auxiliariesMapping, (keyMap => keyMap?.key));
     this.keyListener = {
       onKeyDown: (keyCode: string) => {
@@ -33,10 +38,6 @@ export class ToggleAuxiliary implements Auxiliary<IKeyboard> {
     };
     this.auxiliaries = map(config.auxiliariesMapping, ((keyMap) => keyMap?.aux));
     this.toggleIndex = (config.initialIndex ?? 0);
-  }
-
-  set holder(keyboard: IKeyboard) {
-    this.keyboard = keyboard;
   }
 
   private get auxiliary(): Auxiliary | undefined {
@@ -57,7 +58,7 @@ export class ToggleAuxiliary implements Auxiliary<IKeyboard> {
   activate(): void {
     if (!this.active) {
       this.active = true;
-      this.keyboard?.addListener(this.keyListener);
+      this.keyboard.addListener(this.keyListener);
       this.auxiliary?.activate?.();
     }
   }
@@ -65,7 +66,7 @@ export class ToggleAuxiliary implements Auxiliary<IKeyboard> {
   deactivate(): void {
     if (this.active) {
       this.active = false;
-      this.keyboard?.removeListener(this.keyListener);
+      this.keyboard.removeListener(this.keyListener);
       this.auxiliary?.deactivate?.();
     }
   }

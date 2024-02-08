@@ -2,7 +2,6 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { WebGlCanvas } from 'graphics/WebGlCanvas';
 import { AuxiliaryHolder } from 'world/aux/AuxiliaryHolder';
-import { DOMWrap } from './DOMWrap';
 import { HudContent } from './HudContent';
 import { Listener } from './Listener';
 import { UserInterface } from './UserInterface';
@@ -20,21 +19,20 @@ const STYLE: React.CSSProperties = {
 
 interface Props {
   controls: IControls;
+  webGlCanvas: WebGlCanvas;
 }
 
-export class Hud
-  extends AuxiliaryHolder<DOMWrap<Element>>
-  implements UserInterface
-{
-  holder?: WebGlCanvas;
+export class Hud extends AuxiliaryHolder implements UserInterface {
+  private readonly webGlCanvas: WebGlCanvas;
   private readonly rootElem = document.createElement('div');
   private readonly root = ReactDOM.createRoot(this.rootElem);
   private readonly listeners: Set<Listener> = new Set();
   private readonly popupManager = new PopupManager(this.listeners);
   private readonly controls: IControls;
 
-  constructor({ controls }: Props) {
+  constructor({ controls, webGlCanvas }: Props) {
     super();
+    this.webGlCanvas = webGlCanvas;
     this.controls = controls;
     this.rootElem.style.pointerEvents = 'none';
   }
@@ -76,7 +74,7 @@ export class Hud
   }
 
   createElement(): React.ReactNode {
-    const { offsetLeft: left, offsetTop: top } = this.holder?.elem ?? {};
+    const { offsetLeft: left, offsetTop: top } = this.webGlCanvas.elem;
 
     return (
       <div style={{ ...STYLE, top, left }}>

@@ -23,7 +23,7 @@ interface Props {
   positionUtils: PositionUtils;
 }
 
-export class Camera extends AuxiliaryHolder<ICamera> implements ICamera {
+export class Camera extends AuxiliaryHolder implements ICamera {
   readonly position: IPositionMatrix;
   readonly projection = new ProjectionMatrix(() => this.#updateInformer.informUpdate(MatrixUniform.PROJECTION));
   readonly tilt = new TiltMatrix(() => this.#updateInformer.informUpdate(MatrixUniform.CAM_TILT));

@@ -15,7 +15,7 @@ interface Props {
   positionMatrix: IPositionMatrix;
 }
 
-export class CellChangeAuxiliary extends AuxiliaryHolder implements Auxiliary<IPositionMatrix> {
+export class CellChangeAuxiliary extends AuxiliaryHolder implements Auxiliary {
   private readonly positionMatrix: IPositionMatrix;
   private readonly visitableCell?: IVisitableCell;
   private readonly cellUtils: CellUtils;

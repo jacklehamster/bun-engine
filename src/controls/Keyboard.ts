@@ -8,7 +8,7 @@ interface Props {
   motor: IMotor;
 }
 
-export class Keyboard extends AuxiliaryHolder<IKeyboard> implements IKeyboard {
+export class Keyboard extends AuxiliaryHolder implements IKeyboard {
   readonly keys: Record<string, Time> = {};
   readonly keysUp: Record<string, Time> = {};
 

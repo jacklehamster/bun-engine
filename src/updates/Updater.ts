@@ -1,17 +1,23 @@
 import { UpdateNotifier } from "updates/UpdateNotifier";
 import { Auxiliary } from "world/aux/Auxiliary";
 import { UpdateRegistry } from "updates/UpdateRegistry";
-import { List } from "abstract-list";
-import { ElemsHolder } from "../world/sprite/aux/ElemsHolder";
+import { UpdatableList } from "world/sprite/UpdatableList";
 
-export class Updater<T> implements UpdateNotifier, Auxiliary<ElemsHolder<T>> {
-  protected elems?: List<T> & Partial<UpdateNotifier>;
+interface Props {
+  updateRegistry: UpdateRegistry;
+  elems: UpdatableList<any>;
+}
 
-  constructor(private updateRegistry: UpdateRegistry) {
+export class Updater<T> implements UpdateNotifier, Auxiliary {
+  private readonly elems: UpdatableList<any>;
+  private readonly updateRegistry: UpdateRegistry;
+
+  constructor({ updateRegistry, elems }: Props) {
+    this.updateRegistry = updateRegistry;
+    this.elems = elems;
   }
 
-  set holder(value: ElemsHolder<T> & List<T> & Partial<UpdateNotifier>) {
-    this.elems = value;
+  activate(): void {
     this.elems.informUpdate = this.informUpdate.bind(this);
   }
 

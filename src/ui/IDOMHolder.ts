@@ -1,5 +1,3 @@
-import { Holder } from "world/aux/Holder";
-
-export interface ICanvasHolder<T> extends Holder {
+export interface ICanvasHolder<T> {
   readonly elem: T;
 }

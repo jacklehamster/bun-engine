@@ -8,7 +8,6 @@ import { forEach } from "core/List";
 import { SpriteUpdateType } from "../update/SpriteUpdateType";
 import { Active } from "core/Active";
 import { AuxiliaryHolder } from "world/aux/AuxiliaryHolder";
-import { ElemsHolder } from "./ElemsHolder";
 
 interface Props {
   factory: IElemFactory<Sprite>
@@ -20,11 +19,10 @@ interface Slot<T> {
   tag: Tag;
 }
 
-export class SpriteCellCreator extends AuxiliaryHolder<ElemsHolder<Sprite>> implements ICellCreator<Sprite>, Active {
+export class SpriteCellCreator extends AuxiliaryHolder implements ICellCreator<Sprite>, Active {
   private readonly factory: IElemFactory<Sprite>;
   private readonly slots: Slot<Sprite>[] = [];
   private readonly slotPool;
-  holder?: ElemsHolder<Sprite>;
 
   constructor({ factory, slotPool }: Props) {
     super();

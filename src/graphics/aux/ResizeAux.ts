@@ -6,21 +6,19 @@ import { DOMWrap } from "ui/DOMWrap";
 interface Props {
   engine: IGraphicsEngine;
   camera: ICamera;
+  canvas: HTMLCanvasElement;
 }
 
-export class ResizeAux implements Auxiliary<DOMWrap<HTMLCanvasElement>> {
-  private engine: IGraphicsEngine;
-  private camera: ICamera;
-  private canvas?: HTMLCanvasElement;
+export class ResizeAux implements Auxiliary {
+  private readonly engine: IGraphicsEngine;
+  private readonly camera: ICamera;
+  private readonly canvas: HTMLCanvasElement;
 
-  constructor({ engine, camera }: Props) {
+  constructor({ engine, camera, canvas }: Props) {
     this.engine = engine;
     this.camera = camera;
+    this.canvas = canvas;
     this.onResize = this.onResize.bind(this);
-  }
-
-  set holder(value: DOMWrap<HTMLCanvasElement>) {
-    this.canvas = value.elem;
   }
 
   activate(): void {

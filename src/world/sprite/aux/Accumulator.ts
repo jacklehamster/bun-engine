@@ -47,7 +47,7 @@ export class Accumulator<T> extends AuxiliaryHolder implements ElemsHolder<T> {
     this.indices.length = 0;
   }
 
-  addAuxiliary(aux: Auxiliary<any>): this {
+  addAuxiliary(aux: Auxiliary): this {
     super.addAuxiliary(aux);
     if ((aux as Partial<List<any>>).at) {
       this.add(aux as List<any>);

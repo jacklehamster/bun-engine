@@ -1,12 +1,10 @@
 import { Auxiliary } from "./Auxiliary";
 import { Cell } from "world/grid/Cell";
 import { ICellTracker } from "world/grid/ICellTracker";
-import { Holder } from "./Holder";
-import { IAuxiliaryHolder } from "./IAuxiliaryHolder";
 
 const EMPTY_CELLTRACK: ICellTracker[] = [];
 
-export class AuxiliaryHolder<H extends Holder = any> implements IAuxiliaryHolder<H> {
+export class AuxiliaryHolder implements Auxiliary {
   private auxiliaries: Auxiliary[] = [];
   private cellTracks: ICellTracker[] = EMPTY_CELLTRACK;
   active: boolean = false;
@@ -43,8 +41,7 @@ export class AuxiliaryHolder<H extends Holder = any> implements IAuxiliaryHolder
     }
   }
 
-  addAuxiliary(aux: Auxiliary<any>): this {
-    aux.holder = this;
+  addAuxiliary(aux: Auxiliary): this {
     this.auxiliaries.push(aux);
     if (this.active) {
       aux.activate?.();
@@ -53,7 +50,7 @@ export class AuxiliaryHolder<H extends Holder = any> implements IAuxiliaryHolder
     return this;
   }
 
-  removeAuxiliary(aux: Auxiliary<any>) {
+  removeAuxiliary(aux: Auxiliary) {
     let j = 0;
     for (let i = 0; i < this.auxiliaries.length; i++) {
       const a = this.auxiliaries[i];
@@ -62,7 +59,6 @@ export class AuxiliaryHolder<H extends Holder = any> implements IAuxiliaryHolder
         j++;
       } else {
         a.deactivate?.();
-        a.holder = undefined;
       }
     }
     this.auxiliaries.length = j;

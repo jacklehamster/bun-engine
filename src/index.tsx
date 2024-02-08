@@ -23,8 +23,8 @@ export async function testCanvas(canvas: HTMLCanvasElement) {
   const gameControls = new KeyboardControls(keyboard);
   const menuControls = new KeyboardControls(keyboard);
 
-  const ui: UserInterface = new Hud({ controls: menuControls });
-  const webGlCanvas = new WebGlCanvas(canvas).addAuxiliary(ui);
+  const webGlCanvas = new WebGlCanvas(canvas);
+  const ui: UserInterface = new Hud({ controls: menuControls, webGlCanvas });
   ui.addDialogListener({
     onPopup(count) {
       gameControls.setActive(count === 0);
@@ -61,8 +61,15 @@ export async function testCanvas(canvas: HTMLCanvasElement) {
   core.addAuxiliary(motor);
   core.addAuxiliary(world);
   core.addAuxiliary(webGlCanvas);
+  core.addAuxiliary(ui);
   core.addAuxiliary(gameControls);
-  webGlCanvas.addAuxiliary(new ResizeAux({ engine, camera: world.camera }));
+  core.addAuxiliary(
+    new ResizeAux({
+      engine,
+      camera: world.camera,
+      canvas: webGlCanvas.elem,
+    }),
+  );
 
   core.activate();
   motor.loop(engine, undefined);
