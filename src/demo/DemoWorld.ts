@@ -34,7 +34,6 @@ import { Media } from "gl-texture-manager";
 import { AnimationUpdater } from "world/sprite/update/AnimationUpdater";
 import { Animation } from "animation/Animation";
 import { MotionAuxiliary } from "world/aux/MotionAuxiliary";
-import { forEach } from "core/List";
 import { FollowAuxiliary } from "world/aux/FollowAuxiliary";
 import { ItemsGroup } from "world/sprite/aux/ItemsGroup";
 import { IPositionMatrix } from "gl/transform/IPositionMatrix";
@@ -45,7 +44,6 @@ import { UserInterface } from "ui/UserInterface";
 import { IControls } from "controls/IControls";
 import { IFade, FadeAuxiliary } from "world/aux/FadeAuxiliary";
 import { Grid } from "world/sprite/aux/Grid";
-import { copySprite } from "world/sprite/utils/sprite-utils";
 import { Box } from "world/collision/Box";
 import { Vector } from "core/types/Vector";
 import { shadowProcessor } from "canvas-processor";
@@ -53,6 +51,7 @@ import { PositionUtils } from "world/grid/utils/position-utils";
 import { CellBoundary } from "world/sprite/aux/CellBoundary";
 import { SpriteCellCreator } from "world/sprite/aux/SpriteCellCreator";
 import { FixedSpriteFactory } from "world/sprite/aux/FixedSpriteFactory";
+import { informFullUpdate } from "world/sprite/utils/sprite-utils";
 
 enum Assets {
   DOBUKI = 0,
@@ -414,12 +413,7 @@ export class DemoWorld extends AuxiliaryHolder implements IWorld {
     ].map(([x, y, z]) => cellUtils.positionFromCellPos(x, y, z, CELLSIZE));
 
     blockPositions.forEach(blockPosition => {
-      const blockBoxSprites = new DisplayBox(blockBox, Assets.GROUND, Assets.BRICK);
-      // spritesAccumulator.addAuxiliary(new FixedSpriteGrid(
-      //   { cellUtils, positionUtils },
-      //   { cellSize: CELLSIZE },
-      //   new SpriteGroup(blockBoxSprites, [Matrix.create().setVector(blockPosition)]),
-      // ));
+      const blockBoxSprites = new DisplayBox({ box: blockBox, imageId: Assets.GROUND, insideImageId: Assets.BRICK });
       const factory = new FixedSpriteFactory({ cellUtils, positionUtils }, { cellSize: CELLSIZE },
         new SpriteGroup(blockBoxSprites, [Matrix.create().setVector(blockPosition)]));
       this.addAuxiliary(factory);
@@ -445,11 +439,11 @@ export class DemoWorld extends AuxiliaryHolder implements IWorld {
           },
         ], [Matrix.create().setVector(dobukiPosition)]),
         new SpriteGroup(
-          new DisplayBox(dobukiBlock, Assets.WIREFRAME, Assets.WIREFRAME),
+          new DisplayBox({ box: dobukiBlock, imageId: Assets.WIREFRAME, insideImageId: Assets.WIREFRAME }),
           [Matrix.create().setVector(dobukiPosition)]
         ),
         new SpriteGroup(
-          new DisplayBox(exitBlock, Assets.WIREFRAME, Assets.WIREFRAME),
+          new DisplayBox({ box: exitBlock, imageId: Assets.WIREFRAME, insideImageId: Assets.WIREFRAME }),
           [Matrix.create().setVector(exitPosition)]
         ),
 
@@ -481,51 +475,8 @@ export class DemoWorld extends AuxiliaryHolder implements IWorld {
       this.addAuxiliary(factory);
     }
 
-    // spritesAccumulator.addAuxiliary(new FixedSpriteGrid(
-    //   { cellUtils, positionUtils },
-    //   { cellSize: CELLSIZE },
-    //   //  Dobuki logo
-    //   new SpriteGroup([
-    //     {
-    //       imageId: Assets.DOBUKI,
-    //       spriteType: SpriteType.SPRITE,
-    //       transform: Matrix.create().translate(0, -.3, -1),
-    //       hidden: true,
-    //     },
-    //   ], [Matrix.create().setVector(dobukiPosition)]),
-    //   new SpriteGroup(
-    //     new DisplayBox(dobukiBlock, Assets.WIREFRAME, Assets.WIREFRAME),
-    //     [Matrix.create().setVector(dobukiPosition)]
-    //   ),
-    //   new SpriteGroup(
-    //     new DisplayBox(exitBlock, Assets.WIREFRAME, Assets.WIREFRAME),
-    //     [Matrix.create().setVector(exitPosition)]
-    //   ),
-
-    //   //  Side walls with happy face logo
-    //   [
-    //     //  side walls
-    //     ...[
-    //       Matrix.create().translate(-3.01, 0, 0).rotateY(Math.PI / 2),
-    //       Matrix.create().translate(-3.01, 0, 0).rotateY(-Math.PI / 2),
-    //       Matrix.create().translate(3.01, 0, 0).rotateY(-Math.PI / 2),
-    //       Matrix.create().translate(3.01, 0, 0).rotateY(Math.PI / 2),
-    //     ].map(transform => ({ imageId: Assets.LOGO, transform })),
-    //     //  floor
-    //     ...[
-    //       Matrix.create().translate(0, -.9, 0).rotateX(-Math.PI / 2),
-    //       Matrix.create().translate(0, -.9, 2).rotateX(-Math.PI / 2),
-    //       Matrix.create().translate(-2, -.9, 2).rotateX(-Math.PI / 2),
-    //       Matrix.create().translate(2, -.9, 2).rotateX(-Math.PI / 2),
-    //     ].map(transform => ({ imageId: Assets.GRASS_GROUND, transform })),
-    //   ],
-    // ));
-
     const camera = this.camera = new Camera({ engine, motor, positionUtils });
     this.addAuxiliary(camera);
-
-    // const collisionAccumulator = new Accumulator<ICollisionDetector>();
-    // collisionAccumulator.add()
 
     const spriteCellCreator = new SpriteCellCreator({
       factory: new SpriteFactory({
@@ -596,8 +547,8 @@ export class DemoWorld extends AuxiliaryHolder implements IWorld {
     const heroPos: IPositionMatrix = new PositionMatrix(positionUtils)
       .movedTo(0, 0, 3)
       .onChange(() => {
-        forEach(heroSprites, (_, index) => heroSprites.informUpdate(index, SpriteUpdateType.TRANSFORM));
-        forEach(displayBox, (_, index) => displayBox.informUpdate(index, SpriteUpdateType.TRANSFORM));
+        informFullUpdate(heroSprites, SpriteUpdateType.TRANSFORM);
+        informFullUpdate(displayBox, SpriteUpdateType.TRANSFORM);
       });
     const heroSprites = new SpriteGroup([{
       imageId: Assets.DODO,
@@ -607,13 +558,13 @@ export class DemoWorld extends AuxiliaryHolder implements IWorld {
     },], [heroPos]);
     spritesAccumulator.addAuxiliary(heroSprites);
 
-    const displayBox = new SpriteGroup(new DisplayBox(heroBox, Assets.WIREFRAME), [heroPos]);
+    const displayBox = new SpriteGroup(new DisplayBox({ box: heroBox, imageId: Assets.WIREFRAME }), [heroPos]);
 
     spritesAccumulator.addAuxiliary(displayBox);
 
     const shadowPos: IPositionMatrix = new PositionMatrix(positionUtils)
       .onChange(() => {
-        forEach(shadowHeroSprites, (_, index) => shadowHeroSprites.informUpdate(index, SpriteUpdateType.TRANSFORM));
+        informFullUpdate(shadowHeroSprites, SpriteUpdateType.TRANSFORM);
       });;
     const shadowHeroSprites = new SpriteGroup([
       {

@@ -3,10 +3,17 @@ import { Box } from "./Box";
 import Matrix from "gl/transform/Matrix";
 import { Sprite } from "world/sprite/Sprite";
 import { Sprites } from "world/sprite/Sprites";
+import { List } from "abstract-list";
+
+interface Props {
+  box: Box;
+  imageId: MediaId;
+  insideImageId?: MediaId;
+}
 
 export class DisplayBox implements Sprites {
-  private readonly sprites: Sprite[];
-  constructor(box: Box, imageId: MediaId, insideImageId?: MediaId) {
+  private readonly sprites: List<Sprite>;
+  constructor({ box, imageId, insideImageId }: Props) {
     if (!box.disabled) {
       const cX = (box.left + box.right) / 2;
       const cY = (box.top + box.bottom) / 2;

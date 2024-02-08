@@ -1,5 +1,9 @@
 import Matrix from "gl/transform/Matrix";
 import { Sprite } from "../Sprite";
+import { SpriteUpdateType } from "../update/SpriteUpdateType";
+import { List, forEach } from "abstract-list";
+import { UpdatableList } from "../UpdatableList";
+import { Sprites } from "../Sprites";
 
 export function copySprite(sprite: Sprite, dest?: Sprite): Sprite {
   if (!dest) {
@@ -19,4 +23,8 @@ export function copySprite(sprite: Sprite, dest?: Sprite): Sprite {
   dest.animationId = sprite.animationId;
   dest.hidden = sprite.hidden;
   return dest;
+}
+
+export function informFullUpdate(sprites: Sprites, type: SpriteUpdateType = SpriteUpdateType.ALL) {
+  forEach(sprites, (_, index) => sprites.informUpdate?.(index, type));
 }

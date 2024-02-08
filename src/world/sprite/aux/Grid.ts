@@ -1,13 +1,14 @@
 import { Cell } from "world/grid/Cell";
 import { IBoundary } from "./IBoundary";
 import { ICellCreator } from "./ICellCreator";
+import { ICellTracker } from "world/grid/ICellTracker";
 
 interface Props {
   boundary?: IBoundary;
   cellCreator: ICellCreator<any>;
 }
 
-export class Grid {
+export class Grid implements ICellTracker {
   private readonly boundary?: IBoundary;
   readonly #cellCreator: ICellCreator<any>;
 
