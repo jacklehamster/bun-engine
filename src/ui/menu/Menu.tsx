@@ -3,7 +3,7 @@ import { Popup } from '../Popup';
 import { useControlsLock } from '../useKeyboardLock';
 import { useGameContext } from '../Provider';
 import { ControlsListener } from 'controls/ControlsListener';
-import { map } from 'core/List';
+import { map } from 'abstract-list';
 import { MenuData } from './model/MenuData';
 
 interface Props {

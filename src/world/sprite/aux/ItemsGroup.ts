@@ -1,5 +1,5 @@
 import { Auxiliary } from "world/aux/Auxiliary";
-import { forEach } from "../../../core/List";
+import { forEach } from "abstract-list";
 import { UpdatableList } from "../UpdatableList";
 import { UpdateNotifier } from "updates/UpdateNotifier";
 

@@ -6,27 +6,27 @@ import { ProgressivePool } from "./ProgressivePool";
 const progressivePool = new ProgressivePool();
 
 export class NumVal implements Val<number> {
-  private _value: number = 0;
+  #value: number = 0;
   private progressive?: Progressive<NumVal>;
 
   constructor(value: number = 0, private onChange?: (value: number) => void) {
-    this._value = value;
+    this.#value = value;
   }
 
   valueOf(): number {
-    return this._value;
+    return this.#value;
   }
 
   setValue(value: number): this {
-    if (value !== this._value) {
-      this._value = value;
-      this.onChange?.(this._value);
+    if (value !== this.#value) {
+      this.#value = value;
+      this.onChange?.(this.#value);
     }
     return this;
   }
 
   addValue(value: number): this {
-    this.setValue(this._value + value);
+    this.setValue(this.#value + value);
     return this;
   }
 
@@ -42,9 +42,9 @@ export class NumVal implements Val<number> {
     return false;
   }
 
-  refresh({ deltaTime, data, motor, refresher }: UpdatePayload<NumVal>) {
+  refresh({ deltaTime, data, stopUpdate }: UpdatePayload<NumVal>) {
     if (!data.update(deltaTime)) {
-      motor.stopUpdate(refresher);
+      stopUpdate();
     }
   }
 

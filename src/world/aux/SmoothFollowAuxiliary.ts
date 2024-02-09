@@ -37,7 +37,7 @@ export class SmoothFollowAuxiliary extends Looper<Data> implements Auxiliary {
     super.deactivate();
   }
 
-  refresh({ data: { follower, followee, speed }, motor, refresher, stopUpdate }: UpdatePayload<Data>): void {
+  refresh({ data: { follower, followee, speed }, stopUpdate }: UpdatePayload<Data>): void {
     const [x, y, z] = followee.position;
     const [fx, fy, fz] = follower.position;
     const dx = x - fx, dy = y - fy, dz = z - fz;

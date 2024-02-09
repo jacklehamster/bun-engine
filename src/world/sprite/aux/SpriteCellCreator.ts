@@ -4,7 +4,7 @@ import { IElemFactory } from "./IElemFactory";
 import { Sprite } from "../Sprite";
 import { ObjectPool } from "bun-pool";
 import { copySprite } from "../utils/sprite-utils";
-import { forEach } from "core/List";
+import { forEach } from "abstract-list";
 import { SpriteUpdateType } from "../update/SpriteUpdateType";
 import { UpdateNotifier } from "updates/UpdateNotifier";
 

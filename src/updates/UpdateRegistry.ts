@@ -20,7 +20,7 @@ export class UpdateRegistry<T extends IdType = IdType> extends UpdateNotifier im
   refresh(update: UpdatePayload): void {
     this.applyUpdate(this.updatedIds, update);
     if (this.updatedIds.size) { //  re-register if some updates are remaining
-      update.motor.scheduleUpdate(this, undefined, undefined, true);
+      this.motor.scheduleUpdate(this, undefined, undefined, true);
     }
   }
 }

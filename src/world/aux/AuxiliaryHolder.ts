@@ -1,7 +1,4 @@
 import { Auxiliary } from "./Auxiliary";
-import { ICellTracker } from "cell-tracker";
-
-const EMPTY_CELLTRACK: ICellTracker[] = [];
 
 export class AuxiliaryHolder implements Auxiliary {
   private auxiliaries: Auxiliary[] = [];

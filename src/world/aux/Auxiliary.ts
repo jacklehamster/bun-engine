@@ -1,4 +1,4 @@
-import { Active } from "core/Active";
+import { Active } from "dok-types";
 
 export interface Auxiliary extends Partial<Active> {
 }
