@@ -1,7 +1,17 @@
 import { IdType } from "core/IdType";
+import { IUpdateListener, IUpdateNotifier, UpdateType } from "./IUpdateNotifier";
 
-type UpdateType = number;
+export class UpdateNotifier implements IUpdateNotifier {
+  #listeners = new Set<IUpdateListener>();
+  informUpdate(id: IdType, type?: UpdateType | undefined): void {
+    this.#listeners.forEach(listener => listener.onUpdate(id, type));
+  }
 
-export interface UpdateNotifier {
-  informUpdate(id: IdType, type?: UpdateType): void;
+  addUpdateListener(listener: IUpdateListener): void {
+    this.#listeners.add(listener);
+  }
+
+  removeUpdateListener(listener: IUpdateListener): void {
+    this.#listeners.delete(listener);
+  }
 }

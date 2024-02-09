@@ -1,14 +1,15 @@
-import { UpdateNotifier } from "updates/UpdateNotifier";
+import { IUpdateListener } from "updates/IUpdateNotifier";
 import { Auxiliary } from "world/aux/Auxiliary";
 import { UpdateRegistry } from "updates/UpdateRegistry";
 import { UpdatableList } from "world/sprite/UpdatableList";
+import { informFullUpdate } from "world/sprite/utils/sprite-utils";
 
 interface Props {
   updateRegistry: UpdateRegistry;
   elems: UpdatableList<any>;
 }
 
-export class Updater<T> implements UpdateNotifier, Auxiliary {
+export class Updater implements Auxiliary, IUpdateListener {
   private readonly elems: UpdatableList<any>;
   private readonly updateRegistry: UpdateRegistry;
 
@@ -17,11 +18,16 @@ export class Updater<T> implements UpdateNotifier, Auxiliary {
     this.elems = elems;
   }
 
-  activate(): void {
-    this.elems.informUpdate = this.informUpdate.bind(this);
+  onUpdate(id: number, type?: number | undefined): void {
+    this.updateRegistry.informUpdate(id, type);
   }
 
-  informUpdate(id: number): void {
-    this.updateRegistry.informUpdate(id);
+  activate(): void {
+    this.elems.addUpdateListener?.(this);
+    console.log(this, "ADD UPDATE LISTENER");
+  }
+
+  deactivate(): void {
+    this.elems.removeUpdateListener?.(this);
   }
 }

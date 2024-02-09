@@ -1,22 +1,22 @@
-import { AuxiliaryHolder } from "world/aux/AuxiliaryHolder";
 import { IdType } from "core/IdType";
 import { ElemsHolder, NewElemListener } from "./ElemsHolder";
 import { UpdatableList } from "../UpdatableList";
 import { ObjectPool } from "bun-pool";
 import { Auxiliary } from "world/aux/Auxiliary";
-import { List } from "abstract-list";
+import { AuxiliaryHolder } from "world/aux/AuxiliaryHolder";
+import { IUpdateListener, IUpdateNotifier } from "updates/IUpdateNotifier";
+import { UpdateNotifier } from "updates/UpdateNotifier";
 
 interface Slot<T> {
   elems: UpdatableList<T>;
   index: IdType;
 }
 
-export class Accumulator<T> extends AuxiliaryHolder implements ElemsHolder<T> {
+export class Accumulator<T> extends AuxiliaryHolder implements ElemsHolder<T>, IUpdateNotifier {
   private readonly indices: Slot<T>[] = [];
   private readonly newElemsListener: Set<NewElemListener<T>> = new Set();
   private readonly pool = new SlotPool<T>();
-
-  informUpdate?(id: number, type?: number): void;
+  private readonly updateNotifier: UpdateNotifier = new UpdateNotifier();
 
   at(id: IdType): T | undefined {
     const slot = this.indices[id];
@@ -39,7 +39,7 @@ export class Accumulator<T> extends AuxiliaryHolder implements ElemsHolder<T> {
   }
 
   private informFullUpdate() {
-    this.indices.forEach((_slot, id) => this.informUpdate?.(id));
+    this.indices.forEach((_slot, id) => this.informUpdate(id));
   }
 
   private clear(): void {
@@ -49,17 +49,16 @@ export class Accumulator<T> extends AuxiliaryHolder implements ElemsHolder<T> {
 
   addAuxiliary(aux: Auxiliary): this {
     super.addAuxiliary(aux);
-    if ((aux as Partial<List<any>>).at) {
-      this.add(aux as List<any>);
+    if ((aux as Partial<UpdatableList<T>>).at) {
+      this.add(aux as UpdatableList<T>);
     }
     return this;
   }
 
-  private add(elems: UpdatableList<T> | T[] & { informUpdate: undefined, activate: undefined }): this {
+  private add(elems: UpdatableList<T>): this {
     const indexMaping: (number | undefined)[] = [];
-    if (elems.informUpdate) {
-      //  overwrite if it's defined to informUpdate through SpriteAccumulator.
-      elems.informUpdate = (index, type) => {
+    elems.addUpdateListener?.({
+      onUpdate: (index, type) => {
         const elem = elems.at(index);
         let id = indexMaping[index];
         if (id === undefined) {
@@ -70,7 +69,7 @@ export class Accumulator<T> extends AuxiliaryHolder implements ElemsHolder<T> {
           //  create new entry
           id = this.indices.length;
           indexMaping[index] = id;
-          this.informUpdate?.(id);
+          this.informUpdate(id);
           this.indices.push(this.pool.create(elems, index, id));
           this.onSizeChange();
           return;
@@ -84,21 +83,19 @@ export class Accumulator<T> extends AuxiliaryHolder implements ElemsHolder<T> {
             const lastSlotId = this.indices.length - 1;
             if (id !== lastSlotId) {
               this.indices[id] = this.indices[lastSlotId];
-              this.informUpdate?.(lastSlotId);
+              this.informUpdate(lastSlotId);
             }
             this.indices.pop();
-            this.informUpdate?.(id);
+            this.informUpdate(id);
             this.onSizeChange();
             return;
           }
         }
 
         //  Inform update
-        this.informUpdate?.(id, type);
-      };
-    } else {
-      throw new Error("informUpdate must be defined");
-    }
+        this.informUpdate(id, type);
+      },
+    });
     return this;
   }
 
@@ -112,6 +109,16 @@ export class Accumulator<T> extends AuxiliaryHolder implements ElemsHolder<T> {
 
   removeNewElemsListener(listener: NewElemListener<T>): void {
     this.newElemsListener.delete(listener);
+  }
+
+  informUpdate(id: number, type?: number | undefined): void {
+    this.updateNotifier.informUpdate(id, type);
+  }
+  addUpdateListener(listener: IUpdateListener): void {
+    this.updateNotifier.addUpdateListener(listener);
+  }
+  removeUpdateListener(listener: IUpdateListener): void {
+    this.updateNotifier.removeUpdateListener(listener);
   }
 }
 

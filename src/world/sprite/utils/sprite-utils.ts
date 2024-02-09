@@ -25,6 +25,6 @@ export function copySprite(sprite: Sprite, dest?: Sprite): Sprite {
   return dest;
 }
 
-export function informFullUpdate(sprites: Sprites, type: SpriteUpdateType = SpriteUpdateType.ALL) {
+export function informFullUpdate(sprites: UpdatableList<any>, type: SpriteUpdateType = SpriteUpdateType.ALL) {
   forEach(sprites, (_, index) => sprites.informUpdate?.(index, type));
 }

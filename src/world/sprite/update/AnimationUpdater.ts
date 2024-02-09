@@ -11,7 +11,7 @@ interface Props {
   animations: UpdatableList<Animation>;
 }
 
-export class AnimationUpdater extends Updater<Animation> {
+export class AnimationUpdater extends Updater {
   constructor({ engine, motor, animations }: Props) {
     super({
       updateRegistry: new UpdateRegistry(ids => {

@@ -1,13 +1,16 @@
 import { Refresh, UpdatePayload, IMotor } from "motor-loop";
-import { UpdateNotifier } from "./UpdateNotifier";
+import { UpdateType } from "./IUpdateNotifier";
 import { IdType } from "core/IdType";
+import { UpdateNotifier } from "./UpdateNotifier";
 
-export class UpdateRegistry<T extends IdType = IdType> implements Refresh, UpdateNotifier {
+export class UpdateRegistry<T extends IdType = IdType> extends UpdateNotifier implements Refresh {
   private readonly updatedIds: Set<T> = new Set();
   constructor(private applyUpdate: (ids: Set<T>, update: UpdatePayload) => void, private motor: IMotor) {
+    super();
   }
 
-  informUpdate(id: T): void {
+  informUpdate(id: T, type?: UpdateType): void {
+    super.informUpdate(id, type);
     if (!this.updatedIds.has(id)) {
       this.updatedIds.add(id);
     }

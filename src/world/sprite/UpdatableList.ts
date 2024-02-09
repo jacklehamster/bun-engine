@@ -1,4 +1,4 @@
-import { UpdateNotifier } from "updates/UpdateNotifier";
+import { IUpdateNotifier } from "updates/IUpdateNotifier";
 import { List } from "abstract-list";
 
-export type UpdatableList<T> = List<T> & Partial<UpdateNotifier>;
+export type UpdatableList<T> = List<T> & Partial<IUpdateNotifier>;

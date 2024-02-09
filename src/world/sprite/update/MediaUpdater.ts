@@ -11,7 +11,7 @@ interface Props {
   medias: UpdatableList<Media>;
 }
 
-export class MediaUpdater extends Updater<Media> {
+export class MediaUpdater extends Updater {
   readonly #savedMediaInfo = new Map<MediaId, MediaData>();
   private readonly motor: IMotor;
 

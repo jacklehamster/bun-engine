@@ -52,7 +52,4 @@ export class DisplayBox implements Sprites {
   at(index: number): Sprite | undefined {
     return this.sprites.at(index);
   }
-
-  informUpdate(_id: number, _type: number | undefined): void {
-  }
 }

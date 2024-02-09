@@ -26,7 +26,7 @@ export class FixedSpriteFactory extends AuxiliaryHolder implements IElemFactory<
   private readonly positionUtils: PositionUtils;
   private readonly config: Config;
 
-  constructor({ cellUtils, positionUtils }: Props, config: Config, ...spritesList: ((Sprites | Sprite[]) & Partial<Auxiliary>)[]) {
+  constructor({ cellUtils, positionUtils }: Props, config: Config, ...spritesList: ((Sprites) & Partial<Auxiliary>)[]) {
     super();
     this.spritesList = spritesList;
     this.cellUtils = cellUtils;

@@ -2,7 +2,6 @@ import { Sprites } from "../Sprites";
 import { Sprite } from "../Sprite";
 import { IMatrix } from "gl/transform/IMatrix";
 import { SpriteUpdateType } from "../update/SpriteUpdateType";
-import { UpdateNotifier } from "updates/UpdateNotifier";
 import { forEach } from "../../../core/List";
 import { AnimationId } from "animation/Animation";
 import { ItemsGroup } from "./ItemsGroup";
@@ -17,7 +16,7 @@ export class SpriteGroup extends ItemsGroup<Sprite> implements Animating {
 
   private readonly spriteModel: SpriteModel = new SpriteModel();
 
-  constructor(sprites: Sprites | (Sprite[] & Partial<UpdateNotifier>), public transforms: IMatrix[] = []) {
+  constructor(sprites: Sprites, public transforms: IMatrix[] = []) {
     super(sprites);
   }
 
@@ -59,6 +58,7 @@ export class SpriteGroup extends ItemsGroup<Sprite> implements Animating {
   }
 
   informUpdate(id: number, type?: SpriteUpdateType | undefined): void {
+    super.informUpdate(id, type);
     this.elems.informUpdate?.(id, type);
   }
 }

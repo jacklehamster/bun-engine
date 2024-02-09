@@ -6,8 +6,7 @@ import { ObjectPool } from "bun-pool";
 import { copySprite } from "../utils/sprite-utils";
 import { forEach } from "core/List";
 import { SpriteUpdateType } from "../update/SpriteUpdateType";
-import { Active } from "core/Active";
-import { AuxiliaryHolder } from "world/aux/AuxiliaryHolder";
+import { UpdateNotifier } from "updates/UpdateNotifier";
 
 interface Props {
   factory: IElemFactory<Sprite>
@@ -19,7 +18,7 @@ interface Slot<T> {
   tag: Tag;
 }
 
-export class SpriteCellCreator extends AuxiliaryHolder implements ICellCreator<Sprite>, Active {
+export class SpriteCellCreator extends UpdateNotifier implements ICellCreator<Sprite> {
   private readonly factory: IElemFactory<Sprite>;
   private readonly slots: Slot<Sprite>[] = [];
   private readonly slotPool;
@@ -41,11 +40,6 @@ export class SpriteCellCreator extends AuxiliaryHolder implements ICellCreator<S
   deactivate(): void {
     this.slots.forEach(slot => this.slotPool.recycle(slot));
     this.slots.length = 0;
-    super.deactivate();
-  }
-
-  informUpdate(_id: number, _type?: number | undefined): void {
-    //  needs overwrite
   }
 
   createCell(cell: Cell): boolean {

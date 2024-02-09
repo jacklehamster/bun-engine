@@ -1,12 +1,18 @@
-import { UpdateNotifier } from "updates/UpdateNotifier";
 import { Auxiliary } from "world/aux/Auxiliary";
 import { forEach } from "../../../core/List";
 import { UpdatableList } from "../UpdatableList";
+import { UpdateNotifier } from "updates/UpdateNotifier";
 
-export class ItemsGroup<T> implements UpdatableList<T>, Auxiliary {
+export class ItemsGroup<T> extends UpdateNotifier implements UpdatableList<T>, Auxiliary {
   private _active = false;
 
-  constructor(protected elems: UpdatableList<T> | (T[] & Partial<UpdateNotifier>)) {
+  constructor(protected elems: (UpdatableList<T> | T[] & { informUpdate: undefined })) {
+    super();
+  }
+
+  informUpdate(id: number, type?: number | undefined): void {
+    super.informUpdate(id, type);
+    this.elems.informUpdate?.(id, type);
   }
 
   get length(): number {
@@ -18,10 +24,6 @@ export class ItemsGroup<T> implements UpdatableList<T>, Auxiliary {
       return undefined;
     }
     return this.elems.at(index);
-  }
-
-  informUpdate(id: number): void {
-    this.elems.informUpdate?.(id);
   }
 
   activate(): void {
