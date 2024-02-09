@@ -1,7 +1,7 @@
+import { Vector } from "dok-types";
 import { IMatrix } from "gl/transform/IMatrix";
-import { Vector } from "core/types/Vector";
 import { IMotor, Refresh, UpdatePayload } from "motor-loop";
-import { VectorPool } from "world/pools/VectorPool";
+import { VectorPool } from "dok-types";
 
 interface Props extends Partial<Data> {
   motor: IMotor;

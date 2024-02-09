@@ -1,4 +1,4 @@
-import { Cell, Tag } from "world/grid/Cell";
+import { Cell, Tag } from "cell-tracker";
 import { ICellCreator } from "./ICellCreator";
 import { IElemFactory } from "./IElemFactory";
 import { Sprite } from "../Sprite";

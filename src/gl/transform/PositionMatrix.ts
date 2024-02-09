@@ -4,9 +4,9 @@ import Matrix from "./Matrix";
 import { AuxiliaryHolder } from "world/aux/AuxiliaryHolder";
 import { ICollisionDetector } from "../../world/collision/ICollisionDetector";
 import { IPositionMatrix } from "./IPositionMatrix";
-import { Vector } from "../../core/types/Vector";
 import { ChangeListener } from "./IPositionMatrix";
 import { MoveResult } from "./IPositionMatrix";
+import { Vector } from "dok-types";
 
 export class PositionMatrix extends AuxiliaryHolder implements IPositionMatrix {
   private readonly matrix: Matrix = Matrix.create().setPosition(0, 0, 0);

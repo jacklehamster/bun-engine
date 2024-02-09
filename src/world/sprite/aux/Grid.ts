@@ -1,7 +1,6 @@
-import { Cell } from "world/grid/Cell";
+import { Cell, ICellTracker } from "cell-tracker";
 import { IBoundary } from "./IBoundary";
 import { ICellCreator } from "./ICellCreator";
-import { ICellTracker } from "world/grid/ICellTracker";
 
 interface Props {
   boundary?: IBoundary;

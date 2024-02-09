@@ -1,5 +1,5 @@
+import { Vector } from "dok-types";
 import { BaseUniformHandler, Config, Props } from "./BaseUniformHandler";
-import { Vector } from "core/types/Vector";
 
 export class VectorUniformHandler extends BaseUniformHandler<Vector> {
   constructor(props: Props, config: Config, private vector: Vector) {

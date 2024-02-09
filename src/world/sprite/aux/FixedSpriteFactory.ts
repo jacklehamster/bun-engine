@@ -3,7 +3,7 @@ import { Sprite } from "../Sprite";
 import { IElemFactory } from "./IElemFactory";
 import { PositionUtils } from "world/grid/utils/position-utils";
 import { List, forEach } from "abstract-list";
-import { Cell, Tag } from "world/grid/Cell";
+import { Cell, Tag } from "cell-tracker";
 import { Sprites } from "../Sprites";
 import { copySprite } from "../utils/sprite-utils";
 import { Auxiliary } from "world/aux/Auxiliary";

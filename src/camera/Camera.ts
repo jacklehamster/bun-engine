@@ -1,5 +1,4 @@
 import Matrix from "gl/transform/Matrix";
-import { Vector } from "core/types/Vector";
 import { ProjectionMatrix } from "gl/transform/ProjectionMatrix";
 import { TiltMatrix } from "gl/transform/TiltMatrix";
 import { TurnMatrix } from "gl/transform/TurnMatrix";
@@ -16,6 +15,7 @@ import { BG_BLUR_LOC, BG_COLOR_LOC, CAM_CURVATURE_LOC, CAM_DISTANCE_LOC, CAM_POS
 import { FloatUniformHandler } from "gl/uniforms/update/FloatUniformHandler";
 import { VectorUniformHandler } from "gl/uniforms/update/VectorUniformHandler";
 import { PositionUtils } from "world/grid/utils/position-utils";
+import { Vector } from "dok-types";
 
 interface Props {
   engine: IGraphicsEngine;

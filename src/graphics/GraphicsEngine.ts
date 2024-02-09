@@ -26,7 +26,6 @@ import { Sprite, SpriteId } from 'world/sprite/Sprite';
 import { SpriteType } from "world/sprite/SpriteType";
 import { IGraphicsEngine } from './IGraphicsEngine';
 import { IMatrix } from 'gl/transform/IMatrix';
-import { Vector } from "core/types/Vector";
 import { Priority, UpdatePayload } from "motor-loop";
 import { List, map } from 'abstract-list';
 import { Animation, AnimationId } from 'animation/Animation';
@@ -36,6 +35,7 @@ import { FloatUniformHandler } from 'gl/uniforms/update/FloatUniformHandler';
 import { NumVal } from 'core/value/NumVal';
 import { VectorUniformHandler } from 'gl/uniforms/update/VectorUniformHandler';
 import { TextureUpdateHandler } from 'updates/texture/TextureUpdateHandler';
+import { Vector } from 'dok-types';
 
 const VERTICES_PER_SPRITE = 6;
 

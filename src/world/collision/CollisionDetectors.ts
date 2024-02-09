@@ -1,4 +1,4 @@
-import { Vector } from "core/types/Vector";
+import { Vector } from "dok-types";
 import { ICollisionDetector } from "./ICollisionDetector";
 import { List } from "abstract-list";
 

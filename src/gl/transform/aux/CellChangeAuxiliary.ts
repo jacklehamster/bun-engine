@@ -1,9 +1,8 @@
 import { Auxiliary } from "world/aux/Auxiliary";
 import { CellUtils } from "world/grid/utils/cell-utils";
-import { IVisitableCell } from "../../../world/grid/IVisitableCell";
+import { IVisitableCell, Cell } from "cell-tracker";
 import { AuxiliaryHolder } from "world/aux/AuxiliaryHolder";
 import { ChangeListener, IPositionMatrix } from "../IPositionMatrix";
-import { Cell } from "world/grid/Cell";
 
 interface Config {
   cellSize?: number;

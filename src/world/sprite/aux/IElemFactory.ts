@@ -1,4 +1,4 @@
-import { Cell } from "world/grid/Cell";
+import { Cell } from "cell-tracker";
 import { List } from "abstract-list";
 
 export interface IElemFactory<T> {

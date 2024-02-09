@@ -1,7 +1,7 @@
-import { Vector } from "core/types/Vector";
 import { ICollisionDetector } from "./ICollisionDetector";
 import { Box, NULLBOX } from "./Box";
 import { CollisionBox } from "./CollisionBox";
+import { Vector } from "dok-types";
 
 interface Config {
   shouldBlock: boolean;

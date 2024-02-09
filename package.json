@@ -57,6 +57,8 @@
     "abstract-list": "^1.0.4",
     "bun-pool": "^1.0.7",
     "canvas-processor": "^1.0.3",
+    "cell-tracker": "^1.0.4",
+    "dok-types": "^1.0.2",
     "free-stack": "^1.0.3",
     "gl-matrix": "^3.4.3",
     "gl-texture-manager": "^1.0.14",

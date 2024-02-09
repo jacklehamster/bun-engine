@@ -1,8 +1,7 @@
-import { Vector } from "core/types/Vector";
-import { CellPool } from "../../pools/CellPool";
-import { Cell } from "../Cell";
-import { VectorPool } from "world/pools/VectorPool";
+import { CellPool, Cell } from "cell-tracker";
+import { VectorPool } from "dok-types";
 import { IMotor, Refresh, UpdatePayload } from "motor-loop";
+import { Vector } from "dok-types";
 
 interface Props extends Partial<Data> {
   motor: IMotor;

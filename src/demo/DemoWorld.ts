@@ -11,7 +11,6 @@ import { TurnAuxiliary } from "world/aux/TurnAuxiliary";
 import { PositionStepAuxiliary } from "world/aux/PositionStepAuxiliary";
 import { TiltResetAuxiliary } from "world/aux/TiltResetAuxiliary";
 import { ToggleAuxiliary } from "world/aux/ToggleAuxiliary";
-import { SurroundingTracker } from "world/grid/SurroundingTracker";
 import { SpriteGroup } from "world/sprite/aux/SpritesGroup";
 import { MaxCountAuxiliary } from "world/sprite/aux/MaxCountAuxiliary";
 import { SpriteUpdater } from "world/sprite/update/SpriteUpdater";
@@ -45,14 +44,14 @@ import { IControls } from "controls/IControls";
 import { IFade, FadeAuxiliary } from "world/aux/FadeAuxiliary";
 import { Grid } from "world/sprite/aux/Grid";
 import { Box } from "world/collision/Box";
-import { Vector } from "core/types/Vector";
 import { shadowProcessor } from "canvas-processor";
 import { PositionUtils } from "world/grid/utils/position-utils";
 import { CellBoundary } from "world/sprite/aux/CellBoundary";
 import { SpriteCellCreator } from "world/sprite/aux/SpriteCellCreator";
 import { FixedSpriteFactory } from "world/sprite/aux/FixedSpriteFactory";
 import { informFullUpdate } from "world/sprite/utils/sprite-utils";
-import { CellTrackers } from "world/grid/CellTrackers";
+import { SurroundingTracker, CellTrackers } from "cell-tracker";
+import { Vector } from "dok-types";
 
 enum Assets {
   DOBUKI = 0,
@@ -693,19 +692,18 @@ export class DemoWorld extends AuxiliaryHolder implements IWorld {
     //  * This is needed to indicate when the player is changing cell
     //  * as they move. Every cell change, a new set of surrounding cells
     //  * is evaluated, and some are created as needed.
-    const surroundingTracker = new SurroundingTracker({ cellTrack: cellTrackers, cellUtils }, {
+    const surroundingTracker = new SurroundingTracker({ cellTrack: cellTrackers }, {
       cellLimit: 200,
       range: [7, 3, 7],
       cellSize: CELLSIZE,
     });
-    this.addAuxiliary(surroundingTracker)
-      .addAuxiliary(
-        new CellChangeAuxiliary({
-          cellUtils,
-          visitableCell: surroundingTracker,
-          positionMatrix: heroPos,
-        }, { cellSize: CELLSIZE })
-      );
+    this.addAuxiliary(
+      new CellChangeAuxiliary({
+        cellUtils,
+        visitableCell: surroundingTracker,
+        positionMatrix: heroPos,
+      }, { cellSize: CELLSIZE })
+    );
 
     //  Hack some base settings
     camera.distance.setValue(5)

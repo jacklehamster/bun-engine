@@ -1,7 +1,7 @@
 import { mat4, quat, vec3 } from 'gl-matrix';
 import { IMatrix } from './IMatrix';
-import { Vector } from "../../core/types/Vector";
 import { Angle } from 'gl/utils/angleUtils';
+import { Vector } from 'dok-types';
 
 const DEG_TO_RADIANT = Math.PI / 90;
 

@@ -1,6 +1,5 @@
 import { Auxiliary } from "./Auxiliary";
-import { Cell } from "world/grid/Cell";
-import { ICellTracker } from "world/grid/ICellTracker";
+import { ICellTracker } from "cell-tracker";
 
 const EMPTY_CELLTRACK: ICellTracker[] = [];
 

@@ -1,7 +1,7 @@
 import { IMatrix } from "./IMatrix";
-import { Vector } from "../../core/types/Vector";
 import { ICollisionDetector } from "../../world/collision/ICollisionDetector";
 import { Auxiliary } from "world/aux/Auxiliary";
+import { Vector } from "dok-types";
 
 export enum MoveResult {
   AT_POSITION = 0,

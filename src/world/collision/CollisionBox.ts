@@ -1,4 +1,4 @@
-import { Vector } from "core/types/Vector";
+import { Vector } from "dok-types";
 import { Box } from "./Box";
 
 export class CollisionBox implements Box {

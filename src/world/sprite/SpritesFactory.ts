@@ -1,5 +1,5 @@
 import { Sprites } from "./Sprites";
-import { Cell } from "world/grid/Cell";
+import { Cell } from "cell-tracker";
 import { Sprite } from "./Sprite";
 import { MediaId } from "gl-texture-manager";
 import { IElemFactory } from "./aux/IElemFactory";

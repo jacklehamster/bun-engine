@@ -4,8 +4,7 @@ import { IControls } from "controls/IControls";
 import { IPositionMatrix, MoveResult } from "gl/transform/IPositionMatrix";
 import { NumVal } from "core/value/NumVal";
 import { ControlledLooper } from "updates/ControlledLooper";
-import { Vector } from "core/types/Vector";
-import { equal } from "core/utils/vector-utils";
+import { Vector, equal } from "dok-types";
 
 interface Props {
   controls: IControls;
