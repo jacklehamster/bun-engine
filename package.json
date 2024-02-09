@@ -60,7 +60,7 @@
     "free-stack": "^1.0.3",
     "gl-matrix": "^3.4.3",
     "gl-texture-manager": "^1.0.14",
-    "motor-loop": "^1.0.9",
+    "motor-loop": "^1.0.13",
     "seedrandom": "^3.0.5",
     "texture-slot-allocator": "^1.0.24",
     "uuid": "^9.0.1"
