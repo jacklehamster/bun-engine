@@ -4,7 +4,7 @@ import { Keyboard } from "controls/Keyboard";
 import { IGraphicsEngine } from "graphics/IGraphicsEngine";
 import { IMotor } from "motor-loop";
 import { Camera } from "camera/Camera";
-import { CellChangeAuxiliary } from "gl/transform/aux/CellChangeAuxiliary";
+import { CellChangeDectector } from "gl/transform/aux/CellChangeDetector";
 import { Auxiliaries } from "world/aux/Auxiliaries";
 import { AuxiliaryHolder } from "world/aux/AuxiliaryHolder";
 import { TurnAuxiliary } from "world/aux/TurnAuxiliary";
@@ -698,7 +698,7 @@ export class DemoWorld extends AuxiliaryHolder implements IWorld {
       cellSize: CELLSIZE,
     });
     this.addAuxiliary(
-      new CellChangeAuxiliary({
+      new CellChangeDectector({
         cellUtils,
         visitableCell: surroundingTracker,
         positionMatrix: heroPos,

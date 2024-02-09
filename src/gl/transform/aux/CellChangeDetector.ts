@@ -1,7 +1,6 @@
 import { Auxiliary } from "world/aux/Auxiliary";
 import { CellUtils } from "world/grid/utils/cell-utils";
 import { IVisitableCell, Cell } from "cell-tracker";
-import { AuxiliaryHolder } from "world/aux/AuxiliaryHolder";
 import { ChangeListener, IPositionMatrix } from "../IPositionMatrix";
 
 interface Config {
@@ -14,7 +13,7 @@ interface Props {
   positionMatrix: IPositionMatrix;
 }
 
-export class CellChangeAuxiliary extends AuxiliaryHolder implements Auxiliary {
+export class CellChangeDectector implements Auxiliary {
   private readonly positionMatrix: IPositionMatrix;
   private readonly visitableCell?: IVisitableCell;
   private readonly cellUtils: CellUtils;
@@ -23,7 +22,6 @@ export class CellChangeAuxiliary extends AuxiliaryHolder implements Auxiliary {
   private readonly listener: ChangeListener = () => this.checkPosition();
 
   constructor({ cellUtils, visitableCell, positionMatrix }: Props, config?: Config) {
-    super();
     this.visitableCell = visitableCell;
     this.cellUtils = cellUtils;
     this.cellSize = config?.cellSize ?? 1;
@@ -46,7 +44,6 @@ export class CellChangeAuxiliary extends AuxiliaryHolder implements Auxiliary {
   }
 
   activate(): void {
-    super.activate();
     this.positionMatrix.onChange(this.listener);
     this.previousCellPos[0] = Number.NaN;
     this.previousCellPos[1] = Number.NaN;
@@ -56,6 +53,5 @@ export class CellChangeAuxiliary extends AuxiliaryHolder implements Auxiliary {
 
   deactivate(): void {
     this.positionMatrix.removeChangeListener(this.listener);
-    super.deactivate();
   }
 }

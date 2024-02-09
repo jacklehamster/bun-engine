@@ -1,4 +1,4 @@
-import { IdType } from "core/IdType";
+import { IdType } from "dok-types";
 import { IUpdateListener, IUpdateNotifier, UpdateType } from "./IUpdateNotifier";
 
 export class UpdateNotifier implements IUpdateNotifier {

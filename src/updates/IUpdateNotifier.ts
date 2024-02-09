@@ -1,4 +1,4 @@
-import { IdType } from "core/IdType";
+import { IdType } from "dok-types";
 
 export type UpdateType = number;
 

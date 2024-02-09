@@ -1,6 +1,6 @@
 import { Refresh, UpdatePayload, IMotor } from "motor-loop";
 import { UpdateType } from "./IUpdateNotifier";
-import { IdType } from "core/IdType";
+import { IdType } from "dok-types";
 import { UpdateNotifier } from "./UpdateNotifier";
 
 export class UpdateRegistry<T extends IdType = IdType> extends UpdateNotifier implements Refresh {

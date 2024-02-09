@@ -1,4 +1,4 @@
-import { IdType } from "core/IdType";
+import { IdType } from "dok-types";
 import { ElemsHolder, NewElemListener } from "./ElemsHolder";
 import { UpdatableList } from "../UpdatableList";
 import { ObjectPool } from "bun-pool";
