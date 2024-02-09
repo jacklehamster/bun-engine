@@ -6,7 +6,6 @@ const EMPTY_CELLTRACK: ICellTracker[] = [];
 
 export class AuxiliaryHolder implements Auxiliary {
   private auxiliaries: Auxiliary[] = [];
-  private cellTracks: ICellTracker[] = EMPTY_CELLTRACK;
   active: boolean = false;
 
   activate(): void {
@@ -25,28 +24,11 @@ export class AuxiliaryHolder implements Auxiliary {
     this.auxiliaries.forEach(aux => aux.deactivate?.());
   }
 
-  trackCell(cell: Cell): boolean {
-    let didTrack = false;
-    for (const v of this.cellTracks) {
-      if (v.trackCell!(cell)) {
-        didTrack = true;
-      }
-    }
-    return didTrack;
-  }
-
-  untrackCells(cellTags: Set<string>): void {
-    for (const v of this.cellTracks!) {
-      v.untrackCells!(cellTags);
-    }
-  }
-
   addAuxiliary(aux: Auxiliary): this {
     this.auxiliaries.push(aux);
     if (this.active) {
       aux.activate?.();
     }
-    this.onAuxiliariesChange();
     return this;
   }
 
@@ -62,10 +44,5 @@ export class AuxiliaryHolder implements Auxiliary {
       }
     }
     this.auxiliaries.length = j;
-    this.onAuxiliariesChange();
-  }
-
-  private onAuxiliariesChange() {
-    this.cellTracks = this.auxiliaries?.filter((a): a is ICellTracker => !!a.trackCell || !!a.untrackCells) ?? EMPTY_CELLTRACK;
   }
 }

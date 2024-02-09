@@ -2,7 +2,6 @@ import { IUpdateListener } from "updates/IUpdateNotifier";
 import { Auxiliary } from "world/aux/Auxiliary";
 import { UpdateRegistry } from "updates/UpdateRegistry";
 import { UpdatableList } from "world/sprite/UpdatableList";
-import { informFullUpdate } from "world/sprite/utils/sprite-utils";
 
 interface Props {
   updateRegistry: UpdateRegistry;
@@ -24,7 +23,6 @@ export class Updater implements Auxiliary, IUpdateListener {
 
   activate(): void {
     this.elems.addUpdateListener?.(this);
-    console.log(this, "ADD UPDATE LISTENER");
   }
 
   deactivate(): void {

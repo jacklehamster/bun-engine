@@ -22,26 +22,6 @@ export class Auxiliaries implements List<Auxiliary>, Auxiliary {
     return this.auxiliaries.at(index);
   }
 
-  trackCell(cell: Cell): boolean {
-    if (!this.active) {
-      return false;
-    }
-    let didTrack = false;
-    forEach(this.auxiliaries, aux => {
-      if (aux?.trackCell?.(cell)) {
-        didTrack = true;
-      }
-    });
-    return didTrack;
-  }
-
-  untrackCells(cellTags: Set<string>): void {
-    if (!this.active) {
-      return;
-    }
-    forEach(this.auxiliaries, aux => aux?.untrackCells?.(cellTags));
-  }
-
   activate(): void {
     if (this.active) {
       return;

@@ -52,6 +52,7 @@ import { CellBoundary } from "world/sprite/aux/CellBoundary";
 import { SpriteCellCreator } from "world/sprite/aux/SpriteCellCreator";
 import { FixedSpriteFactory } from "world/sprite/aux/FixedSpriteFactory";
 import { informFullUpdate } from "world/sprite/utils/sprite-utils";
+import { CellTrackers } from "world/grid/CellTrackers";
 
 enum Assets {
   DOBUKI = 0,
@@ -364,6 +365,9 @@ export class DemoWorld extends AuxiliaryHolder implements IWorld {
     );
     this.addAuxiliary(animationAccumulator);
 
+    const cellTrackers = new CellTrackers();
+
+
     //  Add a sprite accumulator.
     //  * Sprite accumulators are used to collect sprite definitions, so that the engine can display them.
     const spritesAccumulator = new Accumulator<Sprite>();
@@ -381,9 +385,6 @@ export class DemoWorld extends AuxiliaryHolder implements IWorld {
     };
     const exitPosition = cellUtils.positionFromCellPos(0, 0, 0, CELLSIZE);
 
-    //  Adding a FixedSpriteGrid to the sprite accumulator.
-    //  * You add sprite collections as "SpriteGrid". That way, the engine
-    //  * will hide sprites if you're too far, and show them again if you're close.
     const dobukiBlock = {
       top: 1,
       bottom: -1,
@@ -422,7 +423,7 @@ export class DemoWorld extends AuxiliaryHolder implements IWorld {
         factory,
       });
       spritesAccumulator.addAuxiliary(creator);
-      this.addAuxiliary(new Grid({
+      cellTrackers.add(new Grid({
         cellCreator: creator,
       }));
     });
@@ -469,7 +470,7 @@ export class DemoWorld extends AuxiliaryHolder implements IWorld {
         factory
       });
       spritesAccumulator.addAuxiliary(creator);
-      this.addAuxiliary(new Grid({
+      cellTrackers.add(new Grid({
         cellCreator: creator,
       }));
       this.addAuxiliary(factory);
@@ -531,7 +532,7 @@ export class DemoWorld extends AuxiliaryHolder implements IWorld {
     //  * fly. This allows us to produce an infinite amounts of cells.
     spritesAccumulator.addAuxiliary(spriteCellCreator);
 
-    this.addAuxiliary(new Grid({
+    cellTrackers.add(new Grid({
       boundary: new CellBoundary({ yRange: [0, 0] }),
       cellCreator: spriteCellCreator,
     }));
@@ -692,7 +693,7 @@ export class DemoWorld extends AuxiliaryHolder implements IWorld {
     //  * This is needed to indicate when the player is changing cell
     //  * as they move. Every cell change, a new set of surrounding cells
     //  * is evaluated, and some are created as needed.
-    const surroundingTracker = new SurroundingTracker({ cellTrack: this, cellUtils }, {
+    const surroundingTracker = new SurroundingTracker({ cellTrack: cellTrackers, cellUtils }, {
       cellLimit: 200,
       range: [7, 3, 7],
       cellSize: CELLSIZE,
