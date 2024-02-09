@@ -7,16 +7,17 @@ interface Props {
 }
 
 export class MotionAuxiliary implements Auxiliary, ControlsListener {
-  private readonly controls: IControls;
-  private _moving: boolean = false;
+  readonly #controls: IControls;
+  #moving: boolean = false;
+
   constructor({ controls }: Props, private onChange?: (moving: boolean) => void) {
-    this.controls = controls;
+    this.#controls = controls;
   }
 
   set moving(value: boolean) {
-    if (this._moving !== value) {
-      this._moving = value;
-      this.onChange?.(this._moving);
+    if (this.#moving !== value) {
+      this.#moving = value;
+      this.onChange?.(this.#moving);
     }
   }
 
@@ -34,11 +35,11 @@ export class MotionAuxiliary implements Auxiliary, ControlsListener {
   }
 
   activate(): void {
-    this.controls.addListener(this)
+    this.#controls.addListener(this)
   }
 
   deactivate(): void {
     this.moving = false;
-    this.controls.removeListener(this);
+    this.#controls.removeListener(this);
   }
 }
