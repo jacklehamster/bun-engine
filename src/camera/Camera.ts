@@ -1,7 +1,6 @@
 import Matrix from "gl/transform/Matrix";
 import { ProjectionMatrix } from "gl/transform/ProjectionMatrix";
-import { TiltMatrix } from "gl/transform/TiltMatrix";
-import { TurnMatrix } from "gl/transform/TurnMatrix";
+import { createTiltMatrix, createTurnMatrix } from "gl/transform/angle-matrix-utils";
 import { ICamera } from "./ICamera";
 import { IGraphicsEngine } from "graphics/IGraphicsEngine";
 import { IMotor } from "motor-loop";
@@ -26,8 +25,8 @@ interface Props {
 export class Camera extends AuxiliaryHolder implements ICamera {
   readonly position: IPositionMatrix;
   readonly projection = new ProjectionMatrix(() => this.#updateInformer.informUpdate(MatrixUniform.PROJECTION));
-  readonly tilt = new TiltMatrix(() => this.#updateInformer.informUpdate(MatrixUniform.CAM_TILT));
-  readonly turn = new TurnMatrix(() => this.#updateInformer.informUpdate(MatrixUniform.CAM_TURN));
+  readonly tilt = createTiltMatrix(() => this.#updateInformer.informUpdate(MatrixUniform.CAM_TILT));
+  readonly turn = createTurnMatrix(() => this.#updateInformer.informUpdate(MatrixUniform.CAM_TURN));
   readonly curvature = new NumVal(0.05, () => this.#updateInformerFloat.informUpdate(FloatUniform.CURVATURE));
   readonly distance = new NumVal(.5, () => this.#updateInformerFloat.informUpdate(FloatUniform.CAM_DISTANCE));
   readonly blur = new NumVal(1, () => this.#updateInformerFloat.informUpdate(FloatUniform.BG_BLUR));
@@ -45,7 +44,7 @@ export class Camera extends AuxiliaryHolder implements ICamera {
     super();
     this.#engine = engine;
 
-    this.position = new PositionMatrix(positionUtils, () => {
+    this.position = new PositionMatrix({ positionUtils }, () => {
       this.#camMatrix.invert(this.position);
       this.#updateInformer.informUpdate(MatrixUniform.CAM_POS);
     });

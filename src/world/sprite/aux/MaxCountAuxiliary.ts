@@ -29,7 +29,6 @@ export class MaxCountAuxiliary implements Auxiliary, NewElemListener<any> {
   }
 
   deactivate(): void {
-    this.updateCount();
     this.elems.removeNewElemsListener(this);
   }
 }

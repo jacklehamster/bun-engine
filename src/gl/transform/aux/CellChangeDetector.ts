@@ -1,7 +1,7 @@
-import { Auxiliary } from "world/aux/Auxiliary";
 import { CellUtils } from "world/grid/utils/cell-utils";
 import { IVisitableCell, Cell } from "cell-tracker";
 import { ChangeListener, IPositionMatrix } from "../IPositionMatrix";
+import { Active } from "dok-types";
 
 interface Config {
   cellSize?: number;
@@ -13,7 +13,7 @@ interface Props {
   positionMatrix: IPositionMatrix;
 }
 
-export class CellChangeDectector implements Auxiliary {
+export class CellChangeDectector implements Active {
   private readonly positionMatrix: IPositionMatrix;
   private readonly visitableCell?: IVisitableCell;
   private readonly cellUtils: CellUtils;

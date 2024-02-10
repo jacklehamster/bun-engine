@@ -391,9 +391,8 @@ export class DemoWorld extends AuxiliaryHolder implements IWorld {
       right: .1,
       near: 0,
       far: -.5,
-      disabled: true,
     };
-    const dobukiPosition = cellUtils.positionFromCellPos(0, 0, -1, CELLSIZE);
+    const dobukiPosition = cellUtils.positionFromCellPos(-3, 0, -1, CELLSIZE);
 
     const blockBox: Box = {
       top: 2,
@@ -435,7 +434,6 @@ export class DemoWorld extends AuxiliaryHolder implements IWorld {
             imageId: Assets.DOBUKI,
             spriteType: SpriteType.SPRITE,
             transform: Matrix.create().translate(0, -.3, -1),
-            hidden: true,
           },
         ], [Matrix.create().setVector(dobukiPosition)]),
         new SpriteGroup(
@@ -475,7 +473,7 @@ export class DemoWorld extends AuxiliaryHolder implements IWorld {
       this.addAuxiliary(factory);
     }
 
-    const camera = this.camera = new Camera({ engine, motor, positionUtils });
+    const camera: ICamera = this.camera = new Camera({ engine, motor, positionUtils });
     this.addAuxiliary(camera);
 
     const spriteCellCreator = new SpriteCellCreator({
@@ -500,12 +498,13 @@ export class DemoWorld extends AuxiliaryHolder implements IWorld {
 
           //  Add bun
           if (!isWater && !count && rng() < .02) {
+            const bx = cellPos[0] * cellPos[3], bz = cellPos[2] * cellPos[3];
             const bun = bag.createSprite(Assets.BUN);
             bun.spriteType = SpriteType.SPRITE;
-            bun.transform.translate(cellPos[0] * cellPos[3], -.7, cellPos[2] * cellPos[3]).scale(.5);
+            bun.transform.translate(bx, -.7, bz).scale(.5);
 
             const bunShadow = bag.createSprite(Assets.BUN_SHADOW);
-            bunShadow.transform.translate(cellPos[0] * cellPos[3], -1, cellPos[2] * cellPos[3]).rotateX(-Math.PI / 2).scale(.5);
+            bunShadow.transform.translate(bx, -1, bz).rotateX(-Math.PI / 2).scale(.5);
 
             bag.addSprite(bun, bunShadow);
           }
@@ -544,45 +543,7 @@ export class DemoWorld extends AuxiliaryHolder implements IWorld {
       near: .9,
       far: -.9,
     };
-    const heroPos: IPositionMatrix = new PositionMatrix(positionUtils)
-      .movedTo(0, 0, 3)
-      .onChange(() => {
-        informFullUpdate(heroSprites, SpriteUpdateType.TRANSFORM);
-        informFullUpdate(displayBox, SpriteUpdateType.TRANSFORM);
-      });
-    const heroSprites = new SpriteGroup([{
-      imageId: Assets.DODO,
-      spriteType: SpriteType.SPRITE,
-      transform: Matrix.create().translate(0, -.3, 0),
-      animationId: Anims.STILL,
-    },], [heroPos]);
-    spritesAccumulator.addAuxiliary(heroSprites);
-
-    const displayBox = new SpriteGroup(new DisplayBox({ box: heroBox, imageId: Assets.WIREFRAME }), [heroPos]);
-
-    spritesAccumulator.addAuxiliary(displayBox);
-
-    const shadowPos: IPositionMatrix = new PositionMatrix(positionUtils)
-      .onChange(() => {
-        informFullUpdate(shadowHeroSprites, SpriteUpdateType.TRANSFORM);
-      });;
-    const shadowHeroSprites = new SpriteGroup([
-      {
-        imageId: Assets.DODO_SHADOW,
-        transform: Matrix.create().translate(0, -.89, .5).rotateX(-Math.PI / 2).scale(1, .3, 1),
-        animationId: Anims.STILL,
-      },
-    ], [shadowPos]);
-    this.addAuxiliary(new FollowAuxiliary({
-      motor,
-      follower: shadowPos,
-      followee: heroPos,
-    }, {
-      followY: false,
-    }));
-    spritesAccumulator.addAuxiliary(shadowHeroSprites);
-
-    heroPos.moveBlocker = new CollisionDetectors([
+    const heroCollider = new CollisionDetectors([
       new CollisionDetectors(blockPositions.map(blockPosition =>
         new CollisionDetector({
           blockerBox: blockBox, blockerPosition: blockPosition, heroBox,
@@ -635,6 +596,44 @@ export class DemoWorld extends AuxiliaryHolder implements IWorld {
         }, { shouldBlock: false }),
     ]);
 
+
+    const heroPos: IPositionMatrix = new PositionMatrix({ positionUtils, blocker: heroCollider })
+      .movedTo(0, 0, 3)
+      .onChange(() => {
+        informFullUpdate(heroSprites, SpriteUpdateType.TRANSFORM);
+        informFullUpdate(displayBox, SpriteUpdateType.TRANSFORM);
+      });
+    const heroSprites = new SpriteGroup([{
+      imageId: Assets.DODO,
+      spriteType: SpriteType.SPRITE,
+      transform: Matrix.create().translate(0, -.3, 0),
+      animationId: Anims.STILL,
+    },], [heroPos]);
+    spritesAccumulator.addAuxiliary(heroSprites);
+
+    const displayBox = new SpriteGroup(new DisplayBox({ box: heroBox, imageId: Assets.WIREFRAME }), [heroPos]);
+
+    spritesAccumulator.addAuxiliary(displayBox);
+
+    const shadowPos: IPositionMatrix = new PositionMatrix({ positionUtils })
+      .onChange(() => {
+        informFullUpdate(shadowHeroSprites, SpriteUpdateType.TRANSFORM);
+      });;
+    const shadowHeroSprites = new SpriteGroup([
+      {
+        imageId: Assets.DODO_SHADOW,
+        transform: Matrix.create().translate(0, -.89, .5).rotateX(-Math.PI / 2).scale(1, .3, 1),
+        animationId: Anims.STILL,
+      },
+    ], [shadowPos]);
+    this.addAuxiliary(new FollowAuxiliary({
+      motor,
+      follower: shadowPos,
+      followee: heroPos,
+    }, {
+      followY: false,
+    }));
+    spritesAccumulator.addAuxiliary(shadowHeroSprites);
 
     //  Static Sprites
     //  * Those are just sprites, which will appear regardless of where

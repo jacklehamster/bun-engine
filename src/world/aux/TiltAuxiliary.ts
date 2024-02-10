@@ -1,18 +1,18 @@
 import { UpdatePayload, IMotor } from "motor-loop";
 import { Auxiliary } from "./Auxiliary";
 import { IControls } from "controls/IControls";
-import { TiltMatrix } from "gl/transform/TiltMatrix";
 import { ControlledLooper } from "updates/ControlledLooper";
+import { IAngleMatrix } from "gl/transform/IAngleMatrix";
 
 interface Props {
   controls: IControls;
-  tilt: TiltMatrix;
+  tilt: IAngleMatrix;
   motor: IMotor;
 }
 
 interface Data {
   controls: IControls;
-  tilt: TiltMatrix;
+  tilt: IAngleMatrix;
 }
 
 export class TiltAuxiliary extends ControlledLooper<Data> implements Auxiliary {

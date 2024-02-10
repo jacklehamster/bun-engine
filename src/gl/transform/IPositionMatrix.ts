@@ -10,6 +10,7 @@ export enum MoveResult {
 }
 
 export type ChangeListener = (dx: number, dy: number, dz: number) => void;
+
 export interface IPositionMatrix extends IMatrix, Auxiliary {
   moveBy(x: number, y: number, z: number, turnMatrix?: IMatrix): MoveResult;
   moveTo(x: number, y: number, z: number): MoveResult;
