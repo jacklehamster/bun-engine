@@ -1,8 +1,8 @@
 import { UpdatePayload, IMotor } from "motor-loop";
 import { Auxiliary } from "./Auxiliary";
 import { IControls } from "controls/IControls";
-import { IPositionMatrix, MoveResult } from "gl/transform/IPositionMatrix";
-import { NumVal } from "core/value/NumVal";
+import { IPositionMatrix, MoveResult } from "dok-matrix";
+import { NumVal } from "progressive-value";
 import { ControlledLooper } from "updates/ControlledLooper";
 import { Vector, equal } from "dok-types";
 

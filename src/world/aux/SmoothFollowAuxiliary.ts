@@ -1,4 +1,4 @@
-import { ChangeListener, IPositionMatrix } from "gl/transform/IPositionMatrix";
+import { ChangeListener, IPositionMatrix } from "dok-matrix";
 import { Auxiliary } from "./Auxiliary";
 import { Looper, IMotor, UpdatePayload } from "motor-loop";
 

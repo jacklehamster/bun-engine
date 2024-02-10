@@ -1,7 +1,7 @@
 import { CellUtils } from "world/grid/utils/cell-utils";
 import { Sprite } from "../Sprite";
 import { IElemFactory } from "./IElemFactory";
-import { PositionUtils } from "world/grid/utils/position-utils";
+import { PositionUtils } from "dok-matrix";
 import { List, forEach } from "abstract-list";
 import { Cell, Tag } from "cell-tracker";
 import { Sprites } from "../Sprites";

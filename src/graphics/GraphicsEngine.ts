@@ -17,7 +17,6 @@ import { GLPrograms } from '../gl/programs/GLPrograms';
 import { Disposable } from '../gl/lifecycle/Disposable';
 import { GLAttributeBuffers, LocationName } from '../gl/attributes/GLAttributeBuffers';
 
-import Matrix from 'gl/transform/Matrix';
 import vertexShader from 'generated/src/gl/resources/vertexShader.txt';
 import fragmentShader from 'generated/src/gl/resources/fragmentShader.txt';
 import { TextureManager, MediaId, MediaData, Media, ImageManager } from 'gl-texture-manager';
@@ -25,17 +24,17 @@ import { replaceTilda } from 'gl/utils/replaceTilda';
 import { Sprite, SpriteId } from 'world/sprite/Sprite';
 import { SpriteType } from "world/sprite/SpriteType";
 import { IGraphicsEngine } from './IGraphicsEngine';
-import { IMatrix } from 'gl/transform/IMatrix';
 import { Priority, UpdatePayload } from "motor-loop";
-import { List, map } from 'abstract-list';
+import { List } from 'abstract-list';
 import { Animation, AnimationId } from 'animation/Animation';
 import { TextureUniformInitializer } from '../gl/uniforms/TextureUniformsInitializer';
 import { MatrixUniformHandler } from 'gl/uniforms/update/MatrixUniformHandler';
 import { FloatUniformHandler } from 'gl/uniforms/update/FloatUniformHandler';
-import { NumVal } from 'core/value/NumVal';
 import { VectorUniformHandler } from 'gl/uniforms/update/VectorUniformHandler';
 import { TextureUpdateHandler } from 'updates/texture/TextureUpdateHandler';
 import { Vector } from 'dok-types';
+import { IMatrix, Matrix } from 'dok-matrix';
+import { NumVal } from 'progressive-value';
 
 const VERTICES_PER_SPRITE = 6;
 

@@ -2,7 +2,7 @@ import { UpdatePayload, IMotor } from "motor-loop";
 import { Auxiliary } from "./Auxiliary";
 import { IControls } from "controls/IControls";
 import { ControlledLooper } from "updates/ControlledLooper";
-import { IAngleMatrix } from "gl/transform/IAngleMatrix";
+import { IAngleMatrix } from "dok-matrix";
 
 interface Props {
   controls: IControls;

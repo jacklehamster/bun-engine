@@ -1,9 +1,8 @@
 import { UpdatePayload, IMotor } from "motor-loop";
 import { Auxiliary } from "./Auxiliary";
 import { IControls } from "controls/IControls";
-import { IMatrix } from "gl/transform/IMatrix";
 import { ControlledLooper } from "updates/ControlledLooper";
-import { IPositionMatrix } from "gl/transform/IPositionMatrix";
+import { IMatrix, IPositionMatrix } from "dok-matrix";
 
 interface Props {
   controls: IControls;

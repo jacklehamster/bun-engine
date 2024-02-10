@@ -1,4 +1,4 @@
-import Matrix from "gl/transform/Matrix";
+import { Matrix } from "dok-matrix";
 import { EMPTY_SPRITE, Sprite } from "../Sprite";
 import { SpriteType } from "../SpriteType";
 import { MediaId } from "gl-texture-manager";

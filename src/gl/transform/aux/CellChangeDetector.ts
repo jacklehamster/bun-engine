@@ -1,6 +1,6 @@
 import { CellUtils } from "world/grid/utils/cell-utils";
 import { IVisitableCell, Cell } from "cell-tracker";
-import { ChangeListener, IPositionMatrix } from "../IPositionMatrix";
+import { ChangeListener, IPositionMatrix } from "dok-matrix";
 import { Active } from "dok-types";
 
 interface Config {

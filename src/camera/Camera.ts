@@ -1,19 +1,15 @@
-import Matrix from "gl/transform/Matrix";
-import { ProjectionMatrix } from "gl/transform/ProjectionMatrix";
-import { createTiltMatrix, createTurnMatrix } from "gl/transform/angle-matrix-utils";
+import { createTiltMatrix, createTurnMatrix, ProjectionMatrix, Matrix } from "dok-matrix";
 import { ICamera } from "./ICamera";
 import { IGraphicsEngine } from "graphics/IGraphicsEngine";
 import { IMotor } from "motor-loop";
-import { PositionMatrix } from "gl/transform/PositionMatrix";
 import { AuxiliaryHolder } from "world/aux/AuxiliaryHolder";
-import { NumVal } from "core/value/NumVal";
+import { NumVal } from "progressive-value";
 import { UpdateRegistry } from "updates/UpdateRegistry";
-import { IPositionMatrix } from "gl/transform/IPositionMatrix";
+import { PositionMatrix, IPositionMatrix, PositionUtils } from "dok-matrix";
 import { MatrixUniformHandler } from "gl/uniforms/update/MatrixUniformHandler";
 import { BG_BLUR_LOC, BG_COLOR_LOC, CAM_CURVATURE_LOC, CAM_DISTANCE_LOC, CAM_POS_LOC, CAM_PROJECTION_LOC, CAM_TILT_LOC, CAM_TURN_LOC, FADE_LOC } from "gl/attributes/Constants";
 import { FloatUniformHandler } from "gl/uniforms/update/FloatUniformHandler";
 import { VectorUniformHandler } from "gl/uniforms/update/VectorUniformHandler";
-import { PositionUtils } from "world/grid/utils/position-utils";
 import { Vector } from "dok-types";
 
 interface Props {
@@ -82,7 +78,6 @@ export class Camera extends AuxiliaryHolder implements ICamera {
       });
       ids.clear();
     }, motor);
-    this.addAuxiliary(this.position);
   }
 
   activate() {

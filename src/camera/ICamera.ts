@@ -1,7 +1,5 @@
-import { NumVal } from "core/value/NumVal";
-import { IAngleMatrix } from "gl/transform/IAngleMatrix";
-import { IPositionMatrix } from "gl/transform/IPositionMatrix";
-import { ProjectionMatrix } from "gl/transform/ProjectionMatrix";
+import { NumVal } from "progressive-value";
+import { ProjectionMatrix, IPositionMatrix, IAngleMatrix } from "dok-matrix";
 import { Auxiliary } from "world/aux/Auxiliary";
 
 export interface ICamera extends Auxiliary {

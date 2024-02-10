@@ -1,6 +1,6 @@
 import { ObjectPool } from "bun-pool";
+import { Matrix } from "dok-matrix";
 import { MediaId } from "gl-texture-manager";
-import Matrix from "gl/transform/Matrix";
 import { Sprite } from "world/sprite/Sprite";
 import { SpriteType } from "world/sprite/SpriteType";
 

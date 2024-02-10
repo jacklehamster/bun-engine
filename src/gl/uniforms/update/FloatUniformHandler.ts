@@ -1,5 +1,5 @@
 import { BaseUniformHandler, Config, Props } from "./BaseUniformHandler";
-import { Val } from "core/value/Val";
+import { Val } from "progressive-value";
 
 export class FloatUniformHandler extends BaseUniformHandler<number> {
   constructor(props: Props, config: Config, private val?: Val<number>) {

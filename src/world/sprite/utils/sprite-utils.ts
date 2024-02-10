@@ -1,9 +1,8 @@
-import Matrix from "gl/transform/Matrix";
 import { Sprite } from "../Sprite";
 import { SpriteUpdateType } from "../update/SpriteUpdateType";
-import { List, forEach } from "abstract-list";
+import { forEach } from "abstract-list";
 import { UpdatableList } from "../UpdatableList";
-import { Sprites } from "../Sprites";
+import { Matrix } from "dok-matrix";
 
 export function copySprite(sprite: Sprite, dest?: Sprite): Sprite {
   if (!dest) {

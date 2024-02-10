@@ -1,5 +1,4 @@
 import IWorld from "world/IWorld";
-import Matrix from "gl/transform/Matrix";
 import { Keyboard } from "controls/Keyboard";
 import { IGraphicsEngine } from "graphics/IGraphicsEngine";
 import { IMotor } from "motor-loop";
@@ -19,10 +18,8 @@ import { SpriteType } from "world/sprite/SpriteType";
 import { ICamera } from "camera/ICamera";
 import { SpriteFactory } from "world/sprite/SpritesFactory";
 import { MoveAuxiliary } from "world/aux/MoveAuxiliary";
-import { CellUtils } from "world/grid/utils/cell-utils";
 import { JumpAuxiliary } from "world/aux/JumpAuxiliary";
 import { TimeAuxiliary } from "core/aux/TimeAuxiliary";
-import { PositionMatrix } from "gl/transform/PositionMatrix";
 import { TiltAuxiliary } from "world/aux/TiltAuxiliary";
 import { SmoothFollowAuxiliary } from "world/aux/SmoothFollowAuxiliary";
 import { DirAuxiliary } from "world/aux/DirAuxiliary";
@@ -35,7 +32,7 @@ import { Animation } from "animation/Animation";
 import { MotionAuxiliary } from "world/aux/MotionAuxiliary";
 import { FollowAuxiliary } from "world/aux/FollowAuxiliary";
 import { ItemsGroup } from "world/sprite/aux/ItemsGroup";
-import { IPositionMatrix } from "gl/transform/IPositionMatrix";
+import { IPositionMatrix, Matrix, PositionMatrix, PositionUtils } from "dok-matrix";
 import { DisplayBox } from "world/collision/DisplayBox";
 import { CollisionDetector } from "world/collision/CollisionDetector";
 import { CollisionDetectors } from "world/collision/CollisionDetectors";
@@ -45,13 +42,13 @@ import { IFade, FadeAuxiliary } from "world/aux/FadeAuxiliary";
 import { Grid } from "world/sprite/aux/Grid";
 import { Box } from "world/collision/Box";
 import { shadowProcessor } from "canvas-processor";
-import { PositionUtils } from "world/grid/utils/position-utils";
 import { CellBoundary } from "world/sprite/aux/CellBoundary";
 import { SpriteCellCreator } from "world/sprite/aux/SpriteCellCreator";
 import { FixedSpriteFactory } from "world/sprite/aux/FixedSpriteFactory";
 import { informFullUpdate } from "world/sprite/utils/sprite-utils";
 import { SurroundingTracker, CellTrackers } from "cell-tracker";
 import { Vector } from "dok-types";
+import { CellUtils } from "world/grid/utils/cell-utils";
 
 enum Assets {
   DOBUKI = 0,

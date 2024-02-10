@@ -1,7 +1,7 @@
 import { AnimationId } from "animation/Animation";
 import { MediaId } from "gl-texture-manager";
-import Matrix from "gl/transform/Matrix";
 import { SpriteType } from "./SpriteType";
+import { Matrix } from "dok-matrix";
 
 export type SpriteId = number;
 export type Frame = number;

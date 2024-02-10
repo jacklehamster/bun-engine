@@ -1,9 +1,9 @@
 import { MediaId } from "gl-texture-manager";
 import { Box } from "./Box";
-import Matrix from "gl/transform/Matrix";
 import { Sprite } from "world/sprite/Sprite";
 import { Sprites } from "world/sprite/Sprites";
 import { List } from "abstract-list";
+import { Matrix } from "dok-matrix";
 
 interface Props {
   box: Box;

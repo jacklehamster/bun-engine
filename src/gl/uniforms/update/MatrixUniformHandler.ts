@@ -1,4 +1,4 @@
-import { IMatrix } from "gl/transform/IMatrix";
+import { IMatrix } from "dok-matrix";
 import { BaseUniformHandler, Config, Props } from "./BaseUniformHandler";
 
 export class MatrixUniformHandler extends BaseUniformHandler<IMatrix> {

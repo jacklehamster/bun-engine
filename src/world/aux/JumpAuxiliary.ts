@@ -1,7 +1,7 @@
 import { UpdatePayload, IMotor } from "motor-loop";
 import { Auxiliary } from "./Auxiliary";
 import { IControls } from "controls/IControls";
-import { IPositionMatrix } from "gl/transform/IPositionMatrix";
+import { IPositionMatrix } from "dok-matrix";
 import { ControlledLooper } from "updates/ControlledLooper";
 
 interface Config {

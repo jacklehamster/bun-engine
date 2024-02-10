@@ -1,15 +1,15 @@
 import { Animation, AnimationId } from "animation/Animation";
 import { MediaId, Media, MediaData } from "gl-texture-manager";
-import { IMatrix } from "gl/transform/IMatrix";
 import { Auxiliary } from "world/aux/Auxiliary";
 import { Sprite, SpriteId } from "world/sprite/Sprite";
 import { List } from "abstract-list";
 import { LocationName } from "gl/attributes/GLAttributeBuffers";
 import { MatrixUniformHandler } from "gl/uniforms/update/MatrixUniformHandler";
 import { FloatUniformHandler } from "gl/uniforms/update/FloatUniformHandler";
-import { Val } from "core/value/Val";
+import { Val } from "progressive-value";
 import { VectorUniformHandler } from "gl/uniforms/update/VectorUniformHandler";
 import { Vector } from "dok-types";
+import { IMatrix } from "dok-matrix";
 
 export interface IGraphicsEngine extends Auxiliary {
   setMaxSpriteCount(spriteCount: number): void;

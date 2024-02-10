@@ -2,7 +2,7 @@ import { UpdatePayload, IMotor, Looper } from "motor-loop";
 import { Auxiliary } from "./Auxiliary";
 import { IControls } from "controls/IControls";
 import { ControlsListener } from "controls/ControlsListener";
-import { IPositionMatrix } from "gl/transform/IPositionMatrix";
+import { IPositionMatrix } from "dok-matrix";
 
 interface Props {
   controls: IControls;
