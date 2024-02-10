@@ -1,13 +1,25 @@
 import { Progressive } from "./Progressive";
 import { Val } from "./Val";
-import { IMotor, UpdatePayload } from "motor-loop";
-import { ProgressivePool } from "./ProgressivePool";
+import { IMotor, Refresh, UpdatePayload } from "motor-loop";
+import { ObjectPool } from "bun-pool";
+
+class ProgressivePool extends ObjectPool<Progressive<NumVal>, [NumVal]> {
+  constructor() {
+    super((progressive, val) => {
+      if (!progressive) {
+        return new Progressive(val, elem => elem.valueOf(), (elem, value) => elem.setValue(value));
+      }
+      progressive.element = val;
+      return progressive;
+    });
+  }
+}
 
 const progressivePool = new ProgressivePool();
 
-export class NumVal implements Val<number> {
+export class NumVal implements Val<number>, Refresh<NumVal> {
   #value: number = 0;
-  private progressive?: Progressive<NumVal>;
+  #progressive?: Progressive<NumVal>;
 
   constructor(value: number = 0, private onChange?: (value: number) => void) {
     this.#value = value;
@@ -31,11 +43,11 @@ export class NumVal implements Val<number> {
   }
 
   update(deltaTime: number): boolean {
-    if (this.progressive) {
-      const didUpdate = !!this.progressive?.update(deltaTime);
+    if (this.#progressive) {
+      const didUpdate = !!this.#progressive.update(deltaTime);
       if (!didUpdate) {
-        progressivePool.recycle(this.progressive);
-        this.progressive = undefined;
+        progressivePool.recycle(this.#progressive);
+        this.#progressive = undefined;
       }
       return didUpdate;
     }
@@ -49,16 +61,16 @@ export class NumVal implements Val<number> {
   }
 
   progressTowards(goal: number, speed: number, locker?: any, motor?: IMotor) {
-    if (!this.progressive) {
-      this.progressive = progressivePool.create(this);
+    if (!this.#progressive) {
+      this.#progressive = progressivePool.create(this);
     }
-    this.progressive.setGoal(goal, speed, locker);
+    this.#progressive.setGoal(goal, speed, locker);
     if (motor) {
       motor.loop(this, this);
     }
   }
 
   get goal(): number {
-    return this.progressive?.goal ?? this.valueOf();
+    return this.#progressive?.goal ?? this.valueOf();
   }
 }
