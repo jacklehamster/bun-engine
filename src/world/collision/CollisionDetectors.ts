@@ -3,9 +3,7 @@ import { ICollisionDetector } from "dok-matrix";
 import { List } from "abstract-list";
 
 export class CollisionDetectors implements ICollisionDetector {
-  private readonly detectors;
-  constructor(detectors: List<ICollisionDetector>) {
-    this.detectors = detectors;
+  constructor(private detectors: List<ICollisionDetector>) {
   }
 
   isBlocked(to: Vector, from: Vector): boolean {
