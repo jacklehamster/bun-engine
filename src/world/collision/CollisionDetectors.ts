@@ -1,5 +1,5 @@
 import { Vector } from "dok-types";
-import { ICollisionDetector } from "./ICollisionDetector";
+import { ICollisionDetector } from "dok-matrix";
 import { List } from "abstract-list";
 
 export class CollisionDetectors implements ICollisionDetector {

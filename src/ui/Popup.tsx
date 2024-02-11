@@ -1,10 +1,29 @@
-import React from 'react';
+import React, { CSSProperties } from 'react';
+import './css/Popup.css';
 
 interface Props {
   children: React.ReactNode;
   position: [number, number];
   size: [number, number];
 }
+
+//  Hack until I get proper CSS to work
+const POPUP_CSS: CSSProperties = {
+  position: 'absolute',
+  outline: '3px solid #fff',
+  backgroundColor: 'black',
+  borderRadius: 12,
+  padding: 3,
+  boxShadow: '10px 10px 0px #000000cc',
+};
+
+const DOUBLE_BORDER_CSS: CSSProperties = {
+  border: '3px solid white',
+  borderRadius: 10,
+  outline: '3px solid black',
+  color: 'white',
+  padding: 10,
+};
 
 export function Popup({
   children,
@@ -13,15 +32,11 @@ export function Popup({
 }: Props) {
   return (
     <div
+      className="pop-up"
       style={{
-        position: 'absolute',
         left,
         top,
-        outline: '3px solid #fff',
-        backgroundColor: 'black',
-        borderRadius: 12,
-        padding: 3,
-        boxShadow: '10px 10px 0px #000000cc',
+        ...POPUP_CSS,
       }}
     >
       <div
@@ -29,13 +44,10 @@ export function Popup({
         style={{
           width,
           height,
-          border: '3px solid white',
-          borderRadius: 10,
-          outline: '3px solid black',
-          color: 'white',
+          ...DOUBLE_BORDER_CSS,
         }}
       >
-        <div style={{ padding: 10 }}>{children}</div>
+        {children}
       </div>
     </div>
   );

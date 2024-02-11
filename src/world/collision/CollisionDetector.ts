@@ -1,4 +1,4 @@
-import { ICollisionDetector } from "./ICollisionDetector";
+import { ICollisionDetector } from "dok-matrix";
 import { Box, NULLBOX } from "./Box";
 import { CollisionBox } from "./CollisionBox";
 import { Vector } from "dok-types";

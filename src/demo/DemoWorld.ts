@@ -657,7 +657,7 @@ export class DemoWorld extends AuxiliaryHolder implements IWorld {
         auxiliariesMapping: [
           {
             key: "Tab", aux: Auxiliaries.from(
-              new PositionStepAuxiliary({ motor, controls, position: heroPos, turnGoal: camera.turn.angle }),
+              new PositionStepAuxiliary({ motor, controls, position: heroPos, turnGoal: camera.turn.angle }, { speed: 2 }),
               new SmoothFollowAuxiliary({ motor, follower: camera.position, followee: heroPos }, { speed: .05 }),
               new JumpAuxiliary({ motor, controls, position: heroPos }),
             ),
@@ -702,7 +702,7 @@ export class DemoWorld extends AuxiliaryHolder implements IWorld {
     );
 
     //  Hack some base settings
-    camera.distance.setValue(5)
+    camera.distance.setValue(20)
     camera.tilt.angle.setValue(.8);
     camera.projection.zoom.setValue(.25);
     camera.projection.perspective.setValue(.05);

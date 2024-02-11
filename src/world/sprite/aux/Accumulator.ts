@@ -12,50 +12,75 @@ interface Slot<T> {
   index: IdType;
 }
 
+interface Props<T> {
+  updateNotifier?: IUpdateNotifier;
+  newElemListeners?: NewElemListener<T>[];
+}
+
 export class Accumulator<T> extends AuxiliaryHolder implements ElemsHolder<T>, IUpdateNotifier {
-  private readonly indices: Slot<T>[] = [];
-  private readonly newElemsListener: Set<NewElemListener<T>> = new Set();
-  private readonly pool = new SlotPool<T>();
-  private readonly updateNotifier: UpdateNotifier = new UpdateNotifier();
+  readonly #indices: Slot<T>[] = [];
+  readonly #pool = new SlotPool<T>();
+  readonly #updateNotifier: IUpdateNotifier;
+  readonly #newElemListeners;
+
+  constructor({
+    updateNotifier = new UpdateNotifier(),
+    newElemListeners = [],
+  }: Partial<Props<T>> = {}) {
+    super();
+    this.#updateNotifier = updateNotifier;
+    this.#newElemListeners = new Set(newElemListeners);
+  }
 
   at(id: IdType): T | undefined {
-    const slot = this.indices[id];
+    const slot = this.#indices[id];
     return slot?.elems.at(slot.index);
   }
 
   get length(): number {
-    return this.indices.length;
+    return this.#indices.length;
   }
 
   activate(): void {
     super.activate();
-    this.informFullUpdate();
+    this.#informFullUpdate();
   }
 
   deactivate(): void {
-    this.informFullUpdate();
-    this.clear();
+    this.#informFullUpdate();
+    this.#clear();
     super.deactivate();
-  }
-
-  private informFullUpdate() {
-    this.indices.forEach((_slot, id) => this.informUpdate(id));
-  }
-
-  private clear(): void {
-    this.indices.forEach(slot => this.pool.recycle(slot));
-    this.indices.length = 0;
   }
 
   addAuxiliary(aux: Auxiliary): this {
     super.addAuxiliary(aux);
     if ((aux as Partial<UpdatableList<T>>).at) {
-      this.add(aux as UpdatableList<T>);
+      this.#add(aux as UpdatableList<T>);
     }
     return this;
   }
 
-  private add(elems: UpdatableList<T>): this {
+  addNewElemsListener(listener: NewElemListener<T>): void {
+    this.#newElemListeners.add(listener);
+  }
+
+  removeNewElemsListener(listener: NewElemListener<T>): void {
+    this.#newElemListeners.delete(listener);
+  }
+
+  informUpdate(id: number, type?: number | undefined): void {
+    this.#updateNotifier.informUpdate(id, type);
+  }
+
+  addUpdateListener(listener: IUpdateListener): void {
+    this.#updateNotifier.addUpdateListener(listener);
+  }
+
+  removeUpdateListener(listener: IUpdateListener): void {
+    this.#updateNotifier.removeUpdateListener(listener);
+  }
+
+  #add(elems: UpdatableList<T>): this {
     const indexMaping: (number | undefined)[] = [];
     elems.addUpdateListener?.({
       onUpdate: (index, type) => {
@@ -67,27 +92,27 @@ export class Accumulator<T> extends AuxiliaryHolder implements ElemsHolder<T>, I
             return;
           }
           //  create new entry
-          id = this.indices.length;
+          id = this.#indices.length;
           indexMaping[index] = id;
           this.informUpdate(id);
-          this.indices.push(this.pool.create(elems, index, id));
-          this.onSizeChange();
+          this.#indices.push(this.#pool.create(elems, index, id));
+          this.#onSizeChange();
           return;
         } else {
           if (!elem) {
             //  remove entry
             indexMaping[index] = undefined;
-            const slot = this.indices[id];
-            this.pool.recycle(slot);
+            const slot = this.#indices[id];
+            this.#pool.recycle(slot);
 
-            const lastSlotId = this.indices.length - 1;
+            const lastSlotId = this.#indices.length - 1;
             if (id !== lastSlotId) {
-              this.indices[id] = this.indices[lastSlotId];
+              this.#indices[id] = this.#indices[lastSlotId];
               this.informUpdate(lastSlotId);
             }
-            this.indices.pop();
+            this.#indices.pop();
             this.informUpdate(id);
-            this.onSizeChange();
+            this.#onSizeChange();
             return;
           }
         }
@@ -99,26 +124,17 @@ export class Accumulator<T> extends AuxiliaryHolder implements ElemsHolder<T>, I
     return this;
   }
 
-  onSizeChange() {
-    this.newElemsListener.forEach(listener => listener.onNewElem(this));
+  #onSizeChange() {
+    this.#newElemListeners.forEach(listener => listener.onNewElem(this));
   }
 
-  addNewElemsListener(listener: NewElemListener<T>): void {
-    this.newElemsListener.add(listener);
+  #informFullUpdate() {
+    this.#indices.forEach((_slot, id) => this.informUpdate(id));
   }
 
-  removeNewElemsListener(listener: NewElemListener<T>): void {
-    this.newElemsListener.delete(listener);
-  }
-
-  informUpdate(id: number, type?: number | undefined): void {
-    this.updateNotifier.informUpdate(id, type);
-  }
-  addUpdateListener(listener: IUpdateListener): void {
-    this.updateNotifier.addUpdateListener(listener);
-  }
-  removeUpdateListener(listener: IUpdateListener): void {
-    this.updateNotifier.removeUpdateListener(listener);
+  #clear(): void {
+    this.#indices.forEach(slot => this.#pool.recycle(slot));
+    this.#indices.length = 0;
   }
 }
 

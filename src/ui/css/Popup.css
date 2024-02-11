@@ -1,0 +1,16 @@
+.pop-up {
+  position: absolute;
+  outline: 3px solid #fff;
+  background-color: black;
+  border-radius: 12px;
+  padding: 3px;
+  box-shadow: 10px 10px 0px #000000cc;
+}
+
+.double-border {
+  border: 3px solid white;
+  border-radius: 10;
+  outline: 3px solid black;
+  color: white;
+  padding: 10px;
+}
