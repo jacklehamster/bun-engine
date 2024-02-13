@@ -1,4 +1,4 @@
-import { CellUtils } from "world/grid/utils/cell-utils";
+import { CellUtils } from "utils/cell-utils";
 import { IVisitableCell, Cell } from "cell-tracker";
 import { ChangeListener, IPositionMatrix } from "dok-matrix";
 import { Active } from "dok-types";
@@ -15,7 +15,7 @@ interface Props {
 
 export class CellChangeDectector implements Active {
   private readonly positionMatrix: IPositionMatrix;
-  private readonly visitableCell?: IVisitableCell;
+  private readonly visitableCell: IVisitableCell;
   private readonly cellUtils: CellUtils;
   private readonly cellSize: number;
   private readonly previousCellPos: Cell["pos"];
@@ -30,9 +30,6 @@ export class CellChangeDectector implements Active {
   }
 
   checkPosition(): void {
-    if (!this.positionMatrix || !this.visitableCell) {
-      return;
-    }
     const pos = this.positionMatrix.position;
     const cell = this.cellUtils.cellFromPos(pos, this.previousCellPos[3]);
     if (this.previousCellPos[0] !== cell.pos[0] || this.previousCellPos[1] !== cell.pos[1] || this.previousCellPos[2] !== cell.pos[2]) {

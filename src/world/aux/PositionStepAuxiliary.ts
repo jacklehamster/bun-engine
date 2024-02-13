@@ -16,6 +16,7 @@ interface Props {
 interface Config {
   step: number;
   speed: number;
+  airBoost: number;
 }
 
 interface Data {
@@ -29,6 +30,7 @@ interface Data {
 export class PositionStepAuxiliary extends ControlledLooper<Data> implements Auxiliary {
   private readonly goalPos: Vector;
   private stepCount: number = 0;
+  private airBoost: number;
 
   constructor({ controls, position, turnGoal, motor }: Props, config: Partial<Config> = {}) {
     super(motor, controls, ({ backward, forward, left, right }) => backward || forward || left || right,
@@ -38,6 +40,7 @@ export class PositionStepAuxiliary extends ControlledLooper<Data> implements Aux
       position.position[1],
       position.position[2],
     ];
+    this.airBoost = config?.airBoost ?? 1;
   }
 
   private readonly prePos: Vector = [0, 0, 0];
@@ -79,7 +82,7 @@ export class PositionStepAuxiliary extends ControlledLooper<Data> implements Aux
     }
     let speed = ((dx || dz) ? deltaTime / 150 : deltaTime / 100) * data.speed;
     if (data.position.position[1] > 0) {
-      speed *= 2;
+      speed *= this.airBoost;
     }
 
     let moveResult = data.position.gotoPos(this.goalPos[0], pos[1], this.goalPos[2], speed);

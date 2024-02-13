@@ -45,7 +45,7 @@ export class DisplayBox implements Sprites {
     }
   }
 
-  get length(): number {
+  get length(): List<Sprite>["length"] {
     return this.sprites.length;
   }
 

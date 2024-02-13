@@ -1,12 +1,11 @@
 import { ICamera } from "camera/ICamera";
 import { IMotor } from "motor-loop";
-import IWorld from "world/IWorld";
 import { Auxiliary } from "./Auxiliary";
 
 interface Props {
   camera: ICamera;
   motor: IMotor;
-  world: IWorld<IFade>;
+  api: IFade;
 }
 
 interface Config {
@@ -20,15 +19,15 @@ export interface IFade {
   fadeIn?(): void;
 }
 
-export class FadeAuxiliary implements Auxiliary {
+export class FadeApiAuxiliary implements Auxiliary {
   private readonly camera: ICamera;
   private readonly config: Config;
   private readonly motor: IMotor;
-  private readonly world: IWorld<IFade>;
-  constructor({ camera, motor, world }: Props, config?: Partial<Config>) {
+  private readonly api: IFade;
+  constructor({ camera, motor, api }: Props, config?: Partial<Config>) {
     this.camera = camera;
     this.motor = motor;
-    this.world = world;
+    this.api = api;
     this.config = {
       speed: config?.speed ?? 1,
     };
@@ -37,22 +36,18 @@ export class FadeAuxiliary implements Auxiliary {
   }
 
   activate(): void {
-    const api = this.world?.api;
-    if (api) {
-      api.fadeIn = this.fadeIn;
-      api.fadeOut = this.fadeOut;
-    }
+    const api = this.api;
+    api.fadeIn = this.fadeIn;
+    api.fadeOut = this.fadeOut;
   }
 
   deactivate(): void {
-    const api = this.world?.api;
-    if (api) {
-      if (api.fadeIn === this.fadeIn) {
-        delete api.fadeIn;
-      }
-      if (api.fadeOut === this.fadeOut) {
-        delete api.fadeOut;
-      }
+    const api = this.api;
+    if (api.fadeIn === this.fadeIn) {
+      delete api.fadeIn;
+    }
+    if (api.fadeOut === this.fadeOut) {
+      delete api.fadeOut;
     }
   }
 

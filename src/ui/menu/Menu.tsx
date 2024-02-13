@@ -29,7 +29,8 @@ export function Menu({ menuData }: Props) {
           const dy = (controls.forward ? -1 : 0) + (controls.backward ? 1 : 0);
           setSelected(
             (value) =>
-              (value + dy + menuData.items.length) % menuData.items.length,
+              (value + dy + menuData.items.length.valueOf()) %
+              menuData.items.length.valueOf(),
           );
           if (controls.exit) {
             setMenu(undefined);

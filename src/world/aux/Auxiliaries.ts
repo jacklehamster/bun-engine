@@ -10,7 +10,7 @@ export class Auxiliaries implements List<Auxiliary>, Auxiliary {
     return new Auxiliaries(aux);
   }
 
-  get length(): number {
+  get length(): List<Auxiliary>["length"] {
     return this.auxiliaries.length;
   }
 

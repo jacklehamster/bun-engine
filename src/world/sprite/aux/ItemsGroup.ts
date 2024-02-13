@@ -1,5 +1,5 @@
 import { Auxiliary } from "world/aux/Auxiliary";
-import { forEach } from "abstract-list";
+import { List, forEach } from "abstract-list";
 import { UpdatableList } from "../UpdatableList";
 import { UpdateNotifier } from "updates/UpdateNotifier";
 
@@ -15,7 +15,7 @@ export class ItemsGroup<T> extends UpdateNotifier implements UpdatableList<T>, A
     this.elems.informUpdate?.(id, type);
   }
 
-  get length(): number {
+  get length(): List<T>["length"] {
     return this.elems.length;
   }
 

@@ -1,6 +1,6 @@
 import { GraphicsEngine } from 'graphics/GraphicsEngine';
 import { Motor } from 'motor-loop';
-import { DemoWorld } from 'demo/DemoWorld';
+import { DemoGame } from 'demo/DemoGame';
 import { AuxiliaryHolder } from 'world/aux/AuxiliaryHolder';
 import { ResizeAux } from 'graphics/aux/ResizeAux';
 import { WebGlCanvas } from 'graphics/WebGlCanvas';
@@ -51,7 +51,7 @@ export async function testCanvas(canvas: HTMLCanvasElement) {
   const engine = new GraphicsEngine(webGlCanvas.gl);
   // engine.setPixelListener(pixelListener);
   const core = new AuxiliaryHolder();
-  const world = new DemoWorld({
+  const world = new DemoGame({
     engine,
     motor,
     ui,

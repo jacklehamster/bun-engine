@@ -27,7 +27,10 @@ export function Dialog({ dialogData }: Props) {
         onAction(controls) {
           if (controls.action) {
             setIndex((value) => {
-              if (value === dialogData.conversation.messages.length - 1) {
+              if (
+                value ===
+                dialogData.conversation.messages.length.valueOf() - 1
+              ) {
                 setDialog(undefined);
                 return 0;
               }

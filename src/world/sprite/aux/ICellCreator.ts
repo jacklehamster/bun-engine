@@ -1,9 +1,6 @@
-import { List } from "abstract-list";
-import { IUpdateNotifier } from "updates/IUpdateNotifier";
 import { Auxiliary } from "world/aux/Auxiliary";
-import { Cell, Tag } from "cell-tracker";
+import { ICellTracker } from "cell-tracker";
+import { UpdatableList } from "../UpdatableList";
 
-export interface ICellCreator<T> extends IUpdateNotifier, List<T>, Auxiliary {
-  createCell(cell: Cell): boolean;
-  destroyCells(tags: Set<Tag>): void;
+export interface ICellCreator<T> extends UpdatableList<T>, Auxiliary, ICellTracker {
 }

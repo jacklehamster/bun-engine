@@ -1,4 +1,4 @@
-import { CellUtils } from "world/grid/utils/cell-utils";
+import { CellUtils } from "utils/cell-utils";
 import { Sprite } from "../Sprite";
 import { IElemFactory } from "./IElemFactory";
 import { PositionUtils } from "dok-matrix";

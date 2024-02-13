@@ -1,4 +1,3 @@
-import IWorld from "world/IWorld";
 import { Keyboard } from "controls/Keyboard";
 import { IGraphicsEngine } from "graphics/IGraphicsEngine";
 import { IMotor } from "motor-loop";
@@ -11,7 +10,6 @@ import { PositionStepAuxiliary } from "world/aux/PositionStepAuxiliary";
 import { TiltResetAuxiliary } from "world/aux/TiltResetAuxiliary";
 import { ToggleAuxiliary } from "world/aux/ToggleAuxiliary";
 import { SpriteGroup } from "world/sprite/aux/SpritesGroup";
-import { MaxCountAuxiliary } from "world/sprite/aux/MaxCountAuxiliary";
 import { SpriteUpdater } from "world/sprite/update/SpriteUpdater";
 import { Sprite } from "world/sprite/Sprite";
 import { SpriteType } from "world/sprite/SpriteType";
@@ -38,8 +36,7 @@ import { CollisionDetector } from "world/collision/CollisionDetector";
 import { CollisionDetectors } from "world/collision/CollisionDetectors";
 import { UserInterface } from "ui/UserInterface";
 import { IControls } from "controls/IControls";
-import { IFade, FadeAuxiliary } from "world/aux/FadeAuxiliary";
-import { Grid } from "world/sprite/aux/Grid";
+import { IFade, FadeApiAuxiliary } from "world/aux/FadeApiAuxiliary";
 import { Box } from "world/collision/Box";
 import { shadowProcessor } from "canvas-processor";
 import { CellBoundary } from "world/sprite/aux/CellBoundary";
@@ -48,7 +45,7 @@ import { FixedSpriteFactory } from "world/sprite/aux/FixedSpriteFactory";
 import { informFullUpdate } from "world/sprite/utils/sprite-utils";
 import { SurroundingTracker, CellTrackers } from "cell-tracker";
 import { Vector } from "dok-types";
-import { CellUtils } from "world/grid/utils/cell-utils";
+import { CellUtils } from "utils/cell-utils";
 
 enum Assets {
   DOBUKI = 0,
@@ -89,9 +86,9 @@ interface Props {
   controls: IControls;
 }
 
-export class DemoWorld extends AuxiliaryHolder implements IWorld {
-  camera: ICamera;
+export class DemoGame extends AuxiliaryHolder {
   api: IFade = {};
+  camera: ICamera;
   constructor({ engine, motor, ui, keyboard, controls }: Props) {
     super();
 
@@ -366,8 +363,9 @@ export class DemoWorld extends AuxiliaryHolder implements IWorld {
 
     //  Add a sprite accumulator.
     //  * Sprite accumulators are used to collect sprite definitions, so that the engine can display them.
-    const spritesAccumulator = new Accumulator<Sprite>();
-    this.addAuxiliary(new MaxCountAuxiliary({ engine, elems: spritesAccumulator }));
+    const spritesAccumulator = new Accumulator<Sprite>({
+      onChange: (value) => engine.setMaxSpriteCount(value),
+    });
     this.addAuxiliary(new SpriteUpdater({ engine, motor, sprites: spritesAccumulator }));
     this.addAuxiliary(spritesAccumulator);
 
@@ -418,9 +416,7 @@ export class DemoWorld extends AuxiliaryHolder implements IWorld {
         factory,
       });
       spritesAccumulator.addAuxiliary(creator);
-      cellTrackers.add(new Grid({
-        cellCreator: creator,
-      }));
+      cellTrackers.add(creator);
     });
 
     {
@@ -464,9 +460,7 @@ export class DemoWorld extends AuxiliaryHolder implements IWorld {
         factory
       });
       spritesAccumulator.addAuxiliary(creator);
-      cellTrackers.add(new Grid({
-        cellCreator: creator,
-      }));
+      cellTrackers.add(creator);
       this.addAuxiliary(factory);
     }
 
@@ -474,6 +468,7 @@ export class DemoWorld extends AuxiliaryHolder implements IWorld {
     this.addAuxiliary(camera);
 
     const spriteCellCreator = new SpriteCellCreator({
+      boundary: new CellBoundary({ yRange: [0, 0] }),
       factory: new SpriteFactory({
         fillSpriteBag({ pos: cellPos }, bag, rng) {
           const distSq = cellPos[0] * cellPos[0] + cellPos[2] * cellPos[2];
@@ -527,10 +522,7 @@ export class DemoWorld extends AuxiliaryHolder implements IWorld {
     //  * fly. This allows us to produce an infinite amounts of cells.
     spritesAccumulator.addAuxiliary(spriteCellCreator);
 
-    cellTrackers.add(new Grid({
-      boundary: new CellBoundary({ yRange: [0, 0] }),
-      cellCreator: spriteCellCreator,
-    }));
+    cellTrackers.add(spriteCellCreator);
 
     const heroBox = {
       top: 1,
@@ -657,9 +649,9 @@ export class DemoWorld extends AuxiliaryHolder implements IWorld {
         auxiliariesMapping: [
           {
             key: "Tab", aux: Auxiliaries.from(
-              new PositionStepAuxiliary({ motor, controls, position: heroPos, turnGoal: camera.turn.angle }, { speed: 2 }),
+              new PositionStepAuxiliary({ motor, controls, position: heroPos, turnGoal: camera.turn.angle }, { speed: 1.5, airBoost: 1.5 }),
               new SmoothFollowAuxiliary({ motor, follower: camera.position, followee: heroPos }, { speed: .05 }),
-              new JumpAuxiliary({ motor, controls, position: heroPos }),
+              new JumpAuxiliary({ motor, controls, position: heroPos }, { gravity: -2, jump: 3 }),
             ),
           },
           {
@@ -702,12 +694,12 @@ export class DemoWorld extends AuxiliaryHolder implements IWorld {
     );
 
     //  Hack some base settings
-    camera.distance.setValue(20)
+    camera.distance.setValue(15)
     camera.tilt.angle.setValue(.8);
     camera.projection.zoom.setValue(.25);
     camera.projection.perspective.setValue(.05);
     camera.setBackgroundColor(0x000000);
     this.addAuxiliary(new TimeAuxiliary({ motor, engine }))
-      .addAuxiliary(new FadeAuxiliary({ camera, motor, world: this }));
+      .addAuxiliary(new FadeApiAuxiliary({ camera, motor, api: this.api }));
   }
 }

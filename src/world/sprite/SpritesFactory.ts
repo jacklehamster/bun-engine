@@ -3,7 +3,7 @@ import { Cell } from "cell-tracker";
 import { Sprite } from "./Sprite";
 import { MediaId } from "gl-texture-manager";
 import { IElemFactory } from "./aux/IElemFactory";
-import { SpritePool } from "world/pools/SpritePool";
+import { SpritePool } from "world/sprite/pools/SpritePool";
 import { alea } from "seedrandom"
 
 interface SpriteBag {

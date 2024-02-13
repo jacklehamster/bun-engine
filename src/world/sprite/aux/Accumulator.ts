@@ -1,11 +1,11 @@
-import { IdType } from "dok-types";
-import { ElemsHolder, NewElemListener } from "./ElemsHolder";
+import { IdType, Val } from "dok-types";
 import { UpdatableList } from "../UpdatableList";
 import { ObjectPool } from "bun-pool";
 import { Auxiliary } from "world/aux/Auxiliary";
 import { AuxiliaryHolder } from "world/aux/AuxiliaryHolder";
 import { IUpdateListener, IUpdateNotifier } from "updates/IUpdateNotifier";
 import { UpdateNotifier } from "updates/UpdateNotifier";
+import { List } from "abstract-list";
 
 interface Slot<T> {
   elems: UpdatableList<T>;
@@ -14,31 +14,31 @@ interface Slot<T> {
 
 interface Props<T> {
   updateNotifier?: IUpdateNotifier;
-  newElemListeners?: NewElemListener<T>[];
+  onChange?(value: number): void;
 }
 
-export class Accumulator<T> extends AuxiliaryHolder implements ElemsHolder<T>, IUpdateNotifier {
-  readonly #indices: Slot<T>[] = [];
+export class Accumulator<T> extends AuxiliaryHolder implements List<T>, IUpdateNotifier {
+  readonly #indices: (Slot<T> | undefined)[] = [];
   readonly #pool = new SlotPool<T>();
   readonly #updateNotifier: IUpdateNotifier;
-  readonly #newElemListeners;
+  readonly #freeIndices: number[] = [];
+  readonly length: List<T>["length"];
 
   constructor({
     updateNotifier = new UpdateNotifier(),
-    newElemListeners = [],
+    onChange,
   }: Partial<Props<T>> = {}) {
     super();
     this.#updateNotifier = updateNotifier;
-    this.#newElemListeners = new Set(newElemListeners);
+    this.length = {
+      valueOf: () => this.#indices.length,
+      onChange: (value) => onChange?.(value),
+    }
   }
 
   at(id: IdType): T | undefined {
     const slot = this.#indices[id];
     return slot?.elems.at(slot.index);
-  }
-
-  get length(): number {
-    return this.#indices.length;
   }
 
   activate(): void {
@@ -58,14 +58,6 @@ export class Accumulator<T> extends AuxiliaryHolder implements ElemsHolder<T>, I
       this.#add(aux as UpdatableList<T>);
     }
     return this;
-  }
-
-  addNewElemsListener(listener: NewElemListener<T>): void {
-    this.#newElemListeners.add(listener);
-  }
-
-  removeNewElemsListener(listener: NewElemListener<T>): void {
-    this.#newElemListeners.delete(listener);
   }
 
   informUpdate(id: number, type?: number | undefined): void {
@@ -92,7 +84,7 @@ export class Accumulator<T> extends AuxiliaryHolder implements ElemsHolder<T>, I
             return;
           }
           //  create new entry
-          id = this.#indices.length;
+          id = this.#freeIndices.pop() ?? this.#indices.length;
           indexMaping[index] = id;
           this.informUpdate(id);
           this.#indices.push(this.#pool.create(elems, index, id));
@@ -103,16 +95,15 @@ export class Accumulator<T> extends AuxiliaryHolder implements ElemsHolder<T>, I
             //  remove entry
             indexMaping[index] = undefined;
             const slot = this.#indices[id];
-            this.#pool.recycle(slot);
-
-            const lastSlotId = this.#indices.length - 1;
-            if (id !== lastSlotId) {
-              this.#indices[id] = this.#indices[lastSlotId];
-              this.informUpdate(lastSlotId);
+            if (slot) {
+              this.#pool.recycle(slot);
+              this.#indices[id] = undefined;
             }
-            this.#indices.pop();
-            this.informUpdate(id);
-            this.#onSizeChange();
+            if (id === this.#indices.length - 1) {
+              this.#indices.length--;
+            } else {
+              this.#freeIndices.push(id);
+            }
             return;
           }
         }
@@ -125,7 +116,7 @@ export class Accumulator<T> extends AuxiliaryHolder implements ElemsHolder<T>, I
   }
 
   #onSizeChange() {
-    this.#newElemListeners.forEach(listener => listener.onNewElem(this));
+    this.length.onChange!(this.length.valueOf());
   }
 
   #informFullUpdate() {
@@ -133,8 +124,14 @@ export class Accumulator<T> extends AuxiliaryHolder implements ElemsHolder<T>, I
   }
 
   #clear(): void {
-    this.#indices.forEach(slot => this.#pool.recycle(slot));
+    this.#indices.forEach(slot => {
+      if (slot) {
+        this.#pool.recycle(slot);
+      }
+    });
+    this.#freeIndices.length = 0;
     this.#indices.length = 0;
+    this.#onSizeChange();
   }
 }
 

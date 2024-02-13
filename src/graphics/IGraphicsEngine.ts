@@ -6,7 +6,7 @@ import { List } from "abstract-list";
 import { LocationName } from "gl/attributes/GLAttributeBuffers";
 import { MatrixUniformHandler } from "gl/uniforms/update/MatrixUniformHandler";
 import { FloatUniformHandler } from "gl/uniforms/update/FloatUniformHandler";
-import { Val } from "progressive-value";
+import { Val } from "dok-types";
 import { VectorUniformHandler } from "gl/uniforms/update/VectorUniformHandler";
 import { Vector } from "dok-types";
 import { IMatrix } from "dok-matrix";
