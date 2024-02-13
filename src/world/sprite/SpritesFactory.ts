@@ -1,10 +1,10 @@
-import { Sprites } from "./Sprites";
 import { Cell } from "cell-tracker";
 import { Sprite } from "./Sprite";
 import { MediaId } from "gl-texture-manager";
 import { IElemFactory } from "./aux/IElemFactory";
 import { SpritePool } from "world/sprite/pools/SpritePool";
 import { alea } from "seedrandom"
+import { List } from "abstract-list";
 
 interface SpriteBag {
   createSprite(imageId?: MediaId): Sprite;
@@ -26,7 +26,7 @@ export class SpriteFactory implements IElemFactory<Sprite> {
   constructor(private filler: CellSpriteFiller) {
   }
 
-  getElemsAtCell(cell: Cell): Sprites {
+  getElemsAtCell(cell: Cell): List<Sprite> {
     this.filler.fillSpriteBag(cell, this.spriteBag, alea(cell.tag));
     return this.sprites;
   }

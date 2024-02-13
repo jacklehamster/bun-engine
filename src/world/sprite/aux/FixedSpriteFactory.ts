@@ -4,7 +4,6 @@ import { IElemFactory } from "./IElemFactory";
 import { PositionUtils } from "dok-matrix";
 import { List, forEach } from "abstract-list";
 import { Cell, Tag } from "cell-tracker";
-import { Sprites } from "../Sprites";
 import { copySprite } from "../utils/sprite-utils";
 import { Auxiliary } from "world/aux/Auxiliary";
 import { AuxiliaryHolder } from "world/aux/AuxiliaryHolder";
@@ -21,12 +20,12 @@ interface Props {
 
 export class FixedSpriteFactory extends AuxiliaryHolder implements IElemFactory<Sprite>, Auxiliary {
   private readonly spritesPerCell: Map<Tag, Sprite[]> = new Map();
-  private readonly spritesList: Sprites[];
+  private readonly spritesList: List<Sprite>[];
   private readonly cellUtils: CellUtils;
   private readonly positionUtils: PositionUtils;
   private readonly config: Config;
 
-  constructor({ cellUtils, positionUtils }: Props, config: Config, ...spritesList: ((Sprites) & Partial<Auxiliary>)[]) {
+  constructor({ cellUtils, positionUtils }: Props, config: Config, ...spritesList: (List<Sprite> & Partial<Auxiliary>)[]) {
     super();
     this.spritesList = spritesList;
     this.cellUtils = cellUtils;

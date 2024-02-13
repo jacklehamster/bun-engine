@@ -1,4 +1,4 @@
 import { Animation } from "./Animation";
-import { UpdatableList } from "world/sprite/UpdatableList";
+import { UpdatableList } from "core/UpdatableList";
 
 export type Animations = UpdatableList<Animation>;

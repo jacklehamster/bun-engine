@@ -6,15 +6,12 @@ import { Matrix } from "dok-matrix";
 export type SpriteId = number;
 export type Frame = number;
 
-export interface Flippable {
-  orientation?: number;
-}
-
-export interface Sprite extends Flippable {
+export interface Sprite {
   imageId: MediaId;
   readonly transform: Matrix;
   spriteType?: SpriteType;
   animationId?: AnimationId;
+  orientation?: number;
   hidden?: boolean;
 }
 

@@ -1,6 +1,6 @@
 import { Auxiliary } from "world/aux/Auxiliary";
 import { List, forEach } from "abstract-list";
-import { UpdatableList } from "../UpdatableList";
+import { UpdatableList } from "../../../core/UpdatableList";
 import { UpdateNotifier } from "updates/UpdateNotifier";
 
 export class ItemsGroup<T> extends UpdateNotifier implements UpdatableList<T>, Auxiliary {

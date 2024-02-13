@@ -1,9 +1,9 @@
 import { MediaId } from "gl-texture-manager";
 import { Box } from "./Box";
 import { Sprite } from "world/sprite/Sprite";
-import { Sprites } from "world/sprite/Sprites";
 import { List } from "abstract-list";
 import { Matrix } from "dok-matrix";
+import { UpdatableList } from "core/UpdatableList";
 
 interface Props {
   box: Box;
@@ -11,7 +11,7 @@ interface Props {
   insideImageId?: MediaId;
 }
 
-export class DisplayBox implements Sprites {
+export class DisplayBox implements UpdatableList<Sprite> {
   private readonly sprites: List<Sprite>;
   constructor({ box, imageId, insideImageId }: Props) {
     if (!box.disabled) {

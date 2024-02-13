@@ -1,5 +1,5 @@
 import { IdType, Val } from "dok-types";
-import { UpdatableList } from "../UpdatableList";
+import { UpdatableList } from "../../../core/UpdatableList";
 import { ObjectPool } from "bun-pool";
 import { Auxiliary } from "world/aux/Auxiliary";
 import { AuxiliaryHolder } from "world/aux/AuxiliaryHolder";

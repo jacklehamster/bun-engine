@@ -1,7 +1,6 @@
-import { Sprites } from "../Sprites";
 import { Sprite } from "../Sprite";
 import { SpriteUpdateType } from "../update/SpriteUpdateType";
-import { forEach } from "abstract-list";
+import { List, forEach } from "abstract-list";
 import { AnimationId } from "animation/Animation";
 import { ItemsGroup } from "./ItemsGroup";
 import { Animatable as Animating } from "animation/Animatable";
@@ -16,7 +15,7 @@ export class SpriteGroup extends ItemsGroup<Sprite> implements Animating {
 
   readonly #spriteModel: SpriteModel = new SpriteModel();
 
-  constructor(sprites: Sprites, private transforms: IMatrix[] = []) {
+  constructor(sprites: List<Sprite>, private transforms: IMatrix[] = []) {
     super(sprites);
   }
 

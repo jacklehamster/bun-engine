@@ -1,7 +1,7 @@
 import { IUpdateListener } from "updates/IUpdateNotifier";
 import { Auxiliary } from "world/aux/Auxiliary";
 import { UpdateRegistry } from "updates/UpdateRegistry";
-import { UpdatableList } from "world/sprite/UpdatableList";
+import { UpdatableList } from "core/UpdatableList";
 
 interface Props {
   updateRegistry: UpdateRegistry;

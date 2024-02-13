@@ -3,7 +3,7 @@ import { IGraphicsEngine } from "graphics/IGraphicsEngine";
 import { IMotor } from "motor-loop";
 import { UpdateRegistry } from "updates/UpdateRegistry";
 import { Updater } from "../../../updates/Updater";
-import { UpdatableList } from "../UpdatableList";
+import { UpdatableList } from "../../../core/UpdatableList";
 
 interface Props {
   engine: IGraphicsEngine;
