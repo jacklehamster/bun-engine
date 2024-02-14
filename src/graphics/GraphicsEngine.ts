@@ -17,8 +17,8 @@ import { GLPrograms } from '../gl/programs/GLPrograms';
 import { Disposable } from '../gl/lifecycle/Disposable';
 import { GLAttributeBuffers, LocationName } from '../gl/attributes/GLAttributeBuffers';
 
-import vertexShader from 'generated/src/gl/resources/vertexShader.txt';
-import fragmentShader from 'generated/src/gl/resources/fragmentShader.txt';
+import vertexShader from 'generated/src/gl/resources/vertexShader.json';
+import fragmentShader from 'generated/src/gl/resources/fragmentShader.json';
 import { TextureManager, MediaId, MediaData, Media, ImageManager } from 'gl-texture-manager';
 import { replaceTilda } from 'gl/utils/replaceTilda';
 import { Sprite, SpriteId } from 'world/sprite/Sprite';

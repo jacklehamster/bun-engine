@@ -4,11 +4,12 @@
     "rootDir": "src",
     "baseUrl": ".",
     "paths": {
-      "*": ["src/*"],
+      "*": ["src/*"]
     },
     "lib": ["ESNext"],
     "module": "esnext",
     "target": "esnext",
+    "resolveJsonModule": true,
     "moduleResolution": "bundler",
     "moduleDetection": "force",
     "allowImportingTsExtensions": true,
@@ -21,8 +22,8 @@
     "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true,
     "allowJs": true,
-    "types": ["bun-types"],
+    "types": ["bun-types"]
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx"],
-  "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx"],
+  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.json"],
+  "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx"]
 }

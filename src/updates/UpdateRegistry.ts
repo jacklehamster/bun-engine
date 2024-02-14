@@ -1,9 +1,9 @@
-import { Refresh, UpdatePayload, IMotor } from "motor-loop";
+import { UpdatePayload, IMotor, Cycle } from "motor-loop";
 import { UpdateType } from "./IUpdateNotifier";
 import { IdType } from "dok-types";
 import { UpdateNotifier } from "./UpdateNotifier";
 
-export class UpdateRegistry<T extends IdType = IdType> extends UpdateNotifier implements Refresh {
+export class UpdateRegistry<T extends IdType = IdType> extends UpdateNotifier implements Cycle {
   private readonly updatedIds: Set<T> = new Set();
   constructor(private applyUpdate: (ids: Set<T>, update: UpdatePayload) => void, private motor: IMotor) {
     super();

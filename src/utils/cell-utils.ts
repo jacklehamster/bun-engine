@@ -1,6 +1,6 @@
 import { CellPool, Cell } from "cell-tracker";
 import { VectorPool } from "dok-types";
-import { IMotor, Refresh, UpdatePayload } from "motor-loop";
+import { IMotor, Cycle, UpdatePayload } from "motor-loop";
 import { Vector } from "dok-types";
 
 interface Props extends Partial<Data> {
@@ -12,7 +12,7 @@ interface Data {
   vectorPool: VectorPool;
 }
 
-export class CellUtils implements Refresh<Data> {
+export class CellUtils implements Cycle<Data> {
   private readonly cellPool: CellPool;
   private readonly vectorPool: VectorPool;
   private readonly motor;

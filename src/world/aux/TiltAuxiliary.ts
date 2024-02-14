@@ -20,7 +20,7 @@ export class TiltAuxiliary extends ControlledLooper<Data> implements Auxiliary {
     super(motor, controls, ({ up, down }) => up || down, { controls, tilt });
   }
 
-  refresh({ data: { controls, tilt }, deltaTime, stopUpdate, refresher }: UpdatePayload<Data>): void {
+  refresh({ data: { controls, tilt }, deltaTime, stopUpdate }: UpdatePayload<Data>): void {
     const { up, down } = controls;
     const turnspeed = deltaTime / 400;
     if (up) {
