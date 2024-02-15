@@ -3,16 +3,14 @@ import { ICellCreator } from "./ICellCreator";
 import { IElemFactory } from "./IElemFactory";
 import { Sprite } from "../Sprite";
 import { ObjectPool } from "bun-pool";
-import { copySprite } from "../utils/sprite-utils";
 import { List, forEach } from "abstract-list";
-import { SpriteUpdateType } from "../update/SpriteUpdateType";
 import { UpdateNotifier } from "updates/UpdateNotifier";
 import { IBoundary } from "./IBoundary";
 
-interface Props {
+interface Props<T> {
   boundary?: IBoundary;
-  factory: IElemFactory<Sprite>
-  slotPool?: ObjectPool<Slot<Sprite>, [Sprite, Tag]>
+  factory: IElemFactory<T>
+  slotPool: ObjectPool<Slot<T>, [T, Tag]>
 }
 
 interface Slot<T> {
@@ -20,16 +18,16 @@ interface Slot<T> {
   tag: Tag;
 }
 
-export class SpriteCellCreator extends UpdateNotifier implements ICellCreator<Sprite> {
-  private readonly factory: IElemFactory<Sprite>;
-  private readonly slots: Slot<Sprite>[] = [];
+export class CellCreator<T> extends UpdateNotifier implements ICellCreator<T> {
+  private readonly factory: IElemFactory<T>;
+  private readonly slots: Slot<T>[] = [];
   private readonly slotPool;
   readonly #boundary;
 
-  constructor({ factory, slotPool, boundary }: Props) {
+  constructor({ factory, slotPool, boundary }: Props<T>) {
     super();
     this.factory = factory;
-    this.slotPool = slotPool ?? new SlotPool(copySprite);
+    this.slotPool = slotPool;
     this.#boundary = boundary;
   }
 
@@ -45,7 +43,7 @@ export class SpriteCellCreator extends UpdateNotifier implements ICellCreator<Sp
     return this.slots.length;
   }
 
-  at(index: number): Sprite | undefined {
+  at(index: number): T | undefined {
     return this.slots[index]?.elem;
   }
 
@@ -80,7 +78,7 @@ export class SpriteCellCreator extends UpdateNotifier implements ICellCreator<Sp
       const slot = this.slots[i];
       if (tags.has(slot.tag)) {
         this.informUpdate(i);
-        this.informUpdate(this.slots.length - 1, SpriteUpdateType.TRANSFORM);
+        this.informUpdate(this.slots.length - 1);
         this.slots[i] = this.slots[this.slots.length - 1];
         this.slots.pop();
         this.slotPool.recycle(slot);
@@ -90,7 +88,7 @@ export class SpriteCellCreator extends UpdateNotifier implements ICellCreator<Sp
 }
 
 
-class SlotPool<T> extends ObjectPool<Slot<T>, [T, string]> {
+export class SlotPool<T> extends ObjectPool<Slot<T>, [T, string]> {
   constructor(copy: (elem: T, dest?: T) => T) {
     super((slot, elem: T, tag: string) => {
       if (!slot) {
