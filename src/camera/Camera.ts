@@ -5,7 +5,7 @@ import { IMotor } from "motor-loop";
 import { AuxiliaryHolder } from "world/aux/AuxiliaryHolder";
 import { NumVal } from "progressive-value";
 import { UpdateRegistry } from "updates/UpdateRegistry";
-import { PositionMatrix, IPositionMatrix, PositionUtils } from "dok-matrix";
+import { PositionMatrix, IPositionMatrix } from "dok-matrix";
 import { MatrixUniformHandler } from "gl/uniforms/update/MatrixUniformHandler";
 import { BG_BLUR_LOC, BG_COLOR_LOC, CAM_CURVATURE_LOC, CAM_DISTANCE_LOC, CAM_POS_LOC, CAM_PROJECTION_LOC, CAM_TILT_LOC, CAM_TURN_LOC, FADE_LOC } from "gl/attributes/Constants";
 import { FloatUniformHandler } from "gl/uniforms/update/FloatUniformHandler";
@@ -15,7 +15,6 @@ import { Vector } from "dok-types";
 interface Props {
   engine: IGraphicsEngine;
   motor: IMotor;
-  positionUtils: PositionUtils;
 }
 
 export class Camera extends AuxiliaryHolder implements ICamera {
@@ -36,11 +35,11 @@ export class Camera extends AuxiliaryHolder implements ICamera {
   readonly #updateInformerVector;
   readonly #engine;
 
-  constructor({ engine, motor, positionUtils }: Props) {
+  constructor({ engine, motor }: Props) {
     super();
     this.#engine = engine;
 
-    this.position = new PositionMatrix({ positionUtils }, () => {
+    this.position = new PositionMatrix({}, () => {
       this.#camMatrix.invert(this.position);
       this.#updateInformer.informUpdate(MatrixUniform.CAM_POS);
     });

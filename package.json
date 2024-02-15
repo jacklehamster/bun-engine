@@ -59,7 +59,7 @@
     "bun-pool": "^1.0.7",
     "canvas-processor": "^1.0.3",
     "cell-tracker": "^1.0.7",
-    "dok-matrix": "^1.0.7",
+    "dok-matrix": "^1.0.8",
     "dok-types": "^1.0.5",
     "free-stack": "^1.0.3",
     "gl-matrix": "^3.4.3",

@@ -30,7 +30,7 @@ import { Animation } from "animation/Animation";
 import { MotionAuxiliary } from "world/aux/MotionAuxiliary";
 import { FollowAuxiliary } from "world/aux/FollowAuxiliary";
 import { ItemsGroup } from "world/sprite/aux/ItemsGroup";
-import { ICollisionDetector, IPositionMatrix, Matrix, PositionMatrix, PositionUtils } from "dok-matrix";
+import { ICollisionDetector, IPositionMatrix, Matrix, PositionMatrix } from "dok-matrix";
 import { DisplayBox } from "world/collision/DisplayBox";
 import { CollisionDetector } from "world/collision/CollisionDetector";
 import { CollisionDetectors } from "world/collision/CollisionDetectors";
@@ -93,7 +93,6 @@ export class DemoGame extends AuxiliaryHolder {
     super();
 
     const cellUtils = new CellUtils({ motor });
-    const positionUtils = new PositionUtils({ motor });
 
     //  Add medias
     //  * Each media is a texture that can be shown on a sprite.
@@ -407,7 +406,7 @@ export class DemoGame extends AuxiliaryHolder {
         [Matrix.create().setVector(blockPosition)],
       );
       const factory = new FixedSpriteFactory(
-        { cellUtils, positionUtils },
+        { cellUtils },
         { cellSize: CELLSIZE },
         blockBoxSprites);
       this.addAuxiliary(factory);
@@ -418,7 +417,7 @@ export class DemoGame extends AuxiliaryHolder {
     });
 
     {
-      const factory = new FixedSpriteFactory({ cellUtils, positionUtils }, { cellSize: CELLSIZE },
+      const factory = new FixedSpriteFactory({ cellUtils }, { cellSize: CELLSIZE },
         //  Dobuki logo
         new SpriteGroup([
           {
@@ -460,7 +459,7 @@ export class DemoGame extends AuxiliaryHolder {
       this.addAuxiliary(factory);
     }
 
-    const camera: ICamera = this.camera = new Camera({ engine, motor, positionUtils });
+    const camera: ICamera = this.camera = new Camera({ engine, motor });
     this.addAuxiliary(camera);
 
     const spriteCellCreator = new SpriteCellCreator({
@@ -581,7 +580,7 @@ export class DemoGame extends AuxiliaryHolder {
 
     const heroCollider = new CollisionDetectors(worldColliders);
 
-    const heroPos: IPositionMatrix = new PositionMatrix({ positionUtils, blocker: heroCollider })
+    const heroPos: IPositionMatrix = new PositionMatrix({ blocker: heroCollider })
       .movedTo(0, 0, 3)
       .onChange(() => {
         informFullUpdate(heroSprites, SpriteUpdateType.TRANSFORM);
@@ -601,7 +600,7 @@ export class DemoGame extends AuxiliaryHolder {
 
     spritesAccumulator.add(displayBox);
 
-    const shadowPos: IPositionMatrix = new PositionMatrix({ positionUtils })
+    const shadowPos: IPositionMatrix = new PositionMatrix({})
       .onChange(() => {
         informFullUpdate(shadowHeroSprites, SpriteUpdateType.TRANSFORM);
       });;
