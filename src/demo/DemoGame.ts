@@ -14,7 +14,7 @@ import { SpriteUpdater } from "world/sprite/update/SpriteUpdater";
 import { Sprite } from "world/sprite/Sprite";
 import { SpriteType } from "world/sprite/SpriteType";
 import { ICamera } from "camera/ICamera";
-import { Factory } from "world/sprite/Factory";
+import { SpriteFactory } from "world/sprite/SpritesFactory";
 import { MoveAuxiliary } from "world/aux/MoveAuxiliary";
 import { JumpAuxiliary } from "world/aux/JumpAuxiliary";
 import { TimeAuxiliary } from "core/aux/TimeAuxiliary";
@@ -40,14 +40,12 @@ import { IFade, FadeApiAuxiliary } from "world/aux/FadeApiAuxiliary";
 import { Box } from "world/collision/Box";
 import { shadowProcessor } from "canvas-processor";
 import { CellBoundary } from "world/sprite/aux/CellBoundary";
-import { SlotPool, CellCreator } from "world/sprite/aux/CellCreator";
+import { SpriteCellCreator } from "world/sprite/aux/SpriteCellCreator";
 import { FixedSpriteFactory } from "world/sprite/aux/FixedSpriteFactory";
-import { copySprite, informFullUpdate } from "world/sprite/utils/sprite-utils";
+import { informFullUpdate } from "world/sprite/utils/sprite-utils";
 import { SurroundingTracker, CellTrackers } from "cell-tracker";
 import { Vector } from "dok-types";
 import { CellUtils } from "utils/cell-utils";
-import { SpritePool } from "world/sprite/pools/SpritePool";
-import { MediaId } from "gl-texture-manager";
 
 enum Assets {
   DOBUKI = 0,
@@ -96,7 +94,6 @@ export class DemoGame extends AuxiliaryHolder {
 
     const cellUtils = new CellUtils({ motor });
     const positionUtils = new PositionUtils({ motor });
-    const spriteSlotPool = new SlotPool<Sprite>(copySprite);
 
     //  Add medias
     //  * Each media is a texture that can be shown on a sprite.
@@ -415,7 +412,9 @@ export class DemoGame extends AuxiliaryHolder {
         new SpriteGroup(blockBoxSprites, [Matrix.create().setVector(blockPosition)]));
       this.addAuxiliary(factory);
 
-      const creator = new CellCreator({ factory, slotPool: spriteSlotPool });
+      const creator = new SpriteCellCreator({
+        factory,
+      });
       spritesAccumulator.addAuxiliary(creator);
       cellTrackers.add(creator);
     });
@@ -423,11 +422,13 @@ export class DemoGame extends AuxiliaryHolder {
     {
       const factory = new FixedSpriteFactory({ cellUtils, positionUtils }, { cellSize: CELLSIZE },
         //  Dobuki logo
-        new SpriteGroup([{
-          imageId: Assets.DOBUKI,
-          spriteType: SpriteType.SPRITE,
-          transform: Matrix.create().translate(0, -.3, -1),
-        }], [Matrix.create().setVector(dobukiPosition)]),
+        new SpriteGroup([
+          {
+            imageId: Assets.DOBUKI,
+            spriteType: SpriteType.SPRITE,
+            transform: Matrix.create().translate(0, -.3, -1),
+          },
+        ], [Matrix.create().setVector(dobukiPosition)]),
         new SpriteGroup(
           new DisplayBox({ box: dobukiBlock, imageId: Assets.WIREFRAME, insideImageId: Assets.WIREFRAME }),
           [Matrix.create().setVector(dobukiPosition)]
@@ -438,24 +439,26 @@ export class DemoGame extends AuxiliaryHolder {
         ),
 
         //  Side walls with happy face logo
-
-        //  side walls
         [
-          Matrix.create().translate(-3.01, 0, 0).rotateY(Math.PI / 2),
-          Matrix.create().translate(-3.01, 0, 0).rotateY(-Math.PI / 2),
-          Matrix.create().translate(3.01, 0, 0).rotateY(-Math.PI / 2),
-          Matrix.create().translate(3.01, 0, 0).rotateY(Math.PI / 2),
-        ].map(transform => ({ imageId: Assets.LOGO, transform })),
-        //  floor
-        [
-          Matrix.create().translate(0, -.9, 0).rotateX(-Math.PI / 2),
-          Matrix.create().translate(0, -.9, 2).rotateX(-Math.PI / 2),
-          Matrix.create().translate(-2, -.9, 2).rotateX(-Math.PI / 2),
-          Matrix.create().translate(2, -.9, 2).rotateX(-Math.PI / 2),
-        ].map(transform => ({ imageId: Assets.GRASS_GROUND, transform })),
-      );
+          //  side walls
+          ...[
+            Matrix.create().translate(-3.01, 0, 0).rotateY(Math.PI / 2),
+            Matrix.create().translate(-3.01, 0, 0).rotateY(-Math.PI / 2),
+            Matrix.create().translate(3.01, 0, 0).rotateY(-Math.PI / 2),
+            Matrix.create().translate(3.01, 0, 0).rotateY(Math.PI / 2),
+          ].map(transform => ({ imageId: Assets.LOGO, transform })),
+          //  floor
+          ...[
+            Matrix.create().translate(0, -.9, 0).rotateX(-Math.PI / 2),
+            Matrix.create().translate(0, -.9, 2).rotateX(-Math.PI / 2),
+            Matrix.create().translate(-2, -.9, 2).rotateX(-Math.PI / 2),
+            Matrix.create().translate(2, -.9, 2).rotateX(-Math.PI / 2),
+          ].map(transform => ({ imageId: Assets.GRASS_GROUND, transform })),
+        ]);
 
-      const creator = new CellCreator({ factory, slotPool: spriteSlotPool });
+      const creator = new SpriteCellCreator({
+        factory
+      });
       spritesAccumulator.addAuxiliary(creator);
       cellTrackers.add(creator);
       this.addAuxiliary(factory);
@@ -464,83 +467,62 @@ export class DemoGame extends AuxiliaryHolder {
     const camera: ICamera = this.camera = new Camera({ engine, motor, positionUtils });
     this.addAuxiliary(camera);
 
-    {
-      const pool = new SpritePool();
-      const sprites: Sprite[] = [];
-      function createSprite(imageId?: MediaId): Sprite {
-        return pool.create(imageId ?? 0);
-      }
-      function addSprite(...sprites: Sprite[]) {
-        sprites.push(...sprites);
-      }
+    const spriteCellCreator = new SpriteCellCreator({
+      boundary: new CellBoundary({ yRange: [0, 0] }),
+      factory: new SpriteFactory({
+        fillSpriteBag({ pos: cellPos }, bag, rng) {
+          const distSq = cellPos[0] * cellPos[0] + cellPos[2] * cellPos[2];
+          const isWater = distSq > 1000;
+          const hasTree = (distSq > 10) && rng() < .1 && !isWater;
+          const ground = bag.createSprite(hasTree ? Assets.BUSHES : isWater ? Assets.WATER : Assets.GRASS);
+          ground.spriteType = isWater ? SpriteType.WAVE : SpriteType.DEFAULT;
+          ground.transform.translate(cellPos[0] * cellPos[3], -1 - (isWater ? 1 : 0), cellPos[2] * cellPos[3]).rotateX(-Math.PI / 2);
+          bag.addSprite(ground);
 
-      const spriteCellCreator = new CellCreator({
-        boundary: new CellBoundary({ yRange: [0, 0] }),
-        slotPool: spriteSlotPool,
-        factory: new Factory({
-          bag: {
-            elems: sprites,
-            done() {
-              pool.recycleAll();
-              this.elems.length = 0;
-            },
-          },
-          filler: {
-            fillBag({ pos: cellPos }, bag, rng) {
-              const distSq = cellPos[0] * cellPos[0] + cellPos[2] * cellPos[2];
-              const isWater = distSq > 1000;
-              const hasTree = (distSq > 10) && rng() < .1 && !isWater;
-              const ground = createSprite(hasTree ? Assets.BUSHES : isWater ? Assets.WATER : Assets.GRASS);
-              ground.spriteType = isWater ? SpriteType.WAVE : SpriteType.DEFAULT;
-              ground.transform.translate(cellPos[0] * cellPos[3], -1 - (isWater ? 1 : 0), cellPos[2] * cellPos[3]).rotateX(-Math.PI / 2);
-              addSprite(ground);
-
-              const count = hasTree ? 5 + rng() * 10 : 0;
-              for (let i = 0; i < count; i++) {
-                const tree = createSprite(Assets.TREE);
-                tree.spriteType = SpriteType.SPRITE;
-                const size = 1 + Math.floor(2 * rng());
-                tree.transform.translate(cellPos[0] * cellPos[3] + (rng() - .5) * 2.5, -1 + size / 2, cellPos[2] * cellPos[3] + (rng() - .5) * 2.5).scale(.2 + rng(), size, .2 + rng());
-                addSprite(tree);
-              }
-
-              //  Add bun
-              if (!isWater && !count && rng() < .02) {
-                const bx = cellPos[0] * cellPos[3], bz = cellPos[2] * cellPos[3];
-                const bun = createSprite(Assets.BUN);
-                bun.spriteType = SpriteType.SPRITE;
-                bun.transform.translate(bx, -.7, bz).scale(.5);
-
-                const bunShadow = createSprite(Assets.BUN_SHADOW);
-                bunShadow.transform.translate(bx, -1, bz).rotateX(-Math.PI / 2).scale(.5);
-
-                addSprite(bun, bunShadow);
-              }
-
-              //  Add wolf
-              if (!isWater && !count && rng() < .01) {
-                const scale = 1.5;
-                const wolf = createSprite(Assets.WOLF);
-                wolf.spriteType = SpriteType.SPRITE;
-                wolf.transform.translate(cellPos[0] * cellPos[3], 0, cellPos[2] * cellPos[3]).scale(scale);
-
-                const shadow = createSprite(Assets.WOLF_SHADOW);
-                shadow.transform.translate(cellPos[0] * cellPos[3], -.99, cellPos[2] * cellPos[3] - .5).rotateX(-Math.PI / 2).scale(scale);
-
-                addSprite(wolf, shadow);
-              }
-            },
+          const count = hasTree ? 5 + rng() * 10 : 0;
+          for (let i = 0; i < count; i++) {
+            const tree = bag.createSprite(Assets.TREE);
+            tree.spriteType = SpriteType.SPRITE;
+            const size = 1 + Math.floor(2 * rng());
+            tree.transform.translate(cellPos[0] * cellPos[3] + (rng() - .5) * 2.5, -1 + size / 2, cellPos[2] * cellPos[3] + (rng() - .5) * 2.5).scale(.2 + rng(), size, .2 + rng());
+            bag.addSprite(tree);
           }
-        }),
-      });
 
-      //  Dynamic SpriteGrid
-      //  * This SpriteGrid is dynamic, meaning that the cell gets generated on the
-      //  * fly. This allows us to produce an infinite amounts of cells.
-      spritesAccumulator.addAuxiliary(spriteCellCreator);
+          //  Add bun
+          if (!isWater && !count && rng() < .02) {
+            const bx = cellPos[0] * cellPos[3], bz = cellPos[2] * cellPos[3];
+            const bun = bag.createSprite(Assets.BUN);
+            bun.spriteType = SpriteType.SPRITE;
+            bun.transform.translate(bx, -.7, bz).scale(.5);
 
-      cellTrackers.add(spriteCellCreator);
-    }
+            const bunShadow = bag.createSprite(Assets.BUN_SHADOW);
+            bunShadow.transform.translate(bx, -1, bz).rotateX(-Math.PI / 2).scale(.5);
+
+            bag.addSprite(bun, bunShadow);
+          }
+
+          //  Add wolf
+          if (!isWater && !count && rng() < .01) {
+            const scale = 1.5;
+            const wolf = bag.createSprite(Assets.WOLF);
+            wolf.spriteType = SpriteType.SPRITE;
+            wolf.transform.translate(cellPos[0] * cellPos[3], 0, cellPos[2] * cellPos[3]).scale(scale);
+
+            const shadow = bag.createSprite(Assets.WOLF_SHADOW);
+            shadow.transform.translate(cellPos[0] * cellPos[3], -.99, cellPos[2] * cellPos[3] - .5).rotateX(-Math.PI / 2).scale(scale);
+
+            bag.addSprite(wolf, shadow);
+          }
+        },
+      }),
+    });
+
+    //  Dynamic SpriteGrid
+    //  * This SpriteGrid is dynamic, meaning that the cell gets generated on the
+    //  * fly. This allows us to produce an infinite amounts of cells.
+    spritesAccumulator.addAuxiliary(spriteCellCreator);
+
+    cellTrackers.add(spriteCellCreator);
 
     const heroBox = {
       top: 1,
