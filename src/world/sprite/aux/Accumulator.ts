@@ -1,11 +1,10 @@
-import { IdType, Val } from "dok-types";
+import { IdType } from "dok-types";
 import { UpdatableList } from "../../../core/UpdatableList";
 import { ObjectPool } from "bun-pool";
-import { Auxiliary } from "world/aux/Auxiliary";
-import { AuxiliaryHolder } from "world/aux/AuxiliaryHolder";
 import { IUpdateListener, IUpdateNotifier } from "updates/IUpdateNotifier";
 import { UpdateNotifier } from "updates/UpdateNotifier";
 import { List } from "abstract-list";
+import { informFullUpdate } from "../utils/sprite-utils";
 
 interface Slot<T> {
   elems: UpdatableList<T>;
@@ -17,47 +16,28 @@ interface Props<T> {
   onChange?(value: number): void;
 }
 
-export class Accumulator<T> extends AuxiliaryHolder implements List<T>, IUpdateNotifier {
+export class Accumulator<T> implements List<T>, IUpdateNotifier {
   readonly #indices: (Slot<T> | undefined)[] = [];
   readonly #pool = new SlotPool<T>();
   readonly #updateNotifier: IUpdateNotifier;
   readonly #freeIndices: number[] = [];
-  readonly length: List<T>["length"];
+  readonly length: List<T>["length"] & {};
+  readonly #updateListenerMap: Map<UpdatableList<T>, IUpdateListener> = new Map();
 
   constructor({
     updateNotifier = new UpdateNotifier(),
     onChange,
   }: Partial<Props<T>> = {}) {
-    super();
     this.#updateNotifier = updateNotifier;
     this.length = {
       valueOf: () => this.#indices.length,
-      onChange: (value) => onChange?.(value),
+      onChange: onChange ? (value) => onChange?.(value) : undefined,
     }
   }
 
   at(id: IdType): T | undefined {
     const slot = this.#indices[id];
     return slot?.elems.at(slot.index);
-  }
-
-  activate(): void {
-    super.activate();
-    this.#informFullUpdate();
-  }
-
-  deactivate(): void {
-    this.#informFullUpdate();
-    this.#clear();
-    super.deactivate();
-  }
-
-  addAuxiliary(aux: Auxiliary): this {
-    super.addAuxiliary(aux);
-    if ((aux as Partial<UpdatableList<T>>).at) {
-      this.#add(aux as UpdatableList<T>);
-    }
-    return this;
   }
 
   informUpdate(id: number, type?: number | undefined): void {
@@ -72,9 +52,9 @@ export class Accumulator<T> extends AuxiliaryHolder implements List<T>, IUpdateN
     this.#updateNotifier.removeUpdateListener(listener);
   }
 
-  #add(elems: UpdatableList<T>): this {
+  add(elems: UpdatableList<T>): void {
     const indexMaping: (number | undefined)[] = [];
-    elems.addUpdateListener?.({
+    const updateListener: IUpdateListener = {
       onUpdate: (index, type) => {
         const elem = elems.at(index);
         let id = indexMaping[index];
@@ -111,20 +91,27 @@ export class Accumulator<T> extends AuxiliaryHolder implements List<T>, IUpdateN
         //  Inform update
         this.informUpdate(id, type);
       },
-    });
-    return this;
+    };
+    this.#updateListenerMap.set(elems, updateListener);
+    elems.addUpdateListener?.(updateListener);
+  }
+
+  remove(elems: UpdatableList<T>): void {
+    informFullUpdate(elems);
+    const listener = this.#updateListenerMap.get(elems);
+    if (listener) {
+      elems.removeUpdateListener?.(listener);
+      this.#updateListenerMap.delete(elems);
+    }
   }
 
   #onSizeChange() {
-    this.length.onChange!(this.length.valueOf());
+    this.length.onChange?.(this.length.valueOf());
   }
 
-  #informFullUpdate() {
-    this.#indices.forEach((_slot, id) => this.informUpdate(id));
-  }
-
-  #clear(): void {
-    this.#indices.forEach(slot => {
+  clear(): void {
+    this.#indices.forEach((slot, id) => {
+      this.informUpdate(id);
       if (slot) {
         this.#pool.recycle(slot);
       }

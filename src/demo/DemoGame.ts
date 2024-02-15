@@ -30,7 +30,7 @@ import { Animation } from "animation/Animation";
 import { MotionAuxiliary } from "world/aux/MotionAuxiliary";
 import { FollowAuxiliary } from "world/aux/FollowAuxiliary";
 import { ItemsGroup } from "world/sprite/aux/ItemsGroup";
-import { IPositionMatrix, Matrix, PositionMatrix, PositionUtils } from "dok-matrix";
+import { ICollisionDetector, IPositionMatrix, Matrix, PositionMatrix, PositionUtils } from "dok-matrix";
 import { DisplayBox } from "world/collision/DisplayBox";
 import { CollisionDetector } from "world/collision/CollisionDetector";
 import { CollisionDetectors } from "world/collision/CollisionDetectors";
@@ -100,274 +100,269 @@ export class DemoGame extends AuxiliaryHolder {
     //  * You can show videos, images, or you can have instructions to draw on a canvas.
     const mediaAccumulator = new Accumulator<Media>();
     this.addAuxiliary(new MediaUpdater({ engine, motor, medias: mediaAccumulator }));
-    mediaAccumulator.addAuxiliary(
-      new ItemsGroup<Media>([
-        {
-          id: Assets.DOBUKI,
-          type: "image",
-          src: "dobuki.png",
+    const mediaItems = new ItemsGroup<Media>([
+      {
+        id: Assets.DOBUKI,
+        type: "image",
+        src: "dobuki.png",
+      },
+      {
+        id: Assets.BUN,
+        type: "image", src: "bun.png",
+      },
+      {
+        id: Assets.BUN_SHADOW,
+        type: "image", src: "bun.png",
+        postProcess: shadowProcessor,
+      },
+      {
+        id: Assets.DODO,
+        type: "image", src: "dodo.png",
+        spriteSheet: {
+          spriteSize: [190, 209],
         },
-        {
-          id: Assets.BUN,
-          type: "image", src: "bun.png",
+      },
+      {
+        id: Assets.DODO_SHADOW,
+        type: "image", src: "dodo.png",
+        spriteSheet: {
+          spriteSize: [190, 209],
         },
-        {
-          id: Assets.BUN_SHADOW,
-          type: "image", src: "bun.png",
-          postProcess: shadowProcessor,
+        postProcess: shadowProcessor,
+      },
+      {
+        id: Assets.WOLF,
+        type: "image", src: "wolf.png",
+        spriteSheet: {
+          spriteSize: [200, 256],
         },
-        {
-          id: Assets.DODO,
-          type: "image", src: "dodo.png",
-          spriteSheet: {
-            spriteSize: [190, 209],
-          },
+      },
+      {
+        id: Assets.WOLF_SHADOW,
+        type: "image", src: "wolf.png",
+        spriteSheet: {
+          spriteSize: [200, 256],
         },
-        {
-          id: Assets.DODO_SHADOW,
-          type: "image", src: "dodo.png",
-          spriteSheet: {
-            spriteSize: [190, 209],
-          },
-          postProcess: shadowProcessor,
-        },
-        {
-          id: Assets.WOLF,
-          type: "image", src: "wolf.png",
-          spriteSheet: {
-            spriteSize: [200, 256],
-          },
-        },
-        {
-          id: Assets.WOLF_SHADOW,
-          type: "image", src: "wolf.png",
-          spriteSheet: {
-            spriteSize: [200, 256],
-          },
-          postProcess: shadowProcessor,
-        },
-        {
-          id: Assets.LOGO,
-          type: "draw",
-          draw: ctx => {
-            const { canvas } = ctx;
-            canvas.width = LOGO_SIZE;
-            canvas.height = LOGO_SIZE;
-            const centerX = canvas.width / 2, centerY = canvas.height / 2;
-            const halfSize = canvas.width / 2;
-            ctx.imageSmoothingEnabled = true;
-            // ctx.fillStyle = '#ddd';
-            ctx.lineWidth = canvas.width / 50;
-            // ctx.fillRect(0, 0, canvas.width, canvas.height);
+        postProcess: shadowProcessor,
+      },
+      {
+        id: Assets.LOGO,
+        type: "draw",
+        draw: ctx => {
+          const { canvas } = ctx;
+          canvas.width = LOGO_SIZE;
+          canvas.height = LOGO_SIZE;
+          const centerX = canvas.width / 2, centerY = canvas.height / 2;
+          const halfSize = canvas.width / 2;
+          ctx.imageSmoothingEnabled = true;
+          // ctx.fillStyle = '#ddd';
+          ctx.lineWidth = canvas.width / 50;
+          // ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            ctx.strokeStyle = 'black';
-            ctx.fillStyle = 'gold';
+          ctx.strokeStyle = 'black';
+          ctx.fillStyle = 'gold';
 
-            //  face
-            ctx.beginPath();
-            ctx.arc(centerX, centerY, halfSize * 0.8, 0, 2 * Math.PI);
-            ctx.fill();
-            ctx.stroke();
+          //  face
+          ctx.beginPath();
+          ctx.arc(centerX, centerY, halfSize * 0.8, 0, 2 * Math.PI);
+          ctx.fill();
+          ctx.stroke();
 
-            //  smile
-            ctx.beginPath();
-            ctx.arc(centerX, centerY, halfSize * 0.5, 0, Math.PI);
-            ctx.stroke();
+          //  smile
+          ctx.beginPath();
+          ctx.arc(centerX, centerY, halfSize * 0.5, 0, Math.PI);
+          ctx.stroke();
 
-            //  left eye
-            ctx.beginPath();
-            ctx.arc(canvas.width / 3, canvas.height / 3, halfSize * 0.1, 0, Math.PI, true);
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.arc((canvas.width / 3) * 2, canvas.height / 3, halfSize * 0.1, 0, Math.PI * 2, true);
-            ctx.stroke();
-          },
+          //  left eye
+          ctx.beginPath();
+          ctx.arc(canvas.width / 3, canvas.height / 3, halfSize * 0.1, 0, Math.PI, true);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.arc((canvas.width / 3) * 2, canvas.height / 3, halfSize * 0.1, 0, Math.PI * 2, true);
+          ctx.stroke();
         },
-        {
-          id: Assets.GROUND,
-          type: "draw",
-          draw: ctx => {
-            const { canvas } = ctx;
-            canvas.width = LOGO_SIZE;
-            canvas.height = LOGO_SIZE;
-            ctx.fillStyle = '#ddd';
-            ctx.lineWidth = canvas.width / 50;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+      },
+      {
+        id: Assets.GROUND,
+        type: "draw",
+        draw: ctx => {
+          const { canvas } = ctx;
+          canvas.width = LOGO_SIZE;
+          canvas.height = LOGO_SIZE;
+          ctx.fillStyle = '#ddd';
+          ctx.lineWidth = canvas.width / 50;
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            ctx.strokeStyle = 'black';
-            ctx.fillStyle = 'silver';
+          ctx.strokeStyle = 'black';
+          ctx.fillStyle = 'silver';
 
-            ctx.beginPath();
-            ctx.rect(canvas.width * .2, canvas.height * .2, canvas.width * .6, canvas.height * .6);
-            ctx.fill();
-            ctx.stroke();
-          },
+          ctx.beginPath();
+          ctx.rect(canvas.width * .2, canvas.height * .2, canvas.width * .6, canvas.height * .6);
+          ctx.fill();
+          ctx.stroke();
         },
-        {
-          id: Assets.GRASS_GROUND,
-          type: "draw",
-          draw: ctx => {
-            const { canvas } = ctx;
-            canvas.width = LOGO_SIZE;
-            canvas.height = LOGO_SIZE;
-            ctx.fillStyle = 'green';
-            ctx.lineWidth = canvas.width / 50;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+      },
+      {
+        id: Assets.GRASS_GROUND,
+        type: "draw",
+        draw: ctx => {
+          const { canvas } = ctx;
+          canvas.width = LOGO_SIZE;
+          canvas.height = LOGO_SIZE;
+          ctx.fillStyle = 'green';
+          ctx.lineWidth = canvas.width / 50;
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            ctx.strokeStyle = '#6f6';
-            ctx.fillStyle = 'lightgreen';
+          ctx.strokeStyle = '#6f6';
+          ctx.fillStyle = 'lightgreen';
 
-            ctx.beginPath();
-            ctx.rect(canvas.width * .2, canvas.height * .2, canvas.width * .6, canvas.height * .6);
-            ctx.fill();
-            ctx.stroke();
-          },
+          ctx.beginPath();
+          ctx.rect(canvas.width * .2, canvas.height * .2, canvas.width * .6, canvas.height * .6);
+          ctx.fill();
+          ctx.stroke();
         },
-        {
-          id: Assets.BRICK,
-          type: "draw",
-          draw: ctx => {
-            const { canvas } = ctx;
-            canvas.width = LOGO_SIZE;
-            canvas.height = LOGO_SIZE;
-            ctx.fillStyle = '#ddd';
-            ctx.lineWidth = canvas.width / 50;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-          },
+      },
+      {
+        id: Assets.BRICK,
+        type: "draw",
+        draw: ctx => {
+          const { canvas } = ctx;
+          canvas.width = LOGO_SIZE;
+          canvas.height = LOGO_SIZE;
+          ctx.fillStyle = '#ddd';
+          ctx.lineWidth = canvas.width / 50;
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
         },
-        {
-          id: Assets.VIDEO,
-          type: "video",
-          src: 'sample.mp4',
-          volume: 0,
-          fps: 30,
-          playSpeed: .1,
-          maxRefreshRate: 30,
-        },
-        {
-          id: Assets.WIREFRAME,
-          type: "draw",
-          draw: ctx => {
-            const { canvas } = ctx;
-            canvas.width = LOGO_SIZE;
-            canvas.height = LOGO_SIZE;
-            ctx.lineWidth = 40;
-            ctx.setLineDash([20, 5]);
+      },
+      {
+        id: Assets.VIDEO,
+        type: "video",
+        src: 'sample.mp4',
+        volume: 0,
+        fps: 30,
+        playSpeed: .5,
+        maxRefreshRate: 30,
+      },
+      {
+        id: Assets.WIREFRAME,
+        type: "draw",
+        draw: ctx => {
+          const { canvas } = ctx;
+          canvas.width = LOGO_SIZE;
+          canvas.height = LOGO_SIZE;
+          ctx.lineWidth = 40;
+          ctx.setLineDash([20, 5]);
 
-            ctx.strokeStyle = 'lightblue';
+          ctx.strokeStyle = 'lightblue';
 
-            ctx.beginPath();
-            ctx.rect(10, 10, canvas.width - 20, canvas.height - 20);
-            ctx.stroke();
-          },
+          ctx.beginPath();
+          ctx.rect(10, 10, canvas.width - 20, canvas.height - 20);
+          ctx.stroke();
         },
-        {
-          id: Assets.WIREFRAME_RED,
-          type: "draw",
-          draw: ctx => {
-            const { canvas } = ctx;
-            canvas.width = LOGO_SIZE;
-            canvas.height = LOGO_SIZE;
-            ctx.lineWidth = 40;
-            ctx.setLineDash([20, 5]);
+      },
+      {
+        id: Assets.WIREFRAME_RED,
+        type: "draw",
+        draw: ctx => {
+          const { canvas } = ctx;
+          canvas.width = LOGO_SIZE;
+          canvas.height = LOGO_SIZE;
+          ctx.lineWidth = 40;
+          ctx.setLineDash([20, 5]);
 
-            ctx.strokeStyle = 'red';
+          ctx.strokeStyle = 'red';
 
-            ctx.beginPath();
-            ctx.rect(10, 10, canvas.width - 20, canvas.height - 20);
-            ctx.stroke();
-          },
+          ctx.beginPath();
+          ctx.rect(10, 10, canvas.width - 20, canvas.height - 20);
+          ctx.stroke();
         },
-        {
-          id: Assets.GRASS,
-          type: "draw",
-          draw: ctx => {
-            const { canvas } = ctx;
-            canvas.width = 1024;
-            canvas.height = 1024;
-            ctx.fillStyle = 'green';
-            ctx.lineWidth = canvas.width / 50;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-          },
+      },
+      {
+        id: Assets.GRASS,
+        type: "draw",
+        draw: ctx => {
+          const { canvas } = ctx;
+          canvas.width = 1024;
+          canvas.height = 1024;
+          ctx.fillStyle = 'green';
+          ctx.lineWidth = canvas.width / 50;
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
         },
-        {
-          id: Assets.BUSHES,
-          type: "draw",
-          draw: ctx => {
-            const { canvas } = ctx;
-            canvas.width = 1024;
-            canvas.height = 1024;
-            ctx.fillStyle = '#050';
-            ctx.lineWidth = canvas.width / 50;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-          },
+      },
+      {
+        id: Assets.BUSHES,
+        type: "draw",
+        draw: ctx => {
+          const { canvas } = ctx;
+          canvas.width = 1024;
+          canvas.height = 1024;
+          ctx.fillStyle = '#050';
+          ctx.lineWidth = canvas.width / 50;
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
         },
-        {
-          id: Assets.WATER,
-          type: "draw",
-          draw: ctx => {
-            const { canvas } = ctx;
-            canvas.width = 1024;
-            canvas.height = 1024;
-            ctx.fillStyle = '#68f';
-            ctx.lineWidth = canvas.width / 50;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-          },
+      },
+      {
+        id: Assets.WATER,
+        type: "draw",
+        draw: ctx => {
+          const { canvas } = ctx;
+          canvas.width = 1024;
+          canvas.height = 1024;
+          ctx.fillStyle = '#68f';
+          ctx.lineWidth = canvas.width / 50;
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
         },
-        {
-          id: Assets.TREE,
-          type: "draw",
-          draw: ctx => {
-            const { canvas } = ctx;
-            canvas.width = 200;
-            canvas.height = 200;
-            ctx.fillStyle = '#0f0';
+      },
+      {
+        id: Assets.TREE,
+        type: "draw",
+        draw: ctx => {
+          const { canvas } = ctx;
+          canvas.width = 200;
+          canvas.height = 200;
+          ctx.fillStyle = '#0f0';
 
-            ctx.beginPath();
-            ctx.moveTo(100, 0);
-            ctx.lineTo(200, 150);
-            ctx.lineTo(0, 150);
-            ctx.fill();
-            ctx.fillStyle = '#430';
-            ctx.fillRect(75, 125, 50, 50);
-          },
+          ctx.beginPath();
+          ctx.moveTo(100, 0);
+          ctx.lineTo(200, 150);
+          ctx.lineTo(0, 150);
+          ctx.fill();
+          ctx.fillStyle = '#430';
+          ctx.fillRect(75, 125, 50, 50);
         },
-      ]),
-    );
-    this.addAuxiliary(mediaAccumulator);
+      },
+    ]);
+    mediaAccumulator.add(mediaItems);
+    this.addAuxiliary(mediaItems);
 
     const animationAccumulator = new Accumulator<Animation>();
     this.addAuxiliary(new AnimationUpdater({ engine, motor, animations: animationAccumulator }));
-    animationAccumulator.addAuxiliary(
-      new ItemsGroup<Animation>([
-        {
-          id: Anims.STILL,
-          frames: [0],
-        },
-        {
-          id: Anims.RUN,
-          frames: [1, 5],
-          fps: 24,
-        },
-        {
-          id: Anims.WOLF_STILL,
-          frames: [0, 4],
-          fps: 15,
-        },
-      ]),
-    );
-    this.addAuxiliary(animationAccumulator);
+    const animationItems = new ItemsGroup<Animation>([
+      {
+        id: Anims.STILL,
+        frames: [0],
+      },
+      {
+        id: Anims.RUN,
+        frames: [1, 5],
+        fps: 24,
+      },
+      {
+        id: Anims.WOLF_STILL,
+        frames: [0, 4],
+        fps: 15,
+      },
+    ]);
+    animationAccumulator.add(animationItems);
+    this.addAuxiliary(animationItems);
 
     const cellTrackers = new CellTrackers();
 
 
-    //  Add a sprite accumulator.
-    //  * Sprite accumulators are used to collect sprite definitions, so that the engine can display them.
     const spritesAccumulator = new Accumulator<Sprite>({
       onChange: (value) => engine.setMaxSpriteCount(value),
     });
     this.addAuxiliary(new SpriteUpdater({ engine, motor, sprites: spritesAccumulator }));
-    this.addAuxiliary(spritesAccumulator);
 
     const exitBlock = {
       top: 2,
@@ -407,15 +402,18 @@ export class DemoGame extends AuxiliaryHolder {
     ].map(([x, y, z]) => cellUtils.positionFromCellPos(x, y, z, CELLSIZE));
 
     blockPositions.forEach(blockPosition => {
-      const blockBoxSprites = new DisplayBox({ box: blockBox, imageId: Assets.GROUND, insideImageId: Assets.BRICK });
-      const factory = new FixedSpriteFactory({ cellUtils, positionUtils }, { cellSize: CELLSIZE },
-        new SpriteGroup(blockBoxSprites, [Matrix.create().setVector(blockPosition)]));
+      const blockBoxSprites = new SpriteGroup(
+        new DisplayBox({ box: blockBox, imageId: Assets.GROUND, insideImageId: Assets.BRICK }),
+        [Matrix.create().setVector(blockPosition)],
+      );
+      const factory = new FixedSpriteFactory(
+        { cellUtils, positionUtils },
+        { cellSize: CELLSIZE },
+        blockBoxSprites);
       this.addAuxiliary(factory);
 
-      const creator = new SpriteCellCreator({
-        factory,
-      });
-      spritesAccumulator.addAuxiliary(creator);
+      const creator = new SpriteCellCreator({ factory });
+      spritesAccumulator.add(creator);
       cellTrackers.add(creator);
     });
 
@@ -456,10 +454,8 @@ export class DemoGame extends AuxiliaryHolder {
           ].map(transform => ({ imageId: Assets.GRASS_GROUND, transform })),
         ]);
 
-      const creator = new SpriteCellCreator({
-        factory
-      });
-      spritesAccumulator.addAuxiliary(creator);
+      const creator = new SpriteCellCreator({ factory });
+      spritesAccumulator.add(creator);
       cellTrackers.add(creator);
       this.addAuxiliary(factory);
     }
@@ -517,10 +513,7 @@ export class DemoGame extends AuxiliaryHolder {
       }),
     });
 
-    //  Dynamic SpriteGrid
-    //  * This SpriteGrid is dynamic, meaning that the cell gets generated on the
-    //  * fly. This allows us to produce an infinite amounts of cells.
-    spritesAccumulator.addAuxiliary(spriteCellCreator);
+    spritesAccumulator.add(spriteCellCreator);
 
     cellTrackers.add(spriteCellCreator);
 
@@ -532,7 +525,8 @@ export class DemoGame extends AuxiliaryHolder {
       near: .9,
       far: -.9,
     };
-    const heroCollider = new CollisionDetectors([
+    const worldColliders = new Accumulator<ICollisionDetector>();
+    worldColliders.add([
       new CollisionDetectors(blockPositions.map(blockPosition =>
         new CollisionDetector({
           blockerBox: blockBox, blockerPosition: blockPosition, heroBox,
@@ -585,6 +579,7 @@ export class DemoGame extends AuxiliaryHolder {
         }, { shouldBlock: false }),
     ]);
 
+    const heroCollider = new CollisionDetectors(worldColliders);
 
     const heroPos: IPositionMatrix = new PositionMatrix({ positionUtils, blocker: heroCollider })
       .movedTo(0, 0, 3)
@@ -598,11 +593,13 @@ export class DemoGame extends AuxiliaryHolder {
       transform: Matrix.create().translate(0, -.3, 0),
       animationId: Anims.STILL,
     },], [heroPos]);
-    spritesAccumulator.addAuxiliary(heroSprites);
+    this.addAuxiliary(heroSprites);
+    spritesAccumulator.add(heroSprites);
 
     const displayBox = new SpriteGroup(new DisplayBox({ box: heroBox, imageId: Assets.WIREFRAME }), [heroPos]);
+    this.addAuxiliary(displayBox);
 
-    spritesAccumulator.addAuxiliary(displayBox);
+    spritesAccumulator.add(displayBox);
 
     const shadowPos: IPositionMatrix = new PositionMatrix({ positionUtils })
       .onChange(() => {
@@ -615,6 +612,8 @@ export class DemoGame extends AuxiliaryHolder {
         animationId: Anims.STILL,
       },
     ], [shadowPos]);
+    this.addAuxiliary(shadowHeroSprites);
+
     this.addAuxiliary(new FollowAuxiliary({
       motor,
       follower: shadowPos,
@@ -622,12 +621,12 @@ export class DemoGame extends AuxiliaryHolder {
     }, {
       followY: false,
     }));
-    spritesAccumulator.addAuxiliary(shadowHeroSprites);
+    spritesAccumulator.add(shadowHeroSprites);
 
     //  Static Sprites
     //  * Those are just sprites, which will appear regardless of where
     //  * you are in the scene.
-    spritesAccumulator.addAuxiliary(new SpriteGroup([
+    const videoSprites = new SpriteGroup([
       {
         imageId: Assets.VIDEO,
         spriteType: SpriteType.DISTANT,
@@ -635,7 +634,9 @@ export class DemoGame extends AuxiliaryHolder {
           .translate(3000, 1000, -5000)
           .scale(480, 270, 1),
       },
-    ]));
+    ]);
+    this.addAuxiliary(videoSprites);
+    spritesAccumulator.add(videoSprites);
 
     //  Toggle auxiliary
     //  * Pressing the "Tab" button switches between two modes of movement below
