@@ -3,7 +3,6 @@ import { Box } from "./Box";
 import { Sprite } from "world/sprite/Sprite";
 import { List } from "abstract-list";
 import { Matrix } from "dok-matrix";
-import { UpdatableList } from "core/UpdatableList";
 
 interface Props {
   box: Box;
@@ -11,7 +10,7 @@ interface Props {
   insideImageId?: MediaId;
 }
 
-export class DisplayBox implements UpdatableList<Sprite> {
+export class DisplayBox implements List<Sprite> {
   private readonly sprites: List<Sprite>;
   constructor({ box, imageId, insideImageId }: Props) {
     if (!box.disabled) {
