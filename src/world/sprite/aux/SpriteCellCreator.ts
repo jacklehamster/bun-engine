@@ -1,4 +1,4 @@
-import { Cell, Tag } from "cell-tracker";
+import { Cell, IBoundary, Tag } from "cell-tracker";
 import { ICellCreator } from "./ICellCreator";
 import { IElemFactory } from "./IElemFactory";
 import { Sprite } from "../Sprite";
@@ -7,10 +7,8 @@ import { copySprite } from "../utils/sprite-utils";
 import { List, forEach } from "abstract-list";
 import { SpriteUpdateType } from "../update/SpriteUpdateType";
 import { UpdateNotifier } from "updates/UpdateNotifier";
-import { IBoundary } from "./IBoundary";
 
 interface Props {
-  boundary?: IBoundary;
   factory: IElemFactory<Sprite>
   slotPool?: ObjectPool<Slot<Sprite>, [Sprite, Tag]>
 }
@@ -24,13 +22,11 @@ export class SpriteCellCreator extends UpdateNotifier implements ICellCreator<Sp
   private readonly factory: IElemFactory<Sprite>;
   private readonly slots: Slot<Sprite>[] = [];
   private readonly slotPool;
-  readonly #boundary;
 
-  constructor({ factory, slotPool, boundary }: Props) {
+  constructor({ factory, slotPool }: Props) {
     super();
     this.factory = factory;
     this.slotPool = slotPool ?? new SlotPool(copySprite);
-    this.#boundary = boundary;
   }
 
   trackCell(cell: Cell): boolean {
@@ -55,10 +51,6 @@ export class SpriteCellCreator extends UpdateNotifier implements ICellCreator<Sp
   }
 
   #createCell(cell: Cell): boolean {
-    if (this.#boundary && !this.#boundary.include(cell)) {
-      return false;
-    }
-
     let count = 0;
     const { tag } = cell;
     const elems = this.factory.getElemsAtCell(cell);

@@ -2,11 +2,12 @@ import { Auxiliary } from "world/aux/Auxiliary";
 import { List, forEach } from "abstract-list";
 import { UpdatableList } from "../../../core/UpdatableList";
 import { UpdateNotifier } from "updates/UpdateNotifier";
+import { IUpdateNotifier } from "updates/IUpdateNotifier";
 
 export class ItemsGroup<T> extends UpdateNotifier implements UpdatableList<T>, Auxiliary {
   #active = false;
 
-  constructor(protected elems: (UpdatableList<T> | T[] & { informUpdate: undefined })) {
+  constructor(protected elems: (List<T> & Partial<IUpdateNotifier>) | (T[] & { informUpdate: undefined })) {
     super();
   }
 

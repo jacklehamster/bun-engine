@@ -14,7 +14,6 @@ import { SpriteUpdater } from "world/sprite/update/SpriteUpdater";
 import { Sprite } from "world/sprite/Sprite";
 import { SpriteType } from "world/sprite/SpriteType";
 import { ICamera } from "camera/ICamera";
-import { SpriteFactory } from "world/sprite/SpritesFactory";
 import { MoveAuxiliary } from "world/aux/MoveAuxiliary";
 import { JumpAuxiliary } from "world/aux/JumpAuxiliary";
 import { TimeAuxiliary } from "core/aux/TimeAuxiliary";
@@ -39,13 +38,15 @@ import { IControls } from "controls/IControls";
 import { IFade, FadeApiAuxiliary } from "world/aux/FadeApiAuxiliary";
 import { Box } from "world/collision/Box";
 import { shadowProcessor } from "canvas-processor";
-import { CellBoundary } from "world/sprite/aux/CellBoundary";
 import { SpriteCellCreator } from "world/sprite/aux/SpriteCellCreator";
 import { FixedSpriteFactory } from "world/sprite/aux/FixedSpriteFactory";
 import { informFullUpdate } from "world/sprite/utils/sprite-utils";
-import { SurroundingTracker, CellTrackers } from "cell-tracker";
+import { SurroundingTracker, CellTrackers, Cell, ICellTracker, CellBoundary, filter, Tag } from "cell-tracker";
 import { Vector } from "dok-types";
 import { CellUtils } from "utils/cell-utils";
+import { alea } from "seedrandom";
+import { SpritePool } from "world/sprite/pools/SpritePool";
+import { ObjectPool } from "bun-pool";
 
 enum Assets {
   DOBUKI = 0,
@@ -462,59 +463,78 @@ export class DemoGame extends AuxiliaryHolder {
     const camera: ICamera = this.camera = new Camera({ engine, motor });
     this.addAuxiliary(camera);
 
-    const spriteCellCreator = new SpriteCellCreator({
-      boundary: new CellBoundary({ yRange: [0, 0] }),
-      factory: new SpriteFactory({
-        fillSpriteBag({ pos: cellPos }, bag, rng) {
+    {
+      const arrayPool: ObjectPool<Sprite[]> = new ObjectPool((a) => a ?? [], a => a.length = 0);
+      const spritePool: SpritePool = new SpritePool();
+      const spritesMap = new Map<Tag, Sprite[]>();
+      cellTrackers.add(filter({
+        trackCell: function (cell: Cell): boolean {
+          const rng = alea(cell.tag);
+          const sprites: Sprite[] = arrayPool.create();
+          const cellPos = cell.pos;
+
           const distSq = cellPos[0] * cellPos[0] + cellPos[2] * cellPos[2];
           const isWater = distSq > 1000;
           const hasTree = (distSq > 10) && rng() < .1 && !isWater;
-          const ground = bag.createSprite(hasTree ? Assets.BUSHES : isWater ? Assets.WATER : Assets.GRASS);
+          const ground = spritePool.create(hasTree ? Assets.BUSHES : isWater ? Assets.WATER : Assets.GRASS);
           ground.spriteType = isWater ? SpriteType.WAVE : SpriteType.DEFAULT;
           ground.transform.translate(cellPos[0] * cellPos[3], -1 - (isWater ? 1 : 0), cellPos[2] * cellPos[3]).rotateX(-Math.PI / 2);
-          bag.addSprite(ground);
+          sprites.push(ground);
 
           const count = hasTree ? 5 + rng() * 10 : 0;
           for (let i = 0; i < count; i++) {
-            const tree = bag.createSprite(Assets.TREE);
+            const tree = spritePool.create(Assets.TREE);
             tree.spriteType = SpriteType.SPRITE;
             const size = 1 + Math.floor(2 * rng());
             tree.transform.translate(cellPos[0] * cellPos[3] + (rng() - .5) * 2.5, -1 + size / 2, cellPos[2] * cellPos[3] + (rng() - .5) * 2.5).scale(.2 + rng(), size, .2 + rng());
-            bag.addSprite(tree);
+            sprites.push(tree);
           }
 
           //  Add bun
           if (!isWater && !count && rng() < .02) {
             const bx = cellPos[0] * cellPos[3], bz = cellPos[2] * cellPos[3];
-            const bun = bag.createSprite(Assets.BUN);
+            const bun = spritePool.create(Assets.BUN);
             bun.spriteType = SpriteType.SPRITE;
             bun.transform.translate(bx, -.7, bz).scale(.5);
 
-            const bunShadow = bag.createSprite(Assets.BUN_SHADOW);
+            const bunShadow = spritePool.create(Assets.BUN_SHADOW);
             bunShadow.transform.translate(bx, -1, bz).rotateX(-Math.PI / 2).scale(.5);
 
-            bag.addSprite(bun, bunShadow);
+            sprites.push(bun, bunShadow);
           }
 
           //  Add wolf
           if (!isWater && !count && rng() < .01) {
             const scale = 1.5;
-            const wolf = bag.createSprite(Assets.WOLF);
+            const wolf = spritePool.create(Assets.WOLF);
             wolf.spriteType = SpriteType.SPRITE;
             wolf.transform.translate(cellPos[0] * cellPos[3], 0, cellPos[2] * cellPos[3]).scale(scale);
 
-            const shadow = bag.createSprite(Assets.WOLF_SHADOW);
+            const shadow = spritePool.create(Assets.WOLF_SHADOW);
             shadow.transform.translate(cellPos[0] * cellPos[3], -.99, cellPos[2] * cellPos[3] - .5).rotateX(-Math.PI / 2).scale(scale);
 
-            bag.addSprite(wolf, shadow);
+            sprites.push(wolf, shadow);
           }
+
+          if (sprites.length) {
+            spritesMap.set(cell.tag, sprites);
+            spritesAccumulator.add(sprites);
+          }
+          return sprites.length > 0;
         },
-      }),
-    });
-
-    spritesAccumulator.add(spriteCellCreator);
-
-    cellTrackers.add(spriteCellCreator);
+        untrackCells: function (cellTags: Set<string>): void {
+          cellTags.forEach(tag => {
+            const sprites = spritesMap.get(tag);
+            if (sprites) {
+              spritesAccumulator.remove(sprites);
+              sprites.forEach(sprite => spritePool.recycle(sprite));
+              spritesMap.delete(tag);
+              arrayPool.recycle(sprites);
+            }
+          });
+        }
+      }, new CellBoundary({ yRange: [0, 0] })));
+    }
 
     const heroBox = {
       top: 1,
@@ -526,7 +546,7 @@ export class DemoGame extends AuxiliaryHolder {
     };
     const worldColliders = new Accumulator<ICollisionDetector>();
     worldColliders.add([
-      new CollisionDetectors(blockPositions.map(blockPosition =>
+      ...blockPositions.map(blockPosition =>
         new CollisionDetector({
           blockerBox: blockBox, blockerPosition: blockPosition, heroBox,
           listener: {
@@ -534,7 +554,7 @@ export class DemoGame extends AuxiliaryHolder {
               displayBox.setImageId(blocked ? Assets.WIREFRAME_RED : Assets.WIREFRAME);
             },
           }
-        }, { shouldBlock: true }))
+        }, { shouldBlock: true })
       ),
       new CollisionDetector({
         blockerBox: dobukiBlock, blockerPosition: dobukiPosition, heroBox,
@@ -578,9 +598,7 @@ export class DemoGame extends AuxiliaryHolder {
         }, { shouldBlock: false }),
     ]);
 
-    const heroCollider = new CollisionDetectors(worldColliders);
-
-    const heroPos: IPositionMatrix = new PositionMatrix({ blocker: heroCollider })
+    const heroPos: IPositionMatrix = new PositionMatrix({ blockers: worldColliders })
       .movedTo(0, 0, 3)
       .onChange(() => {
         informFullUpdate(heroSprites, SpriteUpdateType.TRANSFORM);

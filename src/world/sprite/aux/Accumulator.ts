@@ -3,11 +3,10 @@ import { UpdatableList } from "../../../core/UpdatableList";
 import { ObjectPool } from "bun-pool";
 import { IUpdateListener, IUpdateNotifier } from "updates/IUpdateNotifier";
 import { UpdateNotifier } from "updates/UpdateNotifier";
-import { List } from "abstract-list";
-import { informFullUpdate } from "../utils/sprite-utils";
+import { List, forEach } from "abstract-list";
 
 interface Slot<T> {
-  elems: UpdatableList<T>;
+  elems: List<T>;
   index: IdType;
 }
 
@@ -22,7 +21,7 @@ export class Accumulator<T> implements List<T>, IUpdateNotifier {
   readonly #updateNotifier: IUpdateNotifier;
   readonly #freeIndices: number[] = [];
   readonly length: List<T>["length"] & {};
-  readonly #updateListenerMap: Map<UpdatableList<T>, IUpdateListener> = new Map();
+  readonly #updateListenerMap: Map<List<T>, IUpdateListener> = new Map();
 
   constructor({
     updateNotifier = new UpdateNotifier(),
@@ -52,40 +51,38 @@ export class Accumulator<T> implements List<T>, IUpdateNotifier {
     this.#updateNotifier.removeUpdateListener(listener);
   }
 
-  add(elems: UpdatableList<T>): void {
-    const indexMaping: (number | undefined)[] = [];
+  add(elems: List<T> & Partial<IUpdateNotifier>): void {
+    const indexMapping: (number | undefined)[] = [];
     const updateListener: IUpdateListener = {
       onUpdate: (index, type) => {
-        const elem = elems.at(index);
-        let id = indexMaping[index];
+        const elem = this.#updateListenerMap.has(elems) ? elems.at(index) : undefined;
+        let id = indexMapping[index];
         if (id === undefined) {
           if (!elem) {
             //  no update needed on non-existing item
             return;
           }
           //  create new entry
-          id = this.#freeIndices.pop() ?? this.#indices.length;
-          indexMaping[index] = id;
+          const freeId = this.#freeIndices.pop();
+          id = freeId ?? this.#indices.length;
+          indexMapping[index] = id;
           this.informUpdate(id);
-          this.#indices.push(this.#pool.create(elems, index, id));
-          this.#onSizeChange();
-          return;
-        } else {
-          if (!elem) {
-            //  remove entry
-            indexMaping[index] = undefined;
-            const slot = this.#indices[id];
-            if (slot) {
-              this.#pool.recycle(slot);
-              this.#indices[id] = undefined;
-            }
-            if (id === this.#indices.length - 1) {
-              this.#indices.length--;
-            } else {
-              this.#freeIndices.push(id);
-            }
-            return;
+          this.#indices[id] = this.#pool.create(elems, index, id);
+          if (freeId === undefined) {
+            this.#onSizeChange();
           }
+          return;
+        } else if (!elem) {
+          //  remove entry
+          indexMapping[index] = undefined;
+          this.informUpdate(id);
+          const slot = this.#indices[id];
+          if (slot) {
+            this.#pool.recycle(slot);
+            this.#indices[id] = undefined;
+          }
+          this.#freeIndices.push(id);
+          return;
         }
 
         //  Inform update
@@ -94,14 +91,15 @@ export class Accumulator<T> implements List<T>, IUpdateNotifier {
     };
     this.#updateListenerMap.set(elems, updateListener);
     elems.addUpdateListener?.(updateListener);
+    forEach(elems, (_, index) => updateListener.onUpdate(index));
   }
 
-  remove(elems: UpdatableList<T>): void {
-    informFullUpdate(elems);
+  remove(elems: List<T> & Partial<IUpdateNotifier>): void {
     const listener = this.#updateListenerMap.get(elems);
     if (listener) {
-      elems.removeUpdateListener?.(listener);
       this.#updateListenerMap.delete(elems);
+      forEach(elems, (_, index) => listener.onUpdate(index));
+      elems.removeUpdateListener?.(listener);
     }
   }
 
@@ -122,7 +120,7 @@ export class Accumulator<T> implements List<T>, IUpdateNotifier {
   }
 }
 
-class SlotPool<T> extends ObjectPool<Slot<T>, [UpdatableList<T>, IdType, IdType]> {
+class SlotPool<T> extends ObjectPool<Slot<T>, [List<T>, IdType, IdType]> {
   constructor() {
     super((slot, elems, index) => {
       if (!slot) {
