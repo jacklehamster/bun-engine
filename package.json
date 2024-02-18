@@ -71,7 +71,7 @@
     "texture-slot-allocator": "^1.0.24",
     "uuid": "^9.0.1"
   },
-  "version": "1.0.11",
+  "version": "1.0.12",
   "engines": {
     "node": ">=14.0.0"
   },
