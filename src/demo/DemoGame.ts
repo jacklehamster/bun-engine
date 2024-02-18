@@ -22,7 +22,6 @@ import { SmoothFollowAuxiliary } from "world/aux/SmoothFollowAuxiliary";
 import { DirAuxiliary } from "world/aux/DirAuxiliary";
 import { SpriteUpdateType } from "world/sprite/update/SpriteUpdateType";
 import { MediaUpdater } from "world/sprite/update/MediaUpdater";
-import { Accumulator } from "world/sprite/aux/Accumulator";
 import { Media } from "gl-texture-manager";
 import { AnimationUpdater } from "world/sprite/update/AnimationUpdater";
 import { Animation } from "animation/Animation";
@@ -32,7 +31,6 @@ import { ItemsGroup } from "world/sprite/aux/ItemsGroup";
 import { ICollisionDetector, IPositionMatrix, Matrix, PositionMatrix } from "dok-matrix";
 import { DisplayBox } from "world/collision/DisplayBox";
 import { CollisionDetector } from "world/collision/CollisionDetector";
-import { CollisionDetectors } from "world/collision/CollisionDetectors";
 import { UserInterface } from "ui/UserInterface";
 import { IControls } from "controls/IControls";
 import { IFade, FadeApiAuxiliary } from "world/aux/FadeApiAuxiliary";
@@ -40,13 +38,13 @@ import { Box } from "world/collision/Box";
 import { shadowProcessor } from "canvas-processor";
 import { SpriteCellCreator } from "world/sprite/aux/SpriteCellCreator";
 import { FixedSpriteFactory } from "world/sprite/aux/FixedSpriteFactory";
-import { informFullUpdate } from "world/sprite/utils/sprite-utils";
 import { SurroundingTracker, CellTrackers, Cell, ICellTracker, CellBoundary, filter, Tag } from "cell-tracker";
 import { Vector } from "dok-types";
 import { CellUtils } from "utils/cell-utils";
 import { alea } from "seedrandom";
 import { SpritePool } from "world/sprite/pools/SpritePool";
 import { ObjectPool } from "bun-pool";
+import { Accumulator, informFullUpdate } from "list-accumulator";
 
 enum Assets {
   DOBUKI = 0,

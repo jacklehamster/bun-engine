@@ -1,7 +1,6 @@
 import { UpdatePayload, IMotor, Cycle } from "motor-loop";
-import { UpdateType } from "./IUpdateNotifier";
-import { IdType } from "dok-types";
-import { UpdateNotifier } from "./UpdateNotifier";
+import { IdType, UpdateType } from "dok-types";
+import { UpdateNotifier } from "list-accumulator";
 
 export class UpdateRegistry<T extends IdType = IdType> extends UpdateNotifier implements Cycle {
   private readonly updatedIds: Set<T> = new Set();

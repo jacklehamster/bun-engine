@@ -6,7 +6,7 @@ import { ObjectPool } from "bun-pool";
 import { copySprite } from "../utils/sprite-utils";
 import { List, forEach } from "abstract-list";
 import { SpriteUpdateType } from "../update/SpriteUpdateType";
-import { UpdateNotifier } from "updates/UpdateNotifier";
+import { UpdateNotifier } from "list-accumulator";
 
 interface Props {
   factory: IElemFactory<Sprite>

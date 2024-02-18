@@ -1,8 +1,5 @@
 import { Sprite } from "../Sprite";
-import { forEach } from "abstract-list";
-import { UpdatableList } from "../../../core/UpdatableList";
 import { Matrix } from "dok-matrix";
-import { FULL_UPDATE, UpdateType } from "updates/IUpdateNotifier";
 
 export function copySprite(sprite: Sprite, dest?: Sprite): Sprite {
   if (!dest) {
@@ -22,8 +19,4 @@ export function copySprite(sprite: Sprite, dest?: Sprite): Sprite {
   dest.animationId = sprite.animationId;
   dest.hidden = sprite.hidden;
   return dest;
-}
-
-export function informFullUpdate(elems: UpdatableList<any>, type: UpdateType = FULL_UPDATE) {
-  forEach(elems, (_, index) => elems.informUpdate?.(index, type));
 }

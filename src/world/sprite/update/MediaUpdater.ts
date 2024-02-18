@@ -3,12 +3,12 @@ import { IGraphicsEngine } from "graphics/IGraphicsEngine";
 import { IMotor } from "motor-loop";
 import { UpdateRegistry } from "updates/UpdateRegistry";
 import { Updater } from "../../../updates/Updater";
-import { UpdatableList } from "../../../core/UpdatableList";
+import { IUpdatableList } from "list-accumulator";
 
 interface Props {
   engine: IGraphicsEngine;
   motor: IMotor;
-  medias: UpdatableList<Media>;
+  medias: IUpdatableList<Media>;
 }
 
 export class MediaUpdater extends Updater {

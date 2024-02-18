@@ -1,21 +1,20 @@
-import { FULL_UPDATE, IUpdateListener } from "updates/IUpdateNotifier";
 import { IGraphicsEngine } from "graphics/IGraphicsEngine";
 import { IMotor } from "motor-loop";
 import { UpdateRegistry } from "updates/UpdateRegistry";
 import { SpriteUpdateType } from "./SpriteUpdateType";
 import { Auxiliary } from "world/aux/Auxiliary";
 import { Sprite, SpriteId } from "../Sprite";
-import { UpdateNotifier } from "updates/UpdateNotifier";
-import { UpdatableList } from "core/UpdatableList";
+import { FULL_UPDATE } from "dok-types";
+import { IUpdatableList, IUpdateListener, UpdateNotifier } from "list-accumulator";
 
 interface Props {
   engine: IGraphicsEngine;
   motor: IMotor;
-  sprites: UpdatableList<Sprite>;
+  sprites: IUpdatableList<Sprite>;
 }
 
 export class SpriteUpdater extends UpdateNotifier implements Auxiliary, IUpdateListener {
-  private readonly sprites: UpdatableList<Sprite>;
+  private readonly sprites: IUpdatableList<Sprite>;
   private readonly updateRegisteries: Record<SpriteUpdateType, UpdateRegistry | undefined>;
 
   constructor({ engine, motor, sprites }: Props) {

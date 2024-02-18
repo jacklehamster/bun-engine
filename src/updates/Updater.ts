@@ -1,15 +1,14 @@
-import { IUpdateListener } from "updates/IUpdateNotifier";
 import { Auxiliary } from "world/aux/Auxiliary";
 import { UpdateRegistry } from "updates/UpdateRegistry";
-import { UpdatableList } from "core/UpdatableList";
+import { IUpdatableList, IUpdateListener } from "list-accumulator";
 
 interface Props {
   updateRegistry: UpdateRegistry;
-  elems: UpdatableList<any>;
+  elems: IUpdatableList<any>;
 }
 
 export class Updater implements Auxiliary, IUpdateListener {
-  private readonly elems: UpdatableList<any>;
+  private readonly elems: IUpdatableList<any>;
   private readonly updateRegistry: UpdateRegistry;
 
   constructor({ updateRegistry, elems }: Props) {

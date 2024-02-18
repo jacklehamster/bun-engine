@@ -3,12 +3,12 @@ import { UpdateRegistry } from "updates/UpdateRegistry";
 import { IGraphicsEngine } from "graphics/IGraphicsEngine";
 import { IMotor } from "motor-loop";
 import { Updater } from "../../../updates/Updater";
-import { UpdatableList } from "../../../core/UpdatableList";
+import { IUpdatableList } from "list-accumulator";
 
 interface Props {
   engine: IGraphicsEngine;
   motor: IMotor;
-  animations: UpdatableList<Animation>;
+  animations: IUpdatableList<Animation>;
 }
 
 export class AnimationUpdater extends Updater {
