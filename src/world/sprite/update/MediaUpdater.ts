@@ -13,7 +13,7 @@ interface Props {
 
 export class MediaUpdater extends Updater {
   readonly #savedMediaInfo = new Map<MediaId, MediaData>();
-  private readonly motor: IMotor;
+  readonly #motor: IMotor;
 
   constructor({ engine, motor, medias }: Props) {
     super({
@@ -31,19 +31,23 @@ export class MediaUpdater extends Updater {
       }, motor),
       elems: medias,
     });
-    this.motor = motor;
+    this.#motor = motor;
   }
 
   removeMedia(id: MediaId) {
     const mediaInfo = this.#savedMediaInfo.get(id);
     if (mediaInfo) {
-      this.motor.stopUpdate(mediaInfo);
+      this.#motor.stopUpdate(mediaInfo);
       mediaInfo.dispose();
       this.#savedMediaInfo.delete(id);
     }
   }
 
-  dispose() {
+  deactivate(): void {
+    this.#dispose();
+  }
+
+  #dispose() {
     this.#savedMediaInfo.forEach(mediaInfo => this.removeMedia(mediaInfo.id));
   }
 }

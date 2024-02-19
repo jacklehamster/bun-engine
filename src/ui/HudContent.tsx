@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Menu } from './menu/Menu';
 import { Provider } from './Provider';
 import { PopupManager } from './PopupManager';

@@ -471,12 +471,14 @@ export class DemoGame extends AuxiliaryHolder {
           const sprites: Sprite[] = arrayPool.create();
           const cellPos = cell.pos;
 
+          const px = cellPos[0] * cellPos[3];
+          const pz = cellPos[2] * cellPos[3]
           const distSq = cellPos[0] * cellPos[0] + cellPos[2] * cellPos[2];
           const isWater = distSq > 1000;
           const hasTree = (distSq > 10) && rng() < .1 && !isWater;
           const ground = spritePool.create(hasTree ? Assets.BUSHES : isWater ? Assets.WATER : Assets.GRASS);
           ground.spriteType = isWater ? SpriteType.WAVE : SpriteType.DEFAULT;
-          ground.transform.translate(cellPos[0] * cellPos[3], -1 - (isWater ? 1 : 0), cellPos[2] * cellPos[3]).rotateX(-Math.PI / 2);
+          ground.transform.translate(px, -1 - (isWater ? 1 : 0), pz).rotateX(-Math.PI / 2);
           sprites.push(ground);
 
           const count = hasTree ? 5 + rng() * 10 : 0;
@@ -484,19 +486,31 @@ export class DemoGame extends AuxiliaryHolder {
             const tree = spritePool.create(Assets.TREE);
             tree.spriteType = SpriteType.SPRITE;
             const size = 1 + Math.floor(2 * rng());
-            tree.transform.translate(cellPos[0] * cellPos[3] + (rng() - .5) * 2.5, -1 + size / 2, cellPos[2] * cellPos[3] + (rng() - .5) * 2.5).scale(.2 + rng(), size, .2 + rng());
+            tree.transform.translate(px + (rng() - .5) * 2.5, -1 + size / 2, pz + (rng() - .5) * 2.5).scale(.2 + rng(), size, .2 + rng());
             sprites.push(tree);
+          }
+
+          if (hasTree) {
+            worldColliders.add([
+              new CollisionDetector({
+                blockerBox: blockBox, blockerPosition: [px, 0, pz], heroBox,
+                listener: {
+                  onBlockChange(blocked) {
+                    displayBox.setImageId(blocked ? Assets.WIREFRAME_RED : Assets.WIREFRAME);
+                  },
+                }
+              }, { shouldBlock: true }),
+            ]);
           }
 
           //  Add bun
           if (!isWater && !count && rng() < .02) {
-            const bx = cellPos[0] * cellPos[3], bz = cellPos[2] * cellPos[3];
             const bun = spritePool.create(Assets.BUN);
             bun.spriteType = SpriteType.SPRITE;
-            bun.transform.translate(bx, -.7, bz).scale(.5);
+            bun.transform.translate(px, -.7, pz).scale(.5);
 
             const bunShadow = spritePool.create(Assets.BUN_SHADOW);
-            bunShadow.transform.translate(bx, -1, bz).rotateX(-Math.PI / 2).scale(.5);
+            bunShadow.transform.translate(px, -1, pz).rotateX(-Math.PI / 2).scale(.5);
 
             sprites.push(bun, bunShadow);
           }
@@ -506,10 +520,10 @@ export class DemoGame extends AuxiliaryHolder {
             const scale = 1.5;
             const wolf = spritePool.create(Assets.WOLF);
             wolf.spriteType = SpriteType.SPRITE;
-            wolf.transform.translate(cellPos[0] * cellPos[3], 0, cellPos[2] * cellPos[3]).scale(scale);
+            wolf.transform.translate(px, 0, pz).scale(scale);
 
             const shadow = spritePool.create(Assets.WOLF_SHADOW);
-            shadow.transform.translate(cellPos[0] * cellPos[3], -.99, cellPos[2] * cellPos[3] - .5).rotateX(-Math.PI / 2).scale(scale);
+            shadow.transform.translate(px, -.99, pz - .5).rotateX(-Math.PI / 2).scale(scale);
 
             sprites.push(wolf, shadow);
           }

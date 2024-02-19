@@ -14,17 +14,17 @@ interface Props {
 }
 
 export class SpriteUpdater extends UpdateNotifier implements Auxiliary, IUpdateListener {
-  private readonly sprites: IUpdatableList<Sprite>;
-  private readonly updateRegisteries: Record<SpriteUpdateType, UpdateRegistry | undefined>;
+  readonly #sprites: IUpdatableList<Sprite>;
+  readonly #updateRegisteries: Record<SpriteUpdateType, UpdateRegistry>;
 
   constructor({ engine, motor, sprites }: Props) {
     super();
-    this.sprites = sprites;
-    this.updateRegisteries = {
-      [SpriteUpdateType.TRANSFORM]: new UpdateRegistry(ids => engine.updateSpriteTransforms(ids, this.sprites!), motor),
-      [SpriteUpdateType.TEX_SLOT]: new UpdateRegistry(ids => engine.updateSpriteTexSlots(ids, this.sprites!), motor),
-      [SpriteUpdateType.TYPE]: new UpdateRegistry(ids => engine.updateSpriteTypes(ids, this.sprites!), motor),
-      [SpriteUpdateType.ANIM]: new UpdateRegistry(ids => engine.updateSpriteAnimations(ids, this.sprites!), motor),
+    this.#sprites = sprites;
+    this.#updateRegisteries = {
+      [SpriteUpdateType.TRANSFORM]: new UpdateRegistry(ids => engine.updateSpriteTransforms(ids, this.#sprites!), motor),
+      [SpriteUpdateType.TEX_SLOT]: new UpdateRegistry(ids => engine.updateSpriteTexSlots(ids, this.#sprites!), motor),
+      [SpriteUpdateType.TYPE]: new UpdateRegistry(ids => engine.updateSpriteTypes(ids, this.#sprites!), motor),
+      [SpriteUpdateType.ANIM]: new UpdateRegistry(ids => engine.updateSpriteAnimations(ids, this.#sprites!), motor),
     };
   }
 
@@ -33,26 +33,26 @@ export class SpriteUpdater extends UpdateNotifier implements Auxiliary, IUpdateL
   }
 
   activate(): void {
-    this.sprites.addUpdateListener?.(this);
+    this.#sprites.addUpdateListener?.(this);
   }
 
   deactivate(): void {
-    this.sprites.removeUpdateListener?.(this);
+    this.#sprites.removeUpdateListener?.(this);
   }
 
   informUpdate(id: SpriteId, type: SpriteUpdateType = FULL_UPDATE): void {
     super.informUpdate(id, type);
     if (type & SpriteUpdateType.TRANSFORM) {
-      this.updateRegisteries[SpriteUpdateType.TRANSFORM]!.informUpdate(id);
+      this.#updateRegisteries[SpriteUpdateType.TRANSFORM].informUpdate(id);
     }
     if (type & SpriteUpdateType.TEX_SLOT) {
-      this.updateRegisteries[SpriteUpdateType.TEX_SLOT]!.informUpdate(id);
+      this.#updateRegisteries[SpriteUpdateType.TEX_SLOT].informUpdate(id);
     }
     if (type & SpriteUpdateType.TYPE) {
-      this.updateRegisteries[SpriteUpdateType.TYPE]!.informUpdate(id);
+      this.#updateRegisteries[SpriteUpdateType.TYPE].informUpdate(id);
     }
     if (type & SpriteUpdateType.ANIM) {
-      this.updateRegisteries[SpriteUpdateType.ANIM]!.informUpdate(id);
+      this.#updateRegisteries[SpriteUpdateType.ANIM].informUpdate(id);
     }
   }
 }
