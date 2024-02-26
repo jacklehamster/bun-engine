@@ -1,6 +1,6 @@
 import { Keyboard } from "controls/Keyboard";
 import { IGraphicsEngine } from "graphics/IGraphicsEngine";
-import { IMotor } from "motor-loop";
+import { IMotor, ControlledMotor, Policy } from "motor-loop";
 import { Camera } from "camera/Camera";
 import { CellChangeDectector } from "gl/transform/aux/CellChangeDetector";
 import { Auxiliaries } from "world/aux/Auxiliaries";
@@ -20,7 +20,6 @@ import { TimeAuxiliary } from "core/aux/TimeAuxiliary";
 import { TiltAuxiliary } from "world/aux/TiltAuxiliary";
 import { SmoothFollowAuxiliary } from "world/aux/SmoothFollowAuxiliary";
 import { DirAuxiliary } from "world/aux/DirAuxiliary";
-import { SpriteUpdateType } from "world/sprite/update/SpriteUpdateType";
 import { MediaUpdater } from "world/sprite/update/MediaUpdater";
 import { Media } from "gl-texture-manager";
 import { AnimationUpdater } from "world/sprite/update/AnimationUpdater";
@@ -44,7 +43,10 @@ import { CellUtils } from "utils/cell-utils";
 import { alea } from "seedrandom";
 import { SpritePool } from "world/sprite/pools/SpritePool";
 import { ObjectPool } from "bun-pool";
-import { Accumulator, informFullUpdate } from "list-accumulator";
+import { Accumulator } from "list-accumulator";
+import { StepBackAuxiliary } from "world/aux/StepBackAuxiliary";
+import { goBackAction } from "world/aux/GoBack";
+import { BodyModel } from "world/sprite/body/BodyModel";
 
 enum Assets {
   DOBUKI = 0,
@@ -98,265 +100,246 @@ export class DemoGame extends AuxiliaryHolder {
     //  * You can show videos, images, or you can have instructions to draw on a canvas.
     const mediaAccumulator = new Accumulator<Media>();
     this.addAuxiliary(new MediaUpdater({ engine, motor, medias: mediaAccumulator }));
-    const mediaItems = new ItemsGroup<Media>([
-      {
-        id: Assets.DOBUKI,
-        type: "image",
-        src: "dobuki.png",
+    const mediaItems = new ItemsGroup<Media>([{
+      id: Assets.DOBUKI,
+      type: "image",
+      src: "dobuki.png",
+    }, {
+      id: Assets.BUN,
+      type: "image", src: "bun.png",
+    }, {
+      id: Assets.BUN_SHADOW,
+      type: "image", src: "bun.png",
+      postProcess: shadowProcessor,
+    }, {
+      id: Assets.DODO,
+      type: "image", src: "dodo.png",
+      spriteSheet: {
+        spriteSize: [190, 209],
       },
-      {
-        id: Assets.BUN,
-        type: "image", src: "bun.png",
+    }, {
+      id: Assets.DODO_SHADOW,
+      type: "image", src: "dodo.png",
+      spriteSheet: {
+        spriteSize: [190, 209],
       },
-      {
-        id: Assets.BUN_SHADOW,
-        type: "image", src: "bun.png",
-        postProcess: shadowProcessor,
+      postProcess: shadowProcessor,
+    }, {
+      id: Assets.WOLF,
+      type: "image", src: "wolf.png",
+      spriteSheet: {
+        spriteSize: [200, 256],
       },
-      {
-        id: Assets.DODO,
-        type: "image", src: "dodo.png",
-        spriteSheet: {
-          spriteSize: [190, 209],
-        },
+    }, {
+      id: Assets.WOLF_SHADOW,
+      type: "image", src: "wolf.png",
+      spriteSheet: {
+        spriteSize: [200, 256],
       },
-      {
-        id: Assets.DODO_SHADOW,
-        type: "image", src: "dodo.png",
-        spriteSheet: {
-          spriteSize: [190, 209],
-        },
-        postProcess: shadowProcessor,
-      },
-      {
-        id: Assets.WOLF,
-        type: "image", src: "wolf.png",
-        spriteSheet: {
-          spriteSize: [200, 256],
-        },
-      },
-      {
-        id: Assets.WOLF_SHADOW,
-        type: "image", src: "wolf.png",
-        spriteSheet: {
-          spriteSize: [200, 256],
-        },
-        postProcess: shadowProcessor,
-      },
-      {
-        id: Assets.LOGO,
-        type: "draw",
-        draw: ctx => {
-          const { canvas } = ctx;
-          canvas.width = LOGO_SIZE;
-          canvas.height = LOGO_SIZE;
-          const centerX = canvas.width / 2, centerY = canvas.height / 2;
-          const halfSize = canvas.width / 2;
-          ctx.imageSmoothingEnabled = true;
-          // ctx.fillStyle = '#ddd';
-          ctx.lineWidth = canvas.width / 50;
-          // ctx.fillRect(0, 0, canvas.width, canvas.height);
+      postProcess: shadowProcessor,
+    }, {
+      id: Assets.LOGO,
+      type: "draw",
+      draw: ctx => {
+        const { canvas } = ctx;
+        canvas.width = LOGO_SIZE;
+        canvas.height = LOGO_SIZE;
+        const centerX = canvas.width / 2, centerY = canvas.height / 2;
+        const halfSize = canvas.width / 2;
+        ctx.imageSmoothingEnabled = true;
+        // ctx.fillStyle = '#ddd';
+        ctx.lineWidth = canvas.width / 50;
+        // ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-          ctx.strokeStyle = 'black';
-          ctx.fillStyle = 'gold';
+        ctx.strokeStyle = 'black';
+        ctx.fillStyle = 'gold';
 
-          //  face
-          ctx.beginPath();
-          ctx.arc(centerX, centerY, halfSize * 0.8, 0, 2 * Math.PI);
-          ctx.fill();
-          ctx.stroke();
+        //  face
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, halfSize * 0.8, 0, 2 * Math.PI);
+        ctx.fill();
+        ctx.stroke();
 
-          //  smile
-          ctx.beginPath();
-          ctx.arc(centerX, centerY, halfSize * 0.5, 0, Math.PI);
-          ctx.stroke();
+        //  smile
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, halfSize * 0.5, 0, Math.PI);
+        ctx.stroke();
 
-          //  left eye
-          ctx.beginPath();
-          ctx.arc(canvas.width / 3, canvas.height / 3, halfSize * 0.1, 0, Math.PI, true);
-          ctx.stroke();
-          ctx.beginPath();
-          ctx.arc((canvas.width / 3) * 2, canvas.height / 3, halfSize * 0.1, 0, Math.PI * 2, true);
-          ctx.stroke();
-        },
+        //  left eye
+        ctx.beginPath();
+        ctx.arc(canvas.width / 3, canvas.height / 3, halfSize * 0.1, 0, Math.PI, true);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc((canvas.width / 3) * 2, canvas.height / 3, halfSize * 0.1, 0, Math.PI * 2, true);
+        ctx.stroke();
       },
-      {
-        id: Assets.GROUND,
-        type: "draw",
-        draw: ctx => {
-          const { canvas } = ctx;
-          canvas.width = LOGO_SIZE;
-          canvas.height = LOGO_SIZE;
-          ctx.fillStyle = '#ddd';
-          ctx.lineWidth = canvas.width / 50;
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }, {
+      id: Assets.GROUND,
+      type: "draw",
+      draw: ctx => {
+        const { canvas } = ctx;
+        canvas.width = LOGO_SIZE;
+        canvas.height = LOGO_SIZE;
+        ctx.fillStyle = '#ddd';
+        ctx.lineWidth = canvas.width / 50;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-          ctx.strokeStyle = 'black';
-          ctx.fillStyle = 'silver';
+        ctx.strokeStyle = 'black';
+        ctx.fillStyle = 'silver';
 
-          ctx.beginPath();
-          ctx.rect(canvas.width * .2, canvas.height * .2, canvas.width * .6, canvas.height * .6);
-          ctx.fill();
-          ctx.stroke();
-        },
+        ctx.beginPath();
+        ctx.rect(canvas.width * .2, canvas.height * .2, canvas.width * .6, canvas.height * .6);
+        ctx.fill();
+        ctx.stroke();
       },
-      {
-        id: Assets.GRASS_GROUND,
-        type: "draw",
-        draw: ctx => {
-          const { canvas } = ctx;
-          canvas.width = LOGO_SIZE;
-          canvas.height = LOGO_SIZE;
-          ctx.fillStyle = 'green';
-          ctx.lineWidth = canvas.width / 50;
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }, {
+      id: Assets.GRASS_GROUND,
+      type: "draw",
+      draw: ctx => {
+        const { canvas } = ctx;
+        canvas.width = LOGO_SIZE;
+        canvas.height = LOGO_SIZE;
+        ctx.fillStyle = 'green';
+        ctx.lineWidth = canvas.width / 50;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-          ctx.strokeStyle = '#6f6';
-          ctx.fillStyle = 'lightgreen';
+        ctx.strokeStyle = '#6f6';
+        ctx.fillStyle = 'lightgreen';
 
-          ctx.beginPath();
-          ctx.rect(canvas.width * .2, canvas.height * .2, canvas.width * .6, canvas.height * .6);
-          ctx.fill();
-          ctx.stroke();
-        },
+        ctx.beginPath();
+        ctx.rect(canvas.width * .2, canvas.height * .2, canvas.width * .6, canvas.height * .6);
+        ctx.fill();
+        ctx.stroke();
       },
-      {
-        id: Assets.BRICK,
-        type: "draw",
-        draw: ctx => {
-          const { canvas } = ctx;
-          canvas.width = LOGO_SIZE;
-          canvas.height = LOGO_SIZE;
-          ctx.fillStyle = '#ddd';
-          ctx.lineWidth = canvas.width / 50;
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-        },
+    }, {
+      id: Assets.BRICK,
+      type: "draw",
+      draw: ctx => {
+        const { canvas } = ctx;
+        canvas.width = LOGO_SIZE;
+        canvas.height = LOGO_SIZE;
+        ctx.fillStyle = '#ddd';
+        ctx.lineWidth = canvas.width / 50;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
       },
-      {
-        id: Assets.VIDEO,
-        type: "video",
-        src: 'sample.mp4',
-        volume: 0,
-        fps: 30,
-        playSpeed: .5,
-        maxRefreshRate: 30,
+    }, {
+      id: Assets.VIDEO,
+      type: "video",
+      src: 'sample.mp4',
+      volume: 0,
+      fps: 30,
+      playSpeed: .5,
+      maxRefreshRate: 30,
+    }, {
+      id: Assets.WIREFRAME,
+      type: "draw",
+      draw: ctx => {
+        const { canvas } = ctx;
+        canvas.width = LOGO_SIZE;
+        canvas.height = LOGO_SIZE;
+        ctx.lineWidth = 40;
+        ctx.setLineDash([20, 5]);
+        ctx.strokeStyle = 'lightblue';
+        ctx.beginPath();
+        ctx.rect(10, 10, canvas.width - 20, canvas.height - 20);
+        ctx.stroke();
       },
-      {
-        id: Assets.WIREFRAME,
-        type: "draw",
-        draw: ctx => {
-          const { canvas } = ctx;
-          canvas.width = LOGO_SIZE;
-          canvas.height = LOGO_SIZE;
-          ctx.lineWidth = 40;
-          ctx.setLineDash([20, 5]);
+    }, {
+      id: Assets.WIREFRAME_RED,
+      type: "draw",
+      draw: ctx => {
+        const { canvas } = ctx;
+        canvas.width = LOGO_SIZE;
+        canvas.height = LOGO_SIZE;
+        ctx.lineWidth = 40;
+        ctx.setLineDash([20, 5]);
 
-          ctx.strokeStyle = 'lightblue';
+        ctx.strokeStyle = 'red';
 
-          ctx.beginPath();
-          ctx.rect(10, 10, canvas.width - 20, canvas.height - 20);
-          ctx.stroke();
-        },
+        ctx.beginPath();
+        ctx.rect(10, 10, canvas.width - 20, canvas.height - 20);
+        ctx.stroke();
       },
-      {
-        id: Assets.WIREFRAME_RED,
-        type: "draw",
-        draw: ctx => {
-          const { canvas } = ctx;
-          canvas.width = LOGO_SIZE;
-          canvas.height = LOGO_SIZE;
-          ctx.lineWidth = 40;
-          ctx.setLineDash([20, 5]);
+    }, {
+      id: Assets.GRASS,
+      type: "draw",
+      draw: ctx => {
+        const { canvas } = ctx;
+        canvas.width = 1024;
+        canvas.height = 1024;
+        ctx.fillStyle = 'green';
+        ctx.lineWidth = canvas.width / 50;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      },
+    }, {
+      id: Assets.BUSHES,
+      type: "draw",
+      draw: ctx => {
+        const { canvas } = ctx;
+        canvas.width = 1024;
+        canvas.height = 1024;
+        ctx.fillStyle = '#050';
+        ctx.lineWidth = canvas.width / 50;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      },
+    }, {
+      id: Assets.WATER,
+      type: "draw",
+      draw: ctx => {
+        const { canvas } = ctx;
+        canvas.width = 1024;
+        canvas.height = 1024;
+        ctx.fillStyle = '#68f';
+        ctx.lineWidth = canvas.width / 50;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      },
+    }, {
+      id: Assets.TREE,
+      type: "draw",
+      draw: ctx => {
+        const { canvas } = ctx;
+        canvas.width = 200;
+        canvas.height = 200;
+        ctx.fillStyle = '#0f0';
 
-          ctx.strokeStyle = 'red';
-
-          ctx.beginPath();
-          ctx.rect(10, 10, canvas.width - 20, canvas.height - 20);
-          ctx.stroke();
-        },
+        ctx.beginPath();
+        ctx.moveTo(100, 0);
+        ctx.lineTo(200, 150);
+        ctx.lineTo(0, 150);
+        ctx.fill();
+        ctx.fillStyle = '#430';
+        ctx.fillRect(75, 125, 50, 50);
       },
-      {
-        id: Assets.GRASS,
-        type: "draw",
-        draw: ctx => {
-          const { canvas } = ctx;
-          canvas.width = 1024;
-          canvas.height = 1024;
-          ctx.fillStyle = 'green';
-          ctx.lineWidth = canvas.width / 50;
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-        },
-      },
-      {
-        id: Assets.BUSHES,
-        type: "draw",
-        draw: ctx => {
-          const { canvas } = ctx;
-          canvas.width = 1024;
-          canvas.height = 1024;
-          ctx.fillStyle = '#050';
-          ctx.lineWidth = canvas.width / 50;
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-        },
-      },
-      {
-        id: Assets.WATER,
-        type: "draw",
-        draw: ctx => {
-          const { canvas } = ctx;
-          canvas.width = 1024;
-          canvas.height = 1024;
-          ctx.fillStyle = '#68f';
-          ctx.lineWidth = canvas.width / 50;
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-        },
-      },
-      {
-        id: Assets.TREE,
-        type: "draw",
-        draw: ctx => {
-          const { canvas } = ctx;
-          canvas.width = 200;
-          canvas.height = 200;
-          ctx.fillStyle = '#0f0';
-
-          ctx.beginPath();
-          ctx.moveTo(100, 0);
-          ctx.lineTo(200, 150);
-          ctx.lineTo(0, 150);
-          ctx.fill();
-          ctx.fillStyle = '#430';
-          ctx.fillRect(75, 125, 50, 50);
-        },
-      },
-    ]);
+    }]);
     mediaAccumulator.add(mediaItems);
-    this.addAuxiliary(mediaItems);
+    this.addAuxiliary({
+      activate() {
+        mediaAccumulator.updateFully();
+      },
+    });
 
     const animationAccumulator = new Accumulator<Animation>();
     this.addAuxiliary(new AnimationUpdater({ engine, motor, animations: animationAccumulator }));
-    const animationItems = new ItemsGroup<Animation>([
-      {
-        id: Anims.STILL,
-        frames: [0],
-      },
-      {
-        id: Anims.RUN,
-        frames: [1, 5],
-        fps: 24,
-      },
-      {
-        id: Anims.WOLF_STILL,
-        frames: [0, 4],
-        fps: 15,
-      },
-    ]);
+    const animationItems = new ItemsGroup<Animation>([{
+      id: Anims.STILL,
+      frames: [0],
+    }, {
+      id: Anims.RUN,
+      frames: [1, 5],
+      fps: 24,
+    }, {
+      id: Anims.WOLF_STILL,
+      frames: [0, 4],
+      fps: 15,
+    }]);
     animationAccumulator.add(animationItems);
-    this.addAuxiliary(animationItems);
+    this.addAuxiliary({
+      activate() {
+        animationAccumulator.updateFully();
+      },
+    });
 
     const cellTrackers = new CellTrackers();
-
-
     const spritesAccumulator = new Accumulator<Sprite>({
       onChange: (value) => engine.setMaxSpriteCount(value),
     });
@@ -370,17 +353,19 @@ export class DemoGame extends AuxiliaryHolder {
       near: 0,
       far: -.5,
     };
-    const exitPosition = cellUtils.positionFromCellPos(0, 0, 0, CELLSIZE);
+    const exitCell = cellUtils.cellAt(0, 0, 0, CELLSIZE);
+    const exitPosition = exitCell.worldPosition;
 
-    const dobukiBlock = {
+    const worldColliders = new Accumulator<ICollisionDetector>();
+
+    const heroBox = {
       top: 1,
       bottom: -1,
-      left: -.1,
-      right: .1,
-      near: 0,
-      far: -.5,
+      left: -.9,
+      right: .9,
+      near: .9,
+      far: -.9,
     };
-    const dobukiPosition = cellUtils.positionFromCellPos(-3, 0, -1, CELLSIZE);
 
     const blockBox: Box = {
       top: 2,
@@ -391,18 +376,94 @@ export class DemoGame extends AuxiliaryHolder {
       far: -1,
     };
 
+    {
+      const dobukiCell = cellUtils.cellAt(-3, 0, -1, CELLSIZE);
+      const dobukiBox = {
+        top: 1,
+        bottom: -1,
+        left: -.1,
+        right: .1,
+        near: 0,
+        far: -.5,
+      };
+      const dobukiPosition = dobukiCell.worldPosition;
+      const dobukiBlockPosition = cellUtils.offset(dobukiPosition, 0, 0, -CELLSIZE);
+
+      const body = new BodyModel({
+        colliders: [
+          new CollisionDetector({
+            blockerBox: blockBox, blockerPosition: dobukiBlockPosition, heroBox,
+            listener: {
+              onBlockChange(blocked) {
+                displayBox.setImageId(blocked ? Assets.WIREFRAME_RED : Assets.WIREFRAME);
+              },
+            }
+          }, { shouldBlock: true }),
+          new CollisionDetector({
+            blockerBox: dobukiBox, blockerPosition: dobukiPosition, heroBox,
+            listener: {
+              onEnter() {
+                displayBox.setImageId(Assets.WIREFRAME_RED);
+                ui.showDialog({
+                  conversation: {
+                    messages: [
+                      { text: "Hello there." },
+                      { text: "Bye bye." },
+                      {
+                        action: goBackAction(heroPos),
+                        next: true,
+                      },
+                    ]
+                  },
+                });
+              },
+              onLeave() {
+                displayBox.setImageId(Assets.WIREFRAME);
+              }
+            }
+          }, { shouldBlock: false }),
+        ],
+      });
+      const dobukiPosMatrix = new PositionMatrix().movedTo(dobukiPosition[0], dobukiPosition[1], dobukiPosition[2]);
+      body.addSprites(new SpriteGroup(
+        [{
+          imageId: Assets.DOBUKI,
+          spriteType: SpriteType.SPRITE,
+          transform: Matrix.create().translate(0, -.3, -1),
+        }],
+        dobukiPosMatrix));
+      body.addSprites(new SpriteGroup(
+        new DisplayBox({ box: dobukiBox, imageId: Assets.WIREFRAME, insideImageId: Assets.WIREFRAME }),
+        dobukiPosMatrix,
+      ));
+      body.addSprites(new SpriteGroup(
+        new DisplayBox({ box: blockBox, imageId: Assets.WIREFRAME, insideImageId: Assets.WIREFRAME }),
+        new PositionMatrix().movedTo(dobukiBlockPosition[0], dobukiBlockPosition[1], dobukiBlockPosition[2]),
+      ));
+
+      worldColliders.add(body.colliders);
+
+      const factory = new FixedSpriteFactory({ cellUtils }, { cellSize: CELLSIZE }, body.sprites);
+      const creator = new SpriteCellCreator({ factory });
+      spritesAccumulator.add(creator);
+      cellTrackers.add(creator);
+      this.addAuxiliary(factory);
+    }
+
+
+
     const blockPositions: Vector[] = [
       [-1, 0, -1],
       [1, 0, -1],
       [0, 0, -1],
       [-1, 0, 0],
       [1, 0, 0],
-    ].map(([x, y, z]) => cellUtils.positionFromCellPos(x, y, z, CELLSIZE));
+    ].map(([x, y, z]) => cellUtils.worldPosFromCell(x, y, z, CELLSIZE));
 
     blockPositions.forEach(blockPosition => {
       const blockBoxSprites = new SpriteGroup(
         new DisplayBox({ box: blockBox, imageId: Assets.GROUND, insideImageId: Assets.BRICK }),
-        [Matrix.create().setVector(blockPosition)],
+        new PositionMatrix().movedTo(blockPosition[0], blockPosition[1], blockPosition[2]),
       );
       const factory = new FixedSpriteFactory(
         { cellUtils },
@@ -417,40 +478,26 @@ export class DemoGame extends AuxiliaryHolder {
 
     {
       const factory = new FixedSpriteFactory({ cellUtils }, { cellSize: CELLSIZE },
-        //  Dobuki logo
-        new SpriteGroup([
-          {
-            imageId: Assets.DOBUKI,
-            spriteType: SpriteType.SPRITE,
-            transform: Matrix.create().translate(0, -.3, -1),
-          },
-        ], [Matrix.create().setVector(dobukiPosition)]),
-        new SpriteGroup(
-          new DisplayBox({ box: dobukiBlock, imageId: Assets.WIREFRAME, insideImageId: Assets.WIREFRAME }),
-          [Matrix.create().setVector(dobukiPosition)]
-        ),
         new SpriteGroup(
           new DisplayBox({ box: exitBlock, imageId: Assets.WIREFRAME, insideImageId: Assets.WIREFRAME }),
-          [Matrix.create().setVector(exitPosition)]
+          new PositionMatrix().movedTo(exitPosition[0], exitPosition[1], exitPosition[2]),
         ),
 
         //  Side walls with happy face logo
         [
-          //  side walls
-          ...[
-            Matrix.create().translate(-3.01, 0, 0).rotateY(Math.PI / 2),
-            Matrix.create().translate(-3.01, 0, 0).rotateY(-Math.PI / 2),
-            Matrix.create().translate(3.01, 0, 0).rotateY(-Math.PI / 2),
-            Matrix.create().translate(3.01, 0, 0).rotateY(Math.PI / 2),
-          ].map(transform => ({ imageId: Assets.LOGO, transform })),
-          //  floor
-          ...[
-            Matrix.create().translate(0, -.9, 0).rotateX(-Math.PI / 2),
-            Matrix.create().translate(0, -.9, 2).rotateX(-Math.PI / 2),
-            Matrix.create().translate(-2, -.9, 2).rotateX(-Math.PI / 2),
-            Matrix.create().translate(2, -.9, 2).rotateX(-Math.PI / 2),
-          ].map(transform => ({ imageId: Assets.GRASS_GROUND, transform })),
-        ]);
+          Matrix.create().translate(-3.01, 0, 0).rotateY(Math.PI / 2),
+          Matrix.create().translate(-3.01, 0, 0).rotateY(-Math.PI / 2),
+          Matrix.create().translate(3.01, 0, 0).rotateY(-Math.PI / 2),
+          Matrix.create().translate(3.01, 0, 0).rotateY(Math.PI / 2),
+        ].map(transform => ({ imageId: Assets.LOGO, transform })),
+        //  floor
+        [
+          Matrix.create().translate(0, -.9, 0).rotateX(-Math.PI / 2),
+          Matrix.create().translate(0, -.9, 2).rotateX(-Math.PI / 2),
+          Matrix.create().translate(-2, -.9, 2).rotateX(-Math.PI / 2),
+          Matrix.create().translate(2, -.9, 2).rotateX(-Math.PI / 2),
+        ].map(transform => ({ imageId: Assets.GRASS_GROUND, transform })),
+      );
 
       const creator = new SpriteCellCreator({ factory });
       spritesAccumulator.add(creator);
@@ -458,21 +505,24 @@ export class DemoGame extends AuxiliaryHolder {
       this.addAuxiliary(factory);
     }
 
-    const camera: ICamera = this.camera = new Camera({ engine, motor });
+    const camPosition: IPositionMatrix = new PositionMatrix();
+    const camera: ICamera = this.camera = new Camera({ engine, motor, position: camPosition });
     this.addAuxiliary(camera);
 
     {
       const arrayPool: ObjectPool<Sprite[]> = new ObjectPool((a) => a ?? [], a => a.length = 0);
+      const arrayPool2: ObjectPool<ICollisionDetector[]> = new ObjectPool((a) => a ?? [], a => a.length = 0);
       const spritePool: SpritePool = new SpritePool();
       const spritesMap = new Map<Tag, Sprite[]>();
+      const collidersMap = new Map<Tag, ICollisionDetector[]>();
       cellTrackers.add(filter({
         trackCell: function (cell: Cell): boolean {
           const rng = alea(cell.tag);
           const sprites: Sprite[] = arrayPool.create();
           const cellPos = cell.pos;
 
-          const px = cellPos[0] * cellPos[3];
-          const pz = cellPos[2] * cellPos[3]
+          const px = cell.worldPosition[0];
+          const pz = cell.worldPosition[2];
           const distSq = cellPos[0] * cellPos[0] + cellPos[2] * cellPos[2];
           const isWater = distSq > 1000;
           const hasTree = (distSq > 10) && rng() < .1 && !isWater;
@@ -488,19 +538,6 @@ export class DemoGame extends AuxiliaryHolder {
             const size = 1 + Math.floor(2 * rng());
             tree.transform.translate(px + (rng() - .5) * 2.5, -1 + size / 2, pz + (rng() - .5) * 2.5).scale(.2 + rng(), size, .2 + rng());
             sprites.push(tree);
-          }
-
-          if (hasTree) {
-            worldColliders.add([
-              new CollisionDetector({
-                blockerBox: blockBox, blockerPosition: [px, 0, pz], heroBox,
-                listener: {
-                  onBlockChange(blocked) {
-                    displayBox.setImageId(blocked ? Assets.WIREFRAME_RED : Assets.WIREFRAME);
-                  },
-                }
-              }, { shouldBlock: true }),
-            ]);
           }
 
           //  Add bun
@@ -528,9 +565,18 @@ export class DemoGame extends AuxiliaryHolder {
             sprites.push(wolf, shadow);
           }
 
-          if (sprites.length) {
-            spritesMap.set(cell.tag, sprites);
-            spritesAccumulator.add(sprites);
+          spritesMap.set(cell.tag, sprites);
+          spritesAccumulator.add(sprites);
+
+          if (hasTree || isWater) {
+            const colliders: ICollisionDetector[] = arrayPool2.create();
+            colliders.push(
+              new CollisionDetector({
+                blockerBox: blockBox, blockerPosition: [px, 0, pz], heroBox,
+              }, { shouldBlock: true }),
+            );
+            collidersMap.set(cell.tag, colliders);
+            worldColliders.add(colliders);
           }
           return sprites.length > 0;
         },
@@ -543,20 +589,17 @@ export class DemoGame extends AuxiliaryHolder {
               spritesMap.delete(tag);
               arrayPool.recycle(sprites);
             }
+            const colliders = collidersMap.get(tag);
+            if (colliders) {
+              worldColliders.remove(colliders);
+              collidersMap.delete(tag);
+              arrayPool2.recycle(colliders);
+            }
           });
         }
       }, new CellBoundary({ yRange: [0, 0] })));
     }
 
-    const heroBox = {
-      top: 1,
-      bottom: -1,
-      left: -.9,
-      right: .9,
-      near: .9,
-      far: -.9,
-    };
-    const worldColliders = new Accumulator<ICollisionDetector>();
     worldColliders.add([
       ...blockPositions.map(blockPosition =>
         new CollisionDetector({
@@ -568,25 +611,6 @@ export class DemoGame extends AuxiliaryHolder {
           }
         }, { shouldBlock: true })
       ),
-      new CollisionDetector({
-        blockerBox: dobukiBlock, blockerPosition: dobukiPosition, heroBox,
-        listener: {
-          onEnter() {
-            displayBox.setImageId(Assets.WIREFRAME_RED);
-            ui.showDialog({
-              conversation: {
-                messages: [
-                  { text: "Hello there." },
-                  { text: "Bye bye." },
-                ]
-              },
-            });
-          },
-          onLeave() {
-            displayBox.setImageId(Assets.WIREFRAME);
-          }
-        }
-      }, { shouldBlock: false }),
       new CollisionDetector(
         {
           blockerBox: exitBlock, blockerPosition: exitPosition, heroBox,
@@ -610,38 +634,32 @@ export class DemoGame extends AuxiliaryHolder {
         }, { shouldBlock: false }),
     ]);
 
-    const heroPos: IPositionMatrix = new PositionMatrix({ blockers: worldColliders })
-      .movedTo(0, 0, 3)
-      .onChange(() => {
-        informFullUpdate(heroSprites, SpriteUpdateType.TRANSFORM);
-        informFullUpdate(displayBox, SpriteUpdateType.TRANSFORM);
-      });
+    const heroPos: IPositionMatrix = new PositionMatrix({ blockers: worldColliders }).movedTo(0, 0, 3);
     const heroSprites = new SpriteGroup([{
       imageId: Assets.DODO,
       spriteType: SpriteType.SPRITE,
       transform: Matrix.create().translate(0, -.3, 0),
       animationId: Anims.STILL,
-    },], [heroPos]);
-    this.addAuxiliary(heroSprites);
+    },], heroPos);
     spritesAccumulator.add(heroSprites);
+    this.addAuxiliary({
+      activate() {
+        spritesAccumulator.updateFully();
+      },
+    });
 
-    const displayBox = new SpriteGroup(new DisplayBox({ box: heroBox, imageId: Assets.WIREFRAME }), [heroPos]);
-    this.addAuxiliary(displayBox);
+    const displayBox = new SpriteGroup(new DisplayBox({ box: heroBox, imageId: Assets.WIREFRAME }), heroPos);
 
     spritesAccumulator.add(displayBox);
 
-    const shadowPos: IPositionMatrix = new PositionMatrix({})
-      .onChange(() => {
-        informFullUpdate(shadowHeroSprites, SpriteUpdateType.TRANSFORM);
-      });;
+    const shadowPos: IPositionMatrix = new PositionMatrix({});
     const shadowHeroSprites = new SpriteGroup([
       {
         imageId: Assets.DODO_SHADOW,
         transform: Matrix.create().translate(0, -.89, .5).rotateX(-Math.PI / 2).scale(1, .3, 1),
         animationId: Anims.STILL,
       },
-    ], [shadowPos]);
-    this.addAuxiliary(shadowHeroSprites);
+    ], shadowPos);
 
     this.addAuxiliary(new FollowAuxiliary({
       motor,
@@ -664,8 +682,12 @@ export class DemoGame extends AuxiliaryHolder {
           .scale(480, 270, 1),
       },
     ]);
-    this.addAuxiliary(videoSprites);
     spritesAccumulator.add(videoSprites);
+
+    const controlledMotor = new ControlledMotor(motor, { policy: Policy.INCOMING_CYCLE_PRIORITY });
+    const stepBack = new StepBackAuxiliary({ motor: controlledMotor, position: heroPos });
+    const posStep = new PositionStepAuxiliary({ motor: controlledMotor, controls, position: heroPos, turnGoal: camera.turn.angle }, { speed: 1.5, airBoost: 1.5 });
+
 
     //  Toggle auxiliary
     //  * Pressing the "Tab" button switches between two modes of movement below
@@ -679,8 +701,9 @@ export class DemoGame extends AuxiliaryHolder {
         auxiliariesMapping: [
           {
             key: "Tab", aux: Auxiliaries.from(
-              new PositionStepAuxiliary({ motor, controls, position: heroPos, turnGoal: camera.turn.angle }, { speed: 1.5, airBoost: 1.5 }),
-              new SmoothFollowAuxiliary({ motor, follower: camera.position, followee: heroPos }, { speed: .05 }),
+              posStep,
+              stepBack,
+              new SmoothFollowAuxiliary({ motor, follower: camPosition, followee: heroPos }, { speed: .05 }),
               new JumpAuxiliary({ motor, controls, position: heroPos }, { gravity: -2, jump: 3 }),
             ),
           },
@@ -691,7 +714,7 @@ export class DemoGame extends AuxiliaryHolder {
               new MoveAuxiliary({ motor, controls, direction: camera.turn, position: heroPos }),
               new JumpAuxiliary({ motor, controls, position: heroPos }),
               new TiltResetAuxiliary({ motor, controls, tilt: camera.tilt }),
-              new SmoothFollowAuxiliary({ motor, follower: camera.position, followee: heroPos }, { speed: .05 }),
+              new SmoothFollowAuxiliary({ motor, follower: camPosition, followee: heroPos }, { speed: .05 }),
             ),
           },
         ],
@@ -706,10 +729,6 @@ export class DemoGame extends AuxiliaryHolder {
         shadowHeroSprites.setAnimationId(animId);
       }));
 
-    //  CellChangeAuxiliary
-    //  * This is needed to indicate when the player is changing cell
-    //  * as they move. Every cell change, a new set of surrounding cells
-    //  * is evaluated, and some are created as needed.
     const surroundingTracker = new SurroundingTracker({ cellTrack: cellTrackers }, {
       cellLimit: 200,
       range: [7, 3, 7],
@@ -718,12 +737,15 @@ export class DemoGame extends AuxiliaryHolder {
     this.addAuxiliary(
       new CellChangeDectector({
         cellUtils,
-        visitableCell: surroundingTracker,
+        visitableCells: [
+          surroundingTracker,
+          stepBack,
+        ],
         positionMatrix: heroPos,
       }, { cellSize: CELLSIZE })
     );
 
-    //  Hack some base settings
+    //  Hardcode some base settings
     camera.distance.setValue(15)
     camera.tilt.angle.setValue(.8);
     camera.projection.zoom.setValue(.25);

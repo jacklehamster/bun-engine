@@ -3,20 +3,23 @@ import { SpriteUpdateType } from "../update/SpriteUpdateType";
 import { List, forEach } from "abstract-list";
 import { AnimationId } from "animation/Animation";
 import { ItemsGroup } from "./ItemsGroup";
-import { Animatable as Animating } from "animation/Animatable";
 import { SpriteModel } from "./SpriteModel";
 import { MediaId } from "gl-texture-manager";
-import { IMatrix } from "dok-matrix";
+import { IPositionMatrix } from "dok-matrix";
+import { informFullUpdate } from "list-accumulator";
 
-export class SpriteGroup extends ItemsGroup<Sprite> implements Animating {
+export class SpriteGroup extends ItemsGroup<Sprite> {
   #orientation: number = 1;
   #animationId?: AnimationId;
   #imageId?: MediaId;
+  #position;
 
   readonly #spriteModel: SpriteModel = new SpriteModel();
 
-  constructor(sprites: List<Sprite>, private transforms: IMatrix[] = []) {
+  constructor(sprites: List<Sprite>, position?: IPositionMatrix) {
     super(sprites);
+    this.#position = position;
+    this.#position?.addChangeListener({ onChange: () => informFullUpdate(this, SpriteUpdateType.TRANSFORM) });
   }
 
   setOrientation(value: number) {
@@ -47,17 +50,12 @@ export class SpriteGroup extends ItemsGroup<Sprite> implements Animating {
     }
     this.#spriteModel.sprite = s;
     this.#spriteModel.transform.copy(s.transform);
-    for (let transform of this.transforms) {
-      this.#spriteModel.transform.multiply2(transform, this.#spriteModel.transform);
+    if (this.#position) {
+      this.#spriteModel.transform.multiply2(this.#position, this.#spriteModel.transform);
     }
     this.#spriteModel.orientation = this.#orientation * (s.orientation ?? 1);
     this.#spriteModel.animationId = this.#animationId ?? s.animationId ?? 0;
     this.#spriteModel.imageId = this.#imageId ?? s.imageId;
     return this.#spriteModel;
-  }
-
-  informUpdate(id: number, type?: SpriteUpdateType | undefined): void {
-    super.informUpdate(id, type);
-    this.elems.informUpdate?.(id, type);
   }
 }

@@ -40,12 +40,12 @@ export class CellUtils implements Cycle<Data> {
     return this.cellPool.create(x, y, z, cellSize);
   }
 
-  positionFromCell(cell: Cell): Vector {
-    return this.positionFromCellPos(cell.pos[0], cell.pos[1], cell.pos[2], cell.pos[3]);
-  }
-
-  positionFromCellPos(cx: number, cy: number, cz: number, cellSize: number) {
+  worldPosFromCell(cx: number, cy: number, cz: number, cellSize: number) {
     this.motor.scheduleUpdate(this, this.data);
     return this.vectorPool.create(cx * cellSize, cy * cellSize, cz * cellSize);
+  }
+
+  offset(vector: Vector, dx: number, dy: number, dz: number) {
+    return this.vectorPool.create(vector[0] + dx, vector[1] + dy, vector[2] + dz);
   }
 }

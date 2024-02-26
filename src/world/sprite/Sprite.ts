@@ -7,10 +7,10 @@ export type SpriteId = number;
 export type Frame = number;
 
 export interface Sprite {
-  imageId: MediaId;
-  readonly transform: Matrix;
   spriteType?: SpriteType;
+  imageId: MediaId;
   animationId?: AnimationId;
+  readonly transform: Matrix;
   orientation?: number;
   hidden?: boolean;
 }

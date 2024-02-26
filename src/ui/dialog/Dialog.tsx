@@ -1,6 +1,6 @@
 import { Popup } from 'ui/Popup';
 import { DialogData } from './model/DialogData';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useControlsLock as useControlsLock } from 'ui/useKeyboardLock';
 import { useGameContext } from 'ui/Provider';
 import { ControlsListener } from 'controls/ControlsListener';
@@ -13,11 +13,25 @@ export function Dialog({ dialogData }: Props) {
   const { lock, unlock } = useControlsLock();
   const [index, setIndex] = useState(0);
   const { setDialog, controls } = useGameContext();
+  useEffect(() => {
+    if (
+      dialogData &&
+      index >= dialogData.conversation.messages.length.valueOf()
+    ) {
+      setDialog(undefined);
+    }
+  }, [index, dialogData]);
+
+  const nextMessage = useCallback(() => {
+    if (dialogData) {
+      setIndex((value) => {
+        return value + 1;
+      });
+    }
+  }, [dialogData, setIndex]);
 
   useEffect(() => {
-    if (dialogData) {
-      setIndex(0);
-    }
+    setIndex(0);
   }, [dialogData]);
 
   useEffect((): (() => void) | void => {
@@ -26,16 +40,7 @@ export function Dialog({ dialogData }: Props) {
       const listener: ControlsListener = {
         onAction(controls) {
           if (controls.action) {
-            setIndex((value) => {
-              if (
-                value ===
-                dialogData.conversation.messages.length.valueOf() - 1
-              ) {
-                setDialog(undefined);
-                return 0;
-              }
-              return value + 1;
-            });
+            nextMessage();
           }
         },
       };
@@ -45,18 +50,29 @@ export function Dialog({ dialogData }: Props) {
         unlock();
       };
     }
-  }, [dialogData, setDialog, lock, unlock, controls]);
+  }, [dialogData, nextMessage, lock, unlock, controls]);
 
+  useEffect(() => {
+    const message = dialogData?.conversation.messages.at(index);
+    message?.action?.();
+    if (message?.next) {
+      nextMessage();
+    }
+  }, [index, dialogData, nextMessage]);
+
+  const text = dialogData?.conversation.messages.at(index)?.text;
   return (
     dialogData && (
       <Popup position={[50, 500]} size={[500, 150]}>
-        <div
-          style={{
-            padding: 10,
-          }}
-        >
-          {dialogData?.conversation.messages.at(index)?.text}
-        </div>
+        {text && (
+          <div
+            style={{
+              padding: 10,
+            }}
+          >
+            {text}
+          </div>
+        )}
       </Popup>
     )
   );

@@ -1,6 +1,7 @@
-import { ChangeListener, IPositionMatrix } from "dok-matrix";
+import { IMatrix, IPositionMatrix } from "dok-matrix";
 import { Auxiliary } from "./Auxiliary";
 import { Looper, IMotor, UpdatePayload } from "motor-loop";
+import { IChangeListener } from "change-listener";
 
 interface Props {
   followee: IPositionMatrix;
@@ -23,11 +24,13 @@ interface Data {
 export class FollowAuxiliary extends Looper<Data> implements Auxiliary {
   private readonly followee;
   private readonly config: Config;
-  private listener: ChangeListener = (dx, dy, dz) => {
-    if (dx && this.config.followX || dy && this.config.followY || dz && this.config.followZ) {
-      this.start();
+  private listener: IChangeListener<IMatrix> = {
+    onChange: () => {
+      if (this.config.followX || this.config.followY || this.config.followZ) {
+        this.start();
+      }
     }
-  }
+  };
 
   constructor({ followee, follower, motor }: Props, config?: Partial<Config>) {
     super({ motor, data: { followee, follower } }, { autoStart: false });
@@ -42,7 +45,7 @@ export class FollowAuxiliary extends Looper<Data> implements Auxiliary {
 
   activate(): void {
     super.activate();
-    this.followee.onChange(this.listener);
+    this.followee.addChangeListener(this.listener);
     this.start();
   }
 

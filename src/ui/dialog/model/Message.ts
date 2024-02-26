@@ -1,3 +1,5 @@
 export interface Message {
-  text: string;
+  text?: string;
+  action?(): void;
+  next?: boolean;
 }
