@@ -388,7 +388,7 @@ export class DemoGame extends AuxiliaryHolder {
         dobukiPosition[1],
         dobukiPosition[2] - CELLSIZE];
 
-      const body = new BodyModel({
+      const bodyModel = new BodyModel({
         colliders: [
           new CollisionDetector({
             blockerBox: blockBox, blockerPosition: dobukiBlockPosition, heroBox,
@@ -424,25 +424,25 @@ export class DemoGame extends AuxiliaryHolder {
         ],
       });
       const dobukiPosMatrix = new PositionMatrix().movedTo(dobukiPosition[0], dobukiPosition[1], dobukiPosition[2]);
-      body.addSprites(new SpriteGroup(
+      bodyModel.addSprites(new SpriteGroup(
         [{
           imageId: Assets.DOBUKI,
           spriteType: SpriteType.SPRITE,
           transform: Matrix.create().translate(0, -.3, -1),
         }],
         dobukiPosMatrix));
-      body.addSprites(new SpriteGroup(
+      bodyModel.addSprites(new SpriteGroup(
         new DisplayBox({ box: dobukiBox, imageId: Assets.WIREFRAME, insideImageId: Assets.WIREFRAME }),
         dobukiPosMatrix,
       ));
-      body.addSprites(new SpriteGroup(
+      bodyModel.addSprites(new SpriteGroup(
         new DisplayBox({ box: blockBox, imageId: Assets.WIREFRAME, insideImageId: Assets.WIREFRAME }),
         new PositionMatrix().movedTo(dobukiBlockPosition[0], dobukiBlockPosition[1], dobukiBlockPosition[2]),
       ));
 
-      worldColliders.add(body.colliders);
+      worldColliders.add(bodyModel.colliders);
 
-      const factory = new FixedSpriteFactory({ cellSize: CELLSIZE }, body.sprites);
+      const factory = new FixedSpriteFactory({ cellSize: CELLSIZE }, bodyModel.sprites);
       const creator = new SpriteCellCreator({ factory });
       spritesAccumulator.add(creator);
       cellTrackers.add(creator);

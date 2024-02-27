@@ -5,6 +5,7 @@ import { IPositionMatrix, MoveResult } from "dok-matrix";
 import { NumVal } from "progressive-value";
 import { ControlledLooper } from "updates/ControlledLooper";
 import { Vector, equal } from "dok-types";
+import { toCell } from "cell-tracker";
 
 interface Props {
   controls: IControls;
@@ -48,9 +49,9 @@ export class PositionStepAuxiliary extends ControlledLooper<Data> implements Aux
 
     const { step, position } = data;
     const pos = position.position;
-    const preX = Math.round(pos[0] / step) * step;
-    const preY = Math.round(pos[1] / step) * step;
-    const preZ = Math.round(pos[2] / step) * step;
+    const preX = toCell(pos[0], step) * step;
+    const preY = toCell(pos[1], step) * step;
+    const preZ = toCell(pos[2], step) * step;
 
     let dx = 0, dz = 0;
     if (forward) {
@@ -70,8 +71,8 @@ export class PositionStepAuxiliary extends ControlledLooper<Data> implements Aux
       const relativeDx = dx * Math.cos(turnGoal) - dz * Math.sin(turnGoal);
       const relativeDz = dx * Math.sin(turnGoal) + dz * Math.cos(turnGoal);
 
-      const gx = Math.round(pos[0] / step + relativeDx) * step;
-      const gz = Math.round(pos[2] / step + relativeDz) * step;
+      const gx = (toCell(pos[0], step) + relativeDx) * step;
+      const gz = (toCell(pos[2], step) + relativeDz) * step;
       this.#goalPos[0] = gx;
       this.#goalPos[2] = gz;
     }
@@ -84,24 +85,24 @@ export class PositionStepAuxiliary extends ControlledLooper<Data> implements Aux
       speed *= this.#airBoost;
     }
 
-    let moveResult = data.position.gotoPos(this.#goalPos[0], pos[1], this.#goalPos[2], speed);
+    let moveResult = data.position.moveTowards(this.#goalPos[0], pos[1], this.#goalPos[2], speed);
     if (moveResult === MoveResult.BLOCKED && dx) {
-      moveResult = data.position.gotoPos(this.#goalPos[0], pos[1], pos[2], speed);
+      moveResult = data.position.moveTowards(this.#goalPos[0], pos[1], pos[2], speed);
     }
     if (moveResult === MoveResult.BLOCKED && dz) {
-      moveResult = data.position.gotoPos(pos[0], pos[1], this.#goalPos[2], speed);
+      moveResult = data.position.moveTowards(pos[0], pos[1], this.#goalPos[2], speed);
     }
 
     if (moveResult === MoveResult.BLOCKED) {
-      const gx = Math.round(pos[0] / step) * step;
-      const gz = Math.round(pos[2] / step) * step;
+      const gx = toCell(pos[0], step) * step;
+      const gz = toCell(pos[2], step) * step;
       this.#goalPos[0] = gx;
       this.#goalPos[2] = gz;
     }
     const newPos = position.position;
-    if (Math.round(newPos[0] / step) * step !== preX
-      || Math.round(newPos[1] / step) * step !== preY
-      || Math.round(newPos[2] / step) * step !== preZ) {
+    if (toCell(newPos[0], step) * step !== preX
+      || toCell(newPos[1], step) * step !== preY
+      || toCell(newPos[2], step) * step !== preZ) {
       this.#stepCount++;
     }
     if (!backward && !forward && !left && !right && equal(newPos, this.#goalPos)) {

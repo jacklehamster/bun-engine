@@ -59,7 +59,7 @@ export class FollowAuxiliary extends Looper<Data> implements Auxiliary {
     const x = followX ? data.followee.position[0] : data.follower.position[0];
     const y = followY ? data.followee.position[1] : data.follower.position[1];
     const z = followZ ? data.followee.position[2] : data.follower.position[2];
-    data.follower.gotoPos(x, y, z, speed);
+    data.follower.moveTowards(x, y, z, speed);
     if (data.followee.position[0] === data.follower.position[0]
       && data.followee.position[1] === data.follower.position[1]
       && data.followee.position[2] === data.follower.position[2]) {

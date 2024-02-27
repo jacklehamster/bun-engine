@@ -56,7 +56,7 @@ export class StepBackAuxiliary extends Looper<Data> implements Auxiliary, IVisit
 
   refresh({ deltaTime, data, stopUpdate }: UpdatePayload<Data>): void {
     const speed = deltaTime / 50 * data.speed;
-    let moveResult = data.position.gotoPos(this.#previousCellPos[0] * data.step, this.#previousCellPos[1] * data.step, this.#previousCellPos[2] * data.step, speed);
+    let moveResult = data.position.moveTowards(this.#previousCellPos[0] * data.step, this.#previousCellPos[1] * data.step, this.#previousCellPos[2] * data.step, speed);
     if (moveResult !== MoveResult.MOVED) {
       stopUpdate();
     }

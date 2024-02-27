@@ -45795,7 +45795,7 @@ class t0 {
   movedTo(B2, K2, W2) {
     return this.moveTo(B2, K2, W2), this;
   }
-  gotoPos(B2, K2, W2, X2 = 0.1) {
+  moveTowards(B2, K2, W2, X2 = 0.1) {
     const Y = this.position, $2 = B2 - Y[0], Q3 = K2 - Y[1], Z2 = W2 - Y[2], O3 = Math.sqrt($2 * $2 + Q3 * Q3 + Z2 * Z2);
     if (O3 > 0.01) {
       const G2 = Math.min(O3, X2);
@@ -46808,6 +46808,329 @@ class m2 {
   }
 }
 var H3 = -1;
+var N3 = function(m32, Y2, w3, H4) {
+  const J = Z3(m32, Y2, w3, H4), V22 = m32 * H4, W3 = Y2 * H4, K2 = w3 * H4;
+  return { pos: [m32, Y2, w3, H4], worldPosition: [V22, W3, K2], tag: J };
+};
+var X3 = function(m32, Y2, w3, H4, J) {
+  const V22 = Z3(Y2, w3, H4, J), W3 = Y2 * J, K2 = w3 * J, $3 = H4 * J;
+  return m32.worldPosition[0] = W3, m32.worldPosition[1] = K2, m32.worldPosition[2] = $3, m32.pos[0] = Y2, m32.pos[1] = w3, m32.pos[2] = H4, m32.pos[3] = J, m32.tag = V22, m32;
+};
+var Z3 = function(m32, Y2, w3, H4) {
+  return m32 + "," + Y2 + "," + w3 + "|" + H4;
+};
+var j2 = function(m32, Y2) {
+  return Math.round(m32 / Y2);
+};
+var b2 = function(m32, Y2) {
+  return new M2({ tracker: m32, boundary: Y2 });
+};
+var u3 = 3;
+
+class B4 {
+  i;
+  f;
+  warningLimit = 50000;
+  #m = new Set;
+  #Y = [];
+  constructor(m32, Y2) {
+    this.initCall = m32, this.onRecycle = Y2;
+  }
+  create(...m32) {
+    const Y2 = this.#Y.pop();
+    if (Y2)
+      return this.#m.add(Y2), this.initCall(Y2, ...m32);
+    const w3 = this.initCall(undefined, ...m32);
+    return this.#m.add(w3), this.#H(), w3;
+  }
+  recycle(m32) {
+    this.#m.delete(m32), this.#w(m32);
+  }
+  recycleAll() {
+    for (let m32 of this.#m)
+      this.#w(m32);
+    this.#m.clear();
+  }
+  clear() {
+    this.#Y.length = 0, this.#m.clear();
+  }
+  countObjectsInExistence() {
+    return this.#m.size + this.#Y.length;
+  }
+  #w(m32) {
+    this.#Y.push(m32), this.onRecycle?.(m32);
+  }
+  #H() {
+    if (this.countObjectsInExistence() === this.warningLimit)
+      console.warn("ObjectPool already created", this.#m.size + this.#Y.length, "in", this.constructor.name);
+  }
+}
+
+class Q3 extends B4 {
+  constructor() {
+    super((m32, Y2, w3, H4, J) => {
+      return !m32 ? N3(Y2, w3, H4, J) : X3(m32, Y2, w3, H4, J);
+    });
+  }
+  createFromPos(m32, Y2) {
+    const w3 = j2(m32[0], Y2), H4 = j2(m32[1], Y2), J = j2(m32[2], Y2);
+    return this.create(w3, H4, J, Y2);
+  }
+}
+
+class G4 {
+  #m = new Set;
+  add(m32) {
+    this.#m.add(m32);
+  }
+  remove(m32) {
+    this.#m.delete(m32);
+  }
+  trackCell(m32) {
+    let Y2 = false;
+    return this.#m.forEach((w3) => {
+      if (w3.trackCell(m32))
+        Y2 = true;
+    }), Y2;
+  }
+  untrackCells(m32) {
+    this.#m.forEach((Y2) => {
+      Y2.untrackCells(m32);
+    });
+  }
+}
+
+class I {
+  i;
+  f;
+  warningLimit = 50000;
+  #m = new Set;
+  #Y = [];
+  constructor(m32, Y2) {
+    this.initCall = m32, this.onRecycle = Y2;
+  }
+  create(...m32) {
+    const Y2 = this.#Y.pop();
+    if (Y2)
+      return this.#m.add(Y2), this.initCall(Y2, ...m32);
+    const w3 = this.initCall(undefined, ...m32);
+    return this.#m.add(w3), this.#H(), w3;
+  }
+  recycle(m32) {
+    this.#m.delete(m32), this.#w(m32);
+  }
+  recycleAll() {
+    for (let m32 of this.#m)
+      this.#w(m32);
+    this.#m.clear();
+  }
+  clear() {
+    this.#Y.length = 0, this.#m.clear();
+  }
+  countObjectsInExistence() {
+    return this.#m.size + this.#Y.length;
+  }
+  #w(m32) {
+    this.#Y.push(m32), this.onRecycle?.(m32);
+  }
+  #H() {
+    if (this.countObjectsInExistence() === this.warningLimit)
+      console.warn("ObjectPool already created", this.#m.size + this.#Y.length, "in", this.constructor.name);
+  }
+}
+
+class R3 {
+  F;
+  #m;
+  #Y;
+  #w = new Map;
+  constructor(m32, Y2 = new _4) {
+    this.pool = Y2, this.#m = { value: m32 }, this.#Y = { value: m32 }, this.#m.next = this.#Y, this.#Y.prev = this.#m;
+  }
+  clear() {
+    while (this.#J(this.#m.next))
+      ;
+  }
+  get size() {
+    return this.#w.size;
+  }
+  contains(m32) {
+    return this.#w.has(m32);
+  }
+  pushTop(m32) {
+    this.#Q(this.#K(m32));
+  }
+  pushBottom(m32) {
+    this.#V(this.#K(m32));
+  }
+  moveToTop(m32) {
+    const Y2 = this.#w.get(m32);
+    if (Y2)
+      return this.#H(Y2), this.#Q(Y2), true;
+    return false;
+  }
+  moveToBottom(m32) {
+    const Y2 = this.#w.get(m32);
+    if (Y2)
+      return this.#H(Y2), this.#V(Y2), true;
+    return false;
+  }
+  popBottom() {
+    return this.#J(this.#m.next);
+  }
+  popTop() {
+    return this.#J(this.#Y.prev);
+  }
+  #H(m32) {
+    if (m32 === this.#Y || m32 === this.#m)
+      return false;
+    if (m32.prev && m32.next)
+      m32.prev.next = m32.next, m32.next.prev = m32.prev;
+    return m32.prev = m32.next = undefined, true;
+  }
+  #K(m32) {
+    const Y2 = this.pool.create(m32);
+    return this.#w.set(m32, Y2), Y2;
+  }
+  #J(m32) {
+    if (!this.#H(m32))
+      return;
+    return this.pool.recycle(m32), this.#w.delete(m32.value), m32.value;
+  }
+  #Q(m32) {
+    const Y2 = this.#Y.prev, w3 = m32;
+    w3.prev = Y2, w3.next = this.#Y, Y2.next = this.#Y.prev = w3;
+  }
+  #V(m32) {
+    const Y2 = this.#m.next, w3 = m32;
+    w3.next = Y2, w3.prev = this.#m, Y2.prev = this.#m.next = w3;
+  }
+}
+
+class _4 extends I {
+  constructor() {
+    super((m32, Y2) => {
+      if (!m32)
+        return { value: Y2 };
+      return m32.value = Y2, m32.prev = undefined, m32.next = undefined, m32;
+    });
+  }
+}
+var U = [3, 3, 3];
+
+class A5 {
+  cellTags = new R3("");
+  cellTrack;
+  cellPool = new Q3;
+  range;
+  base;
+  cellLimit;
+  cellSize;
+  _trimmedTags = new Set;
+  constructor({ cellTrack: m32 }, { range: Y2, cellLimit: w3, cellSize: H4 = 1 } = {}) {
+    this.range = [Y2?.[0] ?? U[0], Y2?.[1] ?? U[1], Y2?.[2] ?? U[2]], this.base = this.range.map((J) => Math.ceil(-J / 2)), this.cellLimit = Math.max(0, w3 ?? 10), this.cellSize = H4 ?? 1, this.cellTrack = m32;
+  }
+  onCell(m32) {
+    this.#m(m32), this.#w();
+  }
+  #m(m32) {
+    const { range: Y2, base: w3 } = this, { pos: H4 } = m32, J = H4[0] + w3[0], V22 = H4[1] + w3[1], W3 = H4[2] + w3[2];
+    for (let K2 = 0;K2 < Y2[0]; K2++)
+      for (let $3 = 0;$3 < Y2[2]; $3++)
+        for (let O4 = 0;O4 < Y2[1]; O4++)
+          this.#Y(this.cellPool.create(J + $3, V22 + O4, W3 + K2, this.cellSize));
+    this.cellPool.clear();
+  }
+  #Y(m32) {
+    if (!this.cellTags.contains(m32.tag)) {
+      if (this.cellTrack.trackCell(m32))
+        this.cellTags.pushTop(m32.tag);
+    } else
+      this.cellTags.moveToTop(m32.tag);
+  }
+  #w() {
+    while (this.cellTags.size > this.cellLimit) {
+      const m32 = this.cellTags.popBottom();
+      if (m32)
+        this._trimmedTags.add(m32);
+      else
+        break;
+    }
+    if (this._trimmedTags.size)
+      this.cellTrack.untrackCells(this._trimmedTags), this._trimmedTags.clear();
+  }
+  deactivate() {
+    this.cellTags.clear();
+  }
+}
+
+class M2 {
+  #m;
+  #Y;
+  constructor({ boundary: m32, tracker: Y2 }) {
+    this.#m = m32, this.#Y = Y2;
+  }
+  trackCell(m32) {
+    if (!this.#m.include(m32))
+      return false;
+    return this.#Y.trackCell(m32);
+  }
+  untrackCells(m32) {
+    this.#Y.untrackCells(m32);
+  }
+}
+
+class h {
+  minX;
+  maxX;
+  minY;
+  maxY;
+  minZ;
+  maxZ;
+  constructor(m32) {
+    this.minX = m32?.xRange?.[0] ?? Number.NEGATIVE_INFINITY, this.maxX = m32?.xRange?.[1] ?? Number.POSITIVE_INFINITY, this.minY = m32?.yRange?.[0] ?? Number.NEGATIVE_INFINITY, this.maxY = m32?.yRange?.[1] ?? Number.POSITIVE_INFINITY, this.minZ = m32?.zRange?.[0] ?? Number.NEGATIVE_INFINITY, this.maxZ = m32?.zRange?.[1] ?? Number.POSITIVE_INFINITY;
+  }
+  include(m32) {
+    const Y2 = m32.pos[0], w3 = m32.pos[1], H4 = m32.pos[2];
+    if (Y2 < this.minX || this.maxX < Y2 || w3 < this.minY || this.maxY < w3 || H4 < this.minZ || this.maxZ < H4)
+      return false;
+    return true;
+  }
+}
+
+class E3 {
+  #m = new Set;
+  positionMatrix;
+  previousCell;
+  listener = { onChange: () => this.#w(this.positionMatrix) };
+  #Y = new Q3;
+  constructor({ positionMatrix: m32 }, Y2) {
+    const w3 = Y2?.cellSize ?? 1;
+    this.previousCell = this.#Y.create(Number.NaN, Number.NaN, Number.NaN, w3), this.positionMatrix = m32;
+  }
+  addListener(m32) {
+    return this.#m.add(m32), this;
+  }
+  removeListener(m32) {
+    this.#m.delete(m32);
+  }
+  #w(m32) {
+    let Y2 = this.#Y.createFromPos(m32.position, this.previousCell.pos[u3]);
+    if (this.previousCell.pos[0] !== Y2.pos[0] || this.previousCell.pos[1] !== Y2.pos[1] || this.previousCell.pos[2] !== Y2.pos[2]) {
+      for (let H4 of this.#m)
+        H4.onCell(Y2, this.previousCell);
+      const w3 = this.previousCell;
+      this.previousCell = Y2, Y2 = w3;
+    }
+    this.#Y.recycle(Y2);
+  }
+  activate() {
+    this.positionMatrix.addChangeListener(this.listener), this.previousCell.pos[0] = Number.NaN, this.previousCell.pos[1] = Number.NaN, this.previousCell.pos[2] = Number.NaN, this.#w(this.positionMatrix);
+  }
+  deactivate() {
+    this.positionMatrix.removeChangeListener(this.listener);
+  }
+}
 
 class PositionStepAuxiliary extends ControlledLooper {
   #goalPos;
@@ -46826,9 +47149,9 @@ class PositionStepAuxiliary extends ControlledLooper {
     const { backward, forward, left, right } = data.controls;
     const { step, position } = data;
     const pos = position.position;
-    const preX = Math.round(pos[0] / step) * step;
-    const preY = Math.round(pos[1] / step) * step;
-    const preZ = Math.round(pos[2] / step) * step;
+    const preX = j2(pos[0], step) * step;
+    const preY = j2(pos[1], step) * step;
+    const preZ = j2(pos[2], step) * step;
     let dx = 0, dz = 0;
     if (forward) {
       dz--;
@@ -46846,8 +47169,8 @@ class PositionStepAuxiliary extends ControlledLooper {
     if (dx || dz || this.#stepCount > 0) {
       const relativeDx = dx * Math.cos(turnGoal) - dz * Math.sin(turnGoal);
       const relativeDz = dx * Math.sin(turnGoal) + dz * Math.cos(turnGoal);
-      const gx = Math.round(pos[0] / step + relativeDx) * step;
-      const gz = Math.round(pos[2] / step + relativeDz) * step;
+      const gx = (j2(pos[0], step) + relativeDx) * step;
+      const gz = (j2(pos[2], step) + relativeDz) * step;
       this.#goalPos[0] = gx;
       this.#goalPos[2] = gz;
     }
@@ -46858,21 +47181,21 @@ class PositionStepAuxiliary extends ControlledLooper {
     if (data.position.position[1] > 0) {
       speed *= this.#airBoost;
     }
-    let moveResult = data.position.gotoPos(this.#goalPos[0], pos[1], this.#goalPos[2], speed);
+    let moveResult = data.position.moveTowards(this.#goalPos[0], pos[1], this.#goalPos[2], speed);
     if (moveResult === d.BLOCKED && dx) {
-      moveResult = data.position.gotoPos(this.#goalPos[0], pos[1], pos[2], speed);
+      moveResult = data.position.moveTowards(this.#goalPos[0], pos[1], pos[2], speed);
     }
     if (moveResult === d.BLOCKED && dz) {
-      moveResult = data.position.gotoPos(pos[0], pos[1], this.#goalPos[2], speed);
+      moveResult = data.position.moveTowards(pos[0], pos[1], this.#goalPos[2], speed);
     }
     if (moveResult === d.BLOCKED) {
-      const gx = Math.round(pos[0] / step) * step;
-      const gz = Math.round(pos[2] / step) * step;
+      const gx = j2(pos[0], step) * step;
+      const gz = j2(pos[2], step) * step;
       this.#goalPos[0] = gx;
       this.#goalPos[2] = gz;
     }
     const newPos = position.position;
-    if (Math.round(newPos[0] / step) * step !== preX || Math.round(newPos[1] / step) * step !== preY || Math.round(newPos[2] / step) * step !== preZ) {
+    if (j2(newPos[0], step) * step !== preX || j2(newPos[1], step) * step !== preY || j2(newPos[2], step) * step !== preZ) {
       this.#stepCount++;
     }
     if (!backward && !forward && !left && !right && G3(newPos, this.#goalPos)) {
@@ -47011,19 +47334,19 @@ class SpriteGroup extends ItemsGroup {
   setOrientation(value) {
     if (this.#orientation !== value) {
       this.#orientation = value;
-      x3(this.elems, (_4, index) => this.informUpdate(index, SpriteUpdateType.TEX_SLOT));
+      x3(this.elems, (_5, index) => this.informUpdate(index, SpriteUpdateType.TEX_SLOT));
     }
   }
   setAnimationId(value) {
     if (this.#animationId !== value) {
       this.#animationId = value;
-      x3(this.elems, (_4, index) => this.informUpdate(index, SpriteUpdateType.ANIM));
+      x3(this.elems, (_5, index) => this.informUpdate(index, SpriteUpdateType.ANIM));
     }
   }
   setImageId(value) {
     if (this.#imageId !== value) {
       this.#imageId = value;
-      x3(this.elems, (_4, index) => this.informUpdate(index, SpriteUpdateType.TEX_SLOT));
+      x3(this.elems, (_5, index) => this.informUpdate(index, SpriteUpdateType.TEX_SLOT));
     }
   }
   at(index) {
@@ -47377,7 +47700,7 @@ class FollowAuxiliary extends N {
     const x5 = followX ? data.followee.position[0] : data.follower.position[0];
     const y22 = followY ? data.followee.position[1] : data.follower.position[1];
     const z5 = followZ ? data.followee.position[2] : data.follower.position[2];
-    data.follower.gotoPos(x5, y22, z5, speed);
+    data.follower.moveTowards(x5, y22, z5, speed);
     if (data.followee.position[0] === data.follower.position[0] && data.followee.position[1] === data.follower.position[1] && data.followee.position[2] === data.follower.position[2]) {
       stopUpdate();
     }
@@ -47539,14 +47862,14 @@ class FadeApiAuxiliary {
 }
 var k = (m32) => {
   if (m32) {
-    const j2 = m32.getImageData(0, 0, m32.canvas.width, m32.canvas.height), { data: f2 } = j2;
-    for (let b2 = 0;b2 < f2.length; b2 += 4)
-      f2[b2] = f2[b2 + 1] = f2[b2 + 2] = 0;
-    m32.putImageData(j2, 0, 0);
+    const j32 = m32.getImageData(0, 0, m32.canvas.width, m32.canvas.height), { data: f2 } = j32;
+    for (let b3 = 0;b3 < f2.length; b3 += 4)
+      f2[b3] = f2[b3 + 1] = f2[b3 + 2] = 0;
+    m32.putImageData(j32, 0, 0);
   }
 };
 
-class h {
+class h2 {
   i;
   f;
   warningLimit = 50000;
@@ -47641,7 +47964,7 @@ class SpriteCellCreator extends X2 {
   }
 }
 
-class SlotPool extends h {
+class SlotPool extends h2 {
   constructor(copy) {
     super((slot, elem, tag) => {
       if (!slot) {
@@ -47651,329 +47974,6 @@ class SlotPool extends h {
       slot.tag = tag;
       return slot;
     });
-  }
-}
-var N3 = function(m32, Y2, w3, H4) {
-  const J = Z3(m32, Y2, w3, H4), V22 = m32 * H4, W3 = Y2 * H4, K2 = w3 * H4;
-  return { pos: [m32, Y2, w3, H4], worldPosition: [V22, W3, K2], tag: J };
-};
-var X3 = function(m32, Y2, w3, H4, J) {
-  const V22 = Z3(Y2, w3, H4, J), W3 = Y2 * J, K2 = w3 * J, $3 = H4 * J;
-  return m32.worldPosition[0] = W3, m32.worldPosition[1] = K2, m32.worldPosition[2] = $3, m32.pos[0] = Y2, m32.pos[1] = w3, m32.pos[2] = H4, m32.pos[3] = J, m32.tag = V22, m32;
-};
-var Z3 = function(m32, Y2, w3, H4) {
-  return m32 + "," + Y2 + "," + w3 + "|" + H4;
-};
-var j2 = function(m32, Y2) {
-  return Math.round(m32 / Y2);
-};
-var b2 = function(m32, Y2) {
-  return new M2({ tracker: m32, boundary: Y2 });
-};
-var u3 = 3;
-
-class B4 {
-  i;
-  f;
-  warningLimit = 50000;
-  #m = new Set;
-  #Y = [];
-  constructor(m32, Y2) {
-    this.initCall = m32, this.onRecycle = Y2;
-  }
-  create(...m32) {
-    const Y2 = this.#Y.pop();
-    if (Y2)
-      return this.#m.add(Y2), this.initCall(Y2, ...m32);
-    const w3 = this.initCall(undefined, ...m32);
-    return this.#m.add(w3), this.#H(), w3;
-  }
-  recycle(m32) {
-    this.#m.delete(m32), this.#w(m32);
-  }
-  recycleAll() {
-    for (let m32 of this.#m)
-      this.#w(m32);
-    this.#m.clear();
-  }
-  clear() {
-    this.#Y.length = 0, this.#m.clear();
-  }
-  countObjectsInExistence() {
-    return this.#m.size + this.#Y.length;
-  }
-  #w(m32) {
-    this.#Y.push(m32), this.onRecycle?.(m32);
-  }
-  #H() {
-    if (this.countObjectsInExistence() === this.warningLimit)
-      console.warn("ObjectPool already created", this.#m.size + this.#Y.length, "in", this.constructor.name);
-  }
-}
-
-class Q3 extends B4 {
-  constructor() {
-    super((m32, Y2, w3, H4, J) => {
-      return !m32 ? N3(Y2, w3, H4, J) : X3(m32, Y2, w3, H4, J);
-    });
-  }
-  createFromPos(m32, Y2) {
-    const w3 = j2(m32[0], Y2), H4 = j2(m32[1], Y2), J = j2(m32[2], Y2);
-    return this.create(w3, H4, J, Y2);
-  }
-}
-
-class G4 {
-  #m = new Set;
-  add(m32) {
-    this.#m.add(m32);
-  }
-  remove(m32) {
-    this.#m.delete(m32);
-  }
-  trackCell(m32) {
-    let Y2 = false;
-    return this.#m.forEach((w3) => {
-      if (w3.trackCell(m32))
-        Y2 = true;
-    }), Y2;
-  }
-  untrackCells(m32) {
-    this.#m.forEach((Y2) => {
-      Y2.untrackCells(m32);
-    });
-  }
-}
-
-class I {
-  i;
-  f;
-  warningLimit = 50000;
-  #m = new Set;
-  #Y = [];
-  constructor(m32, Y2) {
-    this.initCall = m32, this.onRecycle = Y2;
-  }
-  create(...m32) {
-    const Y2 = this.#Y.pop();
-    if (Y2)
-      return this.#m.add(Y2), this.initCall(Y2, ...m32);
-    const w3 = this.initCall(undefined, ...m32);
-    return this.#m.add(w3), this.#H(), w3;
-  }
-  recycle(m32) {
-    this.#m.delete(m32), this.#w(m32);
-  }
-  recycleAll() {
-    for (let m32 of this.#m)
-      this.#w(m32);
-    this.#m.clear();
-  }
-  clear() {
-    this.#Y.length = 0, this.#m.clear();
-  }
-  countObjectsInExistence() {
-    return this.#m.size + this.#Y.length;
-  }
-  #w(m32) {
-    this.#Y.push(m32), this.onRecycle?.(m32);
-  }
-  #H() {
-    if (this.countObjectsInExistence() === this.warningLimit)
-      console.warn("ObjectPool already created", this.#m.size + this.#Y.length, "in", this.constructor.name);
-  }
-}
-
-class R3 {
-  F;
-  #m;
-  #Y;
-  #w = new Map;
-  constructor(m32, Y2 = new _4) {
-    this.pool = Y2, this.#m = { value: m32 }, this.#Y = { value: m32 }, this.#m.next = this.#Y, this.#Y.prev = this.#m;
-  }
-  clear() {
-    while (this.#J(this.#m.next))
-      ;
-  }
-  get size() {
-    return this.#w.size;
-  }
-  contains(m32) {
-    return this.#w.has(m32);
-  }
-  pushTop(m32) {
-    this.#Q(this.#K(m32));
-  }
-  pushBottom(m32) {
-    this.#V(this.#K(m32));
-  }
-  moveToTop(m32) {
-    const Y2 = this.#w.get(m32);
-    if (Y2)
-      return this.#H(Y2), this.#Q(Y2), true;
-    return false;
-  }
-  moveToBottom(m32) {
-    const Y2 = this.#w.get(m32);
-    if (Y2)
-      return this.#H(Y2), this.#V(Y2), true;
-    return false;
-  }
-  popBottom() {
-    return this.#J(this.#m.next);
-  }
-  popTop() {
-    return this.#J(this.#Y.prev);
-  }
-  #H(m32) {
-    if (m32 === this.#Y || m32 === this.#m)
-      return false;
-    if (m32.prev && m32.next)
-      m32.prev.next = m32.next, m32.next.prev = m32.prev;
-    return m32.prev = m32.next = undefined, true;
-  }
-  #K(m32) {
-    const Y2 = this.pool.create(m32);
-    return this.#w.set(m32, Y2), Y2;
-  }
-  #J(m32) {
-    if (!this.#H(m32))
-      return;
-    return this.pool.recycle(m32), this.#w.delete(m32.value), m32.value;
-  }
-  #Q(m32) {
-    const Y2 = this.#Y.prev, w3 = m32;
-    w3.prev = Y2, w3.next = this.#Y, Y2.next = this.#Y.prev = w3;
-  }
-  #V(m32) {
-    const Y2 = this.#m.next, w3 = m32;
-    w3.next = Y2, w3.prev = this.#m, Y2.prev = this.#m.next = w3;
-  }
-}
-
-class _4 extends I {
-  constructor() {
-    super((m32, Y2) => {
-      if (!m32)
-        return { value: Y2 };
-      return m32.value = Y2, m32.prev = undefined, m32.next = undefined, m32;
-    });
-  }
-}
-var U = [3, 3, 3];
-
-class A5 {
-  cellTags = new R3("");
-  cellTrack;
-  cellPool = new Q3;
-  range;
-  base;
-  cellLimit;
-  cellSize;
-  _trimmedTags = new Set;
-  constructor({ cellTrack: m32 }, { range: Y2, cellLimit: w3, cellSize: H4 = 1 } = {}) {
-    this.range = [Y2?.[0] ?? U[0], Y2?.[1] ?? U[1], Y2?.[2] ?? U[2]], this.base = this.range.map((J) => Math.ceil(-J / 2)), this.cellLimit = Math.max(0, w3 ?? 10), this.cellSize = H4 ?? 1, this.cellTrack = m32;
-  }
-  onCell(m32) {
-    this.#m(m32), this.#w();
-  }
-  #m(m32) {
-    const { range: Y2, base: w3 } = this, { pos: H4 } = m32, J = H4[0] + w3[0], V22 = H4[1] + w3[1], W3 = H4[2] + w3[2];
-    for (let K2 = 0;K2 < Y2[0]; K2++)
-      for (let $3 = 0;$3 < Y2[2]; $3++)
-        for (let O4 = 0;O4 < Y2[1]; O4++)
-          this.#Y(this.cellPool.create(J + $3, V22 + O4, W3 + K2, this.cellSize));
-    this.cellPool.clear();
-  }
-  #Y(m32) {
-    if (!this.cellTags.contains(m32.tag)) {
-      if (this.cellTrack.trackCell(m32))
-        this.cellTags.pushTop(m32.tag);
-    } else
-      this.cellTags.moveToTop(m32.tag);
-  }
-  #w() {
-    while (this.cellTags.size > this.cellLimit) {
-      const m32 = this.cellTags.popBottom();
-      if (m32)
-        this._trimmedTags.add(m32);
-      else
-        break;
-    }
-    if (this._trimmedTags.size)
-      this.cellTrack.untrackCells(this._trimmedTags), this._trimmedTags.clear();
-  }
-  deactivate() {
-    this.cellTags.clear();
-  }
-}
-
-class M2 {
-  #m;
-  #Y;
-  constructor({ boundary: m32, tracker: Y2 }) {
-    this.#m = m32, this.#Y = Y2;
-  }
-  trackCell(m32) {
-    if (!this.#m.include(m32))
-      return false;
-    return this.#Y.trackCell(m32);
-  }
-  untrackCells(m32) {
-    this.#Y.untrackCells(m32);
-  }
-}
-
-class h2 {
-  minX;
-  maxX;
-  minY;
-  maxY;
-  minZ;
-  maxZ;
-  constructor(m32) {
-    this.minX = m32?.xRange?.[0] ?? Number.NEGATIVE_INFINITY, this.maxX = m32?.xRange?.[1] ?? Number.POSITIVE_INFINITY, this.minY = m32?.yRange?.[0] ?? Number.NEGATIVE_INFINITY, this.maxY = m32?.yRange?.[1] ?? Number.POSITIVE_INFINITY, this.minZ = m32?.zRange?.[0] ?? Number.NEGATIVE_INFINITY, this.maxZ = m32?.zRange?.[1] ?? Number.POSITIVE_INFINITY;
-  }
-  include(m32) {
-    const Y2 = m32.pos[0], w3 = m32.pos[1], H4 = m32.pos[2];
-    if (Y2 < this.minX || this.maxX < Y2 || w3 < this.minY || this.maxY < w3 || H4 < this.minZ || this.maxZ < H4)
-      return false;
-    return true;
-  }
-}
-
-class E3 {
-  #m = new Set;
-  positionMatrix;
-  previousCell;
-  listener = { onChange: () => this.#w(this.positionMatrix) };
-  #Y = new Q3;
-  constructor({ positionMatrix: m32 }, Y2) {
-    const w3 = Y2?.cellSize ?? 1;
-    this.previousCell = this.#Y.create(Number.NaN, Number.NaN, Number.NaN, w3), this.positionMatrix = m32;
-  }
-  addListener(m32) {
-    return this.#m.add(m32), this;
-  }
-  removeListener(m32) {
-    this.#m.delete(m32);
-  }
-  #w(m32) {
-    let Y2 = this.#Y.createFromPos(m32.position, this.previousCell.pos[u3]);
-    if (this.previousCell.pos[0] !== Y2.pos[0] || this.previousCell.pos[1] !== Y2.pos[1] || this.previousCell.pos[2] !== Y2.pos[2]) {
-      for (let H4 of this.#m)
-        H4.onCell(Y2, this.previousCell);
-      const w3 = this.previousCell;
-      this.previousCell = Y2, Y2 = w3;
-    }
-    this.#Y.recycle(Y2);
-  }
-  activate() {
-    this.positionMatrix.addChangeListener(this.listener), this.previousCell.pos[0] = Number.NaN, this.previousCell.pos[1] = Number.NaN, this.previousCell.pos[2] = Number.NaN, this.#w(this.positionMatrix);
-  }
-  deactivate() {
-    this.positionMatrix.removeChangeListener(this.listener);
   }
 }
 
@@ -48010,7 +48010,7 @@ class FixedSpriteFactory extends AuxiliaryHolder {
 }
 var import_seedrandom = __toESM(require_seedrandom2(), 1);
 
-class SpritePool extends h {
+class SpritePool extends h2 {
   constructor() {
     super((sprite, imageId) => {
       if (!sprite) {
@@ -48054,7 +48054,7 @@ class StepBackAuxiliary extends N {
   }
   refresh({ deltaTime, data, stopUpdate }) {
     const speed = deltaTime / 50 * data.speed;
-    let moveResult = data.position.gotoPos(this.#previousCellPos[0] * data.step, this.#previousCellPos[1] * data.step, this.#previousCellPos[2] * data.step, speed);
+    let moveResult = data.position.moveTowards(this.#previousCellPos[0] * data.step, this.#previousCellPos[1] * data.step, this.#previousCellPos[2] * data.step, speed);
     if (moveResult !== d.MOVED) {
       stopUpdate();
     }
@@ -48435,7 +48435,7 @@ class DemoGame extends AuxiliaryHolder {
         dobukiPosition[1],
         dobukiPosition[2] - CELLSIZE
       ];
-      const body = new BodyModel({
+      const bodyModel = new BodyModel({
         colliders: [
           new CollisionDetector({
             blockerBox: blockBox,
@@ -48475,15 +48475,15 @@ class DemoGame extends AuxiliaryHolder {
         ]
       });
       const dobukiPosMatrix = new t0().movedTo(dobukiPosition[0], dobukiPosition[1], dobukiPosition[2]);
-      body.addSprites(new SpriteGroup([{
+      bodyModel.addSprites(new SpriteGroup([{
         imageId: Assets.DOBUKI,
         spriteType: SpriteType.SPRITE,
         transform: w2.create().translate(0, -0.3, -1)
       }], dobukiPosMatrix));
-      body.addSprites(new SpriteGroup(new DisplayBox({ box: dobukiBox, imageId: Assets.WIREFRAME, insideImageId: Assets.WIREFRAME }), dobukiPosMatrix));
-      body.addSprites(new SpriteGroup(new DisplayBox({ box: blockBox, imageId: Assets.WIREFRAME, insideImageId: Assets.WIREFRAME }), new t0().movedTo(dobukiBlockPosition[0], dobukiBlockPosition[1], dobukiBlockPosition[2])));
-      worldColliders.add(body.colliders);
-      const factory = new FixedSpriteFactory({ cellSize: CELLSIZE }, body.sprites);
+      bodyModel.addSprites(new SpriteGroup(new DisplayBox({ box: dobukiBox, imageId: Assets.WIREFRAME, insideImageId: Assets.WIREFRAME }), dobukiPosMatrix));
+      bodyModel.addSprites(new SpriteGroup(new DisplayBox({ box: blockBox, imageId: Assets.WIREFRAME, insideImageId: Assets.WIREFRAME }), new t0().movedTo(dobukiBlockPosition[0], dobukiBlockPosition[1], dobukiBlockPosition[2])));
+      worldColliders.add(bodyModel.colliders);
+      const factory = new FixedSpriteFactory({ cellSize: CELLSIZE }, bodyModel.sprites);
       const creator = new SpriteCellCreator({ factory });
       spritesAccumulator.add(creator);
       cellTrackers.add(creator);
@@ -48525,8 +48525,8 @@ class DemoGame extends AuxiliaryHolder {
     const camera = this.camera = new Camera({ engine, motor, position: camPosition });
     this.addAuxiliary(camera);
     {
-      const arrayPool = new h((a2) => a2 ?? [], (a2) => a2.length = 0);
-      const arrayPool2 = new h((a2) => a2 ?? [], (a2) => a2.length = 0);
+      const arrayPool = new h2((a2) => a2 ?? [], (a2) => a2.length = 0);
+      const arrayPool2 = new h2((a2) => a2 ?? [], (a2) => a2.length = 0);
       const spritePool = new SpritePool;
       const spritesMap = new Map;
       const collidersMap = new Map;
@@ -48600,7 +48600,7 @@ class DemoGame extends AuxiliaryHolder {
             }
           });
         }
-      }, new h2({ yRange: [0, 0] })));
+      }, new h({ yRange: [0, 0] })));
     }
     worldColliders.add([
       ...blockPositions.map((blockPosition) => new CollisionDetector({
