@@ -1,12 +1,12 @@
 import { Sprite } from "../Sprite";
 import { IElemFactory } from "./IElemFactory";
-import { PositionUtils } from "dok-matrix";
 import { List, forEach } from "abstract-list";
 import { Cell, Tag, createCell, toCell } from "cell-tracker";
 import { copySprite } from "../utils/sprite-utils";
 import { Auxiliary } from "world/aux/Auxiliary";
 import { AuxiliaryHolder } from "world/aux/AuxiliaryHolder";
 import { Vector } from "dok-types";
+import { transformToPosition } from "dok-matrix";
 
 interface Config {
   cellSize?: number;
@@ -31,7 +31,7 @@ export class FixedSpriteFactory extends AuxiliaryHolder implements IElemFactory<
       forEach(sprites, sprite => {
         if (sprite) {
           const vector: Vector = [0, 0, 0];
-          PositionUtils.transformToPosition(sprite.transform, vector);
+          transformToPosition(sprite.transform, vector);
           const cellSize = this.config.cellSize ?? 1;
 
           const cell = createCell(
