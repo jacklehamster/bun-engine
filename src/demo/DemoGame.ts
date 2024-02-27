@@ -36,8 +36,9 @@ import { Box } from "world/collision/Box";
 import { shadowProcessor } from "canvas-processor";
 import { SpriteCellCreator } from "world/sprite/aux/SpriteCellCreator";
 import { FixedSpriteFactory } from "world/sprite/aux/FixedSpriteFactory";
-import { SurroundingTracker, CellTrackers, Cell, CellBoundary, filter, Tag, CellChangeDetector, createCell } from "cell-tracker";
+import { SurroundingTracker, CellTrackers, Cell, ICellTracker, CellBoundary, filter, Tag, CellChangeDetector } from "cell-tracker";
 import { Vector } from "dok-types";
+import { CellUtils } from "utils/cell-utils";
 import { alea } from "seedrandom";
 import { SpritePool } from "world/sprite/pools/SpritePool";
 import { ObjectPool } from "bun-pool";
@@ -74,7 +75,7 @@ enum Anims {
   WOLF_JUMP = 3,
 }
 
-const LOGO_SIZE = 256;
+const LOGO_SIZE = 512;
 const CELLSIZE = 2;
 
 interface Props {
@@ -90,6 +91,8 @@ export class DemoGame extends AuxiliaryHolder {
   camera: ICamera;
   constructor({ engine, motor, ui, keyboard, controls }: Props) {
     super();
+
+    const cellUtils = new CellUtils({ motor });
 
     //  Add medias
     //  * Each media is a texture that can be shown on a sprite.
@@ -349,7 +352,7 @@ export class DemoGame extends AuxiliaryHolder {
       near: 0,
       far: -.5,
     };
-    const exitCell = createCell(0, 0, 0, CELLSIZE);
+    const exitCell = cellUtils.cellAt(0, 0, 0, CELLSIZE);
     const exitPosition = exitCell.worldPosition;
 
     const worldColliders = new Accumulator<ICollisionDetector>();
@@ -373,7 +376,7 @@ export class DemoGame extends AuxiliaryHolder {
     };
 
     {
-      const dobukiCell = createCell(-3, 0, -1, CELLSIZE);
+      const dobukiCell = cellUtils.cellAt(-3, 0, -1, CELLSIZE);
       const dobukiBox = {
         top: 1,
         bottom: -1,
@@ -383,11 +386,7 @@ export class DemoGame extends AuxiliaryHolder {
         far: -.5,
       };
       const dobukiPosition = dobukiCell.worldPosition;
-      const dobukiBlockPosition: Vector = [
-        dobukiPosition[0],
-        dobukiPosition[1],
-        dobukiPosition[2] - CELLSIZE,
-      ];
+      const dobukiBlockPosition = cellUtils.offset(dobukiPosition, 0, 0, -CELLSIZE);
 
       const body = new BodyModel({
         colliders: [
@@ -443,7 +442,7 @@ export class DemoGame extends AuxiliaryHolder {
 
       worldColliders.add(body.colliders);
 
-      const factory = new FixedSpriteFactory({ cellSize: CELLSIZE }, body.sprites);
+      const factory = new FixedSpriteFactory({ cellUtils }, { cellSize: CELLSIZE }, body.sprites);
       const creator = new SpriteCellCreator({ factory });
       spritesAccumulator.add(creator);
       cellTrackers.add(creator);
@@ -458,7 +457,7 @@ export class DemoGame extends AuxiliaryHolder {
       [0, 0, -1],
       [-1, 0, 0],
       [1, 0, 0],
-    ].map(([x, y, z]) => [x * CELLSIZE, y * CELLSIZE, z * CELLSIZE]);
+    ].map(([x, y, z]) => cellUtils.worldPosFromCell(x, y, z, CELLSIZE));
 
     blockPositions.forEach(blockPosition => {
       const blockBoxSprites = new SpriteGroup(
@@ -466,6 +465,7 @@ export class DemoGame extends AuxiliaryHolder {
         new PositionMatrix().movedTo(blockPosition[0], blockPosition[1], blockPosition[2]),
       );
       const factory = new FixedSpriteFactory(
+        { cellUtils },
         { cellSize: CELLSIZE },
         blockBoxSprites);
       this.addAuxiliary(factory);
@@ -476,7 +476,7 @@ export class DemoGame extends AuxiliaryHolder {
     });
 
     {
-      const factory = new FixedSpriteFactory({ cellSize: CELLSIZE },
+      const factory = new FixedSpriteFactory({ cellUtils }, { cellSize: CELLSIZE },
         new SpriteGroup(
           new DisplayBox({ box: exitBlock, imageId: Assets.WIREFRAME, insideImageId: Assets.WIREFRAME }),
           new PositionMatrix().movedTo(exitPosition[0], exitPosition[1], exitPosition[2]),
