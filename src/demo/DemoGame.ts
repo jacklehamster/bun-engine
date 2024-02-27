@@ -2,7 +2,6 @@ import { Keyboard } from "controls/Keyboard";
 import { IGraphicsEngine } from "graphics/IGraphicsEngine";
 import { IMotor, ControlledMotor, Policy } from "motor-loop";
 import { Camera } from "camera/Camera";
-import { CellChangeDectector } from "gl/transform/aux/CellChangeDetector";
 import { Auxiliaries } from "world/aux/Auxiliaries";
 import { AuxiliaryHolder } from "world/aux/AuxiliaryHolder";
 import { TurnAuxiliary } from "world/aux/TurnAuxiliary";
@@ -37,7 +36,7 @@ import { Box } from "world/collision/Box";
 import { shadowProcessor } from "canvas-processor";
 import { SpriteCellCreator } from "world/sprite/aux/SpriteCellCreator";
 import { FixedSpriteFactory } from "world/sprite/aux/FixedSpriteFactory";
-import { SurroundingTracker, CellTrackers, Cell, ICellTracker, CellBoundary, filter, Tag } from "cell-tracker";
+import { SurroundingTracker, CellTrackers, Cell, ICellTracker, CellBoundary, filter, Tag, CellChangeDetector } from "cell-tracker";
 import { Vector } from "dok-types";
 import { CellUtils } from "utils/cell-utils";
 import { alea } from "seedrandom";
@@ -734,15 +733,11 @@ export class DemoGame extends AuxiliaryHolder {
       range: [7, 3, 7],
       cellSize: CELLSIZE,
     });
+
     this.addAuxiliary(
-      new CellChangeDectector({
-        cellUtils,
-        visitableCells: [
-          surroundingTracker,
-          stepBack,
-        ],
-        positionMatrix: heroPos,
-      }, { cellSize: CELLSIZE })
+      new CellChangeDetector({ positionMatrix: heroPos }, { cellSize: CELLSIZE })
+        .addListener(surroundingTracker)
+        .addListener(stepBack)
     );
 
     //  Hardcode some base settings

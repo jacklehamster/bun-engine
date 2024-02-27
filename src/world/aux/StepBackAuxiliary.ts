@@ -37,7 +37,7 @@ export class StepBackAuxiliary extends Looper<Data> implements Auxiliary, IVisit
     this.#previousCellPos = [...this.#curCellPos];
   }
 
-  visitCell(cell: Cell): void {
+  onCell(cell: Cell): void {
     if (this.#curCellPos[0] !== cell.pos[0] || this.#curCellPos[2] !== cell.pos[2]) {
       const temp = this.#previousCellPos;
       this.#previousCellPos = this.#curCellPos;
