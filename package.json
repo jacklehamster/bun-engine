@@ -58,7 +58,7 @@
     "abstract-list": "^1.0.8",
     "bun-pool": "^1.0.7",
     "canvas-processor": "^1.0.3",
-    "cell-tracker": "^1.0.15",
+    "cell-tracker": "^1.0.17",
     "change-listener": "^1.0.1",
     "dok-matrix": "^1.0.12",
     "dok-types": "^1.0.7",
