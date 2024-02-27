@@ -11,7 +11,7 @@ interface Props {
 }
 
 export class DisplayBox implements List<Sprite> {
-  private readonly sprites: List<Sprite>;
+  readonly #sprites: List<Sprite>;
   constructor({ box, imageId, insideImageId }: Props) {
     if (!box.disabled) {
       const cX = (box.left + box.right) / 2;
@@ -38,17 +38,17 @@ export class DisplayBox implements List<Sprite> {
         Matrix.create().translate(cX, cY, box.near).scale(...faceScale).scale(1 / 2).rotateY(Math.PI),
         Matrix.create().translate(cX, cY, box.far).scale(...faceScale).scale(1 / 2).rotateY(0),
       ].map(transform => ({ imageId: insideImageId, transform }));
-      this.sprites = [...inside, ...outside];
+      this.#sprites = [...inside, ...outside];
     } else {
-      this.sprites = [];
+      this.#sprites = [];
     }
   }
 
   get length(): List<Sprite>["length"] {
-    return this.sprites.length;
+    return this.#sprites.length;
   }
 
   at(index: number): Sprite | undefined {
-    return this.sprites.at(index);
+    return this.#sprites.at(index);
   }
 }

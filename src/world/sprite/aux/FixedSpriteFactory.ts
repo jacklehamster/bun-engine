@@ -16,9 +16,8 @@ interface Config {
 export class FixedSpriteFactory extends AuxiliaryHolder implements IElemFactory<Sprite>, Auxiliary {
   private readonly spritesPerCell: Map<Tag, Sprite[]> = new Map();
   private readonly spritesList: List<Sprite>[];
-  private readonly config: Config;
 
-  constructor(config: Config, ...spritesList: (List<Sprite> & Partial<Auxiliary>)[]) {
+  constructor(private readonly config: Config, ...spritesList: (List<Sprite> & Partial<Auxiliary>)[]) {
     super();
     this.spritesList = spritesList;
     this.config = config;
@@ -27,10 +26,10 @@ export class FixedSpriteFactory extends AuxiliaryHolder implements IElemFactory<
 
   activate(): void {
     super.activate();
+    const vector: Vector = [0, 0, 0];
     this.spritesList.forEach(sprites => {
       forEach(sprites, sprite => {
         if (sprite) {
-          const vector: Vector = [0, 0, 0];
           transformToPosition(sprite.transform, vector);
           const cellSize = this.config.cellSize ?? 1;
 

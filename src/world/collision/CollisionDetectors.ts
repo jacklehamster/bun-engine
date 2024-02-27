@@ -7,8 +7,8 @@ export class CollisionDetectors implements ICollisionDetector {
   }
 
   isBlocked(to: Vector, from: Vector): boolean {
-    const { length } = this.detectors;
-    for (let i = 0; i < length.valueOf(); i++) {
+    const len = this.detectors.length.valueOf();
+    for (let i = 0; i < len; i++) {
       if (this.detectors.at(i)?.isBlocked(to, from)) {
         return true;
       }

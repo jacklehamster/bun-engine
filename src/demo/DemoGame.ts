@@ -449,8 +449,6 @@ export class DemoGame extends AuxiliaryHolder {
       this.addAuxiliary(factory);
     }
 
-
-
     const blockPositions: Vector[] = [
       [-1, 0, -1],
       [1, 0, -1],
@@ -693,30 +691,30 @@ export class DemoGame extends AuxiliaryHolder {
     //  * CamTiltReset is just for restoring the view from looking up or down
     //  * CamMoveAuxiliary is a more free-form way to move.
     //  * JumpAuxiliary lets you jump
-    this.addAuxiliary(keyboard);
-    this.addAuxiliary(
-      new ToggleAuxiliary({ keyboard }, {
-        auxiliariesMapping: [
-          {
-            key: "Tab", aux: Auxiliaries.from(
-              posStep,
-              stepBack,
-              new SmoothFollowAuxiliary({ motor, follower: camPosition, followee: heroPos }, { speed: .05 }),
-              new JumpAuxiliary({ motor, controls, position: heroPos }, { gravity: -2, jump: 3 }),
-            ),
-          },
-          {
-            key: "Tab", aux: Auxiliaries.from(
-              new TurnAuxiliary({ motor, controls, turn: camera.turn }),
-              new TiltAuxiliary({ motor, controls, tilt: camera.tilt }),
-              new MoveAuxiliary({ motor, controls, direction: camera.turn, position: heroPos }),
-              new JumpAuxiliary({ motor, controls, position: heroPos }),
-              new TiltResetAuxiliary({ motor, controls, tilt: camera.tilt }),
-              new SmoothFollowAuxiliary({ motor, follower: camPosition, followee: heroPos }, { speed: .05 }),
-            ),
-          },
-        ],
-      }))
+    this.addAuxiliary(keyboard)
+      .addAuxiliary(
+        new ToggleAuxiliary({ keyboard }, {
+          auxiliariesMapping: [
+            {
+              key: "Tab", aux: Auxiliaries.from(
+                posStep,
+                stepBack,
+                new SmoothFollowAuxiliary({ motor, follower: camPosition, followee: heroPos }, { speed: .05 }),
+                new JumpAuxiliary({ motor, controls, position: heroPos }, { gravity: -2, jump: 3 }),
+              ),
+            },
+            {
+              key: "Tab", aux: Auxiliaries.from(
+                new TurnAuxiliary({ motor, controls, turn: camera.turn }),
+                new TiltAuxiliary({ motor, controls, tilt: camera.tilt }),
+                new MoveAuxiliary({ motor, controls, direction: camera.turn, position: heroPos }),
+                new JumpAuxiliary({ motor, controls, position: heroPos }),
+                new TiltResetAuxiliary({ motor, controls, tilt: camera.tilt }),
+                new SmoothFollowAuxiliary({ motor, follower: camPosition, followee: heroPos }, { speed: .05 }),
+              ),
+            },
+          ],
+        }))
       .addAuxiliary(new DirAuxiliary({ controls }, dx => {
         heroSprites.setOrientation(dx);
         shadowHeroSprites.setOrientation(dx);

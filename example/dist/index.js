@@ -47978,11 +47978,12 @@ class SlotPool extends h2 {
 }
 
 class FixedSpriteFactory extends AuxiliaryHolder {
+  config;
   spritesPerCell = new Map;
   spritesList;
-  config;
   constructor(config, ...spritesList) {
     super();
+    this.config = config;
     this.spritesList = spritesList;
     this.config = config;
     spritesList.forEach((sprites) => this.addAuxiliary(sprites));
