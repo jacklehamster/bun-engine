@@ -1,5 +1,7 @@
 {
   "name": "bun-engine",
+  "version": "1.0.14",
+  "license": "MIT",
   "module": "src/index.tsx",
   "type": "module",
   "main": "dist/index.js",
@@ -53,23 +55,22 @@
   },
   "dependencies": {
     "abstract-list": "^1.0.12",
-    "bun-pool": "^1.0.7",
+    "bun-pool": "^1.0.9",
     "canvas-processor": "^1.0.3",
-    "cell-tracker": "^1.0.19",
+    "cell-tracker": "^1.0.20",
     "change-listener": "^1.0.1",
-    "dok-matrix": "^1.0.18",
-    "dok-types": "^1.0.7",
-    "free-stack": "^1.0.3",
+    "dok-matrix": "^1.0.19",
+    "dok-types": "^1.0.8",
+    "free-stack": "^1.0.4",
     "gl-matrix": "^3.4.3",
     "gl-texture-manager": "^1.0.14",
     "list-accumulator": "^1.0.9",
-    "motor-loop": "^1.0.17",
-    "progressive-value": "^1.0.4",
+    "motor-loop": "^1.0.18",
+    "progressive-value": "^1.0.5",
     "seedrandom": "^3.0.5",
     "texture-slot-allocator": "^1.0.24",
     "uuid": "^9.0.1"
   },
-  "version": "1.0.14",
   "engines": {
     "node": ">=14.0.0"
   },
