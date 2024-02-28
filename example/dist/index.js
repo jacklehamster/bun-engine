@@ -47708,7 +47708,7 @@ class FollowAuxiliary extends N {
 }
 
 class DisplayBox {
-  sprites;
+  #sprites;
   constructor({ box, imageId, insideImageId }) {
     if (!box.disabled) {
       const cX = (box.left + box.right) / 2;
@@ -47733,16 +47733,16 @@ class DisplayBox {
         w2.create().translate(cX, cY, box.near).scale(...faceScale).scale(0.5).rotateY(Math.PI),
         w2.create().translate(cX, cY, box.far).scale(...faceScale).scale(0.5).rotateY(0)
       ].map((transform) => ({ imageId: insideImageId, transform }));
-      this.sprites = [...inside, ...outside];
+      this.#sprites = [...inside, ...outside];
     } else {
-      this.sprites = [];
+      this.#sprites = [];
     }
   }
   get length() {
-    return this.sprites.length;
+    return this.#sprites.length;
   }
   at(index) {
-    return this.sprites.at(index);
+    return this.#sprites.at(index);
   }
 }
 var NULLBOX = {
@@ -47990,10 +47990,10 @@ class FixedSpriteFactory extends AuxiliaryHolder {
   }
   activate() {
     super.activate();
+    const vector = [0, 0, 0];
     this.spritesList.forEach((sprites) => {
       x3(sprites, (sprite) => {
         if (sprite) {
-          const vector = [0, 0, 0];
           Q0(sprite.transform, vector);
           const cellSize = this.config.cellSize ?? 1;
           const cell = N3(j2(vector[0], cellSize), j2(vector[1], cellSize), j2(vector[2], cellSize), cellSize);
@@ -48679,8 +48679,7 @@ class DemoGame extends AuxiliaryHolder {
     const controlledMotor = new C2(motor, { policy: G.INCOMING_CYCLE_PRIORITY });
     const stepBack = new StepBackAuxiliary({ motor: controlledMotor, position: heroPos });
     const posStep = new PositionStepAuxiliary({ motor: controlledMotor, controls, position: heroPos, turnGoal: camera.turn.angle }, { speed: 1.5, airBoost: 1.5 });
-    this.addAuxiliary(keyboard);
-    this.addAuxiliary(new ToggleAuxiliary({ keyboard }, {
+    this.addAuxiliary(keyboard).addAuxiliary(new ToggleAuxiliary({ keyboard }, {
       auxiliariesMapping: [
         {
           key: "Tab",

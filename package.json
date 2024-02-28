@@ -21,12 +21,9 @@
     "build:shaders": "bun run scripts/bundle-shaders.ts",
     "build:declaration": "tsc -p --emitDeclarationOnly --project tsconfig.types.json",
     "build:example": "cd example && bun i && bun run build && cd ..",
-    "list": "bun run samples/list-scripts.tsx",
     "example": "cd example && bun start && cd ..",
-    "make-repo-ssh": "./make-repo-ssh.sh",
     "fix-package-name": "npm explore package-name-fixer -- bun start \"$(pwd)\"",
-    "autocommit": "npm explore @dobuki/autocommit -- bun run autocommit \"$(pwd)\"",
-    "np": "bun run build && bun run build:example && bun run make-repo-ssh && bun run autocommit && np"
+    "auto-publish": "npm explore @dobuki/auto-publish -- bun run auto-publish \"$(pwd)\""
   },
   "publishConfig": {
     "access": "public"
@@ -35,11 +32,11 @@
     "dist"
   ],
   "devDependencies": {
-    "@dobuki/autocommit": "^1.0.8",
-    "@types/bun": "^1.0.5",
+    "@dobuki/auto-publish": "^1.0.7",
+    "@types/bun": "^1.0.8",
     "@types/jest": "^29.5.12",
     "@types/mocha": "^10.0.3",
-    "@types/react": "^18.2.59",
+    "@types/react": "^18.2.60",
     "@types/react-dom": "^18.2.18",
     "@types/seedrandom": "^3.0.8",
     "@types/uuid": "^9.0.7",
@@ -55,17 +52,17 @@
     "typescript": "^5.2.2"
   },
   "dependencies": {
-    "abstract-list": "^1.0.8",
+    "abstract-list": "^1.0.12",
     "bun-pool": "^1.0.7",
     "canvas-processor": "^1.0.3",
-    "cell-tracker": "^1.0.18",
+    "cell-tracker": "^1.0.19",
     "change-listener": "^1.0.1",
-    "dok-matrix": "^1.0.14",
+    "dok-matrix": "^1.0.18",
     "dok-types": "^1.0.7",
     "free-stack": "^1.0.3",
     "gl-matrix": "^3.4.3",
     "gl-texture-manager": "^1.0.14",
-    "list-accumulator": "^1.0.7",
+    "list-accumulator": "^1.0.9",
     "motor-loop": "^1.0.17",
     "progressive-value": "^1.0.4",
     "seedrandom": "^3.0.5",

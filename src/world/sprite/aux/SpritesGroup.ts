@@ -5,21 +5,21 @@ import { AnimationId } from "animation/Animation";
 import { ItemsGroup } from "./ItemsGroup";
 import { SpriteModel } from "./SpriteModel";
 import { MediaId } from "gl-texture-manager";
-import { IPositionMatrix } from "dok-matrix";
+import { IMatrix } from "dok-matrix";
 import { informFullUpdate } from "list-accumulator";
 
 export class SpriteGroup extends ItemsGroup<Sprite> {
   #orientation: number = 1;
   #animationId?: AnimationId;
   #imageId?: MediaId;
-  #position;
+  #transform;
 
   readonly #spriteModel: SpriteModel = new SpriteModel();
 
-  constructor(sprites: List<Sprite>, position?: IPositionMatrix) {
+  constructor(sprites: List<Sprite>, transform?: IMatrix) {
     super(sprites);
-    this.#position = position;
-    this.#position?.addChangeListener({ onChange: () => informFullUpdate(this, SpriteUpdateType.TRANSFORM) });
+    this.#transform = transform;
+    this.#transform?.addChangeListener({ onChange: () => informFullUpdate(this, SpriteUpdateType.TRANSFORM) });
   }
 
   setOrientation(value: number) {
@@ -50,8 +50,8 @@ export class SpriteGroup extends ItemsGroup<Sprite> {
     }
     this.#spriteModel.sprite = s;
     this.#spriteModel.transform.copy(s.transform);
-    if (this.#position) {
-      this.#spriteModel.transform.multiply2(this.#position, this.#spriteModel.transform);
+    if (this.#transform) {
+      this.#spriteModel.transform.multiply2(this.#transform, this.#spriteModel.transform);
     }
     this.#spriteModel.orientation = this.#orientation * (s.orientation ?? 1);
     this.#spriteModel.animationId = this.#animationId ?? s.animationId ?? 0;
