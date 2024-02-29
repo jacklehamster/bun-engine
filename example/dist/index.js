@@ -46463,8 +46463,7 @@ class H2 extends X2 {
   #D;
   #J = new Map;
   #K = new O3;
-  #Q = new $2({ informUpdate: this.informUpdate.bind(this), addElem: this.#V.bind(this), removeElem: this.#W.bind(this) });
-  #R = false;
+  #Q = new $2({ informUpdate: this.informUpdate.bind(this), addElem: this.#R.bind(this), removeElem: this.#V.bind(this) });
   constructor({ onChange: D3 } = {}) {
     super();
     this.#D = new B3({ onChange: D3 });
@@ -46473,8 +46472,6 @@ class H2 extends X2 {
     return this.#D.length;
   }
   at(D3) {
-    if (!this.#R)
-      return;
     const J = this.#D.at(D3);
     return J?.elems.at(J.index);
   }
@@ -46493,23 +46490,15 @@ class H2 extends X2 {
         this.#K.recycle(D3);
     }), this.#D.clear();
   }
-  activate() {
-    if (!this.#R)
-      this.#R = true, this.updateFully();
-  }
-  deactivate() {
-    if (this.#R)
-      this.#R = false, this.updateFully();
-  }
   updateFully(D3) {
     for (let [J, K2] of this.#J)
       R3(J, (Q3, V22) => K2.onUpdate(V22, D3));
   }
-  #V(D3, J) {
+  #R(D3, J) {
     const K2 = this.#D.addElem(this.#K.create(D3, J));
     return this.informUpdate(K2), K2;
   }
-  #W(D3) {
+  #V(D3) {
     const J = this.#D.removeElem(D3);
     if (J)
       this.#K.recycle(J), this.informUpdate(D3);
@@ -48212,7 +48201,6 @@ class DemoGame extends AuxiliaryHolder {
   constructor({ engine, motor, ui, keyboard, controls }) {
     super();
     const mediaAccumulator = new H2;
-    this.addAuxiliary(mediaAccumulator);
     this.addAuxiliary(new MediaUpdater({ engine, motor, medias: mediaAccumulator }));
     const mediaItems = new ItemsGroup([{
       id: Assets.DOBUKI,
@@ -48422,7 +48410,6 @@ class DemoGame extends AuxiliaryHolder {
       }
     });
     const animationAccumulator = new H2;
-    this.addAuxiliary(animationAccumulator);
     this.addAuxiliary(new AnimationUpdater({ engine, motor, animations: animationAccumulator }));
     const animationItems = new ItemsGroup([{
       id: Anims.STILL,
@@ -48446,7 +48433,6 @@ class DemoGame extends AuxiliaryHolder {
     const spritesAccumulator = new H2({
       onChange: (value) => engine.setMaxSpriteCount(value)
     });
-    this.addAuxiliary(spritesAccumulator);
     this.addAuxiliary({
       deactivate() {
         engine.setMaxSpriteCount(0);
@@ -48464,7 +48450,11 @@ class DemoGame extends AuxiliaryHolder {
     const exitCell = N3(0, 0, 0, CELLSIZE);
     const exitPosition = exitCell.worldPosition;
     const worldColliders = new H2;
-    this.addAuxiliary(worldColliders);
+    this.addAuxiliary({
+      deactivate() {
+        worldColliders.clear();
+      }
+    });
     const heroBox = {
       top: 1,
       bottom: -1,
@@ -48711,6 +48701,7 @@ class DemoGame extends AuxiliaryHolder {
         spritesAccumulator.updateFully();
       }
     });
+    window.spritesAccumulator = spritesAccumulator;
     const displayBox = new SpriteGroup(new DisplayBox({ box: heroBox, imageId: Assets.WIREFRAME }), heroPos);
     spritesAccumulator.add(displayBox);
     const shadowPos = new t0({});
