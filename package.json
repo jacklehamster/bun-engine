@@ -54,11 +54,9 @@
     "typescript": "^5.2.2"
   },
   "dependencies": {
-    "abstract-list": "^1.0.12",
     "cell-tracker": "^1.0.20",
     "gl-texture-manager": "^1.0.14",
     "list-accumulator": "^1.0.9",
-    "progressive-value": "^1.0.5",
     "seedrandom": "^3.0.5",
     "uuid": "^9.0.1"
   },
