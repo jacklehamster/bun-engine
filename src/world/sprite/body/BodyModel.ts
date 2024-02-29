@@ -8,18 +8,16 @@ interface Props {
   sprites: IPotentiallyUpdatableList<Sprite>;
   colliders: IPotentiallyUpdatableList<ICollisionDetector>;
   bodies: IPotentiallyUpdatableList<IBodyModel>;
-  transform: IMatrix;
 }
 
 export class BodyModel implements IBodyModel {
-  readonly transform: IMatrix;
   readonly sprites = new Accumulator<Sprite>();
   readonly colliders = new Accumulator<ICollisionDetector>();
   readonly #bodies = new Accumulator<IBodyModel>();
   readonly #spritesPerId: Record<IdType, IPotentiallyUpdatableList<Sprite>> = {};
   readonly #collidersPerId: Record<IdType, IPotentiallyUpdatableList<ICollisionDetector>> = {};
 
-  constructor({ sprites, colliders, bodies, transform }: Partial<Props> = {}) {
+  constructor({ sprites, colliders, bodies }: Partial<Props> = {}) {
     this.#bodies.addUpdateListener({
       onUpdate: (bodyId: IdType): void => {
         const body = this.#bodies.at(bodyId);
@@ -36,7 +34,6 @@ export class BodyModel implements IBodyModel {
     if (bodies) {
       this.#bodies.add(bodies);
     }
-    this.transform = transform ?? Matrix.IDENTITY;
   }
 
   addSprites(sprites: IPotentiallyUpdatableList<Sprite>): void {

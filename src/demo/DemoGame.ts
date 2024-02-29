@@ -96,6 +96,7 @@ export class DemoGame extends AuxiliaryHolder {
     //  * Each media is a texture that can be shown on a sprite.
     //  * You can show videos, images, or you can have instructions to draw on a canvas.
     const mediaAccumulator = new Accumulator<Media>();
+    this.addAuxiliary(mediaAccumulator);
     this.addAuxiliary(new MediaUpdater({ engine, motor, medias: mediaAccumulator }));
     const mediaItems = new ItemsGroup<Media>([{
       id: Assets.DOBUKI,
@@ -316,6 +317,7 @@ export class DemoGame extends AuxiliaryHolder {
     });
 
     const animationAccumulator = new Accumulator<Animation>();
+    this.addAuxiliary(animationAccumulator);
     this.addAuxiliary(new AnimationUpdater({ engine, motor, animations: animationAccumulator }));
     const animationItems = new ItemsGroup<Animation>([{
       id: Anims.STILL,
@@ -340,6 +342,7 @@ export class DemoGame extends AuxiliaryHolder {
     const spritesAccumulator = new Accumulator<Sprite>({
       onChange: (value) => engine.setMaxSpriteCount(value),
     });
+    this.addAuxiliary(spritesAccumulator);
     this.addAuxiliary({
       deactivate() {
         engine.setMaxSpriteCount(0);
@@ -359,6 +362,7 @@ export class DemoGame extends AuxiliaryHolder {
     const exitPosition = exitCell.worldPosition;
 
     const worldColliders = new Accumulator<ICollisionDetector>();
+    this.addAuxiliary(worldColliders);
 
     const heroBox = {
       top: 1,
@@ -518,7 +522,7 @@ export class DemoGame extends AuxiliaryHolder {
       const spritesMap = new Map<Tag, Sprite[]>();
       const collidersMap = new Map<Tag, ICollisionDetector[]>();
       cellTrackers.add(filter({
-        trackCell: function (cell: Cell): boolean {
+        trackCell: (cell: Cell): boolean => {
           const rng = alea(cell.tag);
           const sprites: Sprite[] = arrayPool.create();
           const cellPos = cell.pos;

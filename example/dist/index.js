@@ -46312,7 +46312,7 @@ class B2 {
     return this.#w?.goal ?? this.valueOf();
   }
 }
-var z4 = function(D3, J = Y) {
+var z4 = function(D3, J = _3) {
   R3(D3, (K2, Q3) => D3.informUpdate(Q3, J));
 };
 
@@ -46463,7 +46463,8 @@ class H2 extends X2 {
   #D;
   #J = new Map;
   #K = new O3;
-  #Q = new $2({ informUpdate: this.informUpdate.bind(this), addElem: this.#R.bind(this), removeElem: this.#V.bind(this) });
+  #Q = new $2({ informUpdate: this.informUpdate.bind(this), addElem: this.#V.bind(this), removeElem: this.#W.bind(this) });
+  #R = false;
   constructor({ onChange: D3 } = {}) {
     super();
     this.#D = new B3({ onChange: D3 });
@@ -46472,6 +46473,8 @@ class H2 extends X2 {
     return this.#D.length;
   }
   at(D3) {
+    if (!this.#R)
+      return;
     const J = this.#D.at(D3);
     return J?.elems.at(J.index);
   }
@@ -46490,15 +46493,23 @@ class H2 extends X2 {
         this.#K.recycle(D3);
     }), this.#D.clear();
   }
+  activate() {
+    if (!this.#R)
+      this.#R = true, this.updateFully();
+  }
+  deactivate() {
+    if (this.#R)
+      this.#R = false, this.updateFully();
+  }
   updateFully(D3) {
     for (let [J, K2] of this.#J)
       R3(J, (Q3, V22) => K2.onUpdate(V22, D3));
   }
-  #R(D3, J) {
+  #V(D3, J) {
     const K2 = this.#D.addElem(this.#K.create(D3, J));
     return this.informUpdate(K2), K2;
   }
-  #V(D3) {
+  #W(D3) {
     const J = this.#D.removeElem(D3);
     if (J)
       this.#K.recycle(J), this.informUpdate(D3);
@@ -46518,7 +46529,7 @@ class O3 extends W2 {
   }
 }
 
-class _3 {
+class Y {
   i;
   f;
   warningLimit = 50000;
@@ -46556,7 +46567,7 @@ class _3 {
       console.warn("ObjectPool already created", this.#D.size + this.#J.length, "in", this.constructor.name);
   }
 }
-var Y = -1;
+var _3 = -1;
 
 class UpdateRegistry extends X2 {
   applyUpdate;
@@ -47842,7 +47853,7 @@ class b2 extends I {
 }
 var U = [3, 3, 3];
 
-class h2 {
+class E3 {
   cellTags = new R4("");
   cellTrack;
   cellPool = new Q3;
@@ -47904,7 +47915,7 @@ class G4 {
   }
 }
 
-class E3 {
+class h2 {
   minX;
   maxX;
   minY;
@@ -47949,7 +47960,7 @@ class M2 {
     this.#H.recycle(Y2);
   }
   activate() {
-    this.#w.addChangeListener(this.#K), this.#m.pos[0] = Number.NaN, this.#m.pos[1] = Number.NaN, this.#m.pos[2] = Number.NaN, this.#J(this.#w);
+    this.#m.pos[0] = Number.NaN, this.#m.pos[1] = Number.NaN, this.#m.pos[2] = Number.NaN, this.#w.addChangeListener(this.#K), this.#J(this.#w);
   }
   deactivate() {
     this.#w.removeChangeListener(this.#K);
@@ -48055,13 +48066,12 @@ var updateBodyRecord = function(record, accumulator, id, elems) {
 };
 
 class BodyModel {
-  transform;
   sprites = new H2;
   colliders = new H2;
   #bodies = new H2;
   #spritesPerId = {};
   #collidersPerId = {};
-  constructor({ sprites, colliders, bodies, transform } = {}) {
+  constructor({ sprites, colliders, bodies } = {}) {
     this.#bodies.addUpdateListener({
       onUpdate: (bodyId) => {
         const body = this.#bodies.at(bodyId);
@@ -48078,7 +48088,6 @@ class BodyModel {
     if (bodies) {
       this.#bodies.add(bodies);
     }
-    this.transform = transform ?? d.IDENTITY;
   }
   addSprites(sprites) {
     this.sprites.add(sprites);
@@ -48203,6 +48212,7 @@ class DemoGame extends AuxiliaryHolder {
   constructor({ engine, motor, ui, keyboard, controls }) {
     super();
     const mediaAccumulator = new H2;
+    this.addAuxiliary(mediaAccumulator);
     this.addAuxiliary(new MediaUpdater({ engine, motor, medias: mediaAccumulator }));
     const mediaItems = new ItemsGroup([{
       id: Assets.DOBUKI,
@@ -48412,6 +48422,7 @@ class DemoGame extends AuxiliaryHolder {
       }
     });
     const animationAccumulator = new H2;
+    this.addAuxiliary(animationAccumulator);
     this.addAuxiliary(new AnimationUpdater({ engine, motor, animations: animationAccumulator }));
     const animationItems = new ItemsGroup([{
       id: Anims.STILL,
@@ -48435,6 +48446,7 @@ class DemoGame extends AuxiliaryHolder {
     const spritesAccumulator = new H2({
       onChange: (value) => engine.setMaxSpriteCount(value)
     });
+    this.addAuxiliary(spritesAccumulator);
     this.addAuxiliary({
       deactivate() {
         engine.setMaxSpriteCount(0);
@@ -48452,6 +48464,7 @@ class DemoGame extends AuxiliaryHolder {
     const exitCell = N3(0, 0, 0, CELLSIZE);
     const exitPosition = exitCell.worldPosition;
     const worldColliders = new H2;
+    this.addAuxiliary(worldColliders);
     const heroBox = {
       top: 1,
       bottom: -1,
@@ -48580,7 +48593,7 @@ class DemoGame extends AuxiliaryHolder {
       const spritesMap = new Map;
       const collidersMap = new Map;
       cellTrackers.add(P({
-        trackCell: function(cell) {
+        trackCell: (cell) => {
           const rng2 = import_seedrandom.alea(cell.tag);
           const sprites = arrayPool.create();
           const cellPos = cell.pos;
@@ -48649,7 +48662,7 @@ class DemoGame extends AuxiliaryHolder {
             }
           });
         }
-      }, new E3({ yRange: [0, 0] })));
+      }, new h2({ yRange: [0, 0] })));
     }
     worldColliders.add([
       ...blockPositions.map((blockPosition) => new CollisionDetector({
@@ -48746,7 +48759,7 @@ class DemoGame extends AuxiliaryHolder {
       heroSprites.setAnimationId(animId);
       shadowHeroSprites.setAnimationId(animId);
     }));
-    const surroundingTracker = new h2({ cellTrack: cellTrackers }, {
+    const surroundingTracker = new E3({ cellTrack: cellTrackers }, {
       cellLimit: 200,
       range: [7, 3, 7],
       cellSize: CELLSIZE
