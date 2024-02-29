@@ -5,5 +5,4 @@ import { ICollisionDetector, IMatrix } from "dok-matrix";
 export interface IBodyModel {
   readonly sprites: IUpdatableList<Sprite>;
   readonly colliders: IUpdatableList<ICollisionDetector>;
-  readonly transform: IMatrix;
 }
