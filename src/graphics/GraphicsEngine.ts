@@ -112,6 +112,7 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
   deactivate(): void {
     this.animationSlots.clear();
     this.visibleSprites.length = 0;
+    this.#redraw();
   }
 
   setMaxSpriteCount(count: number): void {
@@ -323,11 +324,15 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
   private static clearBit = GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT;
   refresh(updatePayload: UpdatePayload): void {
     if (updatePayload.renderFrame) {
-      this.gl.clear(GraphicsEngine.clearBit);
-      if (this.visibleSprites.length) {
-        this.#drawElementsInstanced(VERTICES_PER_SPRITE, this.visibleSprites.length);
-        this.pixelListener?.setPixel(this.getPixel(this.pixelListener.x, this.pixelListener.y));
-      }
+      this.#redraw();
+    }
+  }
+
+  #redraw() {
+    this.gl.clear(GraphicsEngine.clearBit);
+    if (this.visibleSprites.length) {
+      this.#drawElementsInstanced(VERTICES_PER_SPRITE, this.visibleSprites.length);
+      this.pixelListener?.setPixel(this.getPixel(this.pixelListener.x, this.pixelListener.y));
     }
   }
 

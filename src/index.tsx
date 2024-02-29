@@ -70,11 +70,12 @@ export async function testCanvas(canvas: HTMLCanvasElement) {
       canvas: webGlCanvas.elem,
     }),
   );
+  core.addAuxiliary(engine);
 
   core.activate();
   motor.loop(engine, undefined);
   onStop = () => core.deactivate();
-  return { engine, motor, world, ui };
+  return { engine, motor, world, ui, core };
 }
 
 export function stop(): void {

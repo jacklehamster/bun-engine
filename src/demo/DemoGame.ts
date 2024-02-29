@@ -45,6 +45,7 @@ import { Accumulator } from "list-accumulator";
 import { StepBackAuxiliary } from "world/aux/StepBackAuxiliary";
 import { goBackAction } from "world/aux/GoBack";
 import { BodyModel } from "world/sprite/body/BodyModel";
+import { PositionStep } from "world/aux/PositionStep";
 
 enum Assets {
   DOBUKI = 0,
@@ -338,6 +339,11 @@ export class DemoGame extends AuxiliaryHolder {
     const cellTrackers = new CellTrackers();
     const spritesAccumulator = new Accumulator<Sprite>({
       onChange: (value) => engine.setMaxSpriteCount(value),
+    });
+    this.addAuxiliary({
+      deactivate() {
+        engine.setMaxSpriteCount(0);
+      }
     });
     this.addAuxiliary(new SpriteUpdater({ engine, motor, sprites: spritesAccumulator }));
 
@@ -682,7 +688,7 @@ export class DemoGame extends AuxiliaryHolder {
 
     const controlledMotor = new ControlledMotor(motor, { policy: Policy.INCOMING_CYCLE_PRIORITY });
     const stepBack = new StepBackAuxiliary({ motor: controlledMotor, position: heroPos });
-    const posStep = new PositionStepAuxiliary({ motor: controlledMotor, controls, position: heroPos, turnGoal: camera.turn.angle }, { speed: 1.5, airBoost: 1.5 });
+    const posStep = new PositionStepAuxiliary({ motor: controlledMotor, controls, positionStep: new PositionStep({ position: heroPos }), turnGoal: camera.turn.angle }, { speed: 1.5, airBoost: 1.5 });
 
 
     //  Toggle auxiliary
