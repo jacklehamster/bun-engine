@@ -1,6 +1,6 @@
 {
   "name": "bun-engine",
-  "version": "1.0.16",
+  "version": "1.0.17",
   "license": "MIT",
   "module": "src/index.tsx",
   "type": "module",
