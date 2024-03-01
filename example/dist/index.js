@@ -46701,7 +46701,6 @@ var FloatUniform;
 
 class Auxiliaries {
   auxiliaries;
-  active = false;
   constructor(auxiliaries) {
     this.auxiliaries = auxiliaries;
   }
@@ -46712,23 +46711,12 @@ class Auxiliaries {
     return this.auxiliaries.length;
   }
   at(index) {
-    if (!this.active) {
-      return;
-    }
     return this.auxiliaries.at(index);
   }
   activate() {
-    if (this.active) {
-      return;
-    }
-    this.active = true;
     x3(this.auxiliaries, (aux) => aux?.activate?.());
   }
   deactivate() {
-    if (!this.active) {
-      return;
-    }
-    this.active = false;
     x3(this.auxiliaries, (aux) => aux?.deactivate?.());
   }
 }
@@ -46837,28 +46825,27 @@ class ToggleAuxiliary {
   active = false;
   toggleIndex;
   keys;
-  auxiliaries;
-  keyListener;
+  #auxiliaryFactories;
+  #keyListener;
+  #auxiliary = {};
   constructor({ keyboard }, config) {
     this.keyboard = keyboard;
     this.keys = z(config.auxiliariesMapping, (keyMap) => keyMap?.key);
-    this.keyListener = {
+    this.#keyListener = {
       onKeyDown: (keyCode) => {
         if (this.keys.indexOf(keyCode) >= 0) {
           const wasActive = this.active;
-          this.auxiliary?.deactivate?.();
+          this.#auxiliary?.deactivate?.();
           this.toggle(keyCode);
+          this.#auxiliary = this.#auxiliaryFactories.at(this.toggleIndex)?.() ?? {};
           if (wasActive) {
-            this.auxiliary?.activate?.();
+            this.#auxiliary?.activate?.();
           }
         }
       }
     };
-    this.auxiliaries = z(config.auxiliariesMapping, (keyMap) => keyMap?.aux);
+    this.#auxiliaryFactories = z(config.auxiliariesMapping, (keyMap) => keyMap?.aux);
     this.toggleIndex = config.initialIndex ?? 0;
-  }
-  get auxiliary() {
-    return this.auxiliaries.at(this.toggleIndex);
   }
   toggle(key) {
     if (this.keys[this.toggleIndex] !== key) {
@@ -46873,15 +46860,16 @@ class ToggleAuxiliary {
   activate() {
     if (!this.active) {
       this.active = true;
-      this.keyboard.addListener(this.keyListener);
-      this.auxiliary?.activate?.();
+      this.keyboard.addListener(this.#keyListener);
+      this.#auxiliary = this.#auxiliaryFactories.at(this.toggleIndex)?.() ?? {};
+      this.#auxiliary.activate?.();
     }
   }
   deactivate() {
     if (this.active) {
       this.active = false;
-      this.keyboard.removeListener(this.keyListener);
-      this.auxiliary?.deactivate?.();
+      this.keyboard.removeListener(this.#keyListener);
+      this.#auxiliary.deactivate?.();
     }
   }
 }
@@ -48450,11 +48438,6 @@ class DemoGame extends AuxiliaryHolder {
     const exitCell = N3(0, 0, 0, CELLSIZE);
     const exitPosition = exitCell.worldPosition;
     const worldColliders = new H2;
-    this.addAuxiliary({
-      deactivate() {
-        worldColliders.clear();
-      }
-    });
     const heroBox = {
       top: 1,
       bottom: -1,
@@ -48701,7 +48684,6 @@ class DemoGame extends AuxiliaryHolder {
         spritesAccumulator.updateFully();
       }
     });
-    window.spritesAccumulator = spritesAccumulator;
     const displayBox = new SpriteGroup(new DisplayBox({ box: heroBox, imageId: Assets.WIREFRAME }), heroPos);
     spritesAccumulator.add(displayBox);
     const shadowPos = new t0({});
@@ -48735,11 +48717,11 @@ class DemoGame extends AuxiliaryHolder {
       auxiliariesMapping: [
         {
           key: "Tab",
-          aux: Auxiliaries.from(posStep, stepBack, new SmoothFollowAuxiliary({ motor, follower: camPosition, followee: heroPos }, { speed: 0.05 }), new JumpAuxiliary({ motor, controls, position: heroPos }, { gravity: -2, jump: 3 }))
+          aux: () => Auxiliaries.from(posStep, stepBack, new SmoothFollowAuxiliary({ motor, follower: camPosition, followee: heroPos }, { speed: 0.05 }), new JumpAuxiliary({ motor, controls, position: heroPos }, { gravity: -2, jump: 3 }))
         },
         {
           key: "Tab",
-          aux: Auxiliaries.from(new TurnAuxiliary({ motor, controls, turn: camera.turn }), new TiltAuxiliary({ motor, controls, tilt: camera.tilt }), new MoveAuxiliary({ motor, controls, direction: camera.turn, position: heroPos }), new JumpAuxiliary({ motor, controls, position: heroPos }), new TiltResetAuxiliary({ motor, controls, tilt: camera.tilt }), new SmoothFollowAuxiliary({ motor, follower: camPosition, followee: heroPos }, { speed: 0.05 }))
+          aux: () => Auxiliaries.from(new TurnAuxiliary({ motor, controls, turn: camera.turn }), new TiltAuxiliary({ motor, controls, tilt: camera.tilt }), new MoveAuxiliary({ motor, controls, direction: camera.turn, position: heroPos }), new JumpAuxiliary({ motor, controls, position: heroPos }), new TiltResetAuxiliary({ motor, controls, tilt: camera.tilt }), new SmoothFollowAuxiliary({ motor, follower: camPosition, followee: heroPos }, { speed: 0.05 }))
         }
       ]
     })).addAuxiliary(new DirAuxiliary({ controls }, (dx) => {

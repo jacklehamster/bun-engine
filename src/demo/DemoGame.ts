@@ -46,6 +46,7 @@ import { StepBackAuxiliary } from "world/aux/StepBackAuxiliary";
 import { goBackAction } from "world/aux/GoBack";
 import { BodyModel } from "world/sprite/body/BodyModel";
 import { PositionStep } from "world/aux/PositionStep";
+import { IKeyboard } from "controls/IKeyboard";
 
 enum Assets {
   DOBUKI = 0,
@@ -82,7 +83,7 @@ interface Props {
   engine: IGraphicsEngine;
   motor: IMotor;
   ui: UserInterface;
-  keyboard: Keyboard;
+  keyboard: IKeyboard;
   controls: IControls;
 }
 
@@ -702,7 +703,7 @@ export class DemoGame extends AuxiliaryHolder {
         new ToggleAuxiliary({ keyboard }, {
           auxiliariesMapping: [
             {
-              key: "Tab", aux: Auxiliaries.from(
+              key: "Tab", aux: () => Auxiliaries.from(
                 posStep,
                 stepBack,
                 new SmoothFollowAuxiliary({ motor, follower: camPosition, followee: heroPos }, { speed: .05 }),
@@ -710,7 +711,7 @@ export class DemoGame extends AuxiliaryHolder {
               ),
             },
             {
-              key: "Tab", aux: Auxiliaries.from(
+              key: "Tab", aux: () => Auxiliaries.from(
                 new TurnAuxiliary({ motor, controls, turn: camera.turn }),
                 new TiltAuxiliary({ motor, controls, tilt: camera.tilt }),
                 new MoveAuxiliary({ motor, controls, direction: camera.turn, position: heroPos }),

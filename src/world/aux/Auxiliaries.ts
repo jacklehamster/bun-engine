@@ -2,7 +2,6 @@ import { List, forEach } from "abstract-list";
 import { Auxiliary } from "./Auxiliary";
 
 export class Auxiliaries implements List<Auxiliary>, Auxiliary {
-  private active: boolean = false;
   constructor(private auxiliaries: List<Auxiliary>) {
   }
 
@@ -15,25 +14,14 @@ export class Auxiliaries implements List<Auxiliary>, Auxiliary {
   }
 
   at(index: number): Auxiliary | undefined {
-    if (!this.active) {
-      return undefined;
-    }
     return this.auxiliaries.at(index);
   }
 
   activate(): void {
-    if (this.active) {
-      return;
-    }
-    this.active = true;
     forEach(this.auxiliaries, aux => aux?.activate?.());
   }
 
   deactivate(): void {
-    if (!this.active) {
-      return;
-    }
-    this.active = false;
     forEach(this.auxiliaries, aux => aux?.deactivate?.());
   }
 }
