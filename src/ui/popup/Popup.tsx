@@ -8,6 +8,7 @@ interface Props {
   positionFromRight: boolean;
   positionFromBottom: boolean;
   fontSize: number | undefined;
+  zIndex: number | undefined;
 }
 
 //  Hack until I get proper CSS to work
@@ -38,11 +39,13 @@ export function Popup({
   positionFromRight,
   positionFromBottom,
   fontSize,
+  zIndex,
 }: Props) {
   return (
     <div
       className="pop-up"
       style={{
+        ...POPUP_CSS,
         left: positionFromRight ? `calc(100% - ${x}px)` : x,
         top: positionFromBottom ? `calc(100% - ${y}px)` : y,
         right: DEFAULT_PADDING,
@@ -50,7 +53,7 @@ export function Popup({
         width,
         height,
         fontSize: fontSize ?? DEFAULT_FONT_SIZE,
-        ...POPUP_CSS,
+        zIndex,
       }}
     >
       <div

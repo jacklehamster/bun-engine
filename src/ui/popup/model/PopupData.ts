@@ -6,4 +6,5 @@ export interface PopupData {
   positionFromRight?: boolean;
   positionFromBottom?: boolean;
   fontSize?: number;
+  zIndex?: number;
 }

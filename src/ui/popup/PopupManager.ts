@@ -6,22 +6,22 @@ export class PopupManager {
   #popups: string[] = [];
 
   constructor(private listeners: Set<Listener>) {
-    this.addPopup = this.addPopup.bind(this);
-    this.removePopup = this.removePopup.bind(this);
+    this.addControlsLock = this.addControlsLock.bind(this);
+    this.removeControlsLock = this.removeControlsLock.bind(this);
   }
 
-  addPopup(uid: string): void {
+  addControlsLock(uid: string): void {
     this.#popups.push(uid);
     this.listeners.forEach(listener => listener.onPopup(this.#popups.length));
   }
 
-  removePopup(uid: string): void {
+  removeControlsLock(uid: string): void {
     this.#popups = this.#popups.filter(id => id !== uid);
     this.listeners.forEach(listener => listener.onPopup(this.#popups.length));
   }
 
-  popDialog?(dialog: DialogData): void;
-  popMenu?(menu: MenuData): void;
+  openDialog?(dialog: DialogData): void;
+  openMenu?(menu: MenuData): void;
 
   get lockUid() {
     return this.#popups[this.#popups.length - 1];

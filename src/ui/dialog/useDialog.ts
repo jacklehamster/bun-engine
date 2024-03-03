@@ -1,5 +1,4 @@
 import { usePopup } from "ui/popup/usePopup";
-import { DialogInterface } from "./DialogInterface";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { DialogData } from "./model/DialogData";
 import { useControlsLock } from "ui/useControlsLock";
@@ -58,17 +57,9 @@ export function useDialog({ dialogData }: Props): Result {
     }
   }, [index, popupInterface, messages]);
 
-  const dialogInterface = useMemo<DialogInterface>(() => ({
-    ...popupInterface,
-    nextMessage,
-  }), [popupInterface]);
-
   useEffect(() => {
-    message?.action?.(dialogInterface);
-    if (message?.next) {
-      dialogInterface.nextMessage();
-    }
-  }, [message, dialogInterface]);
+    message?.action?.(popupInterface);
+  }, [message, popupInterface]);
 
   return {
     text: message?.text,

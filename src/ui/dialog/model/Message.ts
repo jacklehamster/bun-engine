@@ -1,7 +1,7 @@
-import { DialogInterface } from "../DialogInterface";
+import { PopupInterface } from "ui/popup/PopupInterface";
 
 export interface Message {
+  id?: string;
   text?: string;
-  next?: boolean;
-  action?(ui: DialogInterface): void;
+  action?(ui: PopupInterface): void;
 }

@@ -70,6 +70,7 @@ export function Menu({ menuData }: Props): JSX.Element {
       fontSize={menuData.fontSize}
       positionFromBottom={!!menuData.positionFromBottom}
       positionFromRight={!!menuData.positionFromRight}
+      zIndex={menuData.zIndex}
     >
       {map(menuData.items, (item, index) => {
         if (!item) {

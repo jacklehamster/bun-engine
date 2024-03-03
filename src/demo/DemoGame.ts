@@ -46,6 +46,7 @@ import { goBackAction } from "world/aux/GoBack";
 import { BodyModel } from "world/sprite/body/BodyModel";
 import { PositionStep } from "world/aux/PositionStep";
 import { IKeyboard } from "controls/IKeyboard";
+import { closePopupAction, popupActions } from "ui/popup/PopupInterface";
 
 enum Assets {
   DOBUKI = 0,
@@ -410,6 +411,7 @@ export class DemoGame extends AuxiliaryHolder {
               onEnter() {
                 displayBox.setImageId(Assets.WIREFRAME_RED);
                 ui.showDialog({
+                  zIndex: 1,
                   conversation: {
                     messages: [
                       { text: "Hello there." },
@@ -420,15 +422,17 @@ export class DemoGame extends AuxiliaryHolder {
                           size: [undefined, 100],
                           positionFromRight: true,
                           items: [
-                            { label: "good", action: ui => ui.close() },
-                            { label: "bad", action: ui => ui.close() },
+                            { label: "good", action: closePopupAction() },
+                            { label: "bad", action: closePopupAction() },
                           ],
                         })
                       },
                       { text: "Bye bye." },
                       {
-                        action: goBackAction(heroPos),
-                        next: true,
+                        action: popupActions(
+                          closePopupAction(),
+                          goBackAction(heroPos),
+                        ),
                       },
                     ]
                   },
@@ -637,9 +641,9 @@ export class DemoGame extends AuxiliaryHolder {
                     { text: "Going down..." },
                   ]
                 },
-              }, () => {
-                camera.fade.progressTowards(1, .005, this, motor);
-              });
+              },
+                // () => camera.fade.progressTowards(1, .005, this, motor)
+              );
             },
             onLeave() {
               displayBox.setImageId(Assets.WIREFRAME);

@@ -27,6 +27,7 @@ export function Dialog({ dialogData }: Props): JSX.Element {
         fontSize={dialogData.fontSize}
         positionFromBottom={!!dialogData.positionFromBottom}
         positionFromRight={!!dialogData.positionFromRight}
+        zIndex={dialogData.zIndex}
       >
         <div style={{ padding: 10 }}>
           <progressive-text period="30">{text}</progressive-text>

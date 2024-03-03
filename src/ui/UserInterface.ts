@@ -7,5 +7,5 @@ export interface UserInterface extends Auxiliary {
   addDialogListener(listener: Listener): void;
   removeDialogListener(listener: Listener): void;
   showMenu(menu: MenuData): void;
-  showDialog(dialog: DialogData, onClose?: () => void): void;
+  showDialog(dialog: DialogData): void;
 }
