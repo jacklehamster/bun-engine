@@ -1,6 +1,8 @@
 import { List } from "abstract-list";
-import { MenuItem } from '../MenuItem';
+import { MenuItem } from './MenuItem';
+import { PopupData } from "ui/popup/model/PopupData";
 
-export interface MenuData {
-  items: List<MenuItem>;
+export interface MenuData extends PopupData {
+  type?: "menu",
+  items: List<MenuItem> | MenuItem[];
 }

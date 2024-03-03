@@ -4,35 +4,32 @@ import { IKeyboard, KeyListener } from "./IKeyboard";
 import { Time } from "motor-loop";
 
 export class KeyboardControls implements IControls, KeyListener {
-  private readonly listeners: Set<ControlsListener> = new Set();
-  private isActive: boolean = false;
+  private readonly listeners = new Set<ControlsListener>();
   private keys: Record<string, Time> = {}
+  #enabled = false;
 
   constructor(private readonly keyboard: IKeyboard) {
   }
 
   activate(): void {
-    if (!this.isActive) {
-      this.keys = this.keyboard.keys;
-      this.isActive = true;
-      this.keyboard.addListener(this);
-    }
+    this.enabled = true;
   }
 
   deactivate(): void {
-    if (this.isActive) {
-      this.keys = {};
-      this.onActionUp();
-      this.isActive = false;
-      this.keyboard.removeListener(this);
-    }
+    this.enabled = false;
   }
 
-  setActive(active: boolean): void {
-    if (active) {
-      this.activate();
+  set enabled(enabled: boolean) {
+    if (this.#enabled === enabled) {
+      return;
+    }
+    this.#enabled = enabled;
+    this.keys = enabled ? this.keyboard.keys : {};
+    if (enabled) {
+      this.keyboard.addListener(this);
     } else {
-      this.deactivate();
+      this.onActionUp();
+      this.keyboard.removeListener(this);
     }
   }
 

@@ -19,5 +19,5 @@ export interface IControls extends Auxiliary {
   get exit(): boolean;
   addListener(listener: ControlsListener): void;
   removeListener(listener: ControlsListener): void;
-  setActive(active: boolean): void;
+  set enabled(active: boolean);
 }

@@ -6,7 +6,7 @@ type KeyMap = { key: string; aux: AuxFactory };
 
 interface Config {
   initialIndex?: number;
-  auxiliariesMapping: List<KeyMap>;
+  auxiliariesMap: List<KeyMap>;
 }
 
 interface Props {
@@ -26,7 +26,7 @@ export class ToggleAuxiliary implements Auxiliary {
 
   constructor({ keyboard }: Props, config: Config) {
     this.#keyboard = keyboard;
-    this.#keys = map(config.auxiliariesMapping, (keyMap => keyMap?.key));
+    this.#keys = map(config.auxiliariesMap, (keyMap => keyMap?.key));
     this.#keyListener = {
       onKeyDown: (keyCode: string) => {
         if (this.#keys.indexOf(keyCode) >= 0) {
@@ -40,7 +40,7 @@ export class ToggleAuxiliary implements Auxiliary {
         }
       },
     };
-    this.#auxiliaryFactories = map(config.auxiliariesMapping, ((keyMap) => keyMap?.aux));
+    this.#auxiliaryFactories = map(config.auxiliariesMap, ((keyMap) => keyMap?.aux));
     this.#toggleIndex = (config.initialIndex ?? 0);
   }
 

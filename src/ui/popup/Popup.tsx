@@ -4,7 +4,10 @@ import './css/Popup.css';
 interface Props {
   children: React.ReactNode;
   position: [number, number];
-  size: [number, number];
+  size: [number | undefined, number | undefined];
+  positionFromRight: boolean;
+  positionFromBottom: boolean;
+  fontSize: number | undefined;
 }
 
 //  Hack until I get proper CSS to work
@@ -25,25 +28,35 @@ const DOUBLE_BORDER_CSS: CSSProperties = {
   padding: 10,
 };
 
+const DEFAULT_PADDING = 50;
+const DEFAULT_FONT_SIZE = 24;
+
 export function Popup({
   children,
-  position: [left, top],
+  position: [x, y],
   size: [width, height],
+  positionFromRight,
+  positionFromBottom,
+  fontSize,
 }: Props) {
   return (
     <div
       className="pop-up"
       style={{
-        left,
-        top,
+        left: positionFromRight ? `calc(100% - ${x}px)` : x,
+        top: positionFromBottom ? `calc(100% - ${y}px)` : y,
+        right: DEFAULT_PADDING,
+        bottom: DEFAULT_PADDING,
+        width,
+        height,
+        fontSize: fontSize ?? DEFAULT_FONT_SIZE,
         ...POPUP_CSS,
       }}
     >
       <div
         className="double-border"
         style={{
-          width,
-          height,
+          height: `calc(${height === undefined ? '100%' : `${height}px`} - 27px)`,
           ...DOUBLE_BORDER_CSS,
         }}
       >

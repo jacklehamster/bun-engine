@@ -1,78 +1,36 @@
-import { Popup } from 'ui/Popup';
+import { Popup } from 'ui/popup/Popup';
 import { DialogData } from './model/DialogData';
-import React, { useCallback, useEffect, useState } from 'react';
-import { useControlsLock as useControlsLock } from 'ui/useKeyboardLock';
-import { useGameContext } from 'ui/Provider';
-import { ControlsListener } from 'controls/ControlsListener';
+import { useDialog } from './useDialog';
+import './text/ProgressiveText';
 
 interface Props {
-  dialogData?: DialogData;
+  dialogData: DialogData;
 }
 
-export function Dialog({ dialogData }: Props) {
-  const { lock, unlock } = useControlsLock();
-  const [index, setIndex] = useState(0);
-  const { setDialog, controls } = useGameContext();
-  useEffect(() => {
-    if (
-      dialogData &&
-      index >= dialogData.conversation.messages.length.valueOf()
-    ) {
-      setDialog(undefined);
-    }
-  }, [index, dialogData]);
+export function Dialog({ dialogData }: Props): JSX.Element {
+  const { text } = useDialog({ dialogData });
 
-  const nextMessage = useCallback(() => {
-    if (dialogData) {
-      setIndex((value) => {
-        return value + 1;
-      });
-    }
-  }, [dialogData, setIndex]);
+  const position: [number, number] = [
+    dialogData?.position?.[0] ?? 50,
+    dialogData?.position?.[1] ?? 500,
+  ];
+  const size: [number | undefined, number | undefined] = [
+    dialogData?.size?.[0],
+    dialogData?.size?.[1],
+  ];
 
-  useEffect(() => {
-    setIndex(0);
-  }, [dialogData]);
-
-  useEffect((): (() => void) | void => {
-    if (dialogData && controls) {
-      lock();
-      const listener: ControlsListener = {
-        onAction(controls) {
-          if (controls.action) {
-            nextMessage();
-          }
-        },
-      };
-      controls.addListener(listener);
-      return () => {
-        controls.removeListener(listener);
-        unlock();
-      };
-    }
-  }, [dialogData, nextMessage, lock, unlock, controls]);
-
-  useEffect(() => {
-    const message = dialogData?.conversation.messages.at(index);
-    message?.action?.();
-    if (message?.next) {
-      nextMessage();
-    }
-  }, [index, dialogData, nextMessage]);
-
-  const text = dialogData?.conversation.messages.at(index)?.text;
   return (
     dialogData && (
-      <Popup position={[50, 500]} size={[500, 150]}>
-        {text && (
-          <div
-            style={{
-              padding: 10,
-            }}
-          >
-            {text}
-          </div>
-        )}
+      <Popup
+        position={position}
+        size={size}
+        fontSize={dialogData.fontSize}
+        positionFromBottom={!!dialogData.positionFromBottom}
+        positionFromRight={!!dialogData.positionFromRight}
+      >
+        <div style={{ padding: 10 }}>
+          <progressive-text period="30">{text}</progressive-text>
+        </div>
       </Popup>
     )
   );

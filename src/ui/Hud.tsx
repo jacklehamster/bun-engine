@@ -5,10 +5,11 @@ import { AuxiliaryHolder } from 'world/aux/AuxiliaryHolder';
 import { HudContent } from './HudContent';
 import { Listener } from './Listener';
 import { UserInterface } from './UserInterface';
-import { PopupManager } from './PopupManager';
+import { PopupManager } from './popup/PopupManager';
 import { IControls } from 'controls/IControls';
 import { MenuData } from './menu/model/MenuData';
 import { DialogData } from './dialog/model/DialogData';
+import { v4 as uuidv4 } from 'uuid';
 
 const STYLE: React.CSSProperties = {
   position: 'absolute',
@@ -17,75 +18,71 @@ const STYLE: React.CSSProperties = {
   height: '100%',
 };
 
+const INNER_STYLE: React.CSSProperties = {
+  backgroundColor: '#ffffff66',
+};
+
 interface Props {
   controls: IControls;
   webGlCanvas: WebGlCanvas;
 }
 
 export class Hud extends AuxiliaryHolder implements UserInterface {
-  private readonly webGlCanvas: WebGlCanvas;
-  private readonly rootElem = document.createElement('div');
-  private readonly root = ReactDOM.createRoot(this.rootElem);
-  private readonly listeners: Set<Listener> = new Set();
-  private readonly popupManager = new PopupManager(this.listeners);
-  private readonly controls: IControls;
+  readonly #webGlCanvas: WebGlCanvas;
+  readonly #rootElem = document.createElement('div');
+  readonly #root = ReactDOM.createRoot(this.#rootElem);
+  readonly #listeners: Set<Listener> = new Set();
+  readonly #popupManager = new PopupManager(this.#listeners);
+  readonly #controls: IControls;
 
   constructor({ controls, webGlCanvas }: Props) {
     super();
-    this.webGlCanvas = webGlCanvas;
-    this.controls = controls;
-    this.rootElem.style.pointerEvents = 'none';
+    this.#webGlCanvas = webGlCanvas;
+    this.#controls = controls;
+    this.#rootElem.style.pointerEvents = 'none';
   }
 
-  showDialog(dialog: DialogData, onClose?: () => void): void {
-    this.popupManager.showDialog?.(dialog, onClose);
-  }
-
-  dismissDialog(): void {
-    this.popupManager.dismissDialog?.();
+  showDialog(dialog: DialogData): void {
+    const type = 'dialog';
+    const uid = type + '-' + uuidv4();
+    this.#popupManager.popDialog?.({ uid, type, ...dialog });
   }
 
   showMenu(menuData: MenuData): void {
-    this.popupManager.showMenu?.(menuData);
-  }
-
-  dismissMenu(): void {
-    this.popupManager.dismissMenu?.();
+    const type = 'menu';
+    const uid = type + '-' + uuidv4();
+    this.#popupManager.popMenu?.({ uid, type, ...menuData });
   }
 
   activate(): void {
     super.activate();
-    document.body.appendChild(this.rootElem);
-    this.root.render(this.createElement());
+    document.body.appendChild(this.#rootElem);
+    this.#root.render(this.createElement());
   }
 
   deactivate(): void {
-    this.root.unmount();
-    document.body.removeChild(this.rootElem);
+    this.#root.unmount();
+    document.body.removeChild(this.#rootElem);
     super.deactivate();
   }
 
   addDialogListener(listener: Listener) {
-    this.listeners.add(listener);
+    this.#listeners.add(listener);
   }
 
   removeDialogListener(listener: Listener) {
-    this.listeners.delete(listener);
+    this.#listeners.delete(listener);
   }
 
   createElement(): React.ReactNode {
-    const { offsetLeft: left, offsetTop: top } = this.webGlCanvas.elem;
+    const { offsetLeft: left, offsetTop: top } = this.#webGlCanvas.elem;
 
     return (
       <div style={{ ...STYLE, top, left }}>
-        <div
-          style={{
-            backgroundColor: '#ffffff66',
-          }}
-        >
+        <div style={{ ...INNER_STYLE }}>
           <HudContent
-            dialogManager={this.popupManager}
-            controls={this.controls}
+            dialogManager={this.#popupManager}
+            controls={this.#controls}
           />
         </div>
       </div>

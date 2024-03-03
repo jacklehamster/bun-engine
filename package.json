@@ -57,6 +57,7 @@
     "cell-tracker": "^1.0.22",
     "gl-texture-manager": "^1.0.14",
     "list-accumulator": "^1.0.13",
+    "motor-loop": "^1.0.22",
     "seedrandom": "^3.0.5",
     "uuid": "^9.0.1"
   },

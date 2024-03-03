@@ -9,14 +9,17 @@ interface Props {
   motor: IMotor;
 }
 
-interface Data {
-  followee: IPositionMatrix;
-  follower: IPositionMatrix;
+interface Config {
+  followX: boolean;
+  followY: boolean;
+  followZ: boolean;
   speed: number;
 }
 
-interface Config {
-  speed: number;
+interface Data {
+  followee: IPositionMatrix;
+  follower: IPositionMatrix;
+  config: Config;
 }
 
 export class SmoothFollowAuxiliary extends Looper<Data> implements Auxiliary {
@@ -24,7 +27,16 @@ export class SmoothFollowAuxiliary extends Looper<Data> implements Auxiliary {
   private listener: IChangeListener<IMatrix> = { onChange: () => this.start() };
 
   constructor({ followee, follower, motor }: Props, config?: Partial<Config>) {
-    super({ motor, data: { followee, follower, speed: config?.speed ?? 1 } }, { autoStart: false });
+    super({
+      motor, data: {
+        followee, follower, config: {
+          speed: config?.speed ?? 1,
+          followX: config?.followX ?? true,
+          followY: config?.followY ?? true,
+          followZ: config?.followZ ?? true,
+        },
+      }
+    }, { autoStart: false });
     this.followee = followee;
   }
 
@@ -38,13 +50,13 @@ export class SmoothFollowAuxiliary extends Looper<Data> implements Auxiliary {
     super.deactivate();
   }
 
-  refresh({ data: { follower, followee, speed }, stopUpdate }: UpdatePayload<Data>): void {
+  refresh({ data: { follower, followee, config: { followX, followY, followZ, speed } }, stopUpdate }: UpdatePayload<Data>): void {
     const [x, y, z] = followee.position;
     const [fx, fy, fz] = follower.position;
-    const dx = x - fx, dy = y - fy, dz = z - fz;
+    const dx = followX ? x - fx : 0, dy = followY ? y - fy : 0, dz = followZ ? z - fz : 0;
     const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
     if (dist < .1) {
-      follower.moveTo(x, y, z);
+      follower.moveTo(followX ? x : fx, followY ? y : fy, followZ ? z : fz);
       stopUpdate();
     } else {
       const moveSpeed = Math.min(dist, speed * dist) / dist;

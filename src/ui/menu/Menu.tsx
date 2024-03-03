@@ -1,19 +1,23 @@
-import React, { useEffect, useState } from 'react';
-import { Popup } from '../Popup';
-import { useControlsLock } from '../useKeyboardLock';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Popup } from '../popup/Popup';
+import { useControlsLock } from '../useControlsLock';
 import { useGameContext } from '../Provider';
 import { ControlsListener } from 'controls/ControlsListener';
 import { map } from 'abstract-list';
 import { MenuData } from './model/MenuData';
+import { IControls } from 'controls/IControls';
+import { usePopup } from 'ui/popup/usePopup';
 
 interface Props {
-  menuData?: MenuData;
+  menuData: MenuData;
 }
 
-export function Menu({ menuData }: Props) {
-  const { lock, unlock } = useControlsLock();
-  const { setMenu, controls } = useGameContext();
+export function Menu({ menuData }: Props): JSX.Element {
+  const { lock, unlock, inControl } = useControlsLock(menuData.uid);
+  const { controls } = useGameContext();
   const [selected, setSelected] = useState(0);
+
+  const { popupInterface } = usePopup({ popupData: menuData });
 
   useEffect(() => {
     if (menuData) {
@@ -21,21 +25,26 @@ export function Menu({ menuData }: Props) {
     }
   }, [menuData]);
 
+  const onAction = useCallback<(controls: IControls) => void>(
+    (controls) => {
+      if (menuData.uid !== inControl) {
+        return;
+      }
+      const dy = (controls.forward ? -1 : 0) + (controls.backward ? 1 : 0);
+      const len = menuData!.items.length.valueOf();
+      setSelected((value) => (value + dy + len) % len);
+      if (controls.action) {
+        menuData?.items.at(selected)?.action?.(popupInterface);
+      }
+    },
+    [menuData, selected, inControl],
+  );
+
   useEffect((): (() => void) | void => {
     if (menuData && controls) {
       lock();
       const listener: ControlsListener = {
-        onAction(controls) {
-          const dy = (controls.forward ? -1 : 0) + (controls.backward ? 1 : 0);
-          setSelected(
-            (value) =>
-              (value + dy + menuData.items.length.valueOf()) %
-              menuData.items.length.valueOf(),
-          );
-          if (controls.exit) {
-            setMenu(undefined);
-          }
-        },
+        onAction,
       };
       controls.addListener(listener);
       return () => {
@@ -43,29 +52,38 @@ export function Menu({ menuData }: Props) {
         unlock();
       };
     }
-  }, [menuData, setMenu, lock, unlock, controls]);
+  }, [menuData, onAction, lock, unlock, controls]);
+
+  const position: [number, number] = [
+    menuData?.position?.[0] ?? 50,
+    menuData?.position?.[1] ?? 50,
+  ];
+  const size: [number | undefined, number | undefined] = [
+    menuData?.size?.[0],
+    menuData?.size?.[1],
+  ];
 
   return (
-    menuData && (
-      <Popup position={[50, 50]} size={[200, 200]}>
-        {map(menuData.items, (item, index) => {
-          if (!item) {
-            return;
-          }
-          const { label } = item;
-          return (
-            <div
-              key={index}
-              style={{
-                color: selected === index ? 'black' : 'white',
-                backgroundColor: selected === index ? 'white' : 'black',
-              }}
-            >
-              {label}
-            </div>
-          );
-        })}
-      </Popup>
-    )
+    <Popup
+      position={position}
+      size={size}
+      fontSize={menuData.fontSize}
+      positionFromBottom={!!menuData.positionFromBottom}
+      positionFromRight={!!menuData.positionFromRight}
+    >
+      {map(menuData.items, (item, index) => {
+        if (!item) {
+          return;
+        }
+        const { label } = item;
+        const color = selected === index ? 'black' : 'white';
+        const backgroundColor = selected === index ? 'white' : 'black';
+        return (
+          <div key={index} style={{ color, backgroundColor }}>
+            {label}
+          </div>
+        );
+      })}
+    </Popup>
   );
 }

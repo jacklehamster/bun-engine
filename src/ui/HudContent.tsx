@@ -1,12 +1,14 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Menu } from './menu/Menu';
 import { Provider } from './Provider';
-import { PopupManager } from './PopupManager';
+import { PopupManager } from './popup/PopupManager';
 import { GameContextType } from './GameContextType';
 import { IControls } from 'controls/IControls';
 import { MenuData } from './menu/model/MenuData';
 import { Dialog } from './dialog/Dialog';
 import { DialogData } from './dialog/model/DialogData';
+
+type ElemData = DialogData | MenuData;
 
 interface Props {
   dialogManager: PopupManager;
@@ -14,46 +16,72 @@ interface Props {
 }
 
 export function HudContent({ dialogManager, controls }: Props) {
-  const [menu, setMenu] = useState<MenuData>();
-  const [dialog, setDialog] = useState<DialogData>();
-  const [onClose, setOnClose] = useState<() => void>();
+  const [popups, setPopups] = useState<ElemData[]>([]);
+  const [elemsMap, setElemsMap] = useState<Record<string, JSX.Element>>({});
+  const topPopupUid = useMemo(
+    () => popups[popups.length - 1]?.uid ?? '',
+    [popups],
+  );
+
+  const createElement = useCallback<(data: ElemData) => JSX.Element>((data) => {
+    switch (data.type) {
+      case 'dialog':
+        return <Dialog key={data.uid} dialogData={data} />;
+      case 'menu':
+        return <Menu key={data.uid} menuData={data} />;
+    }
+    throw new Error(`Invalid data type: ${data.type}`);
+  }, []);
+
+  const addPopup = useCallback(
+    (data: ElemData) => setPopups((popups) => [...popups, data]),
+    [setPopups],
+  );
+
+  const popBack = useCallback(
+    () => setPopups((popups) => popups.slice(0, popups.length - 1)),
+    [setPopups],
+  );
 
   const gameContext: GameContextType = useMemo<GameContextType>(
     () => ({
-      addControlsLock: dialogManager.showPopup,
-      removeControlsLock: dialogManager.dismiss,
-      isMenuVisible: !!menu,
-      setMenu,
-      isDialogVisible: !!dialog,
-      setDialog,
+      addControlsLock: dialogManager.addPopup,
+      removeControlsLock: dialogManager.removePopup,
+      popMenu: addPopup,
+      popDialog: addPopup,
+      popBack,
       controls,
+      topPopupUid,
     }),
-    [setMenu, menu, dialogManager, controls],
+    [dialogManager, controls, addPopup, popBack, topPopupUid],
   );
 
   useEffect(() => {
-    dialogManager.showMenu = (menu: MenuData) => gameContext.setMenu(menu);
-    dialogManager.dismissMenu = () => gameContext.setMenu(undefined);
-    dialogManager.showDialog = (dialog: DialogData, onClose?: () => void) => {
-      gameContext.setDialog(dialog);
-      setOnClose(() => onClose);
-    };
-    dialogManager.dismissDialog = () => {
-      gameContext.setDialog(undefined);
-    };
-  }, [dialogManager, gameContext, setOnClose]);
+    dialogManager.popMenu = gameContext.popMenu;
+    dialogManager.popDialog = gameContext.popDialog;
+  }, [dialogManager, gameContext]);
 
   useEffect(() => {
-    if (!dialog) {
-      onClose?.();
-    }
-  }, [dialog]);
+    setElemsMap((elemsMap) => {
+      const newElemsMap: Record<string, JSX.Element> = {};
+      popups.forEach((data) => {
+        if (data.uid) {
+          newElemsMap[data.uid] = elemsMap[data.uid] ?? createElement(data);
+        }
+      });
+      return newElemsMap;
+    });
+  }, [popups, setElemsMap, createElement]);
+
+  const elements = useMemo<JSX.Element[]>(
+    () => popups.map((data) => elemsMap[data.uid ?? '']),
+    [elemsMap, popups],
+  );
 
   return (
     <Provider context={gameContext}>
       <div>Title</div>
-      <Menu menuData={menu}></Menu>
-      <Dialog dialogData={dialog}></Dialog>
+      {elements}
     </Provider>
   );
 }

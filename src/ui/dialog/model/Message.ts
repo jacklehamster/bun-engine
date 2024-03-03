@@ -1,5 +1,7 @@
+import { DialogInterface } from "../DialogInterface";
+
 export interface Message {
   text?: string;
-  action?(): void;
   next?: boolean;
+  action?(ui: DialogInterface): void;
 }

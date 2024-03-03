@@ -1,4 +1,3 @@
-import { Keyboard } from "controls/Keyboard";
 import { IGraphicsEngine } from "graphics/IGraphicsEngine";
 import { IMotor, ControlledMotor, Policy } from "motor-loop";
 import { Camera } from "camera/Camera";
@@ -414,6 +413,18 @@ export class DemoGame extends AuxiliaryHolder {
                   conversation: {
                     messages: [
                       { text: "Hello there." },
+                      {
+                        text: "How are you?",
+                        action: () => ui.showMenu({
+                          position: [200, 390],
+                          size: [undefined, 100],
+                          positionFromRight: true,
+                          items: [
+                            { label: "good", action: ui => ui.close() },
+                            { label: "bad", action: ui => ui.close() },
+                          ],
+                        })
+                      },
                       { text: "Bye bye." },
                       {
                         action: goBackAction(heroPos),
@@ -701,12 +712,12 @@ export class DemoGame extends AuxiliaryHolder {
     this.addAuxiliary(keyboard)
       .addAuxiliary(
         new ToggleAuxiliary({ keyboard }, {
-          auxiliariesMapping: [
+          auxiliariesMap: [
             {
               key: "Tab", aux: () => Auxiliaries.from(
                 posStep,
                 stepBack,
-                new SmoothFollowAuxiliary({ motor, follower: camPosition, followee: heroPos }, { speed: .05 }),
+                new SmoothFollowAuxiliary({ motor, follower: camPosition, followee: heroPos }, { speed: .05, followY: false }),
                 new JumpAuxiliary({ motor, controls, position: heroPos }, { gravity: -2, jump: 3 }),
               ),
             },
