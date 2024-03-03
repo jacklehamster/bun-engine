@@ -9,14 +9,14 @@ interface Props {
 }
 
 export function usePopup({ popupData }: Props) {
-  const { popBack } = useGameContext();
+  const { closePopup } = useGameContext();
   const popupInterface = useMemo<PopupInterface>(
     () => ({
       close() {
-        popBack();
+        closePopup();
       },
     }),
-    [popBack],
+    [closePopup],
   );
 
   return { popupInterface };

@@ -7,7 +7,7 @@ export interface GameContextType {
   removeControlsLock(uid: string): void;
   openMenu(value: MenuData): void;
   openDialog(value: DialogData): void;
-  popBack(): void;
+  closePopup(): void;
   controls?: IControls;
   topPopupUid: string;
 }
@@ -25,7 +25,7 @@ export const DEFAULT_GAME_CONTEXT: GameContextType = {
   openDialog: function (_value: DialogData | undefined): void {
     throw new Error('Function not implemented.');
   },
-  popBack(): void {
+  closePopup(): void {
     throw new Error('Function not implemented.');
   },
   topPopupUid: '',

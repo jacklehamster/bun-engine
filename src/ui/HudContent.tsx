@@ -12,7 +12,7 @@ interface Props {
 }
 
 export function HudContent({ dialogManager, controls }: Props) {
-  const { popups, addPopup, popBack, topPopupUid } = usePopupManager();
+  const { popups, addPopup, closePopup, topPopupUid } = usePopupManager();
 
   const gameContext: GameContextType = useMemo<GameContextType>(
     () => ({
@@ -20,16 +20,17 @@ export function HudContent({ dialogManager, controls }: Props) {
       removeControlsLock: dialogManager.removeControlsLock,
       openMenu: addPopup,
       openDialog: addPopup,
-      popBack,
+      closePopup,
       controls,
       topPopupUid,
     }),
-    [dialogManager, controls, addPopup, popBack, topPopupUid],
+    [dialogManager, controls, addPopup, closePopup, topPopupUid],
   );
 
   useEffect(() => {
     dialogManager.openMenu = gameContext.openMenu;
     dialogManager.openDialog = gameContext.openDialog;
+    dialogManager.closePopup = gameContext.closePopup;
   }, [dialogManager, gameContext]);
 
   return (

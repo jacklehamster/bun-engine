@@ -16,7 +16,7 @@ export function usePopupManager() {
     [setPopups],
   );
 
-  const popBack = useCallback(
+  const closePopup = useCallback(
     () => setPopups((popups) => popups.slice(0, popups.length - 1)),
     [setPopups],
   );
@@ -24,7 +24,7 @@ export function usePopupManager() {
   return {
     popups,
     addPopup,
-    popBack,
+    closePopup,
     topPopupUid,
   }
 }

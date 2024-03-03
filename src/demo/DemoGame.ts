@@ -346,6 +346,7 @@ export class DemoGame extends AuxiliaryHolder {
         engine.setMaxSpriteCount(0);
       }
     });
+
     this.addAuxiliary(new SpriteUpdater({ engine, motor, sprites: spritesAccumulator }));
 
     const exitBlock = {
@@ -410,14 +411,14 @@ export class DemoGame extends AuxiliaryHolder {
             listener: {
               onEnter() {
                 displayBox.setImageId(Assets.WIREFRAME_RED);
-                ui.showDialog({
+                ui.openDialog({
                   zIndex: 1,
                   conversation: {
                     messages: [
                       { text: "Hello there." },
                       {
                         text: "How are you?",
-                        action: () => ui.showMenu({
+                        action: () => ui.openMenu({
                           position: [200, 390],
                           size: [undefined, 100],
                           positionFromRight: true,
@@ -425,7 +426,7 @@ export class DemoGame extends AuxiliaryHolder {
                             { label: "good", action: closePopupAction() },
                             { label: "bad", action: closePopupAction() },
                           ],
-                        })
+                        }),
                       },
                       { text: "Bye bye." },
                       {
@@ -635,7 +636,7 @@ export class DemoGame extends AuxiliaryHolder {
           listener: {
             onEnter() {
               displayBox.setImageId(Assets.WIREFRAME_RED);
-              ui.showDialog({
+              ui.openDialog({
                 conversation: {
                   messages: [
                     { text: "Going down..." },

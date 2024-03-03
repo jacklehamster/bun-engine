@@ -1,8 +1,9 @@
+import { UserInterface } from 'ui/UserInterface';
 import { Listener } from '../Listener';
 import { DialogData } from '../dialog/model/DialogData';
 import { MenuData } from '../menu/model/MenuData';
 
-export class PopupManager {
+export class PopupManager implements UserInterface {
   #popups: string[] = [];
 
   constructor(private listeners: Set<Listener>) {
@@ -20,8 +21,12 @@ export class PopupManager {
     this.listeners.forEach(listener => listener.onPopup(this.#popups.length));
   }
 
-  openDialog?(dialog: DialogData): void;
-  openMenu?(menu: MenuData): void;
+  openDialog(dialog: DialogData): void {
+  }
+  openMenu(menu: MenuData): void {
+  }
+  closePopup(): void {
+  }
 
   get lockUid() {
     return this.#popups[this.#popups.length - 1];
