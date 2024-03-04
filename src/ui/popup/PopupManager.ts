@@ -21,12 +21,19 @@ export class PopupManager implements UserInterface {
     this.listeners.forEach(listener => listener.onPopup(this.#popups.length));
   }
 
-  openDialog(dialog: DialogData): void {
+  openDialog(dialog: DialogData): Promise<void> {
+    throw new Error("Not implemented");
   }
-  openMenu(menu: MenuData): void {
+  openMenu(menu: MenuData): Promise<void> {
+    throw new Error("Not implemented");
   }
   closePopup(): void {
+    throw new Error("Not implemented");
   }
+  nextMessage(): void {
+    throw new Error("Not implemented");
+  }
+  selection: number = 0;
 
   get lockUid() {
     return this.#popups[this.#popups.length - 1];

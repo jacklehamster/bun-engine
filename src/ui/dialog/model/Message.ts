@@ -1,7 +1,7 @@
-import { PopupInterface } from "ui/popup/PopupInterface";
+import { PopAction } from "../../actions/PopAction";
 
 export interface Message {
   id?: string;
   text?: string;
-  action?(ui: PopupInterface): void;
+  action?: PopAction | (PopAction | undefined)[];
 }

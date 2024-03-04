@@ -42,20 +42,27 @@ export class Hud extends AuxiliaryHolder implements UserInterface {
     this.#rootElem.style.pointerEvents = 'none';
   }
 
-  openDialog(dialog: DialogData): void {
-    const type = 'dialog';
-    const uid = type + '-' + uuidv4();
-    this.#popupManager.openDialog?.({ uid, type, ...dialog });
+  async openDialog(dialog: DialogData) {
+    return this.#popupManager.openDialog?.(dialog);
   }
 
-  openMenu(menuData: MenuData): void {
+  async openMenu(menuData: MenuData) {
+    return this.#popupManager.openMenu?.(menuData);
     const type = 'menu';
     const uid = type + '-' + uuidv4();
-    this.#popupManager.openMenu?.({ uid, type, ...menuData });
+    return this.#popupManager.openMenu?.({ uid, type, ...menuData });
+  }
+
+  nextMessage(): void {
+    this.#popupManager.nextMessage();
   }
 
   closePopup(): void {
     this.#popupManager.closePopup?.();
+  }
+
+  get selection(): number {
+    return this.#popupManager.selection;
   }
 
   activate(): void {

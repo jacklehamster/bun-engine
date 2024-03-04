@@ -10,15 +10,15 @@ declare global {
 
 export class ProgressiveText extends HTMLElement {
   readonly #observer;
+  readonly #containerText;
+  readonly #hiddenText;
   #animationFrameRequest = 0;
-  #containerText;
-  #hiddenText;
 
   constructor() {
     super();
     const shadowRoot = this.attachShadow({ mode: 'open' });
-    this.#containerText = shadowRoot.appendChild(document.createElement('div'));
-    this.#hiddenText = shadowRoot.appendChild(document.createElement('div'));
+    this.#containerText = shadowRoot.appendChild(document.createElement('span'));
+    this.#hiddenText = shadowRoot.appendChild(document.createElement('span'));
     this.#hiddenText.style.color = "#00000020";
 
     this.#observer = new MutationObserver(mutationsList => this.handleMutation(mutationsList));

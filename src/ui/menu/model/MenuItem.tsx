@@ -1,6 +1,6 @@
-import { PopupInterface } from '../../popup/PopupInterface';
+import { PopAction } from 'ui/actions/PopAction';
 
 export interface MenuItem {
   label: string;
-  action?: (ui: PopupInterface) => void;
+  action?: PopAction | (PopAction | undefined)[];
 }

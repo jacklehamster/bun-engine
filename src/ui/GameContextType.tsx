@@ -10,6 +10,7 @@ export interface GameContextType {
   closePopup(): void;
   controls?: IControls;
   topPopupUid: string;
+  onSelection: (selection: number) => void;
 }
 
 export const DEFAULT_GAME_CONTEXT: GameContextType = {
@@ -19,14 +20,17 @@ export const DEFAULT_GAME_CONTEXT: GameContextType = {
   removeControlsLock: function (_uid: string): void {
     throw new Error('Function not implemented.');
   },
-  openMenu: function (_value: MenuData): void {
+  openMenu: function (_value: MenuData): Promise<number> {
     throw new Error('Function not implemented.');
   },
-  openDialog: function (_value: DialogData | undefined): void {
+  openDialog: function (_value: DialogData | undefined): Promise<void> {
     throw new Error('Function not implemented.');
   },
   closePopup(): void {
     throw new Error('Function not implemented.');
   },
   topPopupUid: '',
+  onSelection(selection) {
+    throw new Error('Function not implemented');
+  },
 };

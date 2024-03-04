@@ -5,8 +5,8 @@ interface Props {
   children: React.ReactNode;
   position: [number, number];
   size: [number | undefined, number | undefined];
-  positionFromRight: boolean;
-  positionFromBottom: boolean;
+  positionFromRight?: boolean;
+  positionFromBottom?: boolean;
   fontSize: number | undefined;
   zIndex: number | undefined;
 }
@@ -29,6 +29,7 @@ const DOUBLE_BORDER_CSS: CSSProperties = {
   padding: 10,
 };
 
+const DOUBLE_BORDER_HEIGHT_OFFSET = 27;
 const DEFAULT_PADDING = 50;
 const DEFAULT_FONT_SIZE = 24;
 
@@ -59,7 +60,7 @@ export function Popup({
       <div
         className="double-border"
         style={{
-          height: `calc(${height === undefined ? '100%' : `${height}px`} - 27px)`,
+          height: `calc(${height === undefined ? '100%' : `${height}px`} - ${DOUBLE_BORDER_HEIGHT_OFFSET}px)`,
           ...DOUBLE_BORDER_CSS,
         }}
       >

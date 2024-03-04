@@ -46,7 +46,6 @@ import { goBackAction } from "world/aux/GoBack";
 import { BodyModel } from "world/sprite/body/BodyModel";
 import { PositionStep } from "world/aux/PositionStep";
 import { IKeyboard } from "controls/IKeyboard";
-import { closePopupAction, popupActions } from "ui/popup/PopupInterface";
 
 enum Assets {
   DOBUKI = 0,
@@ -423,17 +422,39 @@ export class DemoGame extends AuxiliaryHolder {
                           size: [undefined, 100],
                           positionFromRight: true,
                           items: [
-                            { label: "good", action: closePopupAction() },
-                            { label: "bad", action: closePopupAction() },
+                            {
+                              label: "good",
+                              action: [
+                                ui => ui.closePopup(),
+                                ui => ui.openDialog({
+                                  position: [10, 0],
+                                  size: [300, 300],
+                                  conversation: {
+                                    messages: [
+                                      { text: "That's nice to know!" },
+                                    ]
+                                  },
+                                }),
+                                ui => ui.nextMessage(),
+                              ],
+                            },
+                            {
+                              label: "bad",
+                              action: [
+                                ui => console.log(ui.selection),
+                                ui => ui.closePopup(),
+                                ui => ui.nextMessage(),
+                              ]
+                            },
                           ],
                         }),
                       },
                       { text: "Bye bye." },
                       {
-                        action: popupActions(
-                          closePopupAction(),
+                        action: [
+                          ui => ui.closePopup(),
                           goBackAction(heroPos),
-                        ),
+                        ],
                       },
                     ]
                   },

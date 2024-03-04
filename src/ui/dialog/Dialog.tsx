@@ -1,14 +1,16 @@
 import { Popup } from 'ui/popup/Popup';
 import { DialogData } from './model/DialogData';
 import { useDialog } from './useDialog';
+import { UserInterface } from 'ui/UserInterface';
 import './text/ProgressiveText';
 
 interface Props {
   dialogData: DialogData;
+  ui: UserInterface;
 }
 
-export function Dialog({ dialogData }: Props): JSX.Element {
-  const { text } = useDialog({ dialogData });
+export function Dialog({ dialogData, ui }: Props): JSX.Element {
+  const { text } = useDialog({ dialogData, ui });
 
   const position: [number, number] = [
     dialogData?.position?.[0] ?? 50,
@@ -19,20 +21,20 @@ export function Dialog({ dialogData }: Props): JSX.Element {
     dialogData?.size?.[1],
   ];
 
+  const { fontSize, positionFromRight, positionFromBottom, zIndex } =
+    dialogData;
   return (
-    dialogData && (
-      <Popup
-        position={position}
-        size={size}
-        fontSize={dialogData.fontSize}
-        positionFromBottom={!!dialogData.positionFromBottom}
-        positionFromRight={!!dialogData.positionFromRight}
-        zIndex={dialogData.zIndex}
-      >
-        <div style={{ padding: 10 }}>
-          <progressive-text period="30">{text}</progressive-text>
-        </div>
-      </Popup>
-    )
+    <Popup
+      position={position}
+      size={size}
+      fontSize={fontSize}
+      positionFromBottom={positionFromBottom}
+      positionFromRight={positionFromRight}
+      zIndex={zIndex}
+    >
+      <div style={{ padding: 10 }}>
+        <progressive-text period="30">{text}</progressive-text>
+      </div>
+    </Popup>
   );
 }

@@ -6,24 +6,21 @@ import { ControlsListener } from 'controls/ControlsListener';
 import { map } from 'abstract-list';
 import { MenuData } from './model/MenuData';
 import { IControls } from 'controls/IControls';
-import { usePopup } from 'ui/popup/usePopup';
+import { UserInterface } from 'ui/UserInterface';
+import { useSelection } from './useSelection';
+import { PopAction } from 'ui/actions/PopAction';
+import { useActions } from 'ui/actions/useActions';
 
 interface Props {
   menuData: MenuData;
+  ui: UserInterface;
 }
 
-export function Menu({ menuData }: Props): JSX.Element {
+export function Menu({ menuData, ui }: Props): JSX.Element {
   const { lock, unlock, inControl } = useControlsLock(menuData.uid);
   const { controls } = useGameContext();
-  const [selected, setSelected] = useState(0);
-
-  const { popupInterface } = usePopup({ popupData: menuData });
-
-  useEffect(() => {
-    if (menuData) {
-      setSelected(0);
-    }
-  }, [menuData]);
+  const { moveSelection, selectedItem } = useSelection({ menuData });
+  const { performActions } = useActions({ ui });
 
   const onAction = useCallback<(controls: IControls) => void>(
     (controls) => {
@@ -31,13 +28,15 @@ export function Menu({ menuData }: Props): JSX.Element {
         return;
       }
       const dy = (controls.forward ? -1 : 0) + (controls.backward ? 1 : 0);
-      const len = menuData!.items.length.valueOf();
-      setSelected((value) => (value + dy + len) % len);
-      if (controls.action) {
-        menuData?.items.at(selected)?.action?.(popupInterface);
+      moveSelection(dy);
+      if (controls.action && selectedItem?.action) {
+        const actions = Array.isArray(selectedItem.action)
+          ? selectedItem.action
+          : [selectedItem.action];
+        performActions(actions);
       }
     },
-    [menuData, selected, inControl],
+    [menuData, moveSelection, inControl, selectedItem, performActions],
   );
 
   useEffect((): (() => void) | void => {
@@ -77,8 +76,8 @@ export function Menu({ menuData }: Props): JSX.Element {
           return;
         }
         const { label } = item;
-        const color = selected === index ? 'black' : 'white';
-        const backgroundColor = selected === index ? 'white' : 'black';
+        const color = selectedItem === item ? 'black' : 'white';
+        const backgroundColor = selectedItem === item ? 'white' : 'black';
         return (
           <div key={index} style={{ color, backgroundColor }}>
             {label}

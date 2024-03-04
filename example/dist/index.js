@@ -26,16 +26,6 @@ var copySprite = function(sprite, dest) {
 var goBackAction = function(elem) {
   return () => elem.goBack?.();
 };
-var popupActions = function(...actions) {
-  return async (ui) => {
-    for (const action of actions) {
-      await action?.(ui);
-    }
-  };
-};
-var closePopupAction = function() {
-  return (ui) => ui.close();
-};
 var logProxy = function(gl) {
   const proxy = new Proxy(gl, {
     get(target, prop) {
@@ -60,11 +50,11 @@ var usePopupManager = function() {
   const [popups, setPopups] = import_react3.useState([]);
   const topPopupUid = import_react3.useMemo(() => popups[popups.length - 1]?.uid ?? "", [popups]);
   const addPopup = import_react3.useCallback((data) => setPopups((popups2) => [...popups2, data]), [setPopups]);
-  const popBack = import_react3.useCallback(() => setPopups((popups2) => popups2.slice(0, popups2.length - 1)), [setPopups]);
+  const closePopup = import_react3.useCallback(() => setPopups((popups2) => popups2.slice(0, popups2.length - 1)), [setPopups]);
   return {
     popups,
     addPopup,
-    popBack,
+    closePopup,
     topPopupUid
   };
 };
@@ -93,26 +83,17 @@ var Popup2 = function({
     children: jsx_dev_runtime2.jsxDEV("div", {
       className: "double-border",
       style: {
-        height: `calc(${height === undefined ? "100%" : `${height}px`} - 27px)`,
+        height: `calc(${height === undefined ? "100%" : `${height}px`} - ${DOUBLE_BORDER_HEIGHT_OFFSET}px)`,
         ...DOUBLE_BORDER_CSS
       },
       children
     }, undefined, false, undefined, this)
   }, undefined, false, undefined, this);
 };
-var usePopup = function({ popupData }) {
-  const { popBack } = useGameContext();
-  const popupInterface = import_react4.useMemo(() => ({
-    close() {
-      popBack();
-    }
-  }), [popBack]);
-  return { popupInterface };
-};
 var useControlsLock = function(uid) {
   const context = useGameContext();
-  const [locked, setLocked] = import_react5.useState(false);
-  import_react5.useEffect(() => {
+  const [locked, setLocked] = import_react4.useState(false);
+  import_react4.useEffect(() => {
     if (uid) {
       if (locked) {
         context.addControlsLock(uid);
@@ -130,12 +111,23 @@ var useControlsLock = function(uid) {
     inControl: context.topPopupUid
   };
 };
-var useDialog = function({ dialogData }) {
+var useActions = function({ ui }) {
+  const performActions = import_react5.useCallback(async (actions) => {
+    for (let action of actions) {
+      await action?.(ui);
+    }
+  }, [ui]);
+  return { performActions };
+};
+var useDialog = function({ dialogData, ui }) {
   const { lock, unlock, inControl } = useControlsLock(dialogData.uid);
   const { controls } = useGameContext();
   const [index, setIndex] = import_react6.useState(0);
-  const { popupInterface } = usePopup({ popupData: dialogData });
+  const { performActions } = useActions({ ui });
   const nextMessage = import_react6.useCallback(() => setIndex((value) => value + 1), [setIndex]);
+  import_react6.useEffect(() => {
+    ui.nextMessage = nextMessage;
+  }, [nextMessage, ui]);
   import_react6.useEffect(() => {
     if (dialogData && controls) {
       lock();
@@ -164,18 +156,21 @@ var useDialog = function({ dialogData }) {
   import_react6.useEffect(() => {
     const numMessages = messages.length.valueOf();
     if (index >= numMessages) {
-      popupInterface.close();
+      ui.closePopup();
     }
-  }, [index, popupInterface, messages]);
+  }, [index, ui, messages]);
   import_react6.useEffect(() => {
-    message?.action?.(popupInterface);
-  }, [message, popupInterface]);
+    if (message?.action) {
+      const actions = Array.isArray(message.action) ? message.action : [message.action];
+      performActions(actions);
+    }
+  }, [message, performActions]);
   return {
     text: message?.text
   };
 };
-var Dialog = function({ dialogData }) {
-  const { text } = useDialog({ dialogData });
+var Dialog = function({ dialogData, ui }) {
+  const { text } = useDialog({ dialogData, ui });
   const position = [
     dialogData?.position?.[0] ?? 50,
     dialogData?.position?.[1] ?? 500
@@ -184,13 +179,14 @@ var Dialog = function({ dialogData }) {
     dialogData?.size?.[0],
     dialogData?.size?.[1]
   ];
-  return dialogData && jsx_dev_runtime3.jsxDEV(Popup2, {
+  const { fontSize, positionFromRight, positionFromBottom, zIndex } = dialogData;
+  return jsx_dev_runtime3.jsxDEV(Popup2, {
     position,
     size,
-    fontSize: dialogData.fontSize,
-    positionFromBottom: !!dialogData.positionFromBottom,
-    positionFromRight: !!dialogData.positionFromRight,
-    zIndex: dialogData.zIndex,
+    fontSize,
+    positionFromBottom,
+    positionFromRight,
+    zIndex,
     children: jsx_dev_runtime3.jsxDEV("div", {
       style: { padding: 10 },
       children: jsx_dev_runtime3.jsxDEV("progressive-text", {
@@ -200,28 +196,48 @@ var Dialog = function({ dialogData }) {
     }, undefined, false, undefined, this)
   }, undefined, false, undefined, this);
 };
-var Menu = function({ menuData }) {
+var useSelection = function({ menuData }) {
+  const [selectedIndex, setSelectedIndex] = import_react7.useState(0);
+  const { onSelection } = useGameContext();
+  import_react7.useEffect(() => {
+    onSelection(selectedIndex);
+  }, [selectedIndex, onSelection]);
+  const select = import_react7.useCallback((index) => {
+    const len = menuData.items.length.valueOf();
+    setSelectedIndex(index % len);
+  }, [setSelectedIndex, menuData]);
+  const moveSelection = import_react7.useCallback((dy2) => {
+    if (dy2) {
+      const len = menuData.items.length.valueOf();
+      setSelectedIndex((index) => (index + dy2 + len) % len);
+    }
+  }, [setSelectedIndex, menuData]);
+  const selectedItem = import_react7.useMemo(() => {
+    return menuData.items.at(selectedIndex);
+  }, [menuData, selectedIndex]);
+  return {
+    select,
+    moveSelection,
+    selectedItem
+  };
+};
+var Menu = function({ menuData, ui }) {
   const { lock, unlock, inControl } = useControlsLock(menuData.uid);
   const { controls } = useGameContext();
-  const [selected, setSelected] = import_react7.useState(0);
-  const { popupInterface } = usePopup({ popupData: menuData });
-  import_react7.useEffect(() => {
-    if (menuData) {
-      setSelected(0);
-    }
-  }, [menuData]);
-  const onAction = import_react7.useCallback((controls2) => {
+  const { moveSelection, selectedItem } = useSelection({ menuData });
+  const { performActions } = useActions({ ui });
+  const onAction = import_react8.useCallback((controls2) => {
     if (menuData.uid !== inControl) {
       return;
     }
     const dy2 = (controls2.forward ? -1 : 0) + (controls2.backward ? 1 : 0);
-    const len = menuData.items.length.valueOf();
-    setSelected((value) => (value + dy2 + len) % len);
-    if (controls2.action) {
-      menuData?.items.at(selected)?.action?.(popupInterface);
+    moveSelection(dy2);
+    if (controls2.action && selectedItem?.action) {
+      const actions = Array.isArray(selectedItem.action) ? selectedItem.action : [selectedItem.action];
+      performActions(actions);
     }
-  }, [menuData, selected, inControl]);
-  import_react7.useEffect(() => {
+  }, [menuData, moveSelection, inControl, selectedItem, performActions]);
+  import_react8.useEffect(() => {
     if (menuData && controls) {
       lock();
       const listener = {
@@ -254,8 +270,8 @@ var Menu = function({ menuData }) {
         return;
       }
       const { label } = item;
-      const color = selected === index ? "black" : "white";
-      const backgroundColor = selected === index ? "white" : "black";
+      const color = selectedItem === item ? "black" : "white";
+      const backgroundColor = selectedItem === item ? "white" : "black";
       return jsx_dev_runtime4.jsxDEV("div", {
         style: { color, backgroundColor },
         children: label
@@ -263,65 +279,38 @@ var Menu = function({ menuData }) {
     })
   }, undefined, false, undefined, this);
 };
-var PopupContainer = function({ popups }) {
-  const [elemsMap, setElemsMap] = import_react8.useState({});
-  const createElement = import_react8.useCallback((data) => {
+var PopupContainer = function({ popups, ui }) {
+  const [elemsMap, setElemsMap] = import_react9.useState({});
+  const createElement = import_react9.useCallback((data) => {
     switch (data.type) {
       case "dialog":
         return jsx_dev_runtime5.jsxDEV(Dialog, {
-          dialogData: data
+          dialogData: data,
+          ui
         }, data.uid, false, undefined, this);
       case "menu":
         return jsx_dev_runtime5.jsxDEV(Menu, {
-          menuData: data
+          menuData: data,
+          ui
         }, data.uid, false, undefined, this);
     }
     throw new Error(`Invalid data type: ${data.type}`);
-  }, []);
-  import_react8.useEffect(() => {
+  }, [ui]);
+  import_react9.useEffect(() => {
     setElemsMap((elemsMap2) => {
       const newElemsMap = {};
       popups.forEach((data) => {
         if (data.uid) {
-          newElemsMap[data.uid] = elemsMap2[data.uid] ?? createElement(data);
+          newElemsMap[data.uid] = elemsMap2[data.uid] ?? createElement(data, ui);
         }
       });
       return newElemsMap;
     });
   }, [popups, setElemsMap, createElement]);
-  const elements = import_react8.useMemo(() => {
-    return popups.map((data) => elemsMap[data.uid ?? ""]);
-  }, [elemsMap, popups]);
+  const elements = import_react9.useMemo(() => popups.map((data) => elemsMap[data.uid ?? ""]), [elemsMap, popups]);
   return jsx_dev_runtime5.jsxDEV(jsx_dev_runtime5.Fragment, {
     children: elements
   }, undefined, false, undefined, this);
-};
-var HudContent = function({ dialogManager, controls }) {
-  const { popups, addPopup, popBack, topPopupUid } = usePopupManager();
-  const gameContext = import_react9.useMemo(() => ({
-    addControlsLock: dialogManager.addControlsLock,
-    removeControlsLock: dialogManager.removeControlsLock,
-    openMenu: addPopup,
-    openDialog: addPopup,
-    popBack,
-    controls,
-    topPopupUid
-  }), [dialogManager, controls, addPopup, popBack, topPopupUid]);
-  import_react9.useEffect(() => {
-    dialogManager.openMenu = gameContext.openMenu;
-    dialogManager.openDialog = gameContext.openDialog;
-  }, [dialogManager, gameContext]);
-  return jsx_dev_runtime6.jsxDEV(Provider, {
-    context: gameContext,
-    children: [
-      jsx_dev_runtime6.jsxDEV("div", {
-        children: "Title"
-      }, undefined, false, undefined, this),
-      jsx_dev_runtime6.jsxDEV(PopupContainer, {
-        popups
-      }, undefined, false, undefined, this)
-    ]
-  }, undefined, true, undefined, this);
 };
 var rng = function() {
   if (!getRandomValues) {
@@ -334,6 +323,63 @@ var rng = function() {
 };
 var unsafeStringify = function(arr, offset = 0) {
   return byteToHex[arr[offset + 0]] + byteToHex[arr[offset + 1]] + byteToHex[arr[offset + 2]] + byteToHex[arr[offset + 3]] + "-" + byteToHex[arr[offset + 4]] + byteToHex[arr[offset + 5]] + "-" + byteToHex[arr[offset + 6]] + byteToHex[arr[offset + 7]] + "-" + byteToHex[arr[offset + 8]] + byteToHex[arr[offset + 9]] + "-" + byteToHex[arr[offset + 10]] + byteToHex[arr[offset + 11]] + byteToHex[arr[offset + 12]] + byteToHex[arr[offset + 13]] + byteToHex[arr[offset + 14]] + byteToHex[arr[offset + 15]];
+};
+var HudContent = function({ dialogManager, controls }) {
+  const { popups, addPopup, closePopup, topPopupUid } = usePopupManager();
+  const [selection, setSelection] = import_react10.useState(0);
+  const [onClose, setOnClose] = import_react10.useState();
+  const gameContext = import_react10.useMemo(() => ({
+    addControlsLock: dialogManager.addControlsLock,
+    removeControlsLock: dialogManager.removeControlsLock,
+    openMenu: (data) => {
+      const type = "menu";
+      const uid = type + "-" + v4_default();
+      addPopup({ uid, type, ...data });
+    },
+    openDialog: (data) => {
+      const type = "dialog";
+      const uid = type + "-" + v4_default();
+      addPopup({ uid, type, ...data });
+    },
+    closePopup,
+    controls,
+    topPopupUid,
+    onSelection: setSelection
+  }), [dialogManager, controls, addPopup, closePopup, topPopupUid, setSelection]);
+  import_react10.useEffect(() => {
+    dialogManager.openMenu = async (data) => {
+      gameContext.openMenu(data);
+      return new Promise((resolve) => {
+        setOnClose(() => resolve);
+      });
+    };
+    dialogManager.openDialog = async (data) => {
+      gameContext.openDialog(data);
+      return new Promise((resolve) => {
+        setOnClose(() => resolve);
+      });
+    };
+    dialogManager.closePopup = () => {
+      gameContext.closePopup();
+      setOnClose((previousOnClose) => {
+        previousOnClose?.();
+        return;
+      });
+    };
+    dialogManager.selection = selection;
+  }, [dialogManager, gameContext, selection]);
+  return jsx_dev_runtime6.jsxDEV(Provider, {
+    context: gameContext,
+    children: [
+      jsx_dev_runtime6.jsxDEV("div", {
+        children: "Title"
+      }, undefined, false, undefined, this),
+      jsx_dev_runtime6.jsxDEV(PopupContainer, {
+        popups,
+        ui: dialogManager
+      }, undefined, false, undefined, this)
+    ]
+  }, undefined, true, undefined, this);
 };
 async function hello() {
   console.info(`Welcome!
@@ -48641,26 +48687,51 @@ class DemoGame extends AuxiliaryHolder {
             listener: {
               onEnter() {
                 displayBox.setImageId(Assets.WIREFRAME_RED);
-                ui.showDialog({
+                ui.openDialog({
                   zIndex: 1,
                   conversation: {
                     messages: [
                       { text: "Hello there." },
                       {
                         text: "How are you?",
-                        action: () => ui.showMenu({
+                        action: () => ui.openMenu({
                           position: [200, 390],
                           size: [undefined, 100],
                           positionFromRight: true,
                           items: [
-                            { label: "good", action: closePopupAction() },
-                            { label: "bad", action: closePopupAction() }
+                            {
+                              label: "good",
+                              action: [
+                                (ui2) => ui2.closePopup(),
+                                (ui2) => ui2.openDialog({
+                                  position: [10, 0],
+                                  size: [300, 300],
+                                  conversation: {
+                                    messages: [
+                                      { text: "That's nice to know!" }
+                                    ]
+                                  }
+                                }),
+                                (ui2) => ui2.nextMessage()
+                              ]
+                            },
+                            {
+                              label: "bad",
+                              action: [
+                                (ui2) => console.log(ui2.selection),
+                                (ui2) => ui2.closePopup(),
+                                (ui2) => ui2.nextMessage()
+                              ]
+                            }
                           ]
                         })
                       },
                       { text: "Bye bye." },
                       {
-                        action: popupActions(closePopupAction(), goBackAction(heroPos))
+                        action: [
+                          (ui2) => ui2.closePopup(),
+                          goBackAction(heroPos)
+                        ]
                       }
                     ]
                   }
@@ -48819,7 +48890,7 @@ class DemoGame extends AuxiliaryHolder {
         listener: {
           onEnter() {
             displayBox.setImageId(Assets.WIREFRAME_RED);
-            ui.showDialog({
+            ui.openDialog({
               conversation: {
                 messages: [
                   { text: "Going down..." }
@@ -48969,7 +49040,7 @@ class WebGlCanvas extends DOMWrap {
   }
 }
 var client = __toESM(require_client(), 1);
-var import_react9 = __toESM(require_react(), 1);
+var import_react10 = __toESM(require_react(), 1);
 var import_react2 = __toESM(require_react(), 1);
 var import_react = __toESM(require_react(), 1);
 var DEFAULT_GAME_CONTEXT = {
@@ -48985,10 +49056,13 @@ var DEFAULT_GAME_CONTEXT = {
   openDialog: function(_value) {
     throw new Error("Function not implemented.");
   },
-  popBack() {
+  closePopup() {
     throw new Error("Function not implemented.");
   },
-  topPopupUid: ""
+  topPopupUid: "",
+  onSelection(selection) {
+    throw new Error("Function not implemented");
+  }
 };
 var Context = import_react.default.createContext(DEFAULT_GAME_CONTEXT);
 var Context_default = Context;
@@ -49007,7 +49081,7 @@ var useGameContext = () => {
   return context;
 };
 var import_react3 = __toESM(require_react(), 1);
-var import_react8 = __toESM(require_react(), 1);
+var import_react9 = __toESM(require_react(), 1);
 var jsx_dev_runtime2 = __toESM(require_jsx_dev_runtime(), 1);
 var POPUP_CSS = {
   position: "absolute",
@@ -49024,22 +49098,23 @@ var DOUBLE_BORDER_CSS = {
   color: "white",
   padding: 10
 };
+var DOUBLE_BORDER_HEIGHT_OFFSET = 27;
 var DEFAULT_PADDING = 50;
 var DEFAULT_FONT_SIZE = 24;
-var import_react4 = __toESM(require_react(), 1);
 var import_react6 = __toESM(require_react(), 1);
+var import_react4 = __toESM(require_react(), 1);
 var import_react5 = __toESM(require_react(), 1);
 
 class ProgressiveText extends HTMLElement {
   #observer;
-  #animationFrameRequest = 0;
   #containerText;
   #hiddenText;
+  #animationFrameRequest = 0;
   constructor() {
     super();
     const shadowRoot = this.attachShadow({ mode: "open" });
-    this.#containerText = shadowRoot.appendChild(document.createElement("div"));
-    this.#hiddenText = shadowRoot.appendChild(document.createElement("div"));
+    this.#containerText = shadowRoot.appendChild(document.createElement("span"));
+    this.#hiddenText = shadowRoot.appendChild(document.createElement("span"));
     this.#hiddenText.style.color = "#00000020";
     this.#observer = new MutationObserver((mutationsList) => this.handleMutation(mutationsList));
   }
@@ -49086,31 +49161,10 @@ class ProgressiveText extends HTMLElement {
 }
 customElements.define("progressive-text", ProgressiveText);
 var jsx_dev_runtime3 = __toESM(require_jsx_dev_runtime(), 1);
+var import_react8 = __toESM(require_react(), 1);
 var import_react7 = __toESM(require_react(), 1);
 var jsx_dev_runtime4 = __toESM(require_jsx_dev_runtime(), 1);
 var jsx_dev_runtime5 = __toESM(require_jsx_dev_runtime(), 1);
-var jsx_dev_runtime6 = __toESM(require_jsx_dev_runtime(), 1);
-
-class PopupManager {
-  listeners;
-  #popups = [];
-  constructor(listeners) {
-    this.listeners = listeners;
-    this.addControlsLock = this.addControlsLock.bind(this);
-    this.removeControlsLock = this.removeControlsLock.bind(this);
-  }
-  addControlsLock(uid) {
-    this.#popups.push(uid);
-    this.listeners.forEach((listener) => listener.onPopup(this.#popups.length));
-  }
-  removeControlsLock(uid) {
-    this.#popups = this.#popups.filter((id) => id !== uid);
-    this.listeners.forEach((listener) => listener.onPopup(this.#popups.length));
-  }
-  get lockUid() {
-    return this.#popups[this.#popups.length - 1];
-  }
-}
 var getRandomValues;
 var rnds8 = new Uint8Array(16);
 var byteToHex = [];
@@ -49139,6 +49193,41 @@ var v4 = function(options, buf, offset) {
   return unsafeStringify(rnds);
 };
 var v4_default = v4;
+var jsx_dev_runtime6 = __toESM(require_jsx_dev_runtime(), 1);
+
+class PopupManager {
+  listeners;
+  #popups = [];
+  constructor(listeners) {
+    this.listeners = listeners;
+    this.addControlsLock = this.addControlsLock.bind(this);
+    this.removeControlsLock = this.removeControlsLock.bind(this);
+  }
+  addControlsLock(uid) {
+    this.#popups.push(uid);
+    this.listeners.forEach((listener) => listener.onPopup(this.#popups.length));
+  }
+  removeControlsLock(uid) {
+    this.#popups = this.#popups.filter((id) => id !== uid);
+    this.listeners.forEach((listener) => listener.onPopup(this.#popups.length));
+  }
+  openDialog(dialog) {
+    throw new Error("Not implemented");
+  }
+  openMenu(menu) {
+    throw new Error("Not implemented");
+  }
+  closePopup() {
+    throw new Error("Not implemented");
+  }
+  nextMessage() {
+    throw new Error("Not implemented");
+  }
+  selection = 0;
+  get lockUid() {
+    return this.#popups[this.#popups.length - 1];
+  }
+}
 var jsx_dev_runtime7 = __toESM(require_jsx_dev_runtime(), 1);
 var STYLE = {
   position: "absolute",
@@ -49163,15 +49252,23 @@ class Hud extends AuxiliaryHolder {
     this.#controls = controls;
     this.#rootElem.style.pointerEvents = "none";
   }
-  showDialog(dialog) {
-    const type = "dialog";
-    const uid = type + "-" + v4_default();
-    this.#popupManager.openDialog?.({ uid, type, ...dialog });
+  async openDialog(dialog) {
+    return this.#popupManager.openDialog?.(dialog);
   }
-  showMenu(menuData) {
+  async openMenu(menuData) {
+    return this.#popupManager.openMenu?.(menuData);
     const type = "menu";
     const uid = type + "-" + v4_default();
-    this.#popupManager.openMenu?.({ uid, type, ...menuData });
+    return this.#popupManager.openMenu?.({ uid, type, ...menuData });
+  }
+  nextMessage() {
+    this.#popupManager.nextMessage();
+  }
+  closePopup() {
+    this.#popupManager.closePopup?.();
+  }
+  get selection() {
+    return this.#popupManager.selection;
   }
   activate() {
     super.activate();
