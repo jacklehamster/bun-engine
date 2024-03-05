@@ -1,15 +1,18 @@
 import { useEffect, useState } from "react";
 import { useGameContext } from './Provider';
 
+export enum LockStatus {
+  LOCKED,
+  UNLOCKED,
+}
+
 export function useControlsLock(uid?: string) {
   const context = useGameContext();
   const [locked, setLocked] = useState(false);
   useEffect(() => {
-    if (uid) {
-      if (locked) {
-        context.addControlsLock(uid);
-        return () => context.removeControlsLock(uid);
-      }
+    if (uid && locked) {
+      context.addControlsLock(uid);
+      return () => context.removeControlsLock(uid);
     }
   }, [context, locked, uid]);
 
@@ -20,6 +23,6 @@ export function useControlsLock(uid?: string) {
     unlock() {
       setLocked(false);
     },
-    inControl: context.topPopupUid,
+    inControl: context.topPopupUid === uid ? LockStatus.UNLOCKED : LockStatus.LOCKED,
   };
 }

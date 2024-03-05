@@ -1,14 +1,12 @@
 import { UserInterface } from 'ui/UserInterface';
 import { Listener } from '../Listener';
-import { DialogData } from '../dialog/model/DialogData';
-import { MenuData } from '../menu/model/MenuData';
+import { DialogData } from '../model/ui/DialogData';
+import { MenuData } from '../model/ui/MenuData';
 
 export class PopupManager implements UserInterface {
   #popups: string[] = [];
 
   constructor(private listeners: Set<Listener>) {
-    this.addControlsLock = this.addControlsLock.bind(this);
-    this.removeControlsLock = this.removeControlsLock.bind(this);
   }
 
   addControlsLock(uid: string): void {

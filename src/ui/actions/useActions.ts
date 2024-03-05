@@ -8,8 +8,8 @@ interface Props {
 
 export function useActions({ ui }: Props) {
   const performActions = useCallback(async (actions: (PopAction | undefined)[]) => {
-    for (let action of actions) {
-      await action?.(ui);
+    for (let i = 0; i < actions.length; i++) {
+      await actions[i]?.(ui);
     }
   }, [ui]);
   return { performActions };

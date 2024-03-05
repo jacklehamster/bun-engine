@@ -1,5 +1,5 @@
-import { PopupData } from "ui/popup/model/PopupData";
-import { Conversation } from "./Conversation";
+import { PopupData } from "ui/model/ui/PopupData";
+import { Conversation } from "../conversation/Conversation";
 
 export interface DialogData extends PopupData {
   type?: "dialog",

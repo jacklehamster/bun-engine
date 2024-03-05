@@ -1,11 +1,10 @@
-import { Auxiliary } from "world/aux/Auxiliary";
-import { MenuData } from "./menu/model/MenuData";
-import { DialogData } from "./dialog/model/DialogData";
+import { MenuData } from "./model/ui/MenuData";
+import { DialogData } from "./model/ui/DialogData";
 
-export interface UserInterface extends Auxiliary {
+export interface UserInterface {
   openMenu(menu: MenuData): Promise<void>;
   openDialog(dialog: DialogData): Promise<void>;
-  closePopup(): void;
+  closePopup(uid?: string): void;
   nextMessage(): void;
   get selection(): number
 }

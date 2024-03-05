@@ -1,57 +1,17 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Popup } from '../popup/Popup';
-import { useControlsLock } from '../useControlsLock';
-import { useGameContext } from '../Provider';
-import { ControlsListener } from 'controls/ControlsListener';
 import { map } from 'abstract-list';
-import { MenuData } from './model/MenuData';
-import { IControls } from 'controls/IControls';
+import { MenuData } from '../model/ui/MenuData';
 import { UserInterface } from 'ui/UserInterface';
-import { useSelection } from './useSelection';
-import { PopAction } from 'ui/actions/PopAction';
-import { useActions } from 'ui/actions/useActions';
+import { useMenu } from './useMenu';
 
 interface Props {
   menuData: MenuData;
   ui: UserInterface;
+  onDone(): void;
 }
 
-export function Menu({ menuData, ui }: Props): JSX.Element {
-  const { lock, unlock, inControl } = useControlsLock(menuData.uid);
-  const { controls } = useGameContext();
-  const { moveSelection, selectedItem } = useSelection({ menuData });
-  const { performActions } = useActions({ ui });
-
-  const onAction = useCallback<(controls: IControls) => void>(
-    (controls) => {
-      if (menuData.uid !== inControl) {
-        return;
-      }
-      const dy = (controls.forward ? -1 : 0) + (controls.backward ? 1 : 0);
-      moveSelection(dy);
-      if (controls.action && selectedItem?.action) {
-        const actions = Array.isArray(selectedItem.action)
-          ? selectedItem.action
-          : [selectedItem.action];
-        performActions(actions);
-      }
-    },
-    [menuData, moveSelection, inControl, selectedItem, performActions],
-  );
-
-  useEffect((): (() => void) | void => {
-    if (menuData && controls) {
-      lock();
-      const listener: ControlsListener = {
-        onAction,
-      };
-      controls.addListener(listener);
-      return () => {
-        controls.removeListener(listener);
-        unlock();
-      };
-    }
-  }, [menuData, onAction, lock, unlock, controls]);
+export function Menu({ menuData, ui, onDone }: Props): JSX.Element {
+  const { selectedItem } = useMenu({ menuData, ui, onDone });
 
   const position: [number, number] = [
     menuData?.position?.[0] ?? 50,

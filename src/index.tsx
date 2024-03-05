@@ -4,7 +4,6 @@ import { DemoGame } from 'demo/DemoGame';
 import { AuxiliaryHolder } from 'world/aux/AuxiliaryHolder';
 import { ResizeAux } from 'graphics/aux/ResizeAux';
 import { WebGlCanvas } from 'graphics/WebGlCanvas';
-import { UserInterface } from 'ui/UserInterface';
 import { Hud } from 'ui/Hud';
 import { Keyboard } from 'controls/Keyboard';
 import { KeyboardControls } from 'controls/KeyboardControls';

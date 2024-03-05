@@ -7,8 +7,8 @@ import { Listener } from './Listener';
 import { UserInterface } from './UserInterface';
 import { PopupManager } from './popup/PopupManager';
 import { IControls } from 'controls/IControls';
-import { MenuData } from './menu/model/MenuData';
-import { DialogData } from './dialog/model/DialogData';
+import { MenuData } from './model/ui/MenuData';
+import { DialogData } from './model/ui/DialogData';
 import { v4 as uuidv4 } from 'uuid';
 
 const STYLE: React.CSSProperties = {
@@ -48,9 +48,6 @@ export class Hud extends AuxiliaryHolder implements UserInterface {
 
   async openMenu(menuData: MenuData) {
     return this.#popupManager.openMenu?.(menuData);
-    const type = 'menu';
-    const uid = type + '-' + uuidv4();
-    return this.#popupManager.openMenu?.({ uid, type, ...menuData });
   }
 
   nextMessage(): void {
@@ -92,7 +89,7 @@ export class Hud extends AuxiliaryHolder implements UserInterface {
       <div style={{ ...STYLE, top, left }}>
         <div style={{ ...INNER_STYLE }}>
           <HudContent
-            dialogManager={this.#popupManager}
+            popupManager={this.#popupManager}
             controls={this.#controls}
           />
         </div>

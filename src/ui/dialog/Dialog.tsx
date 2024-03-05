@@ -1,5 +1,5 @@
 import { Popup } from 'ui/popup/Popup';
-import { DialogData } from './model/DialogData';
+import { DialogData } from '../model/ui/DialogData';
 import { useDialog } from './useDialog';
 import { UserInterface } from 'ui/UserInterface';
 import './text/ProgressiveText';
@@ -7,10 +7,11 @@ import './text/ProgressiveText';
 interface Props {
   dialogData: DialogData;
   ui: UserInterface;
+  onDone(): void;
 }
 
-export function Dialog({ dialogData, ui }: Props): JSX.Element {
-  const { text } = useDialog({ dialogData, ui });
+export function Dialog({ dialogData, ui, onDone }: Props): JSX.Element {
+  const { text } = useDialog({ dialogData, ui, onDone });
 
   const position: [number, number] = [
     dialogData?.position?.[0] ?? 50,

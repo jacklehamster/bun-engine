@@ -46,6 +46,7 @@ import { goBackAction } from "world/aux/GoBack";
 import { BodyModel } from "world/sprite/body/BodyModel";
 import { PositionStep } from "world/aux/PositionStep";
 import { IKeyboard } from "controls/IKeyboard";
+import { MenuItemBehavior } from "ui/model/conversation/MenuItem";
 
 enum Assets {
   DOBUKI = 0,
@@ -418,33 +419,41 @@ export class DemoGame extends AuxiliaryHolder {
                       {
                         text: "How are you?",
                         action: () => ui.openMenu({
-                          position: [200, 390],
-                          size: [undefined, 100],
+                          position: [400, 340],
+                          size: [undefined, 150],
                           positionFromRight: true,
                           items: [
                             {
+                              label: "I don't know",
+                              behavior: MenuItemBehavior.NONE,
+                              action: [
+                                ui => ui.openDialog({
+                                  zIndex: 2,
+                                  position: [100, 100],
+                                  size: [300, 200],
+                                  conversation: {
+                                    messages: [
+                                      { text: "You should know!" },
+                                    ],
+                                  },
+                                }),
+                              ],
+                            },
+                            {
                               label: "good",
                               action: [
-                                ui => ui.closePopup(),
                                 ui => ui.openDialog({
-                                  position: [10, 0],
-                                  size: [300, 300],
+                                  zIndex: 2,
                                   conversation: {
                                     messages: [
                                       { text: "That's nice to know!" },
-                                    ]
+                                    ],
                                   },
                                 }),
-                                ui => ui.nextMessage(),
                               ],
                             },
                             {
                               label: "bad",
-                              action: [
-                                ui => console.log(ui.selection),
-                                ui => ui.closePopup(),
-                                ui => ui.nextMessage(),
-                              ]
                             },
                           ],
                         }),
@@ -452,7 +461,6 @@ export class DemoGame extends AuxiliaryHolder {
                       { text: "Bye bye." },
                       {
                         action: [
-                          ui => ui.closePopup(),
                           goBackAction(heroPos),
                         ],
                       },
@@ -661,11 +669,22 @@ export class DemoGame extends AuxiliaryHolder {
                 conversation: {
                   messages: [
                     { text: "Going down..." },
+                    {
+                      text: "",
+                      action: () => new Promise(resolve => {
+                        camera.fade.progressTowards(1, .005, {
+                          onRelease: resolve,
+                        }, motor)
+                      }),
+                    },
+                    {
+                      action: () => {
+                        console.log("Change scene");
+                      },
+                    },
                   ]
                 },
-              },
-                // () => camera.fade.progressTowards(1, .005, this, motor)
-              );
+              });
             },
             onLeave() {
               displayBox.setImageId(Assets.WIREFRAME);

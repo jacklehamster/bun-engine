@@ -39,17 +39,18 @@ export class TurnStepAuxiliary extends ControlledLooper<Data> implements Auxilia
     }
 
     const { step } = data;
-    const turn = angleStep(data.turn.angle.valueOf(), step);
+    const turnAngleVal = data.turn.angle;
+    const turn = angleStep(turnAngleVal.valueOf(), step);
     if (dTurn || this.turnCount > 0) {
-      data.turn.angle.progressTowards(
+      turnAngleVal.progressTowards(
         angleStep(turn + step * dTurn, step),
         dTurn ? 1 / 200 : 1 / 100, this);
     }
     if (!dTurn) {
       this.turnCount = 0;
     }
-    if (data.turn.angle.update(deltaTime)) {
-      const newTurn = angleStep(data.turn.angle.valueOf(), step);
+    if (turnAngleVal.update(deltaTime)) {
+      const newTurn = angleStep(turnAngleVal.valueOf(), step);
       if (newTurn !== turn) {
         this.turnCount++;
       }
