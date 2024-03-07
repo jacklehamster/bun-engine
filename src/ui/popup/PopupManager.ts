@@ -5,24 +5,26 @@ import { MenuData } from '../model/ui/MenuData';
 
 export class PopupManager implements UserInterface {
   #popups: string[] = [];
+  #listeners: Set<Listener>;
 
-  constructor(private listeners: Set<Listener>) {
+  constructor(listeners: Set<Listener>) {
+    this.#listeners = listeners;
   }
 
   addControlsLock(uid: string): void {
     this.#popups.push(uid);
-    this.listeners.forEach(listener => listener.onPopup(this.#popups.length));
+    this.#listeners.forEach(listener => listener.onPopup(this.#popups.length));
   }
 
   removeControlsLock(uid: string): void {
     this.#popups = this.#popups.filter(id => id !== uid);
-    this.listeners.forEach(listener => listener.onPopup(this.#popups.length));
+    this.#listeners.forEach(listener => listener.onPopup(this.#popups.length));
   }
 
-  openDialog(dialog: DialogData): Promise<void> {
+  openDialog(_dialog: DialogData): Promise<void> {
     throw new Error("Not implemented");
   }
-  openMenu(menu: MenuData): Promise<void> {
+  openMenu(_menu: MenuData): Promise<void> {
     throw new Error("Not implemented");
   }
   closePopup(): void {
