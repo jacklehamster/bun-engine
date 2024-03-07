@@ -1,6 +1,6 @@
 import { IControls } from 'controls/IControls';
-import { MenuData } from './model/ui/MenuData';
-import { DialogData } from './model/ui/DialogData';
+import { MenuData } from '../model/ui/MenuData';
+import { DialogData } from '../model/ui/DialogData';
 import { ControlsListener } from 'controls/ControlsListener';
 
 export interface GameContextType {

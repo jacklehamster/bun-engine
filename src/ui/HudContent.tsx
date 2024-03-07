@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Provider } from './Provider';
+import { Provider } from './context/Provider';
 import { PopupManager } from './popup/PopupManager';
-import { GameContextType } from './GameContextType';
+import { GameContextType } from './context/GameContextType';
 import { IControls } from 'controls/IControls';
 import { usePopupManager } from './popup/usePopupManager';
 import { PopupContainer } from './popup/PopupContainer';
@@ -42,15 +42,15 @@ export function HudContent({ popupManager, controls }: Props) {
   useEffect(() => {
     popupManager.openMenu = async (data) => {
       gameContext.openMenu(data);
-      return new Promise((resolve) => {
-        setOnDones((onDones) => [...onDones, resolve]);
-      });
+      return new Promise((resolve) =>
+        setOnDones((onDones) => [...onDones, resolve]),
+      );
     };
     popupManager.openDialog = async (data) => {
       gameContext.openDialog(data);
-      return new Promise((resolve) => {
-        setOnDones((onDones) => [...onDones, resolve]);
-      });
+      return new Promise((resolve) =>
+        setOnDones((onDones) => [...onDones, resolve]),
+      );
     };
     popupManager.closePopup = gameContext.closePopup;
     popupManager.selection = selection;

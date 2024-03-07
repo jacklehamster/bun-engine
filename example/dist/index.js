@@ -73,53 +73,67 @@ var Popup2 = function({
   size: [width, height],
   positionFromRight,
   positionFromBottom,
-  fontSize,
-  zIndex
+  fontSize
 }) {
+  const [h4, setH] = import_react4.useState(10);
+  import_react4.useEffect(() => {
+    requestAnimationFrame(() => setH(100));
+  }, [setH]);
   return jsx_dev_runtime2.jsxDEV("div", {
     className: "pop-up",
     style: {
-      ...POPUP_CSS,
+      position: "absolute",
       left: positionFromRight ? `calc(100% - ${x4}px)` : x4,
       top: positionFromBottom ? `calc(100% - ${y3}px)` : y3,
       right: DEFAULT_PADDING,
       bottom: DEFAULT_PADDING,
       width,
       height,
-      fontSize: fontSize ?? DEFAULT_FONT_SIZE,
-      zIndex
+      fontSize: fontSize ?? DEFAULT_FONT_SIZE
     },
     children: jsx_dev_runtime2.jsxDEV("div", {
-      className: "double-border",
       style: {
-        height: `calc(${height === undefined ? "100%" : `${height}px`} - ${DOUBLE_BORDER_HEIGHT_OFFSET}px)`,
-        ...DOUBLE_BORDER_CSS
+        ...POPUP_CSS,
+        width: "100%",
+        height: `${h4}%`,
+        overflow: "hidden",
+        transition: "height .2s"
       },
-      children
+      children: jsx_dev_runtime2.jsxDEV("div", {
+        className: "double-border",
+        style: {
+          height: `calc(100% - ${DOUBLE_BORDER_HEIGHT_OFFSET}px)`,
+          ...DOUBLE_BORDER_CSS
+        },
+        children
+      }, undefined, false, undefined, this)
     }, undefined, false, undefined, this)
   }, undefined, false, undefined, this);
 };
-var useControlsLock = function(uid) {
-  const context = useGameContext();
-  const [locked, setLocked] = import_react4.useState(false);
-  import_react4.useEffect(() => {
-    if (uid && locked) {
-      context.addControlsLock(uid);
-      return () => context.removeControlsLock(uid);
-    }
-  }, [context, locked, uid]);
-  return {
-    lock() {
+var useControlsLock = function({ uid, onAction }) {
+  const { controls, addControlsLock, removeControlsLock, topPopupUid } = useGameContext();
+  const [locked, setLocked] = import_react5.useState(false);
+  const lockState = topPopupUid === uid ? LockStatus.UNLOCKED : LockStatus.LOCKED;
+  import_react5.useEffect(() => {
+    if (lockState) {
       setLocked(true);
-    },
-    unlock() {
-      setLocked(false);
-    },
-    inControl: context.topPopupUid === uid ? LockStatus.UNLOCKED : LockStatus.LOCKED
-  };
+      const listener = { onAction };
+      controls.addListener(listener);
+      return () => {
+        controls.removeListener(listener);
+        setLocked(false);
+      };
+    }
+  }, [onAction, setLocked, controls, lockState]);
+  import_react5.useEffect(() => {
+    if (uid && locked) {
+      addControlsLock(uid);
+      return () => removeControlsLock(uid);
+    }
+  }, [addControlsLock, removeControlsLock, locked, uid]);
 };
 var useActions = function({ ui }) {
-  const performActions = import_react5.useCallback(async (actions) => {
+  const performActions = import_react6.useCallback(async (actions) => {
     for (let i = 0;i < actions.length; i++) {
       await actions[i]?.(ui);
     }
@@ -127,38 +141,26 @@ var useActions = function({ ui }) {
   return { performActions };
 };
 var useDialog = function({ dialogData, ui, onDone }) {
-  const { lock, unlock, inControl } = useControlsLock(dialogData.uid);
-  const { controls } = useGameContext();
-  const [index, setIndex] = import_react6.useState(0);
+  const [index, setIndex] = import_react7.useState(0);
   const { performActions } = useActions({ ui });
-  const onAction = import_react6.useCallback((controls2) => {
-    if (controls2.action) {
+  const onAction = import_react7.useCallback((controls) => {
+    if (controls.action) {
       nextMessage();
     }
-  }, [inControl, performActions, dialogData]);
-  const nextMessage = import_react6.useCallback(() => setIndex((value) => value + 1), [setIndex]);
-  import_react6.useEffect(() => ui.nextMessage = nextMessage, [nextMessage, ui]);
-  import_react6.useEffect(() => {
-    if (inControl) {
-      lock();
-      const listener = { onAction };
-      controls.addListener(listener);
-      return () => {
-        controls.removeListener(listener);
-        unlock();
-      };
-    }
-  }, [nextMessage, lock, unlock, controls, inControl, onAction]);
-  const messages = import_react6.useMemo(() => dialogData.conversation.messages, [dialogData]);
-  const message = import_react6.useMemo(() => messages.at(index), [messages, index]);
-  import_react6.useEffect(() => {
+  }, [performActions, dialogData]);
+  useControlsLock({ uid: dialogData.uid, onAction });
+  const nextMessage = import_react7.useCallback(() => setIndex((value) => value + 1), [setIndex]);
+  import_react7.useEffect(() => ui.nextMessage = nextMessage, [nextMessage, ui]);
+  const messages = import_react7.useMemo(() => dialogData.conversation.messages, [dialogData]);
+  const message = import_react7.useMemo(() => messages.at(index), [messages, index]);
+  import_react7.useEffect(() => {
     const numMessages = messages.length.valueOf();
     if (index >= numMessages) {
       ui.closePopup(dialogData.uid);
       onDone();
     }
   }, [index, ui, messages, dialogData, onDone]);
-  import_react6.useEffect(() => {
+  import_react7.useEffect(() => {
     if (message?.action) {
       const actions = Array.isArray(message.action) ? message.action : [message.action];
       performActions(actions).then(() => {
@@ -180,14 +182,13 @@ var Dialog = function({ dialogData, ui, onDone }) {
     dialogData?.size?.[0],
     dialogData?.size?.[1]
   ];
-  const { fontSize, positionFromRight, positionFromBottom, zIndex } = dialogData;
+  const { fontSize, positionFromRight, positionFromBottom } = dialogData;
   return jsx_dev_runtime3.jsxDEV(Popup2, {
     position,
     size,
     fontSize,
     positionFromBottom,
     positionFromRight,
-    zIndex,
     children: jsx_dev_runtime3.jsxDEV("div", {
       style: { padding: 10 },
       children: jsx_dev_runtime3.jsxDEV("progressive-text", {
@@ -198,22 +199,22 @@ var Dialog = function({ dialogData, ui, onDone }) {
   }, undefined, false, undefined, this);
 };
 var useSelection = function({ menuData }) {
-  const [selectedIndex, setSelectedIndex] = import_react7.useState(0);
+  const [selectedIndex, setSelectedIndex] = import_react8.useState(0);
   const { onSelection } = useGameContext();
-  import_react7.useEffect(() => {
+  import_react8.useEffect(() => {
     onSelection(selectedIndex);
   }, [selectedIndex, onSelection]);
-  const select = import_react7.useCallback((index) => {
+  const select = import_react8.useCallback((index) => {
     const len = menuData.items.length.valueOf();
     setSelectedIndex(index % len);
   }, [setSelectedIndex, menuData]);
-  const moveSelection = import_react7.useCallback((dy2) => {
+  const moveSelection = import_react8.useCallback((dy2) => {
     if (dy2) {
       const len = menuData.items.length.valueOf();
       setSelectedIndex((index) => (index + dy2 + len) % len);
     }
   }, [setSelectedIndex, menuData]);
-  const selectedItem = import_react7.useMemo(() => {
+  const selectedItem = import_react8.useMemo(() => {
     return menuData.items.at(selectedIndex);
   }, [menuData, selectedIndex]);
   return {
@@ -223,20 +224,19 @@ var useSelection = function({ menuData }) {
   };
 };
 var useMenu = function({ menuData, ui, onDone }) {
-  const { lock, unlock, inControl } = useControlsLock(menuData.uid);
-  const { controls } = useGameContext();
   const { moveSelection, selectedItem } = useSelection({ menuData });
   const { performActions } = useActions({ ui });
-  const onAction = import_react8.useCallback(async (controls2) => {
-    const dy2 = (controls2.forward ? -1 : 0) + (controls2.backward ? 1 : 0);
+  const onAction = import_react9.useCallback(async (controls) => {
+    const dy2 = (controls.forward ? -1 : 0) + (controls.backward ? 1 : 0);
     moveSelection(dy2);
-    if (controls2.action) {
+    if (controls.action) {
       const behavior = selectedItem?.behavior ?? MenuItemBehavior.CLOSE_ON_SELECT;
       if (behavior === MenuItemBehavior.CLOSE_ON_SELECT) {
         ui.closePopup(menuData.uid);
       }
-      if (selectedItem?.action) {
-        const actions = Array.isArray(selectedItem.action) ? selectedItem.action : [selectedItem.action];
+      const selectedAction = selectedItem?.action;
+      if (selectedAction) {
+        const actions = Array.isArray(selectedAction) ? selectedAction : [selectedAction];
         await performActions(actions);
       }
       if (behavior === MenuItemBehavior.CLOSE_AFTER_SELECT) {
@@ -246,18 +246,8 @@ var useMenu = function({ menuData, ui, onDone }) {
         onDone();
       }
     }
-  }, [moveSelection, inControl, selectedItem, performActions, menuData, ui, onDone]);
-  import_react8.useEffect(() => {
-    if (inControl) {
-      lock();
-      const listener = { onAction };
-      controls.addListener(listener);
-      return () => {
-        controls.removeListener(listener);
-        unlock();
-      };
-    }
-  }, [onAction, lock, unlock, controls, inControl]);
+  }, [moveSelection, selectedItem, performActions, menuData, ui, onDone]);
+  useControlsLock({ uid: menuData.uid, onAction });
   return { selectedItem };
 };
 var Menu = function({ menuData, ui, onDone }) {
@@ -276,7 +266,6 @@ var Menu = function({ menuData, ui, onDone }) {
     fontSize: menuData.fontSize,
     positionFromBottom: !!menuData.positionFromBottom,
     positionFromRight: !!menuData.positionFromRight,
-    zIndex: menuData.zIndex,
     children: z(menuData.items, (item, index) => {
       if (!item) {
         return;
@@ -292,8 +281,8 @@ var Menu = function({ menuData, ui, onDone }) {
   }, undefined, false, undefined, this);
 };
 var PopupContainer = function({ popups, ui, onDone }) {
-  const [elemsMap, setElemsMap] = import_react9.useState({});
-  const createElement = import_react9.useCallback((data) => {
+  const [elemsMap, setElemsMap] = import_react10.useState({});
+  const createElement = import_react10.useCallback((data) => {
     switch (data.type) {
       case "dialog":
         return jsx_dev_runtime5.jsxDEV(Dialog, {
@@ -310,18 +299,32 @@ var PopupContainer = function({ popups, ui, onDone }) {
     }
     throw new Error(`Invalid data type: ${data.type}`);
   }, [ui, onDone]);
-  import_react9.useEffect(() => {
+  import_react10.useEffect(() => {
     setElemsMap((elemsMap2) => {
       const newElemsMap = {};
       popups.forEach((data) => {
         if (data.uid) {
-          newElemsMap[data.uid] = elemsMap2[data.uid] ?? createElement(data, ui);
+          newElemsMap[data.uid] = elemsMap2[data.uid] ?? createElement(data);
         }
       });
       return newElemsMap;
     });
   }, [popups, setElemsMap, createElement]);
-  const elements = import_react9.useMemo(() => popups.map((data) => elemsMap[data.uid ?? ""]), [elemsMap, popups]);
+  const getRect = import_react10.useCallback(({ positionFromRight, positionFromBottom, position, size }) => {
+    const x4 = positionFromRight ? position?.[0] ?? 0 : Number.MAX_SAFE_INTEGER - (position?.[0] ?? 0);
+    const y3 = positionFromBottom ? position?.[1] ?? 0 : Number.MAX_SAFE_INTEGER - (position?.[1] ?? 0);
+    const width = size?.[0] ?? Number.MAX_SAFE_INTEGER;
+    const height = size?.[1] ?? Number.MAX_SAFE_INTEGER;
+    return { x: x4, y: y3, width, height };
+  }, []);
+  const elements = import_react10.useMemo(() => {
+    const sortedPopups = [...popups];
+    sortedPopups.sort((p1, p2) => {
+      const r1 = getRect(p1), r2 = getRect(p2);
+      return r1.y - r2.y;
+    });
+    return sortedPopups.map((data) => elemsMap[data.uid ?? ""]);
+  }, [elemsMap, popups, getRect]);
   return jsx_dev_runtime5.jsxDEV(jsx_dev_runtime5.Fragment, {
     children: elements
   }, undefined, false, undefined, this);
@@ -340,11 +343,11 @@ var unsafeStringify = function(arr, offset = 0) {
 };
 var HudContent = function({ popupManager, controls }) {
   const { popups, addPopup, closePopup, topPopupUid } = usePopupManager();
-  const [selection, setSelection] = import_react10.useState(0);
-  const [, setOnDones] = import_react10.useState([]);
-  const gameContext = import_react10.useMemo(() => ({
-    addControlsLock: popupManager.addControlsLock,
-    removeControlsLock: popupManager.removeControlsLock,
+  const [selection, setSelection] = import_react11.useState(0);
+  const [, setOnDones] = import_react11.useState([]);
+  const gameContext = import_react11.useMemo(() => ({
+    addControlsLock: (uid) => popupManager.addControlsLock(uid),
+    removeControlsLock: (uid) => popupManager.removeControlsLock(uid),
     openMenu: (data) => {
       const type = "menu";
       const uid = type + "-" + v4_default();
@@ -360,23 +363,19 @@ var HudContent = function({ popupManager, controls }) {
     topPopupUid,
     onSelection: setSelection
   }), [popupManager, controls, addPopup, closePopup, topPopupUid, setSelection]);
-  import_react10.useEffect(() => {
+  import_react11.useEffect(() => {
     popupManager.openMenu = async (data) => {
       gameContext.openMenu(data);
-      return new Promise((resolve) => {
-        setOnDones((onDones) => [...onDones, resolve]);
-      });
+      return new Promise((resolve) => setOnDones((onDones) => [...onDones, resolve]));
     };
     popupManager.openDialog = async (data) => {
       gameContext.openDialog(data);
-      return new Promise((resolve) => {
-        setOnDones((onDones) => [...onDones, resolve]);
-      });
+      return new Promise((resolve) => setOnDones((onDones) => [...onDones, resolve]));
     };
     popupManager.closePopup = gameContext.closePopup;
     popupManager.selection = selection;
   }, [popupManager, gameContext, selection]);
-  const onDone = import_react10.useCallback(() => {
+  const onDone = import_react11.useCallback(() => {
     setOnDones((previousOnDones) => {
       const last = previousOnDones[previousOnDones.length - 1];
       last?.();
@@ -48710,7 +48709,6 @@ class DemoGame extends AuxiliaryHolder {
               onEnter() {
                 displayBox.setImageId(Assets.WIREFRAME_RED);
                 ui.openDialog({
-                  zIndex: 1,
                   conversation: {
                     messages: [
                       { text: "Hello there." },
@@ -48726,7 +48724,6 @@ class DemoGame extends AuxiliaryHolder {
                               behavior: MenuItemBehavior.NONE,
                               action: [
                                 (ui2) => ui2.openDialog({
-                                  zIndex: 2,
                                   position: [100, 100],
                                   size: [300, 200],
                                   conversation: {
@@ -48741,7 +48738,6 @@ class DemoGame extends AuxiliaryHolder {
                               label: "good",
                               action: [
                                 (ui2) => ui2.openDialog({
-                                  zIndex: 2,
                                   conversation: {
                                     messages: [
                                       { text: "That's nice to know!" }
@@ -49082,7 +49078,7 @@ class WebGlCanvas extends DOMWrap {
   }
 }
 var client = __toESM(require_client(), 1);
-var import_react10 = __toESM(require_react(), 1);
+var import_react11 = __toESM(require_react(), 1);
 var import_react2 = __toESM(require_react(), 1);
 var import_react = __toESM(require_react(), 1);
 var DEFAULT_GAME_CONTEXT = {
@@ -49137,15 +49133,15 @@ var Provider = ({ children, context }) => {
 var useGameContext = () => {
   const context = import_react2.useContext(Context_default);
   if (!context) {
-    throw new Error("useMyContext must be used within a MyProvider");
+    throw new Error("useGameContext must be used within a Provider");
   }
   return context;
 };
 var import_react3 = __toESM(require_react(), 1);
-var import_react9 = __toESM(require_react(), 1);
+var import_react10 = __toESM(require_react(), 1);
+var import_react4 = __toESM(require_react(), 1);
 var jsx_dev_runtime2 = __toESM(require_jsx_dev_runtime(), 1);
 var POPUP_CSS = {
-  position: "absolute",
   outline: "3px solid #fff",
   backgroundColor: "black",
   borderRadius: 12,
@@ -49162,14 +49158,14 @@ var DOUBLE_BORDER_CSS = {
 var DOUBLE_BORDER_HEIGHT_OFFSET = 27;
 var DEFAULT_PADDING = 50;
 var DEFAULT_FONT_SIZE = 24;
-var import_react6 = __toESM(require_react(), 1);
-var import_react4 = __toESM(require_react(), 1);
+var import_react7 = __toESM(require_react(), 1);
+var import_react5 = __toESM(require_react(), 1);
 var LockStatus;
 (function(LockStatus2) {
   LockStatus2[LockStatus2["LOCKED"] = 0] = "LOCKED";
   LockStatus2[LockStatus2["UNLOCKED"] = 1] = "UNLOCKED";
 })(LockStatus || (LockStatus = {}));
-var import_react5 = __toESM(require_react(), 1);
+var import_react6 = __toESM(require_react(), 1);
 
 class ProgressiveText extends HTMLElement {
   #observer;
@@ -49227,8 +49223,8 @@ class ProgressiveText extends HTMLElement {
 }
 customElements.define("progressive-text", ProgressiveText);
 var jsx_dev_runtime3 = __toESM(require_jsx_dev_runtime(), 1);
-var import_react7 = __toESM(require_react(), 1);
 var import_react8 = __toESM(require_react(), 1);
+var import_react9 = __toESM(require_react(), 1);
 var jsx_dev_runtime4 = __toESM(require_jsx_dev_runtime(), 1);
 var jsx_dev_runtime5 = __toESM(require_jsx_dev_runtime(), 1);
 var getRandomValues;
@@ -49266,14 +49262,6 @@ class PopupManager {
   #popups = [];
   constructor(listeners) {
     this.listeners = listeners;
-    this.addControlsLock = this.addControlsLock.bind(this);
-    this.removeControlsLock = this.removeControlsLock.bind(this);
-  }
-  showPopup(uid) {
-    throw new Error("Method not implemented.");
-  }
-  hidePopup(uid) {
-    throw new Error("Method not implemented.");
   }
   addControlsLock(uid) {
     this.#popups.push(uid);
@@ -49296,9 +49284,6 @@ class PopupManager {
     throw new Error("Not implemented");
   }
   selection = 0;
-  get lockUid() {
-    return this.#popups[this.#popups.length - 1];
-  }
 }
 var jsx_dev_runtime7 = __toESM(require_jsx_dev_runtime(), 1);
 var STYLE = {
@@ -49329,9 +49314,6 @@ class Hud extends AuxiliaryHolder {
   }
   async openMenu(menuData) {
     return this.#popupManager.openMenu?.(menuData);
-    const type = "menu";
-    const uid = type + "-" + v4_default();
-    return this.#popupManager.openMenu?.({ uid, type, ...menuData });
   }
   nextMessage() {
     this.#popupManager.nextMessage();

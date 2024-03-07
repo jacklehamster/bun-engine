@@ -1,13 +1,11 @@
 import { UserInterface } from "ui/UserInterface";
 import { MenuData } from "../model/ui/MenuData";
-import { LockStatus, useControlsLock } from "ui/useControlsLock";
-import { useGameContext } from "ui/Provider";
 import { useSelection } from "./useSelection";
 import { useActions } from "ui/actions/useActions";
-import { useCallback, useEffect } from "react";
+import { useCallback } from "react";
 import { IControls } from "controls/IControls";
-import { ControlsListener } from "controls/ControlsListener";
 import { MenuItem, MenuItemBehavior } from "../model/conversation/MenuItem";
+import { useControlsLock } from "ui/controls/useControlsLock";
 
 interface Props {
   menuData: MenuData;
@@ -20,8 +18,6 @@ interface Result {
 }
 
 export function useMenu({ menuData, ui, onDone }: Props): Result {
-  const { lock, unlock, inControl } = useControlsLock(menuData.uid);
-  const { controls } = useGameContext();
   const { moveSelection, selectedItem } = useSelection({ menuData });
   const { performActions } = useActions({ ui });
 
@@ -34,10 +30,9 @@ export function useMenu({ menuData, ui, onDone }: Props): Result {
         if (behavior === MenuItemBehavior.CLOSE_ON_SELECT) {
           ui.closePopup(menuData.uid);
         }
-        if (selectedItem?.action) {
-          const actions = Array.isArray(selectedItem.action)
-            ? selectedItem.action
-            : [selectedItem.action];
+        const selectedAction = selectedItem?.action;
+        if (selectedAction) {
+          const actions = Array.isArray(selectedAction) ? selectedAction : [selectedAction];
           await performActions(actions);
         }
         if (behavior === MenuItemBehavior.CLOSE_AFTER_SELECT) {
@@ -48,20 +43,10 @@ export function useMenu({ menuData, ui, onDone }: Props): Result {
         }
       }
     },
-    [moveSelection, inControl, selectedItem, performActions, menuData, ui, onDone],
+    [moveSelection, selectedItem, performActions, menuData, ui, onDone],
   );
 
-  useEffect((): (() => void) | void => {
-    if (inControl) {
-      lock();
-      const listener: ControlsListener = { onAction };
-      controls.addListener(listener);
-      return () => {
-        controls.removeListener(listener);
-        unlock();
-      };
-    }
-  }, [onAction, lock, unlock, controls, inControl]);
+  useControlsLock({ uid: menuData.uid, onAction });
 
   return { selectedItem };
 }

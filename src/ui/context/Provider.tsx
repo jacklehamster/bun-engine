@@ -14,7 +14,7 @@ const Provider: React.FC<Props> = ({ children, context }: Props) => {
 const useGameContext = (): GameContextType => {
   const context = useContext(Context);
   if (!context) {
-    throw new Error('useMyContext must be used within a MyProvider');
+    throw new Error('useGameContext must be used within a Provider');
   }
   return context;
 };

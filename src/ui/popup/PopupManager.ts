@@ -32,8 +32,4 @@ export class PopupManager implements UserInterface {
     throw new Error("Not implemented");
   }
   selection: number = 0;
-
-  get lockUid() {
-    return this.#popups[this.#popups.length - 1];
-  }
 }

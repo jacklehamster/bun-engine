@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { MenuData } from "../model/ui/MenuData";
-import { useGameContext } from "ui/Provider";
+import { useGameContext } from "ui/context/Provider";
 
 interface Props {
   menuData: MenuData;

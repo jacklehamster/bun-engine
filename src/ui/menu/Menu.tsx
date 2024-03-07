@@ -29,7 +29,6 @@ export function Menu({ menuData, ui, onDone }: Props): JSX.Element {
       fontSize={menuData.fontSize}
       positionFromBottom={!!menuData.positionFromBottom}
       positionFromRight={!!menuData.positionFromRight}
-      zIndex={menuData.zIndex}
     >
       {map(menuData.items, (item, index) => {
         if (!item) {

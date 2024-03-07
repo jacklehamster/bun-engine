@@ -22,8 +22,7 @@ export function Dialog({ dialogData, ui, onDone }: Props): JSX.Element {
     dialogData?.size?.[1],
   ];
 
-  const { fontSize, positionFromRight, positionFromBottom, zIndex } =
-    dialogData;
+  const { fontSize, positionFromRight, positionFromBottom } = dialogData;
   return (
     <Popup
       position={position}
@@ -31,7 +30,6 @@ export function Dialog({ dialogData, ui, onDone }: Props): JSX.Element {
       fontSize={fontSize}
       positionFromBottom={positionFromBottom}
       positionFromRight={positionFromRight}
-      zIndex={zIndex}
     >
       <div style={{ padding: 10 }}>
         <progressive-text period="30">{text}</progressive-text>

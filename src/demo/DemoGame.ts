@@ -412,7 +412,6 @@ export class DemoGame extends AuxiliaryHolder {
               onEnter() {
                 displayBox.setImageId(Assets.WIREFRAME_RED);
                 ui.openDialog({
-                  zIndex: 1,
                   conversation: {
                     messages: [
                       { text: "Hello there." },
@@ -428,7 +427,6 @@ export class DemoGame extends AuxiliaryHolder {
                               behavior: MenuItemBehavior.NONE,
                               action: [
                                 ui => ui.openDialog({
-                                  zIndex: 2,
                                   position: [100, 100],
                                   size: [300, 200],
                                   conversation: {
@@ -443,7 +441,6 @@ export class DemoGame extends AuxiliaryHolder {
                               label: "good",
                               action: [
                                 ui => ui.openDialog({
-                                  zIndex: 2,
                                   conversation: {
                                     messages: [
                                       { text: "That's nice to know!" },

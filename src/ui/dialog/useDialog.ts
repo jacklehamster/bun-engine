@@ -1,8 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { DialogData } from "../model/ui/DialogData";
-import { useControlsLock } from "ui/useControlsLock";
-import { useGameContext } from "ui/Provider";
-import { ControlsListener } from "controls/ControlsListener";
+import { useControlsLock } from "ui/controls/useControlsLock";
 import { UserInterface } from "ui/UserInterface";
 import { useActions } from "ui/actions/useActions";
 import { IControls } from "controls/IControls";
@@ -18,8 +16,6 @@ interface Result {
 }
 
 export function useDialog({ dialogData, ui, onDone }: Props): Result {
-  const { lock, unlock, inControl } = useControlsLock(dialogData.uid);
-  const { controls } = useGameContext();
   const [index, setIndex] = useState(0);
   const { performActions } = useActions({ ui });
 
@@ -29,24 +25,14 @@ export function useDialog({ dialogData, ui, onDone }: Props): Result {
         nextMessage();
       }
     },
-    [inControl, performActions, dialogData],
+    [performActions, dialogData],
   );
+
+  useControlsLock({ uid: dialogData.uid, onAction });
 
   const nextMessage = useCallback(() => setIndex(value => value + 1), [setIndex]);
 
   useEffect(() => ui.nextMessage = nextMessage, [nextMessage, ui]);
-
-  useEffect(() => {
-    if (inControl) {
-      lock();
-      const listener: ControlsListener = { onAction };
-      controls.addListener(listener);
-      return () => {
-        controls.removeListener(listener);
-        unlock();
-      };
-    }
-  }, [nextMessage, lock, unlock, controls, inControl, onAction]);
 
   const messages = useMemo(() => dialogData.conversation.messages, [dialogData]);
   const message = useMemo(() => messages.at(index), [messages, index]);

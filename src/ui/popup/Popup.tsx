@@ -1,4 +1,4 @@
-import React, { CSSProperties } from 'react';
+import React, { CSSProperties, useEffect, useState } from 'react';
 import './css/Popup.css';
 
 interface Props {
@@ -8,12 +8,14 @@ interface Props {
   positionFromRight?: boolean;
   positionFromBottom?: boolean;
   fontSize: number | undefined;
-  zIndex: number | undefined;
 }
 
 //  Hack until I get proper CSS to work
-const POPUP_CSS: CSSProperties = {
+const OVERLAP: CSSProperties = {
   position: 'absolute',
+};
+
+const POPUP_CSS: CSSProperties = {
   outline: '3px solid #fff',
   backgroundColor: 'black',
   borderRadius: 12,
@@ -40,13 +42,17 @@ export function Popup({
   positionFromRight,
   positionFromBottom,
   fontSize,
-  zIndex,
 }: Props) {
+  const [h, setH] = useState(10);
+  useEffect(() => {
+    requestAnimationFrame(() => setH(100));
+  }, [setH]);
+
   return (
     <div
       className="pop-up"
       style={{
-        ...POPUP_CSS,
+        position: 'absolute',
         left: positionFromRight ? `calc(100% - ${x}px)` : x,
         top: positionFromBottom ? `calc(100% - ${y}px)` : y,
         right: DEFAULT_PADDING,
@@ -54,17 +60,26 @@ export function Popup({
         width,
         height,
         fontSize: fontSize ?? DEFAULT_FONT_SIZE,
-        zIndex,
       }}
     >
       <div
-        className="double-border"
         style={{
-          height: `calc(${height === undefined ? '100%' : `${height}px`} - ${DOUBLE_BORDER_HEIGHT_OFFSET}px)`,
-          ...DOUBLE_BORDER_CSS,
+          ...POPUP_CSS,
+          width: '100%',
+          height: `${h}%`,
+          overflow: 'hidden',
+          transition: 'height .2s',
         }}
       >
-        {children}
+        <div
+          className="double-border"
+          style={{
+            height: `calc(100% - ${DOUBLE_BORDER_HEIGHT_OFFSET}px)`,
+            ...DOUBLE_BORDER_CSS,
+          }}
+        >
+          {children}
+        </div>
       </div>
     </div>
   );
