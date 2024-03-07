@@ -1,18 +1,18 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Provider } from './context/Provider';
-import { PopupManager } from './popup/PopupManager';
-import { GameContextType } from './context/GameContextType';
-import { IControls } from 'controls/IControls';
-import { usePopupManager } from './popup/usePopupManager';
-import { PopupContainer } from './popup/PopupContainer';
+import { Provider } from '../context/Provider';
+import { PopupManager } from './PopupManager';
+import { GameContextType } from '../context/GameContextType';
+import { usePopupManager } from './usePopupManager';
+import { PopupContainer } from './PopupContainer';
 import { v4 as uuidv4 } from 'uuid';
+import { PopupControl } from '../actions/PopupControl';
 
 interface Props {
   popupManager: PopupManager;
-  controls: IControls;
+  popupControl: PopupControl;
 }
 
-export function HudContent({ popupManager, controls }: Props) {
+export function PopupOverlay({ popupManager, popupControl }: Props) {
   const { popups, addPopup, closePopup, topPopupUid } = usePopupManager();
   const [selection, setSelection] = useState(0);
   const [, setOnDones] = useState<(() => void)[]>([]);
@@ -32,11 +32,18 @@ export function HudContent({ popupManager, controls }: Props) {
         addPopup({ uid, type, ...data });
       },
       closePopup,
-      controls,
+      popupControl,
       topPopupUid,
       onSelection: setSelection,
     }),
-    [popupManager, controls, addPopup, closePopup, topPopupUid, setSelection],
+    [
+      popupManager,
+      popupControl,
+      addPopup,
+      closePopup,
+      topPopupUid,
+      setSelection,
+    ],
   );
 
   useEffect(() => {
@@ -66,7 +73,15 @@ export function HudContent({ popupManager, controls }: Props) {
 
   return (
     <Provider context={gameContext}>
-      <div>Title</div>
+      <div
+        style={{
+          backgroundColor: '#ffffff66',
+          position: 'absolute',
+          width: '100%',
+        }}
+      >
+        Title
+      </div>
       <PopupContainer popups={popups} ui={popupManager} onDone={onDone} />
     </Provider>
   );

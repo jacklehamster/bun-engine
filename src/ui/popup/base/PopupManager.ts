@@ -1,13 +1,13 @@
-import { UserInterface } from 'ui/UserInterface';
-import { Listener } from '../Listener';
-import { DialogData } from '../model/ui/DialogData';
-import { MenuData } from '../model/ui/MenuData';
+import { UserInterface } from '../UserInterface';
+import { PopupListener } from './PopupListener';
+import { DialogData } from '../dialog/DialogData';
+import { MenuData } from '../menu/MenuData';
 
 export class PopupManager implements UserInterface {
   #popups: string[] = [];
-  #listeners: Set<Listener>;
+  #listeners: Set<PopupListener>;
 
-  constructor(listeners: Set<Listener>) {
+  constructor(listeners: Set<PopupListener>) {
     this.#listeners = listeners;
   }
 

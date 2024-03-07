@@ -110,21 +110,20 @@ var Popup2 = function({
     }, undefined, false, undefined, this)
   }, undefined, false, undefined, this);
 };
-var useControlsLock = function({ uid, onAction }) {
-  const { controls, addControlsLock, removeControlsLock, topPopupUid } = useGameContext();
+var useControlsLock = function({ uid, listener }) {
+  const { popupControl, addControlsLock, removeControlsLock, topPopupUid } = useGameContext();
   const [locked, setLocked] = import_react5.useState(false);
   const lockState = topPopupUid === uid ? LockStatus.UNLOCKED : LockStatus.LOCKED;
   import_react5.useEffect(() => {
     if (lockState) {
       setLocked(true);
-      const listener = { onAction };
-      controls.addListener(listener);
+      popupControl.addListener(listener);
       return () => {
-        controls.removeListener(listener);
+        popupControl.removeListener(listener);
         setLocked(false);
       };
     }
-  }, [onAction, setLocked, controls, lockState]);
+  }, [listener, setLocked, popupControl, lockState]);
   import_react5.useEffect(() => {
     if (uid && locked) {
       addControlsLock(uid);
@@ -143,14 +142,15 @@ var useActions = function({ ui }) {
 var useDialog = function({ dialogData, ui, onDone }) {
   const [index, setIndex] = import_react7.useState(0);
   const { performActions } = useActions({ ui });
-  const onAction = import_react7.useCallback((controls) => {
-    if (controls.action) {
-      nextMessage();
-    }
-  }, [performActions, dialogData]);
-  useControlsLock({ uid: dialogData.uid, onAction });
   const nextMessage = import_react7.useCallback(() => setIndex((value) => value + 1), [setIndex]);
-  import_react7.useEffect(() => ui.nextMessage = nextMessage, [nextMessage, ui]);
+  useControlsLock({ uid: dialogData.uid, listener: { onAction: nextMessage } });
+  import_react7.useEffect(() => {
+    ui.nextMessage = nextMessage;
+    return () => {
+      ui.nextMessage = () => {
+      };
+    };
+  }, [nextMessage, ui]);
   const messages = import_react7.useMemo(() => dialogData.conversation.messages, [dialogData]);
   const message = import_react7.useMemo(() => messages.at(index), [messages, index]);
   import_react7.useEffect(() => {
@@ -163,9 +163,7 @@ var useDialog = function({ dialogData, ui, onDone }) {
   import_react7.useEffect(() => {
     if (message?.action) {
       const actions = Array.isArray(message.action) ? message.action : [message.action];
-      performActions(actions).then(() => {
-        nextMessage();
-      });
+      performActions(actions).then(nextMessage);
     }
   }, [message, performActions, dialogData, nextMessage]);
   return {
@@ -226,10 +224,8 @@ var useSelection = function({ menuData }) {
 var useMenu = function({ menuData, ui, onDone }) {
   const { moveSelection, selectedItem } = useSelection({ menuData });
   const { performActions } = useActions({ ui });
-  const onAction = import_react9.useCallback(async (controls) => {
-    const dy2 = (controls.forward ? -1 : 0) + (controls.backward ? 1 : 0);
-    moveSelection(dy2);
-    if (controls.action) {
+  const listener = import_react9.useMemo(() => ({
+    onAction() {
       const behavior = selectedItem?.behavior ?? MenuItemBehavior.CLOSE_ON_SELECT;
       if (behavior === MenuItemBehavior.CLOSE_ON_SELECT) {
         ui.closePopup(menuData.uid);
@@ -237,17 +233,24 @@ var useMenu = function({ menuData, ui, onDone }) {
       const selectedAction = selectedItem?.action;
       if (selectedAction) {
         const actions = Array.isArray(selectedAction) ? selectedAction : [selectedAction];
-        await performActions(actions);
+        performActions(actions).then(() => {
+          if (behavior === MenuItemBehavior.CLOSE_AFTER_SELECT) {
+            ui.closePopup(menuData.uid);
+          }
+          if (behavior !== MenuItemBehavior.NONE) {
+            onDone();
+          }
+        });
       }
-      if (behavior === MenuItemBehavior.CLOSE_AFTER_SELECT) {
-        ui.closePopup(menuData.uid);
-      }
-      if (behavior !== MenuItemBehavior.NONE) {
-        onDone();
-      }
+    },
+    onUp() {
+      moveSelection(-1);
+    },
+    onDown() {
+      moveSelection(1);
     }
-  }, [moveSelection, selectedItem, performActions, menuData, ui, onDone]);
-  useControlsLock({ uid: menuData.uid, onAction });
+  }), [moveSelection, selectedItem, performActions]);
+  useControlsLock({ uid: menuData.uid, listener });
   return { selectedItem };
 };
 var Menu = function({ menuData, ui, onDone }) {
@@ -267,15 +270,13 @@ var Menu = function({ menuData, ui, onDone }) {
     positionFromBottom: !!menuData.positionFromBottom,
     positionFromRight: !!menuData.positionFromRight,
     children: z(menuData.items, (item, index) => {
-      if (!item) {
-        return;
-      }
-      const { label } = item;
-      const color = selectedItem === item ? "black" : "white";
-      const backgroundColor = selectedItem === item ? "white" : "black";
+      const style = {
+        color: selectedItem === item ? "black" : "white",
+        backgroundColor: selectedItem === item ? "white" : "black"
+      };
       return jsx_dev_runtime4.jsxDEV("div", {
-        style: { color, backgroundColor },
-        children: label
+        style,
+        children: item?.label
       }, index, false, undefined, this);
     })
   }, undefined, false, undefined, this);
@@ -341,7 +342,7 @@ var rng = function() {
 var unsafeStringify = function(arr, offset = 0) {
   return byteToHex[arr[offset + 0]] + byteToHex[arr[offset + 1]] + byteToHex[arr[offset + 2]] + byteToHex[arr[offset + 3]] + "-" + byteToHex[arr[offset + 4]] + byteToHex[arr[offset + 5]] + "-" + byteToHex[arr[offset + 6]] + byteToHex[arr[offset + 7]] + "-" + byteToHex[arr[offset + 8]] + byteToHex[arr[offset + 9]] + "-" + byteToHex[arr[offset + 10]] + byteToHex[arr[offset + 11]] + byteToHex[arr[offset + 12]] + byteToHex[arr[offset + 13]] + byteToHex[arr[offset + 14]] + byteToHex[arr[offset + 15]];
 };
-var HudContent = function({ popupManager, controls }) {
+var PopupOverlay = function({ popupManager, popupControl }) {
   const { popups, addPopup, closePopup, topPopupUid } = usePopupManager();
   const [selection, setSelection] = import_react11.useState(0);
   const [, setOnDones] = import_react11.useState([]);
@@ -359,10 +360,17 @@ var HudContent = function({ popupManager, controls }) {
       addPopup({ uid, type, ...data });
     },
     closePopup,
-    controls,
+    popupControl,
     topPopupUid,
     onSelection: setSelection
-  }), [popupManager, controls, addPopup, closePopup, topPopupUid, setSelection]);
+  }), [
+    popupManager,
+    popupControl,
+    addPopup,
+    closePopup,
+    topPopupUid,
+    setSelection
+  ]);
   import_react11.useEffect(() => {
     popupManager.openMenu = async (data) => {
       gameContext.openMenu(data);
@@ -386,6 +394,11 @@ var HudContent = function({ popupManager, controls }) {
     context: gameContext,
     children: [
       jsx_dev_runtime6.jsxDEV("div", {
+        style: {
+          backgroundColor: "#ffffff66",
+          position: "absolute",
+          width: "100%"
+        },
         children: "Title"
       }, undefined, false, undefined, this),
       jsx_dev_runtime6.jsxDEV(PopupContainer, {
@@ -48736,15 +48749,13 @@ class DemoGame extends AuxiliaryHolder {
                             },
                             {
                               label: "good",
-                              action: [
-                                (ui2) => ui2.openDialog({
-                                  conversation: {
-                                    messages: [
-                                      { text: "That's nice to know!" }
-                                    ]
-                                  }
-                                })
-                              ]
+                              action: (ui2) => ui2.openDialog({
+                                conversation: {
+                                  messages: [
+                                    { text: "That's nice to know!" }
+                                  ]
+                                }
+                              })
                             },
                             {
                               label: "bad"
@@ -49081,6 +49092,31 @@ var client = __toESM(require_client(), 1);
 var import_react11 = __toESM(require_react(), 1);
 var import_react2 = __toESM(require_react(), 1);
 var import_react = __toESM(require_react(), 1);
+
+class PopupControl {
+  #listeners = new Set;
+  onUp() {
+    for (const listener of this.#listeners) {
+      listener.onUp?.();
+    }
+  }
+  onDown() {
+    for (const listener of this.#listeners) {
+      listener.onDown?.();
+    }
+  }
+  onAction() {
+    for (const listener of this.#listeners) {
+      listener.onAction?.();
+    }
+  }
+  addListener(listener) {
+    this.#listeners.add(listener);
+  }
+  removeListener(listener) {
+    this.#listeners.delete(listener);
+  }
+}
 var DEFAULT_GAME_CONTEXT = {
   addControlsLock: function(_uid) {
     throw new Error("Function not implemented.");
@@ -49101,25 +49137,7 @@ var DEFAULT_GAME_CONTEXT = {
   onSelection(selection) {
     throw new Error("Function not implemented");
   },
-  controls: {
-    forward: false,
-    backward: false,
-    left: false,
-    right: false,
-    up: false,
-    down: false,
-    turnLeft: false,
-    turnRight: false,
-    action: false,
-    exit: false,
-    addListener: function(listener) {
-      throw new Error("Function not implemented.");
-    },
-    removeListener: function(listener) {
-      throw new Error("Function not implemented.");
-    },
-    enabled: false
-  }
+  popupControl: new PopupControl
 };
 var Context = import_react.default.createContext(DEFAULT_GAME_CONTEXT);
 var Context_default = Context;
@@ -49223,8 +49241,8 @@ class ProgressiveText extends HTMLElement {
 }
 customElements.define("progressive-text", ProgressiveText);
 var jsx_dev_runtime3 = __toESM(require_jsx_dev_runtime(), 1);
-var import_react8 = __toESM(require_react(), 1);
 var import_react9 = __toESM(require_react(), 1);
+var import_react8 = __toESM(require_react(), 1);
 var jsx_dev_runtime4 = __toESM(require_jsx_dev_runtime(), 1);
 var jsx_dev_runtime5 = __toESM(require_jsx_dev_runtime(), 1);
 var getRandomValues;
@@ -49258,23 +49276,23 @@ var v4_default = v4;
 var jsx_dev_runtime6 = __toESM(require_jsx_dev_runtime(), 1);
 
 class PopupManager {
-  listeners;
   #popups = [];
+  #listeners;
   constructor(listeners) {
-    this.listeners = listeners;
+    this.#listeners = listeners;
   }
   addControlsLock(uid) {
     this.#popups.push(uid);
-    this.listeners.forEach((listener) => listener.onPopup(this.#popups.length));
+    this.#listeners.forEach((listener) => listener.onPopup(this.#popups.length));
   }
   removeControlsLock(uid) {
     this.#popups = this.#popups.filter((id) => id !== uid);
-    this.listeners.forEach((listener) => listener.onPopup(this.#popups.length));
+    this.#listeners.forEach((listener) => listener.onPopup(this.#popups.length));
   }
-  openDialog(dialog) {
+  openDialog(_dialog) {
     throw new Error("Not implemented");
   }
-  openMenu(menu) {
+  openMenu(_menu) {
     throw new Error("Not implemented");
   }
   closePopup() {
@@ -49292,9 +49310,6 @@ var STYLE = {
   width: "100%",
   height: "100%"
 };
-var INNER_STYLE = {
-  backgroundColor: "#ffffff66"
-};
 
 class Hud extends AuxiliaryHolder {
   #webGlCanvas;
@@ -49303,11 +49318,26 @@ class Hud extends AuxiliaryHolder {
   #listeners = new Set;
   #popupManager = new PopupManager(this.#listeners);
   #controls;
+  #controlsListener;
+  #popupControl = new PopupControl;
   constructor({ controls, webGlCanvas }) {
     super();
     this.#webGlCanvas = webGlCanvas;
     this.#controls = controls;
     this.#rootElem.style.pointerEvents = "none";
+    this.#controlsListener = {
+      onAction: (controls2) => {
+        const dy2 = (controls2.forward ? -1 : 0) + (controls2.backward ? 1 : 0);
+        if (dy2 < 0) {
+          this.#popupControl.onUp();
+        } else if (dy2 > 0) {
+          this.#popupControl.onDown();
+        }
+        if (controls2.action) {
+          this.#popupControl.onAction();
+        }
+      }
+    };
   }
   async openDialog(dialog) {
     return this.#popupManager.openDialog?.(dialog);
@@ -49328,8 +49358,10 @@ class Hud extends AuxiliaryHolder {
     super.activate();
     document.body.appendChild(this.#rootElem);
     this.#root.render(this.createElement());
+    this.#controls.addListener(this.#controlsListener);
   }
   deactivate() {
+    this.#controls.removeListener(this.#controlsListener);
     this.#root.unmount();
     document.body.removeChild(this.#rootElem);
     super.deactivate();
@@ -49344,12 +49376,9 @@ class Hud extends AuxiliaryHolder {
     const { offsetLeft: left, offsetTop: top } = this.#webGlCanvas.elem;
     return jsx_dev_runtime7.jsxDEV("div", {
       style: { ...STYLE, top, left },
-      children: jsx_dev_runtime7.jsxDEV("div", {
-        style: { ...INNER_STYLE },
-        children: jsx_dev_runtime7.jsxDEV(HudContent, {
-          popupManager: this.#popupManager,
-          controls: this.#controls
-        }, undefined, false, undefined, this)
+      children: jsx_dev_runtime7.jsxDEV(PopupOverlay, {
+        popupManager: this.#popupManager,
+        popupControl: this.#popupControl
       }, undefined, false, undefined, this)
     }, undefined, false, undefined, this);
   }

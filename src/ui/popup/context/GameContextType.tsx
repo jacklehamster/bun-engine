@@ -1,7 +1,6 @@
-import { IControls } from 'controls/IControls';
-import { MenuData } from '../model/ui/MenuData';
-import { DialogData } from '../model/ui/DialogData';
-import { ControlsListener } from 'controls/ControlsListener';
+import { MenuData } from '../menu/MenuData';
+import { DialogData } from '../dialog/DialogData';
+import { PopupControl } from '../actions/PopupControl';
 
 export interface GameContextType {
   addControlsLock(uid: string): void;
@@ -9,7 +8,7 @@ export interface GameContextType {
   openMenu(value: MenuData): void;
   openDialog(value: DialogData): void;
   closePopup(): void;
-  controls: IControls;
+  popupControl: PopupControl;
   topPopupUid: string;
   onSelection: (selection: number) => void;
 }
@@ -34,23 +33,5 @@ export const DEFAULT_GAME_CONTEXT: GameContextType = {
   onSelection(selection) {
     throw new Error('Function not implemented');
   },
-  controls: {
-    forward: false,
-    backward: false,
-    left: false,
-    right: false,
-    up: false,
-    down: false,
-    turnLeft: false,
-    turnRight: false,
-    action: false,
-    exit: false,
-    addListener: function (listener: ControlsListener): void {
-      throw new Error('Function not implemented.');
-    },
-    removeListener: function (listener: ControlsListener): void {
-      throw new Error('Function not implemented.');
-    },
-    enabled: false,
-  },
+  popupControl: new PopupControl(),
 };

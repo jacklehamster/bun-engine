@@ -1,6 +1,6 @@
 import { useCallback } from "react";
-import { UserInterface } from "ui/UserInterface";
-import { PopAction } from "ui/actions/PopAction";
+import { UserInterface } from "../UserInterface";
+import { PopAction } from "./PopAction";
 
 interface Props {
   ui: UserInterface;

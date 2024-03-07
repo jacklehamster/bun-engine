@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
-import { DialogData } from "ui/model/ui/DialogData";
-import { MenuData } from "ui/model/ui/MenuData";
+import { DialogData } from "../dialog/DialogData";
+import { MenuData } from "../menu/MenuData";
 
 export type ElemData = DialogData | MenuData;
 

@@ -1,7 +1,7 @@
-import { Popup } from '../popup/Popup';
 import { map } from 'abstract-list';
-import { MenuData } from '../model/ui/MenuData';
-import { UserInterface } from 'ui/UserInterface';
+import { Popup } from '../base/Popup';
+import { MenuData } from './MenuData';
+import { UserInterface } from '../UserInterface';
 import { useMenu } from './useMenu';
 
 interface Props {
@@ -31,15 +31,13 @@ export function Menu({ menuData, ui, onDone }: Props): JSX.Element {
       positionFromRight={!!menuData.positionFromRight}
     >
       {map(menuData.items, (item, index) => {
-        if (!item) {
-          return;
-        }
-        const { label } = item;
-        const color = selectedItem === item ? 'black' : 'white';
-        const backgroundColor = selectedItem === item ? 'white' : 'black';
+        const style = {
+          color: selectedItem === item ? 'black' : 'white',
+          backgroundColor: selectedItem === item ? 'white' : 'black',
+        };
         return (
-          <div key={index} style={{ color, backgroundColor }}>
-            {label}
+          <div key={index} style={style}>
+            {item?.label}
           </div>
         );
       })}

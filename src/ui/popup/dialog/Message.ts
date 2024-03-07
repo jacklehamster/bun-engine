@@ -1,4 +1,4 @@
-import { PopAction } from "../../actions/PopAction";
+import { PopAction } from "../actions/PopAction";
 
 export interface Message {
   id?: string;

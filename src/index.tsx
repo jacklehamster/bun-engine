@@ -23,7 +23,7 @@ export async function testCanvas(canvas: HTMLCanvasElement) {
   const menuControls = new KeyboardControls(keyboard);
 
   const webGlCanvas = new WebGlCanvas(canvas);
-  const ui: Hud = new Hud({ controls: menuControls, webGlCanvas });
+  const ui: Hud = new Hud({ controls: menuControls, dom: webGlCanvas });
   ui.addDialogListener({
     onPopup(count) {
       gameControls.enabled = count === 0;

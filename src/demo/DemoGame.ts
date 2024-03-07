@@ -28,7 +28,7 @@ import { ItemsGroup } from "world/sprite/aux/ItemsGroup";
 import { ICollisionDetector, IPositionMatrix, Matrix, PositionMatrix } from "dok-matrix";
 import { DisplayBox } from "world/collision/DisplayBox";
 import { CollisionDetector } from "world/collision/CollisionDetector";
-import { UserInterface } from "ui/UserInterface";
+import { UserInterface } from "ui/popup/UserInterface";
 import { IControls } from "controls/IControls";
 import { IFade, FadeApiAuxiliary } from "world/aux/FadeApiAuxiliary";
 import { Box } from "world/collision/Box";
@@ -46,7 +46,7 @@ import { goBackAction } from "world/aux/GoBack";
 import { BodyModel } from "world/sprite/body/BodyModel";
 import { PositionStep } from "world/aux/PositionStep";
 import { IKeyboard } from "controls/IKeyboard";
-import { MenuItemBehavior } from "ui/model/conversation/MenuItem";
+import { MenuItemBehavior } from 'ui/popup/menu/MenuItemBehavior';
 
 enum Assets {
   DOBUKI = 0,
@@ -439,15 +439,13 @@ export class DemoGame extends AuxiliaryHolder {
                             },
                             {
                               label: "good",
-                              action: [
-                                ui => ui.openDialog({
-                                  conversation: {
-                                    messages: [
-                                      { text: "That's nice to know!" },
-                                    ],
-                                  },
-                                }),
-                              ],
+                              action: ui => ui.openDialog({
+                                conversation: {
+                                  messages: [
+                                    { text: "That's nice to know!" },
+                                  ],
+                                },
+                              }),
                             },
                             {
                               label: "bad",

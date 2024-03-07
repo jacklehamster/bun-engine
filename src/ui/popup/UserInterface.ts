@@ -1,5 +1,5 @@
-import { MenuData } from "./model/ui/MenuData";
-import { DialogData } from "./model/ui/DialogData";
+import { MenuData } from "./menu/MenuData";
+import { DialogData } from "./dialog/DialogData";
 
 export interface UserInterface {
   openMenu(menu: MenuData): Promise<void>;

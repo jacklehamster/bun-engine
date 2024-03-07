@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useGameContext } from '../context/Provider';
-import { IControls } from "controls/IControls";
-import { ControlsListener } from "controls/ControlsListener";
+import { PopupControlListener } from "../actions/PopupControlListener";
 
 export enum LockStatus {
   LOCKED,
@@ -10,11 +9,11 @@ export enum LockStatus {
 
 interface Props {
   uid?: string;
-  onAction: (controls: IControls) => void;
+  listener: PopupControlListener;
 }
 
-export function useControlsLock({ uid, onAction }: Props) {
-  const { controls, addControlsLock, removeControlsLock, topPopupUid } = useGameContext();
+export function useControlsLock({ uid, listener }: Props) {
+  const { popupControl, addControlsLock, removeControlsLock, topPopupUid } = useGameContext();
   const [locked, setLocked] = useState(false);
 
   const lockState = topPopupUid === uid ? LockStatus.UNLOCKED : LockStatus.LOCKED;
@@ -22,14 +21,13 @@ export function useControlsLock({ uid, onAction }: Props) {
   useEffect((): (() => void) | void => {
     if (lockState) {
       setLocked(true);
-      const listener: ControlsListener = { onAction };
-      controls.addListener(listener);
+      popupControl.addListener(listener);
       return () => {
-        controls.removeListener(listener);
+        popupControl.removeListener(listener);
         setLocked(false);
       };
     }
-  }, [onAction, setLocked, controls, lockState]);
+  }, [listener, setLocked, popupControl, lockState]);
 
   useEffect(() => {
     if (uid && locked) {

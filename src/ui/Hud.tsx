@@ -1,15 +1,16 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { WebGlCanvas } from 'graphics/WebGlCanvas';
 import { AuxiliaryHolder } from 'world/aux/AuxiliaryHolder';
-import { HudContent } from './HudContent';
-import { Listener } from './Listener';
-import { UserInterface } from './UserInterface';
-import { PopupManager } from './popup/PopupManager';
+import { PopupOverlay } from './popup/base/PopupOverlay';
+import { PopupListener } from './popup/base/PopupListener';
+import { UserInterface } from './popup/UserInterface';
+import { PopupManager } from './popup/base/PopupManager';
 import { IControls } from 'controls/IControls';
-import { MenuData } from './model/ui/MenuData';
-import { DialogData } from './model/ui/DialogData';
-import { v4 as uuidv4 } from 'uuid';
+import { MenuData } from './popup/menu/MenuData';
+import { DialogData } from './popup/dialog/DialogData';
+import { ControlsListener } from 'controls/ControlsListener';
+import { PopupControl } from './popup/actions/PopupControl';
+import { DOMWrap } from './DOMWrap';
 
 const STYLE: React.CSSProperties = {
   position: 'absolute',
@@ -18,28 +19,39 @@ const STYLE: React.CSSProperties = {
   height: '100%',
 };
 
-const INNER_STYLE: React.CSSProperties = {
-  backgroundColor: '#ffffff66',
-};
-
 interface Props {
   controls: IControls;
-  webGlCanvas: WebGlCanvas;
+  dom: DOMWrap<HTMLElement>;
 }
 
 export class Hud extends AuxiliaryHolder implements UserInterface {
-  readonly #webGlCanvas: WebGlCanvas;
+  readonly #dom: DOMWrap<HTMLElement>;
   readonly #rootElem = document.createElement('div');
   readonly #root = ReactDOM.createRoot(this.#rootElem);
-  readonly #listeners: Set<Listener> = new Set();
+  readonly #listeners: Set<PopupListener> = new Set();
   readonly #popupManager = new PopupManager(this.#listeners);
   readonly #controls: IControls;
+  readonly #controlsListener: ControlsListener;
+  readonly #popupControl = new PopupControl();
 
-  constructor({ controls, webGlCanvas }: Props) {
+  constructor({ controls, dom }: Props) {
     super();
-    this.#webGlCanvas = webGlCanvas;
+    this.#dom = dom;
     this.#controls = controls;
     this.#rootElem.style.pointerEvents = 'none';
+    this.#controlsListener = {
+      onAction: (controls) => {
+        const dy = (controls.forward ? -1 : 0) + (controls.backward ? 1 : 0);
+        if (dy < 0) {
+          this.#popupControl.onUp();
+        } else if (dy > 0) {
+          this.#popupControl.onDown();
+        }
+        if (controls.action) {
+          this.#popupControl.onAction();
+        }
+      },
+    };
   }
 
   async openDialog(dialog: DialogData) {
@@ -66,33 +78,33 @@ export class Hud extends AuxiliaryHolder implements UserInterface {
     super.activate();
     document.body.appendChild(this.#rootElem);
     this.#root.render(this.createElement());
+    this.#controls.addListener(this.#controlsListener);
   }
 
   deactivate(): void {
+    this.#controls.removeListener(this.#controlsListener);
     this.#root.unmount();
     document.body.removeChild(this.#rootElem);
     super.deactivate();
   }
 
-  addDialogListener(listener: Listener) {
+  addDialogListener(listener: PopupListener) {
     this.#listeners.add(listener);
   }
 
-  removeDialogListener(listener: Listener) {
+  removeDialogListener(listener: PopupListener) {
     this.#listeners.delete(listener);
   }
 
   createElement(): React.ReactNode {
-    const { offsetLeft: left, offsetTop: top } = this.#webGlCanvas.elem;
+    const { offsetLeft: left, offsetTop: top } = this.#dom.elem;
 
     return (
       <div style={{ ...STYLE, top, left }}>
-        <div style={{ ...INNER_STYLE }}>
-          <HudContent
-            popupManager={this.#popupManager}
-            controls={this.#controls}
-          />
-        </div>
+        <PopupOverlay
+          popupManager={this.#popupManager}
+          popupControl={this.#popupControl}
+        />
       </div>
     );
   }

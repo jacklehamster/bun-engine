@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ElemData } from './usePopupManager';
-import { Dialog } from 'ui/dialog/Dialog';
-import { Menu } from 'ui/menu/Menu';
-import { UserInterface } from 'ui/UserInterface';
-import { PopupData } from 'ui/model/ui/PopupData';
+import { Dialog } from '../dialog/Dialog';
+import { Menu } from '../menu/Menu';
+import { UserInterface } from '../UserInterface';
+import { PopupData } from '../popup/PopupData';
 
 interface Props {
   popups: ElemData[];

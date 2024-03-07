@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { DialogData } from "../model/ui/DialogData";
-import { useControlsLock } from "ui/controls/useControlsLock";
-import { UserInterface } from "ui/UserInterface";
-import { useActions } from "ui/actions/useActions";
-import { IControls } from "controls/IControls";
+import { DialogData } from "./DialogData";
+import { useControlsLock } from "../controls/useControlsLock";
+import { UserInterface } from "../UserInterface";
+import { useActions } from "../actions/useActions";
 
 interface Props {
   dialogData: DialogData;
@@ -19,20 +18,15 @@ export function useDialog({ dialogData, ui, onDone }: Props): Result {
   const [index, setIndex] = useState(0);
   const { performActions } = useActions({ ui });
 
-  const onAction = useCallback<(controls: IControls) => void>(
-    (controls) => {
-      if (controls.action) {
-        nextMessage();
-      }
-    },
-    [performActions, dialogData],
-  );
-
-  useControlsLock({ uid: dialogData.uid, onAction });
-
   const nextMessage = useCallback(() => setIndex(value => value + 1), [setIndex]);
+  useControlsLock({ uid: dialogData.uid, listener: { onAction: nextMessage } });
 
-  useEffect(() => ui.nextMessage = nextMessage, [nextMessage, ui]);
+  useEffect(() => {
+    ui.nextMessage = nextMessage;
+    return () => {
+      ui.nextMessage = () => { };
+    };
+  }, [nextMessage, ui]);
 
   const messages = useMemo(() => dialogData.conversation.messages, [dialogData]);
   const message = useMemo(() => messages.at(index), [messages, index]);
@@ -48,9 +42,7 @@ export function useDialog({ dialogData, ui, onDone }: Props): Result {
   useEffect(() => {
     if (message?.action) {
       const actions = Array.isArray(message.action) ? message.action : [message.action];
-      performActions(actions).then(() => {
-        nextMessage();
-      });
+      performActions(actions).then(nextMessage);
     }
   }, [message, performActions, dialogData, nextMessage]);
 

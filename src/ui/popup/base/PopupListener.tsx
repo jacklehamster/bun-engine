@@ -1,3 +1,3 @@
-export interface Listener {
+export interface PopupListener {
   onPopup(count: number): void;
 }

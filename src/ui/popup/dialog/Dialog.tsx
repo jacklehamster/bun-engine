@@ -1,7 +1,7 @@
-import { Popup } from 'ui/popup/Popup';
-import { DialogData } from '../model/ui/DialogData';
+import { Popup } from '../base/Popup';
+import { DialogData } from './DialogData';
 import { useDialog } from './useDialog';
-import { UserInterface } from 'ui/UserInterface';
+import { UserInterface } from '../UserInterface';
 import './text/ProgressiveText';
 
 interface Props {
