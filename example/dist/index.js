@@ -46,369 +46,6 @@ var logProxy = function(gl) {
   });
   return proxy;
 };
-var usePopupManager = function() {
-  const [popups, setPopups] = import_react3.useState([]);
-  const topPopupUid = import_react3.useMemo(() => popups[popups.length - 1]?.uid ?? "", [popups]);
-  const addPopup = import_react3.useCallback((data) => setPopups((popups2) => {
-    return [...popups2, data];
-  }), [setPopups]);
-  const closePopup = import_react3.useCallback((uid) => {
-    setPopups((popups2) => {
-      if (!uid || uid === popups2[popups2.length - 1].uid) {
-        return popups2.slice(0, popups2.length - 1);
-      }
-      return popups2;
-    });
-  }, [setPopups]);
-  return {
-    popups,
-    addPopup,
-    closePopup,
-    topPopupUid
-  };
-};
-var Popup2 = function({
-  children,
-  position: [x4, y3],
-  size: [width, height],
-  positionFromRight,
-  positionFromBottom,
-  fontSize
-}) {
-  const [h4, setH] = import_react4.useState(10);
-  import_react4.useEffect(() => {
-    requestAnimationFrame(() => setH(100));
-  }, [setH]);
-  return jsx_dev_runtime2.jsxDEV("div", {
-    className: "pop-up",
-    style: {
-      position: "absolute",
-      left: positionFromRight ? `calc(100% - ${x4}px)` : x4,
-      top: positionFromBottom ? `calc(100% - ${y3}px)` : y3,
-      right: DEFAULT_PADDING,
-      bottom: DEFAULT_PADDING,
-      width,
-      height,
-      fontSize: fontSize ?? DEFAULT_FONT_SIZE
-    },
-    children: jsx_dev_runtime2.jsxDEV("div", {
-      style: {
-        ...POPUP_CSS,
-        width: "100%",
-        height: `${h4}%`,
-        overflow: "hidden",
-        transition: "height .2s"
-      },
-      children: jsx_dev_runtime2.jsxDEV("div", {
-        className: "double-border",
-        style: {
-          height: `calc(100% - ${DOUBLE_BORDER_HEIGHT_OFFSET}px)`,
-          ...DOUBLE_BORDER_CSS
-        },
-        children
-      }, undefined, false, undefined, this)
-    }, undefined, false, undefined, this)
-  }, undefined, false, undefined, this);
-};
-var useControlsLock = function({ uid, listener }) {
-  const { popupControl, addControlsLock, removeControlsLock, topPopupUid } = useGameContext();
-  const [locked, setLocked] = import_react5.useState(false);
-  const lockState = topPopupUid === uid ? LockStatus.UNLOCKED : LockStatus.LOCKED;
-  import_react5.useEffect(() => {
-    if (lockState) {
-      setLocked(true);
-      popupControl.addListener(listener);
-      return () => {
-        popupControl.removeListener(listener);
-        setLocked(false);
-      };
-    }
-  }, [listener, setLocked, popupControl, lockState]);
-  import_react5.useEffect(() => {
-    if (uid && locked) {
-      addControlsLock(uid);
-      return () => removeControlsLock(uid);
-    }
-  }, [addControlsLock, removeControlsLock, locked, uid]);
-};
-var useActions = function({ ui }) {
-  const performActions = import_react6.useCallback(async (actions) => {
-    for (let i = 0;i < actions.length; i++) {
-      await actions[i]?.(ui);
-    }
-  }, [ui]);
-  return { performActions };
-};
-var useDialog = function({ dialogData, ui, onDone }) {
-  const [index, setIndex] = import_react7.useState(0);
-  const { performActions } = useActions({ ui });
-  const nextMessage = import_react7.useCallback(() => setIndex((value) => value + 1), [setIndex]);
-  useControlsLock({ uid: dialogData.uid, listener: { onAction: nextMessage } });
-  import_react7.useEffect(() => {
-    ui.nextMessage = nextMessage;
-    return () => {
-      ui.nextMessage = () => {
-      };
-    };
-  }, [nextMessage, ui]);
-  const messages = import_react7.useMemo(() => dialogData.conversation.messages, [dialogData]);
-  const message = import_react7.useMemo(() => messages.at(index), [messages, index]);
-  import_react7.useEffect(() => {
-    const numMessages = messages.length.valueOf();
-    if (index >= numMessages) {
-      ui.closePopup(dialogData.uid);
-      onDone();
-    }
-  }, [index, ui, messages, dialogData, onDone]);
-  import_react7.useEffect(() => {
-    if (message?.action) {
-      const actions = Array.isArray(message.action) ? message.action : [message.action];
-      performActions(actions).then(nextMessage);
-    }
-  }, [message, performActions, dialogData, nextMessage]);
-  return {
-    text: message?.text
-  };
-};
-var Dialog = function({ dialogData, ui, onDone }) {
-  const { text } = useDialog({ dialogData, ui, onDone });
-  const position = [
-    dialogData?.position?.[0] ?? 50,
-    dialogData?.position?.[1] ?? 500
-  ];
-  const size = [
-    dialogData?.size?.[0],
-    dialogData?.size?.[1]
-  ];
-  const { fontSize, positionFromRight, positionFromBottom } = dialogData;
-  return jsx_dev_runtime3.jsxDEV(Popup2, {
-    position,
-    size,
-    fontSize,
-    positionFromBottom,
-    positionFromRight,
-    children: jsx_dev_runtime3.jsxDEV("div", {
-      style: { padding: 10 },
-      children: jsx_dev_runtime3.jsxDEV("progressive-text", {
-        period: "30",
-        children: text
-      }, undefined, false, undefined, this)
-    }, undefined, false, undefined, this)
-  }, undefined, false, undefined, this);
-};
-var useSelection = function({ menuData }) {
-  const [selectedIndex, setSelectedIndex] = import_react8.useState(0);
-  const { onSelection } = useGameContext();
-  import_react8.useEffect(() => {
-    onSelection(selectedIndex);
-  }, [selectedIndex, onSelection]);
-  const select = import_react8.useCallback((index) => {
-    const len = menuData.items.length.valueOf();
-    setSelectedIndex(index % len);
-  }, [setSelectedIndex, menuData]);
-  const moveSelection = import_react8.useCallback((dy2) => {
-    if (dy2) {
-      const len = menuData.items.length.valueOf();
-      setSelectedIndex((index) => (index + dy2 + len) % len);
-    }
-  }, [setSelectedIndex, menuData]);
-  const selectedItem = import_react8.useMemo(() => {
-    return menuData.items.at(selectedIndex);
-  }, [menuData, selectedIndex]);
-  return {
-    select,
-    moveSelection,
-    selectedItem
-  };
-};
-var useMenu = function({ menuData, ui, onDone }) {
-  const { moveSelection, selectedItem } = useSelection({ menuData });
-  const { performActions } = useActions({ ui });
-  const listener = import_react9.useMemo(() => ({
-    onAction() {
-      const behavior = selectedItem?.behavior ?? MenuItemBehavior.CLOSE_ON_SELECT;
-      if (behavior === MenuItemBehavior.CLOSE_ON_SELECT) {
-        ui.closePopup(menuData.uid);
-      }
-      const selectedAction = selectedItem?.action;
-      if (selectedAction) {
-        const actions = Array.isArray(selectedAction) ? selectedAction : [selectedAction];
-        performActions(actions).then(() => {
-          if (behavior === MenuItemBehavior.CLOSE_AFTER_SELECT) {
-            ui.closePopup(menuData.uid);
-          }
-          if (behavior !== MenuItemBehavior.NONE) {
-            onDone();
-          }
-        });
-      }
-    },
-    onUp() {
-      moveSelection(-1);
-    },
-    onDown() {
-      moveSelection(1);
-    }
-  }), [moveSelection, selectedItem, performActions]);
-  useControlsLock({ uid: menuData.uid, listener });
-  return { selectedItem };
-};
-var Menu = function({ menuData, ui, onDone }) {
-  const { selectedItem } = useMenu({ menuData, ui, onDone });
-  const position = [
-    menuData?.position?.[0] ?? 50,
-    menuData?.position?.[1] ?? 50
-  ];
-  const size = [
-    menuData?.size?.[0],
-    menuData?.size?.[1]
-  ];
-  return jsx_dev_runtime4.jsxDEV(Popup2, {
-    position,
-    size,
-    fontSize: menuData.fontSize,
-    positionFromBottom: !!menuData.positionFromBottom,
-    positionFromRight: !!menuData.positionFromRight,
-    children: z(menuData.items, (item, index) => {
-      const style = {
-        color: selectedItem === item ? "black" : "white",
-        backgroundColor: selectedItem === item ? "white" : "black"
-      };
-      return jsx_dev_runtime4.jsxDEV("div", {
-        style,
-        children: item?.label
-      }, index, false, undefined, this);
-    })
-  }, undefined, false, undefined, this);
-};
-var PopupContainer = function({ popups, ui, onDone }) {
-  const [elemsMap, setElemsMap] = import_react10.useState({});
-  const createElement = import_react10.useCallback((data) => {
-    switch (data.type) {
-      case "dialog":
-        return jsx_dev_runtime5.jsxDEV(Dialog, {
-          dialogData: data,
-          ui,
-          onDone
-        }, data.uid, false, undefined, this);
-      case "menu":
-        return jsx_dev_runtime5.jsxDEV(Menu, {
-          menuData: data,
-          ui,
-          onDone
-        }, data.uid, false, undefined, this);
-    }
-    throw new Error(`Invalid data type: ${data.type}`);
-  }, [ui, onDone]);
-  import_react10.useEffect(() => {
-    setElemsMap((elemsMap2) => {
-      const newElemsMap = {};
-      popups.forEach((data) => {
-        if (data.uid) {
-          newElemsMap[data.uid] = elemsMap2[data.uid] ?? createElement(data);
-        }
-      });
-      return newElemsMap;
-    });
-  }, [popups, setElemsMap, createElement]);
-  const getRect = import_react10.useCallback(({ positionFromRight, positionFromBottom, position, size }) => {
-    const x4 = positionFromRight ? position?.[0] ?? 0 : Number.MAX_SAFE_INTEGER - (position?.[0] ?? 0);
-    const y3 = positionFromBottom ? position?.[1] ?? 0 : Number.MAX_SAFE_INTEGER - (position?.[1] ?? 0);
-    const width = size?.[0] ?? Number.MAX_SAFE_INTEGER;
-    const height = size?.[1] ?? Number.MAX_SAFE_INTEGER;
-    return { x: x4, y: y3, width, height };
-  }, []);
-  const elements = import_react10.useMemo(() => {
-    const sortedPopups = [...popups];
-    sortedPopups.sort((p1, p2) => {
-      const r1 = getRect(p1), r2 = getRect(p2);
-      return r1.y - r2.y;
-    });
-    return sortedPopups.map((data) => elemsMap[data.uid ?? ""]);
-  }, [elemsMap, popups, getRect]);
-  return jsx_dev_runtime5.jsxDEV(jsx_dev_runtime5.Fragment, {
-    children: elements
-  }, undefined, false, undefined, this);
-};
-var rng = function() {
-  if (!getRandomValues) {
-    getRandomValues = typeof crypto !== "undefined" && crypto.getRandomValues && crypto.getRandomValues.bind(crypto);
-    if (!getRandomValues) {
-      throw new Error("crypto.getRandomValues() not supported. See https://github.com/uuidjs/uuid#getrandomvalues-not-supported");
-    }
-  }
-  return getRandomValues(rnds8);
-};
-var unsafeStringify = function(arr, offset = 0) {
-  return byteToHex[arr[offset + 0]] + byteToHex[arr[offset + 1]] + byteToHex[arr[offset + 2]] + byteToHex[arr[offset + 3]] + "-" + byteToHex[arr[offset + 4]] + byteToHex[arr[offset + 5]] + "-" + byteToHex[arr[offset + 6]] + byteToHex[arr[offset + 7]] + "-" + byteToHex[arr[offset + 8]] + byteToHex[arr[offset + 9]] + "-" + byteToHex[arr[offset + 10]] + byteToHex[arr[offset + 11]] + byteToHex[arr[offset + 12]] + byteToHex[arr[offset + 13]] + byteToHex[arr[offset + 14]] + byteToHex[arr[offset + 15]];
-};
-var PopupOverlay = function({ popupManager, popupControl }) {
-  const { popups, addPopup, closePopup, topPopupUid } = usePopupManager();
-  const [selection, setSelection] = import_react11.useState(0);
-  const [, setOnDones] = import_react11.useState([]);
-  const gameContext = import_react11.useMemo(() => ({
-    addControlsLock: (uid) => popupManager.addControlsLock(uid),
-    removeControlsLock: (uid) => popupManager.removeControlsLock(uid),
-    openMenu: (data) => {
-      const type = "menu";
-      const uid = type + "-" + v4_default();
-      addPopup({ uid, type, ...data });
-    },
-    openDialog: (data) => {
-      const type = "dialog";
-      const uid = type + "-" + v4_default();
-      addPopup({ uid, type, ...data });
-    },
-    closePopup,
-    popupControl,
-    topPopupUid,
-    onSelection: setSelection
-  }), [
-    popupManager,
-    popupControl,
-    addPopup,
-    closePopup,
-    topPopupUid,
-    setSelection
-  ]);
-  import_react11.useEffect(() => {
-    popupManager.openMenu = async (data) => {
-      gameContext.openMenu(data);
-      return new Promise((resolve) => setOnDones((onDones) => [...onDones, resolve]));
-    };
-    popupManager.openDialog = async (data) => {
-      gameContext.openDialog(data);
-      return new Promise((resolve) => setOnDones((onDones) => [...onDones, resolve]));
-    };
-    popupManager.closePopup = gameContext.closePopup;
-    popupManager.selection = selection;
-  }, [popupManager, gameContext, selection]);
-  const onDone = import_react11.useCallback(() => {
-    setOnDones((previousOnDones) => {
-      const last = previousOnDones[previousOnDones.length - 1];
-      last?.();
-      return previousOnDones.slice(0, previousOnDones.length - 1);
-    });
-  }, [setOnDones]);
-  return jsx_dev_runtime6.jsxDEV(Provider, {
-    context: gameContext,
-    children: [
-      jsx_dev_runtime6.jsxDEV("div", {
-        style: {
-          backgroundColor: "#ffffff66",
-          position: "absolute",
-          width: "100%"
-        },
-        children: "Title"
-      }, undefined, false, undefined, this),
-      jsx_dev_runtime6.jsxDEV(PopupContainer, {
-        popups,
-        ui: popupManager,
-        onDone
-      }, undefined, false, undefined, this)
-    ]
-  }, undefined, true, undefined, this);
-};
 async function hello() {
   console.info(`Welcome!
 You are using Dok engine.
@@ -420,8 +57,8 @@ async function testCanvas(canvas) {
   const gameControls = new KeyboardControls(keyboard);
   const menuControls = new KeyboardControls(keyboard);
   const webGlCanvas = new WebGlCanvas(canvas);
-  const ui = new Hud({ controls: menuControls, webGlCanvas });
-  ui.addDialogListener({
+  const hud = new Hud({ controls: menuControls, dom: webGlCanvas });
+  hud.ui.addDialogListener({
     onPopup(count) {
       gameControls.enabled = count === 0;
       menuControls.enabled = count !== 0;
@@ -446,14 +83,14 @@ async function testCanvas(canvas) {
   const world = new DemoGame({
     engine,
     motor,
-    ui,
+    ui: hud.ui,
     keyboard,
     controls: gameControls
   });
   core.addAuxiliary(motor);
   core.addAuxiliary(world);
   core.addAuxiliary(webGlCanvas);
-  core.addAuxiliary(ui);
+  core.addAuxiliary(hud);
   core.addAuxiliary(gameControls);
   core.addAuxiliary(new ResizeAux({
     engine,
@@ -464,7 +101,7 @@ async function testCanvas(canvas) {
   core.activate();
   motor.loop(engine, undefined);
   onStop = () => core.deactivate();
-  return { engine, motor, world, ui, core };
+  return { engine, motor, world, hud, core };
 }
 var stop = function() {
   onStop();
@@ -19543,7 +19180,5802 @@ var require_seedrandom2 = __commonJS((exports, module) => {
   sr.tychei = tychei;
   module.exports = sr;
 });
-var require_react_development = __commonJS((exports, module) => {
+var GL = globalThis.WebGL2RenderingContext ?? {};
+var POSITION_LOC = "position";
+var INDEX_LOC = "index";
+var TRANSFORM_LOC = "transform";
+var SLOT_SIZE_LOC = "slotSize_and_number";
+var ANIM_LOC = "animation";
+var INSTANCE_LOC = "instance";
+var SPRITE_TYPE_LOC = "spriteType";
+var CAM_POS_LOC = "camPos";
+var CAM_TILT_LOC = "camTilt";
+var CAM_TURN_LOC = "camTurn";
+var CAM_DISTANCE_LOC = "camDist";
+var CAM_PROJECTION_LOC = "projection";
+var CAM_CURVATURE_LOC = "curvature";
+var BG_BLUR_LOC = "bgBlur";
+var BG_COLOR_LOC = "bgColor";
+var MAX_TEXTURE_SIZE_LOC = "maxTextureSize";
+var TEXTURE_UNIFORM_LOC = "uTextures";
+var TIME_LOC = "time";
+var FADE_LOC = "fade";
+
+class Disposable {
+  disposables;
+  own(destroyable) {
+    if (!this.disposables) {
+      this.disposables = new Set;
+    }
+    this.disposables.add(destroyable);
+    return destroyable;
+  }
+  disown(destroyable) {
+    this.disposables?.delete(destroyable);
+  }
+  addOnDestroy(callback) {
+    if (callback) {
+      this.disposables?.add({
+        destroy: callback
+      });
+    }
+  }
+  destroy() {
+    this.disposables?.forEach((disposable) => disposable.destroy());
+    this.disposables?.clear();
+  }
+}
+var createProgram = function(gl, vertex, fragment) {
+  function createShader(shaderSource, type) {
+    function typeName(type2) {
+      return type2 === gl?.VERTEX_SHADER ? "vertex" : type2 === gl?.FRAGMENT_SHADER ? "fragment" : undefined;
+    }
+    if (type !== gl.VERTEX_SHADER && type !== gl.FRAGMENT_SHADER) {
+      throw new Error(`Shader error in ${typeName(type)}`);
+    }
+    const shader = gl.createShader(type);
+    if (!shader) {
+      throw new Error(`Unable to generate ${typeName(type)} shader.`);
+    }
+    gl.shaderSource(shader, shaderSource);
+    gl.compileShader(shader);
+    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+      console.error(`Shader compile error in ${typeName(type)}:` + gl.getShaderInfoLog(shader));
+    }
+    return shader;
+  }
+  const program = gl.createProgram();
+  if (!program) {
+    throw new Error(`Unable to create program.`);
+  }
+  const vertexShader = createShader(vertex, gl.VERTEX_SHADER);
+  const fragmentShader = createShader(fragment, gl.FRAGMENT_SHADER);
+  const vertexInfo = gl.getShaderInfoLog(vertexShader), fragmentInfo = gl.getShaderInfoLog(fragmentShader);
+  if (vertexInfo) {
+    console.log("VERTEX", vertexInfo);
+  }
+  if (fragmentInfo) {
+    console.log("FRAGMENT", fragmentInfo);
+  }
+  gl.attachShader(program, vertexShader);
+  gl.attachShader(program, fragmentShader);
+  gl.linkProgram(program);
+  const programInfo = gl.getProgramInfoLog(program);
+  if (programInfo) {
+    console.log("PROGRAM", programInfo);
+  }
+  gl.detachShader(program, vertexShader);
+  gl.detachShader(program, fragmentShader);
+  gl.deleteShader(vertexShader);
+  gl.deleteShader(fragmentShader);
+  gl.validateProgram(program);
+  Object.entries(GL).forEach(([k, value]) => {
+    if (value && gl.getError() === value) {
+      console.log(`gl.${k}`);
+    }
+  });
+  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+    throw new Error("Unable to initialize the shader program:\n" + gl.getProgramInfoLog(program));
+  }
+  return program;
+};
+var deleteProgram = function(gl, program) {
+  gl.deleteProgram(program);
+};
+
+class GLProgram extends Disposable {
+  gl;
+  program;
+  constructor(gl, vertex, fragment) {
+    super();
+    this.gl = gl;
+    this.program = createProgram(gl, vertex.trim(), fragment.trim());
+  }
+  use() {
+    this.gl.useProgram(this.program);
+  }
+  destroy() {
+    super.destroy();
+    deleteProgram(this.gl, this.program);
+  }
+}
+
+class GLPrograms extends Disposable {
+  gl;
+  activeProgramId = "";
+  programs = {};
+  constructor(gl) {
+    super();
+    this.gl = gl;
+  }
+  addProgram(id, vertex, fragment) {
+    if (this.programs[id]) {
+      this.removeProgram(id);
+    }
+    this.programs[id] = this.own(new GLProgram(this.gl, vertex, fragment));
+  }
+  useProgram(id) {
+    if (this.activeProgramId !== id) {
+      this.activeProgramId = id;
+      this.programs[id].use();
+    }
+  }
+  removeProgram(id) {
+    this.programs[id].destroy();
+    delete this.programs[id];
+  }
+  getProgram(id) {
+    return this.programs[id ?? this.activeProgramId]?.program;
+  }
+}
+
+class VertexArray {
+  gl;
+  triangleArray;
+  constructor(gl) {
+    this.gl = gl;
+    this.triangleArray = this.gl.createVertexArray();
+  }
+  bind() {
+    this.gl.bindVertexArray(this.triangleArray);
+  }
+  destroy() {
+    this.gl.deleteVertexArray(this.triangleArray);
+    this.triangleArray = null;
+  }
+}
+
+class GLAttributeBuffers {
+  gl;
+  programs;
+  bufferRecord = {};
+  vertexArray;
+  copyBuffer = null;
+  constructor(gl, programs) {
+    this.gl = gl;
+    this.programs = programs;
+    this.vertexArray = new VertexArray(this.gl);
+  }
+  bindVertexArray() {
+    this.vertexArray.bind();
+  }
+  getAttributeLocation(name, programId) {
+    const program = this.programs.getProgram(programId);
+    return program ? this.gl.getAttribLocation(program, name) ?? -1 : -1;
+  }
+  hasBuffer(location) {
+    return !!this.bufferRecord[location];
+  }
+  enableVertexAttribArray(location, index = 0) {
+    const bufferInfo = this.bufferRecord[location];
+    if (!bufferInfo.enabledVertexAttribArray[index]) {
+      bufferInfo.enabledVertexAttribArray[index] = true;
+      this.gl.enableVertexAttribArray(bufferInfo.location + index);
+    }
+  }
+  disableVertexAttribArray(location) {
+    const bufferInfo = this.bufferRecord[location];
+    bufferInfo.enabledVertexAttribArray.forEach((enabled, index) => {
+      if (enabled) {
+        this.gl.disableVertexAttribArray(bufferInfo.location + index);
+        bufferInfo.enabledVertexAttribArray[index] = false;
+      }
+    });
+  }
+  createBuffer({ location, target, usage, vertexAttribPointerRows, elemCount = 0, divisor = 0, callback, instanceCount = 1, data }) {
+    this.deleteBuffer(location);
+    const bufferBuffer = this.gl.createBuffer();
+    if (!bufferBuffer) {
+      throw new Error(`Unable to create buffer "${location}"`);
+    }
+    const bytesPerRow = elemCount * Float32Array.BYTES_PER_ELEMENT;
+    const bytesPerInstance = vertexAttribPointerRows * bytesPerRow;
+    const bufferInfo = this.bufferRecord[location] = {
+      location: this.getAttributeLocation(location),
+      target,
+      usage,
+      buffer: bufferBuffer,
+      enabledVertexAttribArray: [],
+      bytesPerInstance,
+      instanceCount,
+      callback
+    };
+    this.vertexArray.bind();
+    this.gl.bindBuffer(bufferInfo.target, bufferInfo.buffer);
+    for (let row = 0;row < vertexAttribPointerRows; row++) {
+      const loc = bufferInfo.location + row;
+      this.gl.vertexAttribPointer(loc, elemCount, GL.FLOAT, false, bytesPerInstance, row * bytesPerRow);
+      this.enableVertexAttribArray(location, row);
+      this.gl.vertexAttribDivisor(loc, divisor);
+    }
+    if (data) {
+      this.gl.bufferData(target, data, bufferInfo.usage);
+    } else if (callback) {
+      this.gl.bufferData(target, Float32Array.from(new Array(instanceCount).fill(0).map((_, index) => callback(index))), bufferInfo.usage);
+    } else if (instanceCount) {
+      this.gl.bufferData(target, instanceCount * bytesPerInstance, bufferInfo.usage);
+    }
+    return bufferInfo;
+  }
+  ensureCopyBufferSize(newCount, bufferInfo) {
+    this.vertexArray.bind();
+    if (this.copyBuffer) {
+      const bufferSize = this.gl.getBufferParameter(GL.ARRAY_BUFFER, GL.BUFFER_SIZE);
+      if (bufferSize >= newCount * bufferInfo.bytesPerInstance) {
+        this.gl.bindBuffer(GL.ARRAY_BUFFER, this.copyBuffer);
+        return;
+      }
+      this.gl.deleteBuffer(this.copyBuffer);
+    }
+    this.copyBuffer = this.gl.createBuffer();
+    this.gl.bindBuffer(GL.ARRAY_BUFFER, this.copyBuffer);
+    this.gl.bufferData(GL.ARRAY_BUFFER, newCount * bufferInfo.bytesPerInstance, GL.DYNAMIC_COPY);
+  }
+  ensureSize(location, newCount) {
+    const bufferInfo = this.bufferRecord[location];
+    if (bufferInfo && bufferInfo.instanceCount < newCount) {
+      this.bindBuffer(location);
+      const bufferSize = this.gl.getBufferParameter(GL.ARRAY_BUFFER, GL.BUFFER_SIZE);
+      const oldBufferData = new Float32Array(bufferSize / Float32Array.BYTES_PER_ELEMENT);
+      this.gl.getBufferSubData(GL.ARRAY_BUFFER, 0, oldBufferData);
+      this.bindBuffer(location);
+      if (bufferInfo.callback) {
+        const callback = bufferInfo.callback;
+        this.gl.bufferData(bufferInfo.target, Float32Array.from(new Array(newCount).fill(0).map((_, index) => callback(index))), bufferInfo.usage);
+      } else if (newCount) {
+        this.gl.bufferData(bufferInfo.target, newCount * bufferInfo.bytesPerInstance, bufferInfo.usage);
+      }
+      this.gl.bufferSubData(bufferInfo.target, 0, oldBufferData);
+      bufferInfo.instanceCount = newCount;
+    }
+  }
+  bindBuffer(location) {
+    const bufferInfo = this.bufferRecord[location];
+    if (bufferInfo) {
+      this.vertexArray.bind();
+      this.gl.bindBuffer(bufferInfo.target, bufferInfo.buffer);
+    }
+  }
+  deleteBuffer(location) {
+    const bufferInfo = this.bufferRecord[location];
+    if (bufferInfo) {
+      this.disableVertexAttribArray(location);
+      this.gl.deleteBuffer(bufferInfo.buffer);
+      delete this.bufferRecord[location];
+    }
+  }
+  getAttributeBuffer(location) {
+    const bufferInfo = this.bufferRecord[location];
+    if (!bufferInfo) {
+      throw new Error(`Attribute "${location}" not created. Make sure "createBuffer" is called.`);
+    }
+    return bufferInfo;
+  }
+  clear() {
+    Object.keys(this.bufferRecord).forEach((location) => this.deleteBuffer(location));
+  }
+  destroy() {
+    this.clear();
+  }
+}
+var vertexShader_default = "#version 300 es\n//  ~{AUTHOR}\n\nprecision highp float;\n\n//  FUNCTIONS\nfloat rand(vec2 co) {\n  return fract(sin(dot(co, vec2(12.9898, 78.233))) * 43758.5453);\n}\n\n//  CONST\nconst mat4 identity = mat4(1.0);\nconst float SPRITE = 1.0;\nconst float HUD = 2.0;\nconst float DISTANT = 3.0;\nconst float WAVE = 4.0;\n\n//  IN\n//  shape\nlayout(location = 0) in vec2 position;\nlayout(location = 1) in mat4 transform;\n//  1, 2, 3, 4 reserved for transform\n//  animation\nlayout(location = 5) in vec4 slotSize_and_number;\nlayout(location = 6) in vec4 animation;\n//  instance\nlayout(location = 7) in float instance;\nlayout(location = 8) in float spriteType;\n\n//  UNIFORM\nuniform float maxTextureSize;\nuniform mat4 camPos;\nuniform mat4 camTurn;\nuniform mat4 camTilt;\nuniform float camDist;\nuniform mat4 projection;\nuniform float curvature;\nuniform float time;\n\n//  OUT\nout float vTextureIndex;\nout vec2 vTex;\nout float dist;\nout vec3 vInstanceColor;\nout vec2 var;\nout vec3 vNormal;\n\nvoid main() {\n  vec2 slotSize = vec2(pow(2.0, floor(slotSize_and_number.x / 16.0)),\n                       pow(2.0, mod(slotSize_and_number.x, 16.0)));\n  float slotNumber = slotSize_and_number.y;\n  vec2 spriteSize = abs(slotSize_and_number.zw);\n  vec2 tex = (position.xy) * vec2(0.49, -0.49) * sign(slotSize_and_number.zw) +\n             0.5; //  Texture corners 0..1\n  float sheetCols = ceil(1. / spriteSize[0]);\n  float frameStart = animation[0];\n  float frameEnd = animation[1];\n  float fps = animation[2];\n  float maxFrameCount = animation[3];\n  float frameOffset =\n      floor(mod(min(time * fps / 1000., maxFrameCount), frameEnd + 1.));\n  float frame = frameStart + frameOffset;\n  tex += vec2(1., 0) * mod(frame, sheetCols) +\n         vec2(0, 1.) * floor(frame / sheetCols);\n  tex *= spriteSize;\n\n  float maxCols = maxTextureSize / slotSize.x;\n  float maxRows = maxTextureSize / slotSize.y;\n  float slotX = mod(slotNumber, maxCols);\n  float slotY = mod(floor(slotNumber / maxCols), maxRows);\n\n  vec4 basePosition = vec4(position, 0.0, 1.0);\n\n  float isHud = max(0., 1. - 2. * abs(spriteType - HUD));\n  float isSprite = max(0., 1. - 2. * abs(spriteType - SPRITE));\n  float isDistant = max(0., 1. - 2. * abs(spriteType - DISTANT));\n  float isWave = max(0., 1. - 2. * abs(spriteType - WAVE));\n\n  mat4 billboardMatrix = inverse(camTilt * camTurn);\n  float isBillboard = max(isDistant, isSprite);\n  basePosition =\n      (isBillboard * billboardMatrix + (1. - isBillboard) * identity) *\n      basePosition;\n\n  vec4 worldPosition = transform * basePosition;\n  var = vec2(rand(worldPosition.xz), rand(worldPosition.xz - worldPosition.yx));\n\n  float noise = rand(worldPosition.xz) * 13.;\n  worldPosition.y += isWave * sin(noise + time / 1000.);\n\n  vNormal.y = 1.5 + isWave * sin(noise + 1333. + time / 777.);\n  vNormal.x = isWave * sin(noise + time / 1000.);\n  vNormal.z = isWave * cos(noise + time / 1001.);\n\n  // worldPosition => relativePositio\n  vec4 relativePosition = camTilt * camTurn * camPos * worldPosition;\n\n  float actualCurvature = curvature * (1. - isDistant);\n  relativePosition.y -= actualCurvature *\n                        ((relativePosition.z * relativePosition.z) +\n                         (relativePosition.x * relativePosition.x) / 4.) /\n                        10.;\n  relativePosition.x /= (1. + actualCurvature * 1.4);\n\n  relativePosition.z -= camDist;\n\n  dist = max(isDistant, isHud) + (1. - max(isDistant, isHud)) *\n                                     (relativePosition.z * relativePosition.z +\n                                      relativePosition.x * relativePosition.x);\n  // relativePosition => gl_Position\n  relativePosition = isHud * worldPosition + (1. - isHud) * relativePosition;\n  gl_Position = projection * relativePosition;\n\n  vTex = (vec2(slotX, slotY) + tex) * slotSize / maxTextureSize;\n  vTextureIndex = floor(slotNumber / (maxCols * maxRows));\n\n  //  instance\n  float r = fract(instance / (256.0 * 256.0 * 255.0));\n  float g = fract(instance / (256.0 * 255.0));\n  float b = fract(instance / 255.0);\n  vInstanceColor = vec3(r, g, b);\n}\n";
+var fragmentShader_default = "#version 300 es\n//  ~{AUTHOR}\n\nprecision highp float;\n\n//  CONST\nconst int NUM_TEXTURES = 16;\nconst float threshold = 0.00001;\n\n//  IN\n//  texture\nin float vTextureIndex;\nin vec2 vTex;\nin float dist;\nin vec3 vInstanceColor;\nin vec2 var;\nin vec3 vNormal;\n\n//  OUT\nout vec4 fragColor;\n\n// UNIFORMS\nuniform sampler2D uTextures[NUM_TEXTURES];\nuniform vec3 bgColor;\nuniform float bgBlur;\nuniform float time;\nuniform float fade;\n\n//  FUNCTIONS\nvec4 getTextureColor(float textureSlot, vec2 vTexturePoint);\n\nfloat rand(vec2 co) {\n  return fract(sin(dot(co, vec2(12.9898, 78.233))) * 43758.5453);\n}\n\nstruct DirectionalLight {\n  vec3 direction;\n  vec3 ambient;\n  vec3 diffuse;\n  vec3 specular;\n};\n\n// Function to calculate combined color with directional light\nvec3 calculateDirectionalLight(DirectionalLight dirLight, vec3 existingColor,\n                               vec3 normal) {\n  // Calculate diffuse reflection\n  float diff = max(dot(normal, -dirLight.direction), 0.0);\n  vec3 diffuse = dirLight.diffuse * diff;\n\n  // Combine existing color with diffuse reflection\n  return existingColor * (dirLight.ambient + diffuse);\n}\n\nvoid main() {\n  vec2 vFragment = vTex;\n  float blur = bgBlur * pow(dist, .7) / 20000.;\n  vec4 color = getTextureColor(vTextureIndex, vTex);\n  if (color.a < rand(vTex)) {\n    discard;\n  };\n  int blurPass = 8;\n  vec2 vecSeed = vTex * mod(time, 7.);\n  for (int i = 0; i < blurPass; i++) {\n    vFragment = vTex + blur * (rand(vecSeed + dist * float(i) - .5));\n    color += getTextureColor(vTextureIndex, vFragment);\n  }\n  color /= float(blurPass + 1);\n\n  float colorFactor = 1.25 * pow(dist, -.12) * (1. - fade);\n  color.rg += var.x * .02;\n  color.gb += var.y * .03;\n  color.rgb = color.rgb * colorFactor + bgColor * (1. - colorFactor);\n\n  color.rgb += vInstanceColor / 10.;\n\n  // Hardcoded DirectionalLight\n  DirectionalLight dirLight;\n  dirLight.direction = normalize(vec3(-1.0, -1.0, -1.0)); // Example direction\n  dirLight.ambient = vec3(0.1, 0.1, 0.1);       // Example ambient color\n  dirLight.diffuse = vec3(1.0, 1.0, 1.0) * 1.5; // More intense diffuse color\n  dirLight.specular = vec3(1.0, 1.0, 1.0);      // Example specular color\n\n  color.rgb = calculateDirectionalLight(dirLight, color.rgb, vNormal);\n\n  fragColor = vec4(color.rgb, 1.);\n}\n\nvec4 getTextureColor(float textureSlot, vec2 vTexturePoint) {\n  if (abs(0.0 - textureSlot) < threshold) {\n    return texture(uTextures[0], vTexturePoint);\n  }\n  if (abs(1.0 - textureSlot) < threshold) {\n    return texture(uTextures[1], vTexturePoint);\n  }\n  if (abs(2.0 - textureSlot) < threshold) {\n    return texture(uTextures[2], vTexturePoint);\n  }\n  if (abs(3.0 - textureSlot) < threshold) {\n    return texture(uTextures[3], vTexturePoint);\n  }\n  if (abs(4.0 - textureSlot) < threshold) {\n    return texture(uTextures[4], vTexturePoint);\n  }\n  if (abs(5.0 - textureSlot) < threshold) {\n    return texture(uTextures[5], vTexturePoint);\n  }\n  if (abs(6.0 - textureSlot) < threshold) {\n    return texture(uTextures[6], vTexturePoint);\n  }\n  if (abs(7.0 - textureSlot) < threshold) {\n    return texture(uTextures[7], vTexturePoint);\n  }\n  if (abs(8.0 - textureSlot) < threshold) {\n    return texture(uTextures[8], vTexturePoint);\n  }\n  if (abs(9.0 - textureSlot) < threshold) {\n    return texture(uTextures[9], vTexturePoint);\n  }\n  if (abs(10.0 - textureSlot) < threshold) {\n    return texture(uTextures[10], vTexturePoint);\n  }\n  if (abs(11.0 - textureSlot) < threshold) {\n    return texture(uTextures[11], vTexturePoint);\n  }\n  if (abs(12.0 - textureSlot) < threshold) {\n    return texture(uTextures[12], vTexturePoint);\n  }\n  if (abs(13.0 - textureSlot) < threshold) {\n    return texture(uTextures[13], vTexturePoint);\n  }\n  if (abs(14.0 - textureSlot) < threshold) {\n    return texture(uTextures[14], vTexturePoint);\n  }\n  if (abs(15.0 - textureSlot) < threshold) {\n    return texture(uTextures[15], vTexturePoint);\n  }\n  return texture(uTextures[0], vTexturePoint);\n}\n";
+
+class Z {
+  z;
+  b;
+  k;
+  y;
+  width;
+  height;
+  isVideo;
+  #z = new Set;
+  constructor(z, b, k, y) {
+    this.id = z;
+    this.texImgSrc = b;
+    this.refreshRate = k;
+    this.canvasImgSrc = y;
+    const N = b;
+    if (this.isVideo = !!(N.videoWidth || N.videoHeight), this.width = N.naturalWidth ?? N.videoWidth ?? N.displayWidth ?? N.width?.baseValue?.value ?? N.width, this.height = N.naturalHeight ?? N.videoHeight ?? N.displayHeight ?? N.height?.baseValue?.value ?? N.height, this.canvasImgSrc = y, !this.width || !this.height)
+      throw new Error("Invalid image");
+  }
+  refresh() {
+    this.refreshCallback?.();
+  }
+  static createFromCanvas(z, b) {
+    return new Z(z, b, undefined, b);
+  }
+  static async loadImage(z, b) {
+    const k = await new Promise((y, N) => {
+      const U = new Image;
+      U.crossOrigin = "anonymous";
+      const w = (j) => N(j.error);
+      U.addEventListener("error", w), U.addEventListener("load", () => y(U), { once: true }), U.src = b;
+    });
+    return new Z(z, k, undefined, k);
+  }
+  static async loadVideo(z, b, k, y = 30, N = 1, U = Number.MAX_SAFE_INTEGER) {
+    const w = await new Promise((P, H) => {
+      const F = document.createElement("video");
+      if (F.loop = true, k !== undefined)
+        F.volume = k;
+      F.addEventListener("loadedmetadata", () => {
+        F.play(), F.playbackRate = N, P(F);
+      }, { once: true }), document.addEventListener("focus", () => F.play()), F.addEventListener("error", (h) => H(h.error)), F.src = b;
+    }), j = new Z(z, w, Math.min(y * N, U));
+    return j.#z.add(() => w.pause()), j;
+  }
+  static async loadWebcam(z, b) {
+    const k = await new Promise((U, w) => {
+      const j = document.createElement("video");
+      j.loop = true, j.addEventListener("loadedmetadata", () => j.play()), j.addEventListener("playing", () => U(j), { once: true }), j.addEventListener("error", (P) => w(P.error));
+    }), y = new Z(z, k);
+    let N = false;
+    return navigator.mediaDevices.getUserMedia({ video: { deviceId: b } }).then((U) => {
+      if (!N)
+        k.srcObject = U, y.#z.add(() => U.getTracks().forEach((w) => w.stop()));
+    }), y.#z.add(() => {
+      N = true, k.pause();
+    }), y;
+  }
+  dispose() {
+    this.#z.forEach((z) => z()), this.#z.clear();
+  }
+}
+var T = function(z) {
+  return z;
+};
+
+class v {
+  renderProcedures = { image: T((z, b) => this.loadImage(z, b.src)), video: T((z, b) => this.loadVideo(z, b.src, b.volume, b.fps, b.playSpeed)), draw: T((z, b) => this.drawImage(z, b.draw)), canvas: T((z, b) => this.loadCanvas(z, b.canvas)), webcam: T((z, b) => this.loadWebCam(z, b.deviceId)) };
+  async postProcess(z, b) {
+    if (z.canvasImgSrc) {
+      const k = new OffscreenCanvas(z.width, z.height);
+      let y = k.getContext("2d");
+      if (y)
+        y.drawImage(z.canvasImgSrc, 0, 0), y = await b(y) ?? y;
+      const N = z.id;
+      return z.dispose(), Z.createFromCanvas(N, k);
+    }
+    return z;
+  }
+  async renderMedia(z, b) {
+    const k = await this.renderProcedures[b.type](z, b), { postProcess: y } = b;
+    return y ? this.postProcess(k, y) : k;
+  }
+  async drawImage(z, b) {
+    const k = new OffscreenCanvas(1, 1);
+    return b(k.getContext("2d")), Z.createFromCanvas(z, k);
+  }
+  async loadCanvas(z, b) {
+    return Z.createFromCanvas(z, b);
+  }
+  async loadImage(z, b) {
+    return await Z.loadImage(z, b);
+  }
+  async loadVideo(z, b, k, y, N, U) {
+    return await Z.loadVideo(z, b, k, y, N, U);
+  }
+  async loadWebCam(z, b) {
+    return await Z.loadWebcam(z, b);
+  }
+}
+var W = globalThis.WebGL2RenderingContext ?? {};
+var n = function(z, b = (k) => k.key) {
+  var k = [];
+  return M(z, "", true, (y) => k.push(y), b), k.join("");
+};
+var L = function(z) {
+  if (z === null)
+    return true;
+  var b = p(z.left), k = p(z.right);
+  if (Math.abs(b - k) <= 1 && L(z.left) && L(z.right))
+    return true;
+  return false;
+};
+var R = function(z, b, k, y, N) {
+  const U = N - y;
+  if (U > 0) {
+    const w = y + Math.floor(U / 2), j = b[w], P = k[w], H = { key: j, data: P, parent: z };
+    return H.left = R(H, b, k, y, w), H.right = R(H, b, k, w + 1, N), H;
+  }
+  return null;
+};
+var Q = function(z) {
+  if (z === null)
+    return 0;
+  const b = Q(z.left), k = Q(z.right);
+  return z.balanceFactor = b - k, Math.max(b, k) + 1;
+};
+var f = function(z, b, k, y, N) {
+  if (k >= y)
+    return;
+  const U = z[k + y >> 1];
+  let w = k - 1, j = y + 1;
+  while (true) {
+    do
+      w++;
+    while (N(z[w], U) < 0);
+    do
+      j--;
+    while (N(z[j], U) > 0);
+    if (w >= j)
+      break;
+    let P = z[w];
+    z[w] = z[j], z[j] = P, P = b[w], b[w] = b[j], b[j] = P;
+  }
+  f(z, b, k, j, N), f(z, b, j + 1, y, N);
+};
+var S = function(z, b) {
+  return Math.max(b, Math.pow(2, Math.ceil(Math.log(z) / Math.log(2))));
+};
+var O = function(z, b, k, y) {
+  if (k < 1)
+    throw new Error("Invalid count");
+  const N = S(z, y.min), U = S(b, y.min), w = new Map;
+  let j = y.min;
+  for (let P = 1;P <= k; P++) {
+    j = S(N * P, y.min);
+    const H = S(U * Math.ceil(k / P), y.min);
+    w.set(j, H);
+  }
+  for (let P = j;P <= y.max; P *= 2)
+    if (!w.has(P))
+      w.set(P, U);
+  return w;
+};
+var M = function(z, b, k, y, N) {
+  if (z) {
+    y(`${b}${k ? "\u2514\u2500\u2500 " : "\u251C\u2500\u2500 "}${N(z)}\n`);
+    const U = b + (k ? "    " : "\u2502   ");
+    if (z.left)
+      M(z.left, U, false, y, N);
+    if (z.right)
+      M(z.right, U, true, y, N);
+  }
+};
+var p = function(z) {
+  return z ? 1 + Math.max(p(z.left), p(z.right)) : 0;
+};
+var u = function(z, b) {
+  return z > b ? 1 : z < b ? -1 : 0;
+};
+var _ = function(z) {
+  var b = z.right;
+  if (z.right = b.left, b.left)
+    b.left.parent = z;
+  if (b.parent = z.parent, b.parent)
+    if (b.parent.left === z)
+      b.parent.left = b;
+    else
+      b.parent.right = b;
+  if (z.parent = b, b.left = z, z.balanceFactor += 1, b.balanceFactor < 0)
+    z.balanceFactor -= b.balanceFactor;
+  if (b.balanceFactor += 1, z.balanceFactor > 0)
+    b.balanceFactor += z.balanceFactor;
+  return b;
+};
+var E = function(z) {
+  var b = z.left;
+  if (z.left = b.right, z.left)
+    z.left.parent = z;
+  if (b.parent = z.parent, b.parent)
+    if (b.parent.left === z)
+      b.parent.left = b;
+    else
+      b.parent.right = b;
+  if (z.parent = b, b.right = z, z.balanceFactor -= 1, b.balanceFactor > 0)
+    z.balanceFactor -= b.balanceFactor;
+  if (b.balanceFactor -= 1, z.balanceFactor < 0)
+    b.balanceFactor += z.balanceFactor;
+  return b;
+};
+
+class X {
+  constructor(z, b = false) {
+    this._comparator = z || u, this._root = null, this._size = 0, this._noDuplicates = !!b;
+  }
+  destroy() {
+    return this.clear();
+  }
+  clear() {
+    return this._root = null, this._size = 0, this;
+  }
+  get size() {
+    return this._size;
+  }
+  contains(z) {
+    if (this._root) {
+      var b = this._root, k = this._comparator;
+      while (b) {
+        var y = k(z, b.key);
+        if (y === 0)
+          return true;
+        else if (y < 0)
+          b = b.left;
+        else
+          b = b.right;
+      }
+    }
+    return false;
+  }
+  next(z) {
+    var b = z;
+    if (b)
+      if (b.right) {
+        b = b.right;
+        while (b.left)
+          b = b.left;
+      } else {
+        b = z.parent;
+        while (b && b.right === z)
+          z = b, b = b.parent;
+      }
+    return b;
+  }
+  prev(z) {
+    var b = z;
+    if (b)
+      if (b.left) {
+        b = b.left;
+        while (b.right)
+          b = b.right;
+      } else {
+        b = z.parent;
+        while (b && b.left === z)
+          z = b, b = b.parent;
+      }
+    return b;
+  }
+  forEach(z) {
+    var b = this._root, k = [], y = false, N = 0;
+    while (!y)
+      if (b)
+        k.push(b), b = b.left;
+      else if (k.length > 0)
+        b = k.pop(), z(b, N++), b = b.right;
+      else
+        y = true;
+    return this;
+  }
+  range(z, b, k, y) {
+    const N = [], U = this._comparator;
+    let w = this._root, j;
+    while (N.length !== 0 || w)
+      if (w)
+        N.push(w), w = w.left;
+      else {
+        if (w = N.pop(), j = U(w.key, b), j > 0)
+          break;
+        else if (U(w.key, z) >= 0) {
+          if (k.call(y, w))
+            return this;
+        }
+        w = w.right;
+      }
+    return this;
+  }
+  keys() {
+    var z = this._root, b = [], k = [], y = false;
+    while (!y)
+      if (z)
+        b.push(z), z = z.left;
+      else if (b.length > 0)
+        z = b.pop(), k.push(z.key), z = z.right;
+      else
+        y = true;
+    return k;
+  }
+  values() {
+    var z = this._root, b = [], k = [], y = false;
+    while (!y)
+      if (z)
+        b.push(z), z = z.left;
+      else if (b.length > 0)
+        z = b.pop(), k.push(z.data), z = z.right;
+      else
+        y = true;
+    return k;
+  }
+  at(z) {
+    var b = this._root, k = [], y = false, N = 0;
+    while (!y)
+      if (b)
+        k.push(b), b = b.left;
+      else if (k.length > 0) {
+        if (b = k.pop(), N === z)
+          return b;
+        N++, b = b.right;
+      } else
+        y = true;
+    return null;
+  }
+  minNode() {
+    var z = this._root;
+    if (!z)
+      return null;
+    while (z.left)
+      z = z.left;
+    return z;
+  }
+  maxNode() {
+    var z = this._root;
+    if (!z)
+      return null;
+    while (z.right)
+      z = z.right;
+    return z;
+  }
+  min() {
+    var z = this._root;
+    if (!z)
+      return null;
+    while (z.left)
+      z = z.left;
+    return z.key;
+  }
+  max() {
+    var z = this._root;
+    if (!z)
+      return null;
+    while (z.right)
+      z = z.right;
+    return z.key;
+  }
+  isEmpty() {
+    return !this._root;
+  }
+  pop() {
+    var z = this._root, b = null;
+    if (z) {
+      while (z.left)
+        z = z.left;
+      b = { key: z.key, data: z.data }, this.remove(z.key);
+    }
+    return b;
+  }
+  popMax() {
+    var z = this._root, b = null;
+    if (z) {
+      while (z.right)
+        z = z.right;
+      b = { key: z.key, data: z.data }, this.remove(z.key);
+    }
+    return b;
+  }
+  find(z) {
+    var b = this._root, k = b, y, N = this._comparator;
+    while (k)
+      if (y = N(z, k.key), y === 0)
+        return k;
+      else if (y < 0)
+        k = k.left;
+      else
+        k = k.right;
+    return null;
+  }
+  insert(z, b) {
+    if (!this._root)
+      return this._root = { parent: null, left: null, right: null, balanceFactor: 0, key: z, data: b }, this._size++, this._root;
+    var k = this._comparator, y = this._root, N = null, U = 0;
+    if (this._noDuplicates)
+      while (y)
+        if (U = k(z, y.key), N = y, U === 0)
+          return null;
+        else if (U < 0)
+          y = y.left;
+        else
+          y = y.right;
+    else
+      while (y)
+        if (U = k(z, y.key), N = y, U <= 0)
+          y = y.left;
+        else
+          y = y.right;
+    var w = { left: null, right: null, balanceFactor: 0, parent: N, key: z, data: b }, j;
+    if (U <= 0)
+      N.left = w;
+    else
+      N.right = w;
+    while (N) {
+      if (U = k(N.key, z), U < 0)
+        N.balanceFactor -= 1;
+      else
+        N.balanceFactor += 1;
+      if (N.balanceFactor === 0)
+        break;
+      else if (N.balanceFactor < -1) {
+        if (N.right.balanceFactor === 1)
+          E(N.right);
+        if (j = _(N), N === this._root)
+          this._root = j;
+        break;
+      } else if (N.balanceFactor > 1) {
+        if (N.left.balanceFactor === -1)
+          _(N.left);
+        if (j = E(N), N === this._root)
+          this._root = j;
+        break;
+      }
+      N = N.parent;
+    }
+    return this._size++, w;
+  }
+  remove(z) {
+    if (!this._root)
+      return null;
+    var b = this._root, k = this._comparator, y = 0;
+    while (b)
+      if (y = k(z, b.key), y === 0)
+        break;
+      else if (y < 0)
+        b = b.left;
+      else
+        b = b.right;
+    if (!b)
+      return null;
+    var N = b.key, U, w;
+    if (b.left) {
+      U = b.left;
+      while (U.left || U.right) {
+        while (U.right)
+          U = U.right;
+        if (b.key = U.key, b.data = U.data, U.left)
+          b = U, U = U.left;
+      }
+      b.key = U.key, b.data = U.data, b = U;
+    }
+    if (b.right) {
+      w = b.right;
+      while (w.left || w.right) {
+        while (w.left)
+          w = w.left;
+        if (b.key = w.key, b.data = w.data, w.right)
+          b = w, w = w.right;
+      }
+      b.key = w.key, b.data = w.data, b = w;
+    }
+    var j = b.parent, P = b, H;
+    while (j) {
+      if (j.left === P)
+        j.balanceFactor -= 1;
+      else
+        j.balanceFactor += 1;
+      if (j.balanceFactor < -1) {
+        if (j.right.balanceFactor === 1)
+          E(j.right);
+        if (H = _(j), j === this._root)
+          this._root = H;
+        j = H;
+      } else if (j.balanceFactor > 1) {
+        if (j.left.balanceFactor === -1)
+          _(j.left);
+        if (H = E(j), j === this._root)
+          this._root = H;
+        j = H;
+      }
+      if (j.balanceFactor === -1 || j.balanceFactor === 1)
+        break;
+      P = j, j = j.parent;
+    }
+    if (b.parent)
+      if (b.parent.left === b)
+        b.parent.left = null;
+      else
+        b.parent.right = null;
+    if (b === this._root)
+      this._root = null;
+    return this._size--, N;
+  }
+  load(z = [], b = [], k) {
+    if (this._size !== 0)
+      throw new Error("bulk-load: tree is not empty");
+    const y = z.length;
+    if (k)
+      f(z, b, 0, y - 1, this._comparator);
+    return this._root = R(null, z, b, 0, y), Q(this._root), this._size = y, this;
+  }
+  isBalanced() {
+    return L(this._root);
+  }
+  toString(z) {
+    return n(this._root, z);
+  }
+}
+X.default = X;
+
+class A {
+  size;
+  slotNumber;
+  x;
+  y;
+  textureIndex;
+  parent;
+  sibbling;
+  textureSizeLimits;
+  constructor(z, b, k, y) {
+    this.textureSizeLimits = k?.textureSizeLimits ?? y ?? { min: C, max: D }, this.size = z, this.slotNumber = b, this.parent = k, this.sibbling = undefined;
+    const { x: N, y: U, textureIndex: w } = this.calculatePosition(z, b);
+    this.x = N, this.y = U, this.textureIndex = w;
+  }
+  calculateTextureIndex(z, b) {
+    const [k, y] = z, N = this.textureSizeLimits.max / k * (this.textureSizeLimits.max / y);
+    return Math.floor(b / N);
+  }
+  calculatePosition(z, b) {
+    const [k, y] = z, N = this.textureSizeLimits.max / k, U = this.textureSizeLimits.max / y, w = b % N * k, j = Math.floor(b / N) % U * y;
+    return { x: w, y: j, textureIndex: this.calculateTextureIndex(z, b) };
+  }
+  getTag() {
+    return A.getTag(this);
+  }
+  static getTag(z) {
+    return `${z.size[0]}x${z.size[1]}-#${z.slotNumber}`;
+  }
+  static positionToTextureSlot(z, b, k, y, N) {
+    const [U, w] = k, j = N.textureSizeLimits.max / U, P = N.textureSizeLimits.max / U * (N.textureSizeLimits.max / w) * y + b / w * j + z / U;
+    return new A(k, P, N);
+  }
+  getPosition() {
+    return { x: this.x, y: this.y, size: this.size, textureIndex: this.textureIndex };
+  }
+  canSplitHorizontally() {
+    const [, z] = this.size;
+    return z > this.textureSizeLimits.min;
+  }
+  canSplitVertically() {
+    const [z] = this.size;
+    return z > this.textureSizeLimits.min;
+  }
+  splitHorizontally() {
+    const { x: z, y: b, size: k, textureIndex: y } = this, [N, U] = k;
+    if (!this.canSplitHorizontally())
+      throw new Error(`Cannot split texture slot of size ${N} horizontally`);
+    const w = N / 2, j = A.positionToTextureSlot(z, b, [w, U], y, this), P = A.positionToTextureSlot(z + w, b, [w, U], y, this);
+    return j.sibbling = P, P.sibbling = j, [j, P];
+  }
+  splitVertically() {
+    const { x: z, y: b, size: k, textureIndex: y } = this, [N, U] = k;
+    if (!this.canSplitVertically())
+      throw new Error(`Cannot split texture slot of size ${U} vertically`);
+    const w = U / 2, j = A.positionToTextureSlot(z, b, [N, w], y, this), P = A.positionToTextureSlot(z, b + w, [N, w], y, this);
+    return j.sibbling = P, P.sibbling = j, [j, P];
+  }
+}
+var x = false;
+var C = 16;
+var D = 4096;
+var g = 16;
+
+class B {
+  textureSlots = new X((z, b) => {
+    const k = z.size[0] * z.size[1] - b.size[0] * b.size[1];
+    if (k !== 0)
+      return k;
+    return z.slotNumber - b.slotNumber;
+  }, false);
+  allocatedTextures = {};
+  minTextureSize;
+  maxTextureSize;
+  numTextureSheets;
+  initialSlots = [];
+  constructor({ numTextureSheets: z, minTextureSize: b, maxTextureSize: k, excludeTexture: y } = {}, N) {
+    if (this.numTextureSheets = z ?? g, this.minTextureSize = b ?? C, this.maxTextureSize = k ?? D, N)
+      this.numTextureSheets = Math.min(this.numTextureSheets, N.getParameter(WebGL2RenderingContext.MAX_TEXTURE_IMAGE_UNITS)), this.maxTextureSize = Math.min(this.maxTextureSize, N.getParameter(WebGL2RenderingContext.MAX_TEXTURE_SIZE)), this.minTextureSize = Math.min(this.minTextureSize, this.maxTextureSize);
+    for (let U = 0;U < this.numTextureSheets; U++) {
+      if (y?.(U))
+        continue;
+      this.initialSlots.push(new A([this.maxTextureSize, this.maxTextureSize], U, undefined, { min: this.minTextureSize, max: this.maxTextureSize }));
+    }
+    this.initialSlots.forEach((U) => this.textureSlots.insert(U));
+  }
+  allocate(z, b, k = 1) {
+    const { size: y, slotNumber: N, x: U, y: w, textureIndex: j } = this.allocateHelper(z, b, k);
+    return { size: y, slotNumber: N, x: U, y: w, textureIndex: j };
+  }
+  deallocate(z) {
+    if (!this.isSlotUsed(z))
+      throw new Error("Slot is not allocated");
+    const b = this.allocatedTextures[A.getTag(z)];
+    this.deallocateHelper(b);
+  }
+  get countUsedTextureSheets() {
+    return this.initialSlots.filter((z) => this.isSlotUsed(z)).length;
+  }
+  allocateHelper(z, b, k = 1) {
+    const y = O(z, b, k, { min: this.minTextureSize, max: this.maxTextureSize }), N = this.findSlot(y);
+    if (!N)
+      throw new Error(`Could not find a slot for texture to fit ${k} sprites of size ${z}x${b}`);
+    this.textureSlots.remove(N);
+    const [U, w] = this.bestFit(y, N);
+    return this.fitSlot(N, U, w);
+  }
+  findSlot(z) {
+    for (let b = 0;b < this.textureSlots.size; b++) {
+      const k = this.textureSlots.at(b).key, [y, N] = k.size;
+      if (z.get(y) <= N)
+        return k;
+    }
+    return null;
+  }
+  calculateRatio(z, b) {
+    return Math.max(z / b, b / z);
+  }
+  bestFit(z, b) {
+    const [k, y] = b.size;
+    let N = b.textureSizeLimits.max;
+    return z.forEach((U, w) => {
+      if (w <= k && U <= y) {
+        const j = w * U, P = z.get(N) * N;
+        if (j < P)
+          N = w;
+        else if (j === P) {
+          if (this.calculateRatio(w, U) < this.calculateRatio(N, z.get(N)))
+            N = w;
+        }
+      }
+    }), [N, z.get(N)];
+  }
+  isSlotUsed(z) {
+    return !!this.allocatedTextures[A.getTag(z)];
+  }
+  deallocateHelper(z) {
+    if (z.parent && z.sibbling && !this.isSlotUsed(z.sibbling)) {
+      const b = z.sibbling;
+      if (this.textureSlots.remove(b), x && this.textureSlots.find(z))
+        throw new Error("Slot is not expected to be in the tree");
+      const k = z.parent;
+      this.deallocateHelper(k);
+      return;
+    }
+    this.textureSlots.insert(z), delete this.allocatedTextures[z.getTag()];
+  }
+  trySplitHorizontally(z, b, k) {
+    if (z.canSplitHorizontally()) {
+      const [y, N] = z.splitHorizontally();
+      if (y.size[0] >= b)
+        return this.textureSlots.insert(N), this.fitSlot(y, b, k);
+    }
+    return null;
+  }
+  trySplitVertically(z, b, k) {
+    if (z.canSplitVertically()) {
+      const [y, N] = z.splitVertically();
+      if (y.size[1] >= k)
+        return this.textureSlots.insert(N), this.fitSlot(y, b, k);
+    }
+    return null;
+  }
+  fitSlot(z, b, k) {
+    if (this.allocatedTextures[z.getTag()] = z, z.size[0] > z.size[1]) {
+      const y = this.trySplitHorizontally(z, b, k) ?? this.trySplitVertically(z, b, k);
+      if (y)
+        return y;
+    } else {
+      const y = this.trySplitVertically(z, b, k) ?? this.trySplitHorizontally(z, b, k);
+      if (y)
+        return y;
+    }
+    return z;
+  }
+}
+var V = 15;
+var $ = `TEXTURE${V}`;
+
+class l {
+  gl;
+  texturesById = {};
+  #z = new OffscreenCanvas(1, 1).getContext("2d");
+  #b = new B({ excludeTexture: (z) => z === V });
+  #k = new B({ excludeTexture: (z) => z !== V });
+  #y = new Set;
+  constructor({ gl: z, textureSlotAllocator: b = new B({ excludeTexture: (y) => y === V }), textureSlotAllocatorForVideo: k = new B({ excludeTexture: (y) => y !== V }) }) {
+    this.gl = z, this.#b = b, this.#k = k, this.#z.imageSmoothingEnabled = true;
+  }
+  getTexture(z) {
+    if (!this.texturesById[z]) {
+      const b = this.gl.createTexture();
+      if (!b)
+        return;
+      const k = z === $ ? this.#k : this.#b;
+      this.texturesById[z] = b, this.gl.bindTexture(W.TEXTURE_2D, b), this.gl.texImage2D(W.TEXTURE_2D, 0, W.RGBA, k.maxTextureSize, k.maxTextureSize, 0, W.RGBA, W.UNSIGNED_BYTE, null), this.generateMipMap(z);
+    }
+    return this.texturesById[z];
+  }
+  loadTexture(z, b, k, y, N) {
+    this.gl.activeTexture(W[b]), this.gl.bindTexture(W.TEXTURE_2D, k), this.applyTexImage2d(z, y, N), this.gl.texParameteri(W.TEXTURE_2D, W.TEXTURE_MIN_FILTER, W.LINEAR);
+  }
+  applyTexImage2d(z, [b, k, y, N], [U, w, j, P]) {
+    if (y === j && N === P && !b && !k)
+      this.gl.texSubImage2D(W.TEXTURE_2D, 0, U, w, j, P, W.RGBA, W.UNSIGNED_BYTE, z.texImgSrc);
+    else {
+      const H = this.#z.canvas;
+      if (z.texImgSrc instanceof ImageData) {
+        if (H.width = j || z.width, H.height = P || z.height, this.#z.putImageData(z.texImgSrc, 0, 0), b || k)
+          console.warn("Offset not available when sending imageData");
+      } else {
+        const F = y || z.width, h = N || z.height;
+        H.width = j || F, H.height = P || h, this.#z.drawImage(z.texImgSrc, b, k, F, h, 0, 0, H.width, H.height);
+      }
+      this.gl.texSubImage2D(W.TEXTURE_2D, 0, U, w, H.width, H.height, W.RGBA, W.UNSIGNED_BYTE, H);
+    }
+  }
+  allocateSlotForImage(z) {
+    const k = (z.isVideo ? this.#k : this.#b).allocate(z.width, z.height), y = `TEXTURE${k.textureIndex}`, N = this.getTexture(y);
+    if (!N)
+      throw new Error(`Invalid texture Id ${y}`);
+    const U = this.assignImageToTexture(z, y, N, [0, 0, z.width, z.height], [k.x, k.y, k.size[0], k.size[1]]);
+    return { slot: k, refreshCallback: U };
+  }
+  assignImageToTexture(z, b, k, y, N) {
+    const U = y ?? [0, 0, z.width, z.height], w = N ?? [0, 0, U[2], U[3]], j = () => {
+      this.gl.bindTexture(W.TEXTURE_2D, k), this.applyTexImage2d(z, U, w);
+    };
+    if (this.#y.has(z))
+      j();
+    else
+      this.loadTexture(z, b, k, U, w), this.#y.add(z);
+    return j;
+  }
+  setupTextureForVideo(z) {
+    const b = this.getTexture(z);
+    if (b)
+      this.gl.activeTexture(W[z]), this.gl.bindTexture(W.TEXTURE_2D, b), this.gl.texParameteri(W.TEXTURE_2D, W.TEXTURE_MIN_FILTER, W.LINEAR), this.gl.texParameteri(W.TEXTURE_2D, W.TEXTURE_MAG_FILTER, W.LINEAR);
+  }
+  generateMipMap(z) {
+    const b = this.getTexture(z);
+    if (b)
+      this.gl.activeTexture(W[z]), this.gl.bindTexture(W.TEXTURE_2D, b), this.gl.texParameteri(W.TEXTURE_2D, W.TEXTURE_MIN_FILTER, W.LINEAR_MIPMAP_LINEAR), this.gl.texParameteri(W.TEXTURE_2D, W.TEXTURE_MAG_FILTER, W.LINEAR), this.gl.generateMipmap(W.TEXTURE_2D);
+  }
+  dispose() {
+    Object.values(this.texturesById).forEach((z) => {
+      this.gl.deleteTexture(z);
+    });
+  }
+}
+var SpriteType;
+(function(SpriteType2) {
+  SpriteType2[SpriteType2["DEFAULT"] = 0] = "DEFAULT";
+  SpriteType2[SpriteType2["SPRITE"] = 1] = "SPRITE";
+  SpriteType2[SpriteType2["HUD"] = 2] = "HUD";
+  SpriteType2[SpriteType2["DISTANT"] = 3] = "DISTANT";
+  SpriteType2[SpriteType2["WAVE"] = 4] = "WAVE";
+})(SpriteType || (SpriteType = {}));
+var Priority;
+(function(Priority2) {
+  Priority2[Priority2["DEFAULT"] = 0] = "DEFAULT";
+  Priority2[Priority2["LAST"] = 1] = "LAST";
+})(Priority || (Priority = {}));
+
+class h {
+  i;
+  f;
+  warningLimit = 50000;
+  #i = new Set;
+  #f = [];
+  constructor(i, f2) {
+    this.initCall = i;
+    this.onRecycle = f2;
+  }
+  create(...i) {
+    const f2 = this.#f.pop();
+    if (f2)
+      return this.#i.add(f2), this.initCall(f2, ...i);
+    const v2 = this.initCall(undefined, ...i);
+    return this.#i.add(v2), this.#v(), v2;
+  }
+  recycle(i) {
+    this.#i.delete(i), this.#h(i);
+  }
+  recycleAll() {
+    for (let i of this.#i)
+      this.#h(i);
+    this.#i.clear();
+  }
+  clear() {
+    this.#f.length = 0, this.#i.clear();
+  }
+  countObjectsInExistence() {
+    return this.#i.size + this.#f.length;
+  }
+  #h(i) {
+    this.#f.push(i), this.onRecycle?.(i);
+  }
+  #v() {
+    if (this.countObjectsInExistence() === this.warningLimit)
+      console.warn("ObjectPool already created", this.#i.size + this.#f.length, "in", this.constructor.name);
+  }
+}
+
+class C2 extends h {
+  constructor() {
+    super((i) => {
+      if (!i)
+        return new Map;
+      return i;
+    }, (i) => i.clear());
+  }
+}
+var $2 = 1000;
+var Q2 = 16.5;
+var N = 10;
+
+class V2 {
+  requestAnimationFrame;
+  cancelAnimationFrame;
+  maxLoopJump;
+  constructor({ requestAnimationFrame: j = globalThis.requestAnimationFrame.bind(globalThis), cancelAnimationFrame: w = globalThis.cancelAnimationFrame.bind(globalThis) } = {}, { maxLoopJump: d = N } = {}) {
+    this.requestAnimationFrame = j, this.cancelAnimationFrame = w, this.maxLoopJump = d;
+  }
+  startLoop(j, w = {}) {
+    const d = w.frameDuration ?? (w.frameRate ? $2 / w.frameRate : undefined) ?? Q2;
+    let B2 = 0;
+    function W2(h2, v2) {
+      if (h2 > v2)
+        return B2 -= d * (h2 - v2), v2;
+      return h2;
+    }
+    const { maxLoopJump: Y, requestAnimationFrame: G, cancelAnimationFrame: Z2 } = this;
+    let y = 0;
+    const H = (h2) => {
+      K = G(H);
+      const v2 = W2(Math.round((h2 + B2 - y) / d), Y);
+      for (let z = 0;z < v2; z++)
+        y += d, j(y, z === v2 - 1);
+    };
+    let K = G(H);
+    return () => {
+      Z2(K);
+    };
+  }
+}
+var MILLIS_IN_SEC = 1000;
+
+class Motor {
+  time = 0;
+  apptPool = new AppointmentPool;
+  schedulePool = new C2;
+  schedule = this.schedulePool.create();
+  loopExecutor;
+  frameDuration;
+  constructor({ loopExecutor } = {}, config = {}) {
+    this.loopExecutor = loopExecutor ?? new V2;
+    this.frameDuration = config.frameDuration ?? (config.frameRate ? 1000 / config.frameRate : undefined) ?? Q2;
+  }
+  loop(cycle, data, frameRate) {
+    this.scheduleUpdate(cycle, data, frameRate ?? 1000);
+  }
+  scheduleUpdate(cycle, data, refreshRate = 0, future) {
+    let appt = this.schedule.get(cycle);
+    if (!appt) {
+      this.schedule.set(cycle, appt = this.apptPool.create(refreshRate, data));
+    } else if (appt.frameRate !== refreshRate) {
+      appt.frameRate = refreshRate;
+      appt.period = refreshRate ? 1000 / refreshRate : 0;
+      appt.data = data;
+    }
+    if (future) {
+      appt.meetingTime = this.time + Q2;
+    }
+  }
+  stopUpdate(cycle) {
+    const appt = this.schedule.get(cycle);
+    if (appt) {
+      this.apptPool.recycle(appt);
+    }
+    this.schedule.delete(cycle);
+  }
+  deactivate() {
+    this.stopLoop?.();
+  }
+  activate() {
+    this.startLoop();
+  }
+  startLoop() {
+    const updatePayload = {
+      time: 0,
+      deltaTime: this.frameDuration,
+      data: undefined,
+      renderFrame: true,
+      cycle: { refresh: () => {
+      } },
+      stopUpdate() {
+        this.stopped = true;
+      },
+      stopped: false
+    };
+    updatePayload.stopUpdate = updatePayload.stopUpdate.bind(updatePayload);
+    const performUpdate = (updatePayload2) => {
+      if (!this.schedule.size) {
+        return;
+      }
+      let agenda = this.schedule;
+      const futureSchedule = this.schedulePool.create();
+      const finalSchedule = this.schedulePool.create();
+      let limit = 100;
+      let final = false;
+      while (agenda) {
+        if (limit-- < 0) {
+          throw new Error("We keep scheduling updates within updates.");
+        }
+        this.schedule = this.schedulePool.create();
+        for (const entry of agenda) {
+          const update = entry[0];
+          const appt = entry[1];
+          if (updatePayload2.time < appt.meetingTime) {
+            futureSchedule.set(update, appt);
+            continue;
+          }
+          if (!final && update.priority === Priority.LAST) {
+            finalSchedule.set(update, appt);
+            continue;
+          }
+          updatePayload2.data = appt.data;
+          updatePayload2.cycle = update;
+          updatePayload2.stopped = false;
+          update.refresh(updatePayload2);
+          if (appt.period && !updatePayload2.stopped) {
+            appt.meetingTime = Math.max(appt.meetingTime + appt.period, updatePayload2.time);
+            futureSchedule.set(update, appt);
+          } else {
+            this.apptPool.recycle(appt);
+          }
+        }
+        this.schedulePool.recycle(agenda);
+        if (!final) {
+          if (this.schedule.size) {
+            agenda = this.schedule;
+          } else {
+            this.schedulePool.recycle(this.schedule);
+            final = true;
+            agenda = finalSchedule;
+          }
+        } else {
+          this.schedulePool.recycle(this.schedule);
+          agenda = undefined;
+          this.schedule = futureSchedule;
+        }
+      }
+    };
+    const stopLoop = this.loopExecutor.startLoop((time, render) => {
+      this.time = updatePayload.time = time;
+      updatePayload.renderFrame = render;
+      performUpdate(updatePayload);
+    }, { frameDuration: this.frameDuration });
+    this.stopLoop = () => {
+      stopLoop();
+      this.stopLoop = undefined;
+      this.apptPool.clear();
+    };
+  }
+}
+
+class AppointmentPool extends h {
+  constructor() {
+    super((appt, frameRate, data) => {
+      if (!appt) {
+        return { meetingTime: 0, frameRate, period: frameRate ? MILLIS_IN_SEC / frameRate : 0, data };
+      }
+      appt.meetingTime = 0;
+      appt.period = frameRate ? MILLIS_IN_SEC / frameRate : 0;
+      appt.frameRate = frameRate;
+      appt.data = data;
+      return appt;
+    });
+  }
+}
+
+class Looper {
+  #cycle;
+  #motor;
+  #data;
+  #autoStart;
+  constructor({ motor, data, cycle }, { autoStart }) {
+    this.#cycle = cycle;
+    this.#motor = motor;
+    this.#data = data;
+    this.#autoStart = autoStart;
+  }
+  refresh(updatePayload) {
+    this.#cycle?.refresh(updatePayload);
+  }
+  activate() {
+    if (this.#autoStart) {
+      this.start();
+    }
+  }
+  deactivate() {
+    this.#motor.stopUpdate(this);
+  }
+  start() {
+    this.#motor.loop(this, this.#data);
+  }
+}
+var Policy;
+(function(Policy2) {
+  Policy2[Policy2["ACTIVE_CYCLE_PRIORITY"] = 0] = "ACTIVE_CYCLE_PRIORITY";
+  Policy2[Policy2["INCOMING_CYCLE_PRIORITY"] = 1] = "INCOMING_CYCLE_PRIORITY";
+})(Policy || (Policy = {}));
+
+class ControlledMotor {
+  motor;
+  activeCycle;
+  #policy;
+  constructor(motor, config = {}) {
+    this.motor = motor;
+    this.#policy = config.policy ?? Policy.ACTIVE_CYCLE_PRIORITY;
+  }
+  loop(cycle, data, frameRate) {
+    this.scheduleUpdate(cycle, data, frameRate ?? 1000);
+  }
+  scheduleUpdate(cycle, data, refreshRate, future) {
+    if (this.activeCycle) {
+      if (this.#policy === Policy.ACTIVE_CYCLE_PRIORITY) {
+        return;
+      }
+      this.stopUpdate(this.activeCycle);
+    }
+    this.activeCycle = cycle;
+    this.motor.scheduleUpdate(cycle, data, refreshRate);
+  }
+  stopUpdate(cycle) {
+    this.motor.stopUpdate(cycle);
+  }
+  get time() {
+    return this.motor.time;
+  }
+}
+var DEFAULT_MAX_TEXTURE_SIZE = 4096;
+
+class TextureUniformInitializer {
+  static initialize({ gl, program }, { maxTextureSize, textureUniformLoc = TEXTURE_UNIFORM_LOC, maxTextureSizeLoc = MAX_TEXTURE_SIZE_LOC } = {}) {
+    const maxTextureUniform = gl.getUniformLocation(program, maxTextureSizeLoc);
+    gl.uniform1f(maxTextureUniform, maxTextureSize ?? DEFAULT_MAX_TEXTURE_SIZE);
+    const maxTextureUnits = gl.getParameter(GL.MAX_TEXTURE_IMAGE_UNITS);
+    const arrayOfTextureIndex = new Array(maxTextureUnits).fill(null).map((_2, index) => index);
+    const texturesUniform = gl.getUniformLocation(program, textureUniformLoc);
+    gl.uniform1iv(texturesUniform, arrayOfTextureIndex);
+  }
+}
+
+class BaseUniformHandler {
+  updateCall;
+  gl;
+  location;
+  constructor({ gl, program }, { name }, updateCall) {
+    this.updateCall = updateCall;
+    this.gl = gl;
+    this.location = gl.getUniformLocation(program, name);
+  }
+  updateValue(value) {
+    this.updateCall(this.gl, this.location, value);
+  }
+}
+
+class MatrixUniformHandler extends BaseUniformHandler {
+  matrix;
+  constructor(props, config, matrix) {
+    super(props, config, (gl, location, matrix2) => gl.uniformMatrix4fv(location, false, matrix2.getMatrix()));
+    this.matrix = matrix;
+  }
+  update() {
+    this.updateValue(this.matrix);
+  }
+}
+
+class FloatUniformHandler extends BaseUniformHandler {
+  val;
+  constructor(props, config, val) {
+    super(props, config, (gl, location, value) => gl.uniform1f(location, value));
+    this.val = val;
+    if (val === undefined) {
+      this.update = () => {
+      };
+    }
+  }
+  update() {
+    this.updateValue(this.val.valueOf());
+  }
+}
+
+class VectorUniformHandler extends BaseUniformHandler {
+  vector;
+  constructor(props, config, vector) {
+    super(props, config, (gl, location, vector2) => gl.uniform3fv(location, vector2));
+    this.vector = vector;
+  }
+  update() {
+    this.updateValue(this.vector);
+  }
+}
+var x2 = function(u2, j) {
+  if (u2) {
+    const p2 = u2.length.valueOf();
+    for (let f2 = 0;f2 < p2; f2++)
+      j(u2.at(f2), f2);
+  }
+};
+var z = function(u2, j, p2 = []) {
+  const f2 = p2 ?? [], q = u2.length.valueOf();
+  f2.length = q;
+  for (let v2 = 0;v2 < q; v2++) {
+    const w = u2.at(v2);
+    f2[v2] = j(w, v2);
+  }
+  return f2;
+};
+
+class TextureUpdateHandler {
+  #textureSlots = new Map;
+  #textureManager;
+  #imageManager;
+  constructor({ textureManager, imageManager }) {
+    this.#textureManager = textureManager;
+    this.#imageManager = imageManager;
+  }
+  getSlotBuffer(id) {
+    const slot = this.#textureSlots.get(id);
+    return slot?.buffer;
+  }
+  dispose() {
+    this.#textureSlots.clear();
+  }
+  async updateTextures(ids, medias) {
+    const mediaList = Array.from(ids).map((index) => medias.at(index));
+    ids.clear();
+    const mediaInfos = (await Promise.all(z(mediaList, async (media) => {
+      if (media?.id === undefined) {
+        return;
+      }
+      const mediaData = await this.#imageManager.renderMedia(media.id, media);
+      return { mediaData, mediaId: media.id, spriteSheet: media.spriteSheet };
+    }))).filter((data) => !!data);
+    const textureIndices = await Promise.all(mediaInfos.map(async ({ mediaData, mediaId, spriteSheet }) => {
+      const { slot, refreshCallback } = this.#textureManager.allocateSlotForImage(mediaData);
+      const slotW = Math.log2(slot.size[0]), slotH = Math.log2(slot.size[1]);
+      const wh = slotW * 16 + slotH;
+      const [spriteWidth, spriteHeight] = spriteSheet?.spriteSize ?? [mediaData.width, mediaData.height];
+      this.#textureSlots.set(mediaId, {
+        buffer: Float32Array.from([wh, slot.slotNumber, spriteWidth / mediaData.width, spriteHeight / mediaData.height])
+      });
+      mediaData.refreshCallback = refreshCallback;
+      return slot.textureIndex;
+    }));
+    const textureIndicesSet = new Set(textureIndices);
+    textureIndicesSet.forEach((textureIndex) => {
+      if (textureIndex === V) {
+        this.#textureManager.setupTextureForVideo(`TEXTURE${textureIndex}`);
+      } else {
+        this.#textureManager.generateMipMap(`TEXTURE${textureIndex}`);
+      }
+    });
+    return mediaInfos.map(({ mediaData }) => mediaData);
+  }
+}
+var J0 = function() {
+  var B2 = new R2(9);
+  if (R2 != Float32Array)
+    B2[1] = 0, B2[2] = 0, B2[3] = 0, B2[5] = 0, B2[6] = 0, B2[7] = 0;
+  return B2[0] = 1, B2[4] = 1, B2[8] = 1, B2;
+};
+var XB = function() {
+  var B2 = new R2(16);
+  if (R2 != Float32Array)
+    B2[1] = 0, B2[2] = 0, B2[3] = 0, B2[4] = 0, B2[6] = 0, B2[7] = 0, B2[8] = 0, B2[9] = 0, B2[11] = 0, B2[12] = 0, B2[13] = 0, B2[14] = 0;
+  return B2[0] = 1, B2[5] = 1, B2[10] = 1, B2[15] = 1, B2;
+};
+var YB = function(B2) {
+  var K = new R2(16);
+  return K[0] = B2[0], K[1] = B2[1], K[2] = B2[2], K[3] = B2[3], K[4] = B2[4], K[5] = B2[5], K[6] = B2[6], K[7] = B2[7], K[8] = B2[8], K[9] = B2[9], K[10] = B2[10], K[11] = B2[11], K[12] = B2[12], K[13] = B2[13], K[14] = B2[14], K[15] = B2[15], K;
+};
+var $B = function(B2, K) {
+  return B2[0] = K[0], B2[1] = K[1], B2[2] = K[2], B2[3] = K[3], B2[4] = K[4], B2[5] = K[5], B2[6] = K[6], B2[7] = K[7], B2[8] = K[8], B2[9] = K[9], B2[10] = K[10], B2[11] = K[11], B2[12] = K[12], B2[13] = K[13], B2[14] = K[14], B2[15] = K[15], B2;
+};
+var QB = function(B2, K, W2, X2, Y, $3, Q3, Z2, H, J, O2, L2, C3, V3, E2, U) {
+  var G = new R2(16);
+  return G[0] = B2, G[1] = K, G[2] = W2, G[3] = X2, G[4] = Y, G[5] = $3, G[6] = Q3, G[7] = Z2, G[8] = H, G[9] = J, G[10] = O2, G[11] = L2, G[12] = C3, G[13] = V3, G[14] = E2, G[15] = U, G;
+};
+var ZB = function(B2, K, W2, X2, Y, $3, Q3, Z2, H, J, O2, L2, C3, V3, E2, U, G) {
+  return B2[0] = K, B2[1] = W2, B2[2] = X2, B2[3] = Y, B2[4] = $3, B2[5] = Q3, B2[6] = Z2, B2[7] = H, B2[8] = J, B2[9] = O2, B2[10] = L2, B2[11] = C3, B2[12] = V3, B2[13] = E2, B2[14] = U, B2[15] = G, B2;
+};
+var O0 = function(B2) {
+  return B2[0] = 1, B2[1] = 0, B2[2] = 0, B2[3] = 0, B2[4] = 0, B2[5] = 1, B2[6] = 0, B2[7] = 0, B2[8] = 0, B2[9] = 0, B2[10] = 1, B2[11] = 0, B2[12] = 0, B2[13] = 0, B2[14] = 0, B2[15] = 1, B2;
+};
+var HB = function(B2, K) {
+  if (B2 === K) {
+    var W2 = K[1], X2 = K[2], Y = K[3], $3 = K[6], Q3 = K[7], Z2 = K[11];
+    B2[1] = K[4], B2[2] = K[8], B2[3] = K[12], B2[4] = W2, B2[6] = K[9], B2[7] = K[13], B2[8] = X2, B2[9] = $3, B2[11] = K[14], B2[12] = Y, B2[13] = Q3, B2[14] = Z2;
+  } else
+    B2[0] = K[0], B2[1] = K[4], B2[2] = K[8], B2[3] = K[12], B2[4] = K[1], B2[5] = K[5], B2[6] = K[9], B2[7] = K[13], B2[8] = K[2], B2[9] = K[6], B2[10] = K[10], B2[11] = K[14], B2[12] = K[3], B2[13] = K[7], B2[14] = K[11], B2[15] = K[15];
+  return B2;
+};
+var JB = function(B2, K) {
+  var W2 = K[0], X2 = K[1], Y = K[2], $3 = K[3], Q3 = K[4], Z2 = K[5], H = K[6], J = K[7], O2 = K[8], L2 = K[9], C3 = K[10], V3 = K[11], E2 = K[12], U = K[13], G = K[14], I = K[15], S2 = W2 * Z2 - X2 * Q3, k = W2 * H - Y * Q3, A2 = W2 * J - $3 * Q3, D2 = X2 * H - Y * Z2, P = X2 * J - $3 * Z2, F = Y * J - $3 * H, j = O2 * U - L2 * E2, h2 = O2 * G - C3 * E2, M2 = O2 * I - V3 * E2, p2 = L2 * G - C3 * U, g2 = L2 * I - V3 * U, q = C3 * I - V3 * G, T22 = S2 * q - k * g2 + A2 * p2 + D2 * M2 - P * h2 + F * j;
+  if (!T22)
+    return null;
+  return T22 = 1 / T22, B2[0] = (Z2 * q - H * g2 + J * p2) * T22, B2[1] = (Y * g2 - X2 * q - $3 * p2) * T22, B2[2] = (U * F - G * P + I * D2) * T22, B2[3] = (C3 * P - L2 * F - V3 * D2) * T22, B2[4] = (H * M2 - Q3 * q - J * h2) * T22, B2[5] = (W2 * q - Y * M2 + $3 * h2) * T22, B2[6] = (G * A2 - E2 * F - I * k) * T22, B2[7] = (O2 * F - C3 * A2 + V3 * k) * T22, B2[8] = (Q3 * g2 - Z2 * M2 + J * j) * T22, B2[9] = (X2 * M2 - W2 * g2 - $3 * j) * T22, B2[10] = (E2 * P - U * A2 + I * S2) * T22, B2[11] = (L2 * A2 - O2 * P - V3 * S2) * T22, B2[12] = (Z2 * h2 - Q3 * p2 - H * j) * T22, B2[13] = (W2 * p2 - X2 * h2 + Y * j) * T22, B2[14] = (U * k - E2 * D2 - G * S2) * T22, B2[15] = (O2 * D2 - L2 * k + C3 * S2) * T22, B2;
+};
+var OB = function(B2, K) {
+  var W2 = K[0], X2 = K[1], Y = K[2], $3 = K[3], Q3 = K[4], Z2 = K[5], H = K[6], J = K[7], O2 = K[8], L2 = K[9], C3 = K[10], V3 = K[11], E2 = K[12], U = K[13], G = K[14], I = K[15];
+  return B2[0] = Z2 * (C3 * I - V3 * G) - L2 * (H * I - J * G) + U * (H * V3 - J * C3), B2[1] = -(X2 * (C3 * I - V3 * G) - L2 * (Y * I - $3 * G) + U * (Y * V3 - $3 * C3)), B2[2] = X2 * (H * I - J * G) - Z2 * (Y * I - $3 * G) + U * (Y * J - $3 * H), B2[3] = -(X2 * (H * V3 - J * C3) - Z2 * (Y * V3 - $3 * C3) + L2 * (Y * J - $3 * H)), B2[4] = -(Q3 * (C3 * I - V3 * G) - O2 * (H * I - J * G) + E2 * (H * V3 - J * C3)), B2[5] = W2 * (C3 * I - V3 * G) - O2 * (Y * I - $3 * G) + E2 * (Y * V3 - $3 * C3), B2[6] = -(W2 * (H * I - J * G) - Q3 * (Y * I - $3 * G) + E2 * (Y * J - $3 * H)), B2[7] = W2 * (H * V3 - J * C3) - Q3 * (Y * V3 - $3 * C3) + O2 * (Y * J - $3 * H), B2[8] = Q3 * (L2 * I - V3 * U) - O2 * (Z2 * I - J * U) + E2 * (Z2 * V3 - J * L2), B2[9] = -(W2 * (L2 * I - V3 * U) - O2 * (X2 * I - $3 * U) + E2 * (X2 * V3 - $3 * L2)), B2[10] = W2 * (Z2 * I - J * U) - Q3 * (X2 * I - $3 * U) + E2 * (X2 * J - $3 * Z2), B2[11] = -(W2 * (Z2 * V3 - J * L2) - Q3 * (X2 * V3 - $3 * L2) + O2 * (X2 * J - $3 * Z2)), B2[12] = -(Q3 * (L2 * G - C3 * U) - O2 * (Z2 * G - H * U) + E2 * (Z2 * C3 - H * L2)), B2[13] = W2 * (L2 * G - C3 * U) - O2 * (X2 * G - Y * U) + E2 * (X2 * C3 - Y * L2), B2[14] = -(W2 * (Z2 * G - H * U) - Q3 * (X2 * G - Y * U) + E2 * (X2 * H - Y * Z2)), B2[15] = W2 * (Z2 * C3 - H * L2) - Q3 * (X2 * C3 - Y * L2) + O2 * (X2 * H - Y * Z2), B2;
+};
+var GB = function(B2) {
+  var K = B2[0], W2 = B2[1], X2 = B2[2], Y = B2[3], $3 = B2[4], Q3 = B2[5], Z2 = B2[6], H = B2[7], J = B2[8], O2 = B2[9], L2 = B2[10], C3 = B2[11], V3 = B2[12], E2 = B2[13], U = B2[14], G = B2[15], I = K * Q3 - W2 * $3, S2 = K * Z2 - X2 * $3, k = K * H - Y * $3, A2 = W2 * Z2 - X2 * Q3, D2 = W2 * H - Y * Q3, P = X2 * H - Y * Z2, F = J * E2 - O2 * V3, j = J * U - L2 * V3, h2 = J * G - C3 * V3, M2 = O2 * U - L2 * E2, p2 = O2 * G - C3 * E2, g2 = L2 * G - C3 * U;
+  return I * g2 - S2 * p2 + k * M2 + A2 * h2 - D2 * j + P * F;
+};
+var G0 = function(B2, K, W2) {
+  var X2 = K[0], Y = K[1], $3 = K[2], Q3 = K[3], Z2 = K[4], H = K[5], J = K[6], O2 = K[7], L2 = K[8], C3 = K[9], V3 = K[10], E2 = K[11], U = K[12], G = K[13], I = K[14], S2 = K[15], k = W2[0], A2 = W2[1], D2 = W2[2], P = W2[3];
+  return B2[0] = k * X2 + A2 * Z2 + D2 * L2 + P * U, B2[1] = k * Y + A2 * H + D2 * C3 + P * G, B2[2] = k * $3 + A2 * J + D2 * V3 + P * I, B2[3] = k * Q3 + A2 * O2 + D2 * E2 + P * S2, k = W2[4], A2 = W2[5], D2 = W2[6], P = W2[7], B2[4] = k * X2 + A2 * Z2 + D2 * L2 + P * U, B2[5] = k * Y + A2 * H + D2 * C3 + P * G, B2[6] = k * $3 + A2 * J + D2 * V3 + P * I, B2[7] = k * Q3 + A2 * O2 + D2 * E2 + P * S2, k = W2[8], A2 = W2[9], D2 = W2[10], P = W2[11], B2[8] = k * X2 + A2 * Z2 + D2 * L2 + P * U, B2[9] = k * Y + A2 * H + D2 * C3 + P * G, B2[10] = k * $3 + A2 * J + D2 * V3 + P * I, B2[11] = k * Q3 + A2 * O2 + D2 * E2 + P * S2, k = W2[12], A2 = W2[13], D2 = W2[14], P = W2[15], B2[12] = k * X2 + A2 * Z2 + D2 * L2 + P * U, B2[13] = k * Y + A2 * H + D2 * C3 + P * G, B2[14] = k * $3 + A2 * J + D2 * V3 + P * I, B2[15] = k * Q3 + A2 * O2 + D2 * E2 + P * S2, B2;
+};
+var LB = function(B2, K, W2) {
+  var X2 = W2[0], Y = W2[1], $3 = W2[2], Q3, Z2, H, J, O2, L2, C3, V3, E2, U, G, I;
+  if (K === B2)
+    B2[12] = K[0] * X2 + K[4] * Y + K[8] * $3 + K[12], B2[13] = K[1] * X2 + K[5] * Y + K[9] * $3 + K[13], B2[14] = K[2] * X2 + K[6] * Y + K[10] * $3 + K[14], B2[15] = K[3] * X2 + K[7] * Y + K[11] * $3 + K[15];
+  else
+    Q3 = K[0], Z2 = K[1], H = K[2], J = K[3], O2 = K[4], L2 = K[5], C3 = K[6], V3 = K[7], E2 = K[8], U = K[9], G = K[10], I = K[11], B2[0] = Q3, B2[1] = Z2, B2[2] = H, B2[3] = J, B2[4] = O2, B2[5] = L2, B2[6] = C3, B2[7] = V3, B2[8] = E2, B2[9] = U, B2[10] = G, B2[11] = I, B2[12] = Q3 * X2 + O2 * Y + E2 * $3 + K[12], B2[13] = Z2 * X2 + L2 * Y + U * $3 + K[13], B2[14] = H * X2 + C3 * Y + G * $3 + K[14], B2[15] = J * X2 + V3 * Y + I * $3 + K[15];
+  return B2;
+};
+var VB = function(B2, K, W2) {
+  var X2 = W2[0], Y = W2[1], $3 = W2[2];
+  return B2[0] = K[0] * X2, B2[1] = K[1] * X2, B2[2] = K[2] * X2, B2[3] = K[3] * X2, B2[4] = K[4] * Y, B2[5] = K[5] * Y, B2[6] = K[6] * Y, B2[7] = K[7] * Y, B2[8] = K[8] * $3, B2[9] = K[9] * $3, B2[10] = K[10] * $3, B2[11] = K[11] * $3, B2[12] = K[12], B2[13] = K[13], B2[14] = K[14], B2[15] = K[15], B2;
+};
+var CB = function(B2, K, W2, X2) {
+  var Y = X2[0], $3 = X2[1], Q3 = X2[2], Z2 = Math.hypot(Y, $3, Q3), H, J, O2, L2, C3, V3, E2, U, G, I, S2, k, A2, D2, P, F, j, h2, M2, p2, g2, q, T22, f2;
+  if (Z2 < N2)
+    return null;
+  if (Z2 = 1 / Z2, Y *= Z2, $3 *= Z2, Q3 *= Z2, H = Math.sin(W2), J = Math.cos(W2), O2 = 1 - J, L2 = K[0], C3 = K[1], V3 = K[2], E2 = K[3], U = K[4], G = K[5], I = K[6], S2 = K[7], k = K[8], A2 = K[9], D2 = K[10], P = K[11], F = Y * Y * O2 + J, j = $3 * Y * O2 + Q3 * H, h2 = Q3 * Y * O2 - $3 * H, M2 = Y * $3 * O2 - Q3 * H, p2 = $3 * $3 * O2 + J, g2 = Q3 * $3 * O2 + Y * H, q = Y * Q3 * O2 + $3 * H, T22 = $3 * Q3 * O2 - Y * H, f2 = Q3 * Q3 * O2 + J, B2[0] = L2 * F + U * j + k * h2, B2[1] = C3 * F + G * j + A2 * h2, B2[2] = V3 * F + I * j + D2 * h2, B2[3] = E2 * F + S2 * j + P * h2, B2[4] = L2 * M2 + U * p2 + k * g2, B2[5] = C3 * M2 + G * p2 + A2 * g2, B2[6] = V3 * M2 + I * p2 + D2 * g2, B2[7] = E2 * M2 + S2 * p2 + P * g2, B2[8] = L2 * q + U * T22 + k * f2, B2[9] = C3 * q + G * T22 + A2 * f2, B2[10] = V3 * q + I * T22 + D2 * f2, B2[11] = E2 * q + S2 * T22 + P * f2, K !== B2)
+    B2[12] = K[12], B2[13] = K[13], B2[14] = K[14], B2[15] = K[15];
+  return B2;
+};
+var UB = function(B2, K, W2) {
+  var X2 = Math.sin(W2), Y = Math.cos(W2), $3 = K[4], Q3 = K[5], Z2 = K[6], H = K[7], J = K[8], O2 = K[9], L2 = K[10], C3 = K[11];
+  if (K !== B2)
+    B2[0] = K[0], B2[1] = K[1], B2[2] = K[2], B2[3] = K[3], B2[12] = K[12], B2[13] = K[13], B2[14] = K[14], B2[15] = K[15];
+  return B2[4] = $3 * Y + J * X2, B2[5] = Q3 * Y + O2 * X2, B2[6] = Z2 * Y + L2 * X2, B2[7] = H * Y + C3 * X2, B2[8] = J * Y - $3 * X2, B2[9] = O2 * Y - Q3 * X2, B2[10] = L2 * Y - Z2 * X2, B2[11] = C3 * Y - H * X2, B2;
+};
+var EB = function(B2, K, W2) {
+  var X2 = Math.sin(W2), Y = Math.cos(W2), $3 = K[0], Q3 = K[1], Z2 = K[2], H = K[3], J = K[8], O2 = K[9], L2 = K[10], C3 = K[11];
+  if (K !== B2)
+    B2[4] = K[4], B2[5] = K[5], B2[6] = K[6], B2[7] = K[7], B2[12] = K[12], B2[13] = K[13], B2[14] = K[14], B2[15] = K[15];
+  return B2[0] = $3 * Y - J * X2, B2[1] = Q3 * Y - O2 * X2, B2[2] = Z2 * Y - L2 * X2, B2[3] = H * Y - C3 * X2, B2[8] = $3 * X2 + J * Y, B2[9] = Q3 * X2 + O2 * Y, B2[10] = Z2 * X2 + L2 * Y, B2[11] = H * X2 + C3 * Y, B2;
+};
+var IB = function(B2, K, W2) {
+  var X2 = Math.sin(W2), Y = Math.cos(W2), $3 = K[0], Q3 = K[1], Z2 = K[2], H = K[3], J = K[4], O2 = K[5], L2 = K[6], C3 = K[7];
+  if (K !== B2)
+    B2[8] = K[8], B2[9] = K[9], B2[10] = K[10], B2[11] = K[11], B2[12] = K[12], B2[13] = K[13], B2[14] = K[14], B2[15] = K[15];
+  return B2[0] = $3 * Y + J * X2, B2[1] = Q3 * Y + O2 * X2, B2[2] = Z2 * Y + L2 * X2, B2[3] = H * Y + C3 * X2, B2[4] = J * Y - $3 * X2, B2[5] = O2 * Y - Q3 * X2, B2[6] = L2 * Y - Z2 * X2, B2[7] = C3 * Y - H * X2, B2;
+};
+var DB = function(B2, K) {
+  return B2[0] = 1, B2[1] = 0, B2[2] = 0, B2[3] = 0, B2[4] = 0, B2[5] = 1, B2[6] = 0, B2[7] = 0, B2[8] = 0, B2[9] = 0, B2[10] = 1, B2[11] = 0, B2[12] = K[0], B2[13] = K[1], B2[14] = K[2], B2[15] = 1, B2;
+};
+var PB = function(B2, K) {
+  return B2[0] = K[0], B2[1] = 0, B2[2] = 0, B2[3] = 0, B2[4] = 0, B2[5] = K[1], B2[6] = 0, B2[7] = 0, B2[8] = 0, B2[9] = 0, B2[10] = K[2], B2[11] = 0, B2[12] = 0, B2[13] = 0, B2[14] = 0, B2[15] = 1, B2;
+};
+var AB = function(B2, K, W2) {
+  var X2 = W2[0], Y = W2[1], $3 = W2[2], Q3 = Math.hypot(X2, Y, $3), Z2, H, J;
+  if (Q3 < N2)
+    return null;
+  return Q3 = 1 / Q3, X2 *= Q3, Y *= Q3, $3 *= Q3, Z2 = Math.sin(K), H = Math.cos(K), J = 1 - H, B2[0] = X2 * X2 * J + H, B2[1] = Y * X2 * J + $3 * Z2, B2[2] = $3 * X2 * J - Y * Z2, B2[3] = 0, B2[4] = X2 * Y * J - $3 * Z2, B2[5] = Y * Y * J + H, B2[6] = $3 * Y * J + X2 * Z2, B2[7] = 0, B2[8] = X2 * $3 * J + Y * Z2, B2[9] = Y * $3 * J - X2 * Z2, B2[10] = $3 * $3 * J + H, B2[11] = 0, B2[12] = 0, B2[13] = 0, B2[14] = 0, B2[15] = 1, B2;
+};
+var kB = function(B2, K) {
+  var W2 = Math.sin(K), X2 = Math.cos(K);
+  return B2[0] = 1, B2[1] = 0, B2[2] = 0, B2[3] = 0, B2[4] = 0, B2[5] = X2, B2[6] = W2, B2[7] = 0, B2[8] = 0, B2[9] = -W2, B2[10] = X2, B2[11] = 0, B2[12] = 0, B2[13] = 0, B2[14] = 0, B2[15] = 1, B2;
+};
+var NB = function(B2, K) {
+  var W2 = Math.sin(K), X2 = Math.cos(K);
+  return B2[0] = X2, B2[1] = 0, B2[2] = -W2, B2[3] = 0, B2[4] = 0, B2[5] = 1, B2[6] = 0, B2[7] = 0, B2[8] = W2, B2[9] = 0, B2[10] = X2, B2[11] = 0, B2[12] = 0, B2[13] = 0, B2[14] = 0, B2[15] = 1, B2;
+};
+var SB = function(B2, K) {
+  var W2 = Math.sin(K), X2 = Math.cos(K);
+  return B2[0] = X2, B2[1] = W2, B2[2] = 0, B2[3] = 0, B2[4] = -W2, B2[5] = X2, B2[6] = 0, B2[7] = 0, B2[8] = 0, B2[9] = 0, B2[10] = 1, B2[11] = 0, B2[12] = 0, B2[13] = 0, B2[14] = 0, B2[15] = 1, B2;
+};
+var L0 = function(B2, K, W2) {
+  var X2 = K[0], Y = K[1], $3 = K[2], Q3 = K[3], Z2 = X2 + X2, H = Y + Y, J = $3 + $3, O2 = X2 * Z2, L2 = X2 * H, C3 = X2 * J, V3 = Y * H, E2 = Y * J, U = $3 * J, G = Q3 * Z2, I = Q3 * H, S2 = Q3 * J;
+  return B2[0] = 1 - (V3 + U), B2[1] = L2 + S2, B2[2] = C3 - I, B2[3] = 0, B2[4] = L2 - S2, B2[5] = 1 - (O2 + U), B2[6] = E2 + G, B2[7] = 0, B2[8] = C3 + I, B2[9] = E2 - G, B2[10] = 1 - (O2 + V3), B2[11] = 0, B2[12] = W2[0], B2[13] = W2[1], B2[14] = W2[2], B2[15] = 1, B2;
+};
+var TB = function(B2, K) {
+  var W2 = new R2(3), X2 = -K[0], Y = -K[1], $3 = -K[2], Q3 = K[3], Z2 = K[4], H = K[5], J = K[6], O2 = K[7], L2 = X2 * X2 + Y * Y + $3 * $3 + Q3 * Q3;
+  if (L2 > 0)
+    W2[0] = (Z2 * Q3 + O2 * X2 + H * $3 - J * Y) * 2 / L2, W2[1] = (H * Q3 + O2 * Y + J * X2 - Z2 * $3) * 2 / L2, W2[2] = (J * Q3 + O2 * $3 + Z2 * Y - H * X2) * 2 / L2;
+  else
+    W2[0] = (Z2 * Q3 + O2 * X2 + H * $3 - J * Y) * 2, W2[1] = (H * Q3 + O2 * Y + J * X2 - Z2 * $3) * 2, W2[2] = (J * Q3 + O2 * $3 + Z2 * Y - H * X2) * 2;
+  return L0(B2, K, W2), B2;
+};
+var _B = function(B2, K) {
+  return B2[0] = K[12], B2[1] = K[13], B2[2] = K[14], B2;
+};
+var V0 = function(B2, K) {
+  var W2 = K[0], X2 = K[1], Y = K[2], $3 = K[4], Q3 = K[5], Z2 = K[6], H = K[8], J = K[9], O2 = K[10];
+  return B2[0] = Math.hypot(W2, X2, Y), B2[1] = Math.hypot($3, Q3, Z2), B2[2] = Math.hypot(H, J, O2), B2;
+};
+var RB = function(B2, K) {
+  var W2 = new R2(3);
+  V0(W2, K);
+  var X2 = 1 / W2[0], Y = 1 / W2[1], $3 = 1 / W2[2], Q3 = K[0] * X2, Z2 = K[1] * Y, H = K[2] * $3, J = K[4] * X2, O2 = K[5] * Y, L2 = K[6] * $3, C3 = K[8] * X2, V3 = K[9] * Y, E2 = K[10] * $3, U = Q3 + O2 + E2, G = 0;
+  if (U > 0)
+    G = Math.sqrt(U + 1) * 2, B2[3] = 0.25 * G, B2[0] = (L2 - V3) / G, B2[1] = (C3 - H) / G, B2[2] = (Z2 - J) / G;
+  else if (Q3 > O2 && Q3 > E2)
+    G = Math.sqrt(1 + Q3 - O2 - E2) * 2, B2[3] = (L2 - V3) / G, B2[0] = 0.25 * G, B2[1] = (Z2 + J) / G, B2[2] = (C3 + H) / G;
+  else if (O2 > E2)
+    G = Math.sqrt(1 + O2 - Q3 - E2) * 2, B2[3] = (C3 - H) / G, B2[0] = (Z2 + J) / G, B2[1] = 0.25 * G, B2[2] = (L2 + V3) / G;
+  else
+    G = Math.sqrt(1 + E2 - Q3 - O2) * 2, B2[3] = (Z2 - J) / G, B2[0] = (C3 + H) / G, B2[1] = (L2 + V3) / G, B2[2] = 0.25 * G;
+  return B2;
+};
+var jB = function(B2, K, W2, X2) {
+  var Y = K[0], $3 = K[1], Q3 = K[2], Z2 = K[3], H = Y + Y, J = $3 + $3, O2 = Q3 + Q3, L2 = Y * H, C3 = Y * J, V3 = Y * O2, E2 = $3 * J, U = $3 * O2, G = Q3 * O2, I = Z2 * H, S2 = Z2 * J, k = Z2 * O2, A2 = X2[0], D2 = X2[1], P = X2[2];
+  return B2[0] = (1 - (E2 + G)) * A2, B2[1] = (C3 + k) * A2, B2[2] = (V3 - S2) * A2, B2[3] = 0, B2[4] = (C3 - k) * D2, B2[5] = (1 - (L2 + G)) * D2, B2[6] = (U + I) * D2, B2[7] = 0, B2[8] = (V3 + S2) * P, B2[9] = (U - I) * P, B2[10] = (1 - (L2 + E2)) * P, B2[11] = 0, B2[12] = W2[0], B2[13] = W2[1], B2[14] = W2[2], B2[15] = 1, B2;
+};
+var hB = function(B2, K, W2, X2, Y) {
+  var $3 = K[0], Q3 = K[1], Z2 = K[2], H = K[3], J = $3 + $3, O2 = Q3 + Q3, L2 = Z2 + Z2, C3 = $3 * J, V3 = $3 * O2, E2 = $3 * L2, U = Q3 * O2, G = Q3 * L2, I = Z2 * L2, S2 = H * J, k = H * O2, A2 = H * L2, D2 = X2[0], P = X2[1], F = X2[2], j = Y[0], h2 = Y[1], M2 = Y[2], p2 = (1 - (U + I)) * D2, g2 = (V3 + A2) * D2, q = (E2 - k) * D2, T22 = (V3 - A2) * P, f2 = (1 - (C3 + I)) * P, c = (G + S2) * P, i = (E2 + k) * F, Z02 = (G - S2) * F, H0 = (1 - (C3 + U)) * F;
+  return B2[0] = p2, B2[1] = g2, B2[2] = q, B2[3] = 0, B2[4] = T22, B2[5] = f2, B2[6] = c, B2[7] = 0, B2[8] = i, B2[9] = Z02, B2[10] = H0, B2[11] = 0, B2[12] = W2[0] + j - (p2 * j + T22 * h2 + i * M2), B2[13] = W2[1] + h2 - (g2 * j + f2 * h2 + Z02 * M2), B2[14] = W2[2] + M2 - (q * j + c * h2 + H0 * M2), B2[15] = 1, B2;
+};
+var MB = function(B2, K) {
+  var W2 = K[0], X2 = K[1], Y = K[2], $3 = K[3], Q3 = W2 + W2, Z2 = X2 + X2, H = Y + Y, J = W2 * Q3, O2 = X2 * Q3, L2 = X2 * Z2, C3 = Y * Q3, V3 = Y * Z2, E2 = Y * H, U = $3 * Q3, G = $3 * Z2, I = $3 * H;
+  return B2[0] = 1 - L2 - E2, B2[1] = O2 + I, B2[2] = C3 - G, B2[3] = 0, B2[4] = O2 - I, B2[5] = 1 - J - E2, B2[6] = V3 + U, B2[7] = 0, B2[8] = C3 + G, B2[9] = V3 - U, B2[10] = 1 - J - L2, B2[11] = 0, B2[12] = 0, B2[13] = 0, B2[14] = 0, B2[15] = 1, B2;
+};
+var FB = function(B2, K, W2, X2, Y, $3, Q3) {
+  var Z2 = 1 / (W2 - K), H = 1 / (Y - X2), J = 1 / ($3 - Q3);
+  return B2[0] = $3 * 2 * Z2, B2[1] = 0, B2[2] = 0, B2[3] = 0, B2[4] = 0, B2[5] = $3 * 2 * H, B2[6] = 0, B2[7] = 0, B2[8] = (W2 + K) * Z2, B2[9] = (Y + X2) * H, B2[10] = (Q3 + $3) * J, B2[11] = -1, B2[12] = 0, B2[13] = 0, B2[14] = Q3 * $3 * 2 * J, B2[15] = 0, B2;
+};
+var C0 = function(B2, K, W2, X2, Y) {
+  var $3 = 1 / Math.tan(K / 2), Q3;
+  if (B2[0] = $3 / W2, B2[1] = 0, B2[2] = 0, B2[3] = 0, B2[4] = 0, B2[5] = $3, B2[6] = 0, B2[7] = 0, B2[8] = 0, B2[9] = 0, B2[11] = -1, B2[12] = 0, B2[13] = 0, B2[15] = 0, Y != null && Y !== Infinity)
+    Q3 = 1 / (X2 - Y), B2[10] = (Y + X2) * Q3, B2[14] = 2 * Y * X2 * Q3;
+  else
+    B2[10] = -1, B2[14] = -2 * X2;
+  return B2;
+};
+var gB = function(B2, K, W2, X2, Y) {
+  var $3 = 1 / Math.tan(K / 2), Q3;
+  if (B2[0] = $3 / W2, B2[1] = 0, B2[2] = 0, B2[3] = 0, B2[4] = 0, B2[5] = $3, B2[6] = 0, B2[7] = 0, B2[8] = 0, B2[9] = 0, B2[11] = -1, B2[12] = 0, B2[13] = 0, B2[15] = 0, Y != null && Y !== Infinity)
+    Q3 = 1 / (X2 - Y), B2[10] = Y * Q3, B2[14] = Y * X2 * Q3;
+  else
+    B2[10] = -1, B2[14] = -X2;
+  return B2;
+};
+var qB = function(B2, K, W2, X2) {
+  var Y = Math.tan(K.upDegrees * Math.PI / 180), $3 = Math.tan(K.downDegrees * Math.PI / 180), Q3 = Math.tan(K.leftDegrees * Math.PI / 180), Z2 = Math.tan(K.rightDegrees * Math.PI / 180), H = 2 / (Q3 + Z2), J = 2 / (Y + $3);
+  return B2[0] = H, B2[1] = 0, B2[2] = 0, B2[3] = 0, B2[4] = 0, B2[5] = J, B2[6] = 0, B2[7] = 0, B2[8] = -((Q3 - Z2) * H * 0.5), B2[9] = (Y - $3) * J * 0.5, B2[10] = X2 / (W2 - X2), B2[11] = -1, B2[12] = 0, B2[13] = 0, B2[14] = X2 * W2 / (W2 - X2), B2[15] = 0, B2;
+};
+var U0 = function(B2, K, W2, X2, Y, $3, Q3) {
+  var Z2 = 1 / (K - W2), H = 1 / (X2 - Y), J = 1 / ($3 - Q3);
+  return B2[0] = -2 * Z2, B2[1] = 0, B2[2] = 0, B2[3] = 0, B2[4] = 0, B2[5] = -2 * H, B2[6] = 0, B2[7] = 0, B2[8] = 0, B2[9] = 0, B2[10] = 2 * J, B2[11] = 0, B2[12] = (K + W2) * Z2, B2[13] = (Y + X2) * H, B2[14] = (Q3 + $3) * J, B2[15] = 1, B2;
+};
+var fB = function(B2, K, W2, X2, Y, $3, Q3) {
+  var Z2 = 1 / (K - W2), H = 1 / (X2 - Y), J = 1 / ($3 - Q3);
+  return B2[0] = -2 * Z2, B2[1] = 0, B2[2] = 0, B2[3] = 0, B2[4] = 0, B2[5] = -2 * H, B2[6] = 0, B2[7] = 0, B2[8] = 0, B2[9] = 0, B2[10] = J, B2[11] = 0, B2[12] = (K + W2) * Z2, B2[13] = (Y + X2) * H, B2[14] = $3 * J, B2[15] = 1, B2;
+};
+var dB = function(B2, K, W2, X2) {
+  var Y, $3, Q3, Z2, H, J, O2, L2, C3, V3, E2 = K[0], U = K[1], G = K[2], I = X2[0], S2 = X2[1], k = X2[2], A2 = W2[0], D2 = W2[1], P = W2[2];
+  if (Math.abs(E2 - A2) < N2 && Math.abs(U - D2) < N2 && Math.abs(G - P) < N2)
+    return O0(B2);
+  if (O2 = E2 - A2, L2 = U - D2, C3 = G - P, V3 = 1 / Math.hypot(O2, L2, C3), O2 *= V3, L2 *= V3, C3 *= V3, Y = S2 * C3 - k * L2, $3 = k * O2 - I * C3, Q3 = I * L2 - S2 * O2, V3 = Math.hypot(Y, $3, Q3), !V3)
+    Y = 0, $3 = 0, Q3 = 0;
+  else
+    V3 = 1 / V3, Y *= V3, $3 *= V3, Q3 *= V3;
+  if (Z2 = L2 * Q3 - C3 * $3, H = C3 * Y - O2 * Q3, J = O2 * $3 - L2 * Y, V3 = Math.hypot(Z2, H, J), !V3)
+    Z2 = 0, H = 0, J = 0;
+  else
+    V3 = 1 / V3, Z2 *= V3, H *= V3, J *= V3;
+  return B2[0] = Y, B2[1] = Z2, B2[2] = O2, B2[3] = 0, B2[4] = $3, B2[5] = H, B2[6] = L2, B2[7] = 0, B2[8] = Q3, B2[9] = J, B2[10] = C3, B2[11] = 0, B2[12] = -(Y * E2 + $3 * U + Q3 * G), B2[13] = -(Z2 * E2 + H * U + J * G), B2[14] = -(O2 * E2 + L2 * U + C3 * G), B2[15] = 1, B2;
+};
+var vB = function(B2, K, W2, X2) {
+  var Y = K[0], $3 = K[1], Q3 = K[2], Z2 = X2[0], H = X2[1], J = X2[2], O2 = Y - W2[0], L2 = $3 - W2[1], C3 = Q3 - W2[2], V3 = O2 * O2 + L2 * L2 + C3 * C3;
+  if (V3 > 0)
+    V3 = 1 / Math.sqrt(V3), O2 *= V3, L2 *= V3, C3 *= V3;
+  var E2 = H * C3 - J * L2, U = J * O2 - Z2 * C3, G = Z2 * L2 - H * O2;
+  if (V3 = E2 * E2 + U * U + G * G, V3 > 0)
+    V3 = 1 / Math.sqrt(V3), E2 *= V3, U *= V3, G *= V3;
+  return B2[0] = E2, B2[1] = U, B2[2] = G, B2[3] = 0, B2[4] = L2 * G - C3 * U, B2[5] = C3 * E2 - O2 * G, B2[6] = O2 * U - L2 * E2, B2[7] = 0, B2[8] = O2, B2[9] = L2, B2[10] = C3, B2[11] = 0, B2[12] = Y, B2[13] = $3, B2[14] = Q3, B2[15] = 1, B2;
+};
+var nB = function(B2) {
+  return "mat4(" + B2[0] + ", " + B2[1] + ", " + B2[2] + ", " + B2[3] + ", " + B2[4] + ", " + B2[5] + ", " + B2[6] + ", " + B2[7] + ", " + B2[8] + ", " + B2[9] + ", " + B2[10] + ", " + B2[11] + ", " + B2[12] + ", " + B2[13] + ", " + B2[14] + ", " + B2[15] + ")";
+};
+var lB = function(B2) {
+  return Math.hypot(B2[0], B2[1], B2[2], B2[3], B2[4], B2[5], B2[6], B2[7], B2[8], B2[9], B2[10], B2[11], B2[12], B2[13], B2[14], B2[15]);
+};
+var cB = function(B2, K, W2) {
+  return B2[0] = K[0] + W2[0], B2[1] = K[1] + W2[1], B2[2] = K[2] + W2[2], B2[3] = K[3] + W2[3], B2[4] = K[4] + W2[4], B2[5] = K[5] + W2[5], B2[6] = K[6] + W2[6], B2[7] = K[7] + W2[7], B2[8] = K[8] + W2[8], B2[9] = K[9] + W2[9], B2[10] = K[10] + W2[10], B2[11] = K[11] + W2[11], B2[12] = K[12] + W2[12], B2[13] = K[13] + W2[13], B2[14] = K[14] + W2[14], B2[15] = K[15] + W2[15], B2;
+};
+var E0 = function(B2, K, W2) {
+  return B2[0] = K[0] - W2[0], B2[1] = K[1] - W2[1], B2[2] = K[2] - W2[2], B2[3] = K[3] - W2[3], B2[4] = K[4] - W2[4], B2[5] = K[5] - W2[5], B2[6] = K[6] - W2[6], B2[7] = K[7] - W2[7], B2[8] = K[8] - W2[8], B2[9] = K[9] - W2[9], B2[10] = K[10] - W2[10], B2[11] = K[11] - W2[11], B2[12] = K[12] - W2[12], B2[13] = K[13] - W2[13], B2[14] = K[14] - W2[14], B2[15] = K[15] - W2[15], B2;
+};
+var iB = function(B2, K, W2) {
+  return B2[0] = K[0] * W2, B2[1] = K[1] * W2, B2[2] = K[2] * W2, B2[3] = K[3] * W2, B2[4] = K[4] * W2, B2[5] = K[5] * W2, B2[6] = K[6] * W2, B2[7] = K[7] * W2, B2[8] = K[8] * W2, B2[9] = K[9] * W2, B2[10] = K[10] * W2, B2[11] = K[11] * W2, B2[12] = K[12] * W2, B2[13] = K[13] * W2, B2[14] = K[14] * W2, B2[15] = K[15] * W2, B2;
+};
+var yB = function(B2, K, W2, X2) {
+  return B2[0] = K[0] + W2[0] * X2, B2[1] = K[1] + W2[1] * X2, B2[2] = K[2] + W2[2] * X2, B2[3] = K[3] + W2[3] * X2, B2[4] = K[4] + W2[4] * X2, B2[5] = K[5] + W2[5] * X2, B2[6] = K[6] + W2[6] * X2, B2[7] = K[7] + W2[7] * X2, B2[8] = K[8] + W2[8] * X2, B2[9] = K[9] + W2[9] * X2, B2[10] = K[10] + W2[10] * X2, B2[11] = K[11] + W2[11] * X2, B2[12] = K[12] + W2[12] * X2, B2[13] = K[13] + W2[13] * X2, B2[14] = K[14] + W2[14] * X2, B2[15] = K[15] + W2[15] * X2, B2;
+};
+var zB = function(B2, K) {
+  return B2[0] === K[0] && B2[1] === K[1] && B2[2] === K[2] && B2[3] === K[3] && B2[4] === K[4] && B2[5] === K[5] && B2[6] === K[6] && B2[7] === K[7] && B2[8] === K[8] && B2[9] === K[9] && B2[10] === K[10] && B2[11] === K[11] && B2[12] === K[12] && B2[13] === K[13] && B2[14] === K[14] && B2[15] === K[15];
+};
+var rB = function(B2, K) {
+  var W2 = B2[0], X2 = B2[1], Y = B2[2], $3 = B2[3], Q3 = B2[4], Z2 = B2[5], H = B2[6], J = B2[7], O2 = B2[8], L2 = B2[9], C3 = B2[10], V3 = B2[11], E2 = B2[12], U = B2[13], G = B2[14], I = B2[15], S2 = K[0], k = K[1], A2 = K[2], D2 = K[3], P = K[4], F = K[5], j = K[6], h2 = K[7], M2 = K[8], p2 = K[9], g2 = K[10], q = K[11], T22 = K[12], f2 = K[13], c = K[14], i = K[15];
+  return Math.abs(W2 - S2) <= N2 * Math.max(1, Math.abs(W2), Math.abs(S2)) && Math.abs(X2 - k) <= N2 * Math.max(1, Math.abs(X2), Math.abs(k)) && Math.abs(Y - A2) <= N2 * Math.max(1, Math.abs(Y), Math.abs(A2)) && Math.abs($3 - D2) <= N2 * Math.max(1, Math.abs($3), Math.abs(D2)) && Math.abs(Q3 - P) <= N2 * Math.max(1, Math.abs(Q3), Math.abs(P)) && Math.abs(Z2 - F) <= N2 * Math.max(1, Math.abs(Z2), Math.abs(F)) && Math.abs(H - j) <= N2 * Math.max(1, Math.abs(H), Math.abs(j)) && Math.abs(J - h2) <= N2 * Math.max(1, Math.abs(J), Math.abs(h2)) && Math.abs(O2 - M2) <= N2 * Math.max(1, Math.abs(O2), Math.abs(M2)) && Math.abs(L2 - p2) <= N2 * Math.max(1, Math.abs(L2), Math.abs(p2)) && Math.abs(C3 - g2) <= N2 * Math.max(1, Math.abs(C3), Math.abs(g2)) && Math.abs(V3 - q) <= N2 * Math.max(1, Math.abs(V3), Math.abs(q)) && Math.abs(E2 - T22) <= N2 * Math.max(1, Math.abs(E2), Math.abs(T22)) && Math.abs(U - f2) <= N2 * Math.max(1, Math.abs(U), Math.abs(f2)) && Math.abs(G - c) <= N2 * Math.max(1, Math.abs(G), Math.abs(c)) && Math.abs(I - i) <= N2 * Math.max(1, Math.abs(I), Math.abs(i));
+};
+var x3 = function() {
+  var B2 = new R2(3);
+  if (R2 != Float32Array)
+    B2[0] = 0, B2[1] = 0, B2[2] = 0;
+  return B2;
+};
+var xB = function(B2) {
+  var K = new R2(3);
+  return K[0] = B2[0], K[1] = B2[1], K[2] = B2[2], K;
+};
+var I0 = function(B2) {
+  var K = B2[0], W2 = B2[1], X2 = B2[2];
+  return Math.hypot(K, W2, X2);
+};
+var e = function(B2, K, W2) {
+  var X2 = new R2(3);
+  return X2[0] = B2, X2[1] = K, X2[2] = W2, X2;
+};
+var eB = function(B2, K) {
+  return B2[0] = K[0], B2[1] = K[1], B2[2] = K[2], B2;
+};
+var bB = function(B2, K, W2, X2) {
+  return B2[0] = K, B2[1] = W2, B2[2] = X2, B2;
+};
+var uB = function(B2, K, W2) {
+  return B2[0] = K[0] + W2[0], B2[1] = K[1] + W2[1], B2[2] = K[2] + W2[2], B2;
+};
+var D0 = function(B2, K, W2) {
+  return B2[0] = K[0] - W2[0], B2[1] = K[1] - W2[1], B2[2] = K[2] - W2[2], B2;
+};
+var P0 = function(B2, K, W2) {
+  return B2[0] = K[0] * W2[0], B2[1] = K[1] * W2[1], B2[2] = K[2] * W2[2], B2;
+};
+var A0 = function(B2, K, W2) {
+  return B2[0] = K[0] / W2[0], B2[1] = K[1] / W2[1], B2[2] = K[2] / W2[2], B2;
+};
+var oB = function(B2, K) {
+  return B2[0] = Math.ceil(K[0]), B2[1] = Math.ceil(K[1]), B2[2] = Math.ceil(K[2]), B2;
+};
+var tB = function(B2, K) {
+  return B2[0] = Math.floor(K[0]), B2[1] = Math.floor(K[1]), B2[2] = Math.floor(K[2]), B2;
+};
+var aB = function(B2, K, W2) {
+  return B2[0] = Math.min(K[0], W2[0]), B2[1] = Math.min(K[1], W2[1]), B2[2] = Math.min(K[2], W2[2]), B2;
+};
+var BK = function(B2, K, W2) {
+  return B2[0] = Math.max(K[0], W2[0]), B2[1] = Math.max(K[1], W2[1]), B2[2] = Math.max(K[2], W2[2]), B2;
+};
+var KK = function(B2, K) {
+  return B2[0] = Math.round(K[0]), B2[1] = Math.round(K[1]), B2[2] = Math.round(K[2]), B2;
+};
+var WK = function(B2, K, W2) {
+  return B2[0] = K[0] * W2, B2[1] = K[1] * W2, B2[2] = K[2] * W2, B2;
+};
+var XK = function(B2, K, W2, X2) {
+  return B2[0] = K[0] + W2[0] * X2, B2[1] = K[1] + W2[1] * X2, B2[2] = K[2] + W2[2] * X2, B2;
+};
+var k0 = function(B2, K) {
+  var W2 = K[0] - B2[0], X2 = K[1] - B2[1], Y = K[2] - B2[2];
+  return Math.hypot(W2, X2, Y);
+};
+var N0 = function(B2, K) {
+  var W2 = K[0] - B2[0], X2 = K[1] - B2[1], Y = K[2] - B2[2];
+  return W2 * W2 + X2 * X2 + Y * Y;
+};
+var S0 = function(B2) {
+  var K = B2[0], W2 = B2[1], X2 = B2[2];
+  return K * K + W2 * W2 + X2 * X2;
+};
+var YK = function(B2, K) {
+  return B2[0] = -K[0], B2[1] = -K[1], B2[2] = -K[2], B2;
+};
+var $K = function(B2, K) {
+  return B2[0] = 1 / K[0], B2[1] = 1 / K[1], B2[2] = 1 / K[2], B2;
+};
+var B0 = function(B2, K) {
+  var W2 = K[0], X2 = K[1], Y = K[2], $3 = W2 * W2 + X2 * X2 + Y * Y;
+  if ($3 > 0)
+    $3 = 1 / Math.sqrt($3);
+  return B2[0] = K[0] * $3, B2[1] = K[1] * $3, B2[2] = K[2] * $3, B2;
+};
+var b = function(B2, K) {
+  return B2[0] * K[0] + B2[1] * K[1] + B2[2] * K[2];
+};
+var z2 = function(B2, K, W2) {
+  var X2 = K[0], Y = K[1], $3 = K[2], Q3 = W2[0], Z2 = W2[1], H = W2[2];
+  return B2[0] = Y * H - $3 * Z2, B2[1] = $3 * Q3 - X2 * H, B2[2] = X2 * Z2 - Y * Q3, B2;
+};
+var QK = function(B2, K, W2, X2) {
+  var Y = K[0], $3 = K[1], Q3 = K[2];
+  return B2[0] = Y + X2 * (W2[0] - Y), B2[1] = $3 + X2 * (W2[1] - $3), B2[2] = Q3 + X2 * (W2[2] - Q3), B2;
+};
+var ZK = function(B2, K, W2, X2, Y, $3) {
+  var Q3 = $3 * $3, Z2 = Q3 * (2 * $3 - 3) + 1, H = Q3 * ($3 - 2) + $3, J = Q3 * ($3 - 1), O2 = Q3 * (3 - 2 * $3);
+  return B2[0] = K[0] * Z2 + W2[0] * H + X2[0] * J + Y[0] * O2, B2[1] = K[1] * Z2 + W2[1] * H + X2[1] * J + Y[1] * O2, B2[2] = K[2] * Z2 + W2[2] * H + X2[2] * J + Y[2] * O2, B2;
+};
+var HK = function(B2, K, W2, X2, Y, $3) {
+  var Q3 = 1 - $3, Z2 = Q3 * Q3, H = $3 * $3, J = Z2 * Q3, O2 = 3 * $3 * Z2, L2 = 3 * H * Q3, C3 = H * $3;
+  return B2[0] = K[0] * J + W2[0] * O2 + X2[0] * L2 + Y[0] * C3, B2[1] = K[1] * J + W2[1] * O2 + X2[1] * L2 + Y[1] * C3, B2[2] = K[2] * J + W2[2] * O2 + X2[2] * L2 + Y[2] * C3, B2;
+};
+var JK = function(B2, K) {
+  K = K || 1;
+  var W2 = v2() * 2 * Math.PI, X2 = v2() * 2 - 1, Y = Math.sqrt(1 - X2 * X2) * K;
+  return B2[0] = Math.cos(W2) * Y, B2[1] = Math.sin(W2) * Y, B2[2] = X2 * K, B2;
+};
+var OK = function(B2, K, W2) {
+  var X2 = K[0], Y = K[1], $3 = K[2], Q3 = W2[3] * X2 + W2[7] * Y + W2[11] * $3 + W2[15];
+  return Q3 = Q3 || 1, B2[0] = (W2[0] * X2 + W2[4] * Y + W2[8] * $3 + W2[12]) / Q3, B2[1] = (W2[1] * X2 + W2[5] * Y + W2[9] * $3 + W2[13]) / Q3, B2[2] = (W2[2] * X2 + W2[6] * Y + W2[10] * $3 + W2[14]) / Q3, B2;
+};
+var GK = function(B2, K, W2) {
+  var X2 = K[0], Y = K[1], $3 = K[2];
+  return B2[0] = X2 * W2[0] + Y * W2[3] + $3 * W2[6], B2[1] = X2 * W2[1] + Y * W2[4] + $3 * W2[7], B2[2] = X2 * W2[2] + Y * W2[5] + $3 * W2[8], B2;
+};
+var LK = function(B2, K, W2) {
+  var X2 = W2[0], Y = W2[1], $3 = W2[2], Q3 = W2[3], Z2 = K[0], H = K[1], J = K[2], O2 = Y * J - $3 * H, L2 = $3 * Z2 - X2 * J, C3 = X2 * H - Y * Z2, V3 = Y * C3 - $3 * L2, E2 = $3 * O2 - X2 * C3, U = X2 * L2 - Y * O2, G = Q3 * 2;
+  return O2 *= G, L2 *= G, C3 *= G, V3 *= 2, E2 *= 2, U *= 2, B2[0] = Z2 + O2 + V3, B2[1] = H + L2 + E2, B2[2] = J + C3 + U, B2;
+};
+var VK = function(B2, K, W2, X2) {
+  var Y = [], $3 = [];
+  return Y[0] = K[0] - W2[0], Y[1] = K[1] - W2[1], Y[2] = K[2] - W2[2], $3[0] = Y[0], $3[1] = Y[1] * Math.cos(X2) - Y[2] * Math.sin(X2), $3[2] = Y[1] * Math.sin(X2) + Y[2] * Math.cos(X2), B2[0] = $3[0] + W2[0], B2[1] = $3[1] + W2[1], B2[2] = $3[2] + W2[2], B2;
+};
+var CK = function(B2, K, W2, X2) {
+  var Y = [], $3 = [];
+  return Y[0] = K[0] - W2[0], Y[1] = K[1] - W2[1], Y[2] = K[2] - W2[2], $3[0] = Y[2] * Math.sin(X2) + Y[0] * Math.cos(X2), $3[1] = Y[1], $3[2] = Y[2] * Math.cos(X2) - Y[0] * Math.sin(X2), B2[0] = $3[0] + W2[0], B2[1] = $3[1] + W2[1], B2[2] = $3[2] + W2[2], B2;
+};
+var UK = function(B2, K, W2, X2) {
+  var Y = [], $3 = [];
+  return Y[0] = K[0] - W2[0], Y[1] = K[1] - W2[1], Y[2] = K[2] - W2[2], $3[0] = Y[0] * Math.cos(X2) - Y[1] * Math.sin(X2), $3[1] = Y[0] * Math.sin(X2) + Y[1] * Math.cos(X2), $3[2] = Y[2], B2[0] = $3[0] + W2[0], B2[1] = $3[1] + W2[1], B2[2] = $3[2] + W2[2], B2;
+};
+var EK = function(B2, K) {
+  var W2 = B2[0], X2 = B2[1], Y = B2[2], $3 = K[0], Q3 = K[1], Z2 = K[2], H = Math.sqrt(W2 * W2 + X2 * X2 + Y * Y), J = Math.sqrt($3 * $3 + Q3 * Q3 + Z2 * Z2), O2 = H * J, L2 = O2 && b(B2, K) / O2;
+  return Math.acos(Math.min(Math.max(L2, -1), 1));
+};
+var IK = function(B2) {
+  return B2[0] = 0, B2[1] = 0, B2[2] = 0, B2;
+};
+var DK = function(B2) {
+  return "vec3(" + B2[0] + ", " + B2[1] + ", " + B2[2] + ")";
+};
+var PK = function(B2, K) {
+  return B2[0] === K[0] && B2[1] === K[1] && B2[2] === K[2];
+};
+var AK = function(B2, K) {
+  var W2 = B2[0], X2 = B2[1], Y = B2[2], $3 = K[0], Q3 = K[1], Z2 = K[2];
+  return Math.abs(W2 - $3) <= N2 * Math.max(1, Math.abs(W2), Math.abs($3)) && Math.abs(X2 - Q3) <= N2 * Math.max(1, Math.abs(X2), Math.abs(Q3)) && Math.abs(Y - Z2) <= N2 * Math.max(1, Math.abs(Y), Math.abs(Z2));
+};
+var hK = function() {
+  var B2 = new R2(4);
+  if (R2 != Float32Array)
+    B2[0] = 0, B2[1] = 0, B2[2] = 0, B2[3] = 0;
+  return B2;
+};
+var T0 = function(B2) {
+  var K = new R2(4);
+  return K[0] = B2[0], K[1] = B2[1], K[2] = B2[2], K[3] = B2[3], K;
+};
+var _0 = function(B2, K, W2, X2) {
+  var Y = new R2(4);
+  return Y[0] = B2, Y[1] = K, Y[2] = W2, Y[3] = X2, Y;
+};
+var R0 = function(B2, K) {
+  return B2[0] = K[0], B2[1] = K[1], B2[2] = K[2], B2[3] = K[3], B2;
+};
+var j0 = function(B2, K, W2, X2, Y) {
+  return B2[0] = K, B2[1] = W2, B2[2] = X2, B2[3] = Y, B2;
+};
+var h0 = function(B2, K, W2) {
+  return B2[0] = K[0] + W2[0], B2[1] = K[1] + W2[1], B2[2] = K[2] + W2[2], B2[3] = K[3] + W2[3], B2;
+};
+var M0 = function(B2, K, W2) {
+  return B2[0] = K[0] * W2, B2[1] = K[1] * W2, B2[2] = K[2] * W2, B2[3] = K[3] * W2, B2;
+};
+var F0 = function(B2) {
+  var K = B2[0], W2 = B2[1], X2 = B2[2], Y = B2[3];
+  return Math.hypot(K, W2, X2, Y);
+};
+var p0 = function(B2) {
+  var K = B2[0], W2 = B2[1], X2 = B2[2], Y = B2[3];
+  return K * K + W2 * W2 + X2 * X2 + Y * Y;
+};
+var g0 = function(B2, K) {
+  var W2 = K[0], X2 = K[1], Y = K[2], $3 = K[3], Q3 = W2 * W2 + X2 * X2 + Y * Y + $3 * $3;
+  if (Q3 > 0)
+    Q3 = 1 / Math.sqrt(Q3);
+  return B2[0] = W2 * Q3, B2[1] = X2 * Q3, B2[2] = Y * Q3, B2[3] = $3 * Q3, B2;
+};
+var q0 = function(B2, K) {
+  return B2[0] * K[0] + B2[1] * K[1] + B2[2] * K[2] + B2[3] * K[3];
+};
+var w0 = function(B2, K, W2, X2) {
+  var Y = K[0], $3 = K[1], Q3 = K[2], Z2 = K[3];
+  return B2[0] = Y + X2 * (W2[0] - Y), B2[1] = $3 + X2 * (W2[1] - $3), B2[2] = Q3 + X2 * (W2[2] - Q3), B2[3] = Z2 + X2 * (W2[3] - Z2), B2;
+};
+var f0 = function(B2, K) {
+  return B2[0] === K[0] && B2[1] === K[1] && B2[2] === K[2] && B2[3] === K[3];
+};
+var d0 = function(B2, K) {
+  var W2 = B2[0], X2 = B2[1], Y = B2[2], $3 = B2[3], Q3 = K[0], Z2 = K[1], H = K[2], J = K[3];
+  return Math.abs(W2 - Q3) <= N2 * Math.max(1, Math.abs(W2), Math.abs(Q3)) && Math.abs(X2 - Z2) <= N2 * Math.max(1, Math.abs(X2), Math.abs(Z2)) && Math.abs(Y - H) <= N2 * Math.max(1, Math.abs(Y), Math.abs(H)) && Math.abs($3 - J) <= N2 * Math.max(1, Math.abs($3), Math.abs(J));
+};
+var W0 = function() {
+  var B2 = new R2(4);
+  if (R2 != Float32Array)
+    B2[0] = 0, B2[1] = 0, B2[2] = 0;
+  return B2[3] = 1, B2;
+};
+var FK = function(B2) {
+  return B2[0] = 0, B2[1] = 0, B2[2] = 0, B2[3] = 1, B2;
+};
+var v0 = function(B2, K, W2) {
+  W2 = W2 * 0.5;
+  var X2 = Math.sin(W2);
+  return B2[0] = X2 * K[0], B2[1] = X2 * K[1], B2[2] = X2 * K[2], B2[3] = Math.cos(W2), B2;
+};
+var pK = function(B2, K) {
+  var W2 = Math.acos(K[3]) * 2, X2 = Math.sin(W2 / 2);
+  if (X2 > N2)
+    B2[0] = K[0] / X2, B2[1] = K[1] / X2, B2[2] = K[2] / X2;
+  else
+    B2[0] = 1, B2[1] = 0, B2[2] = 0;
+  return W2;
+};
+var gK = function(B2, K) {
+  var W2 = z0(B2, K);
+  return Math.acos(2 * W2 * W2 - 1);
+};
+var n0 = function(B2, K, W2) {
+  var X2 = K[0], Y = K[1], $3 = K[2], Q3 = K[3], Z2 = W2[0], H = W2[1], J = W2[2], O2 = W2[3];
+  return B2[0] = X2 * O2 + Q3 * Z2 + Y * J - $3 * H, B2[1] = Y * O2 + Q3 * H + $3 * Z2 - X2 * J, B2[2] = $3 * O2 + Q3 * J + X2 * H - Y * Z2, B2[3] = Q3 * O2 - X2 * Z2 - Y * H - $3 * J, B2;
+};
+var qK = function(B2, K, W2) {
+  W2 *= 0.5;
+  var X2 = K[0], Y = K[1], $3 = K[2], Q3 = K[3], Z2 = Math.sin(W2), H = Math.cos(W2);
+  return B2[0] = X2 * H + Q3 * Z2, B2[1] = Y * H + $3 * Z2, B2[2] = $3 * H - Y * Z2, B2[3] = Q3 * H - X2 * Z2, B2;
+};
+var wK = function(B2, K, W2) {
+  W2 *= 0.5;
+  var X2 = K[0], Y = K[1], $3 = K[2], Q3 = K[3], Z2 = Math.sin(W2), H = Math.cos(W2);
+  return B2[0] = X2 * H - $3 * Z2, B2[1] = Y * H + Q3 * Z2, B2[2] = $3 * H + X2 * Z2, B2[3] = Q3 * H - Y * Z2, B2;
+};
+var fK = function(B2, K, W2) {
+  W2 *= 0.5;
+  var X2 = K[0], Y = K[1], $3 = K[2], Q3 = K[3], Z2 = Math.sin(W2), H = Math.cos(W2);
+  return B2[0] = X2 * H + Y * Z2, B2[1] = Y * H - X2 * Z2, B2[2] = $3 * H + Q3 * Z2, B2[3] = Q3 * H - $3 * Z2, B2;
+};
+var dK = function(B2, K) {
+  var W2 = K[0], X2 = K[1], Y = K[2];
+  return B2[0] = W2, B2[1] = X2, B2[2] = Y, B2[3] = Math.sqrt(Math.abs(1 - W2 * W2 - X2 * X2 - Y * Y)), B2;
+};
+var l0 = function(B2, K) {
+  var W2 = K[0], X2 = K[1], Y = K[2], $3 = K[3], Q3 = Math.sqrt(W2 * W2 + X2 * X2 + Y * Y), Z2 = Math.exp($3), H = Q3 > 0 ? Z2 * Math.sin(Q3) / Q3 : 0;
+  return B2[0] = W2 * H, B2[1] = X2 * H, B2[2] = Y * H, B2[3] = Z2 * Math.cos(Q3), B2;
+};
+var c0 = function(B2, K) {
+  var W2 = K[0], X2 = K[1], Y = K[2], $3 = K[3], Q3 = Math.sqrt(W2 * W2 + X2 * X2 + Y * Y), Z2 = Q3 > 0 ? Math.atan2(Q3, $3) / Q3 : 0;
+  return B2[0] = W2 * Z2, B2[1] = X2 * Z2, B2[2] = Y * Z2, B2[3] = 0.5 * Math.log(W2 * W2 + X2 * X2 + Y * Y + $3 * $3), B2;
+};
+var vK = function(B2, K, W2) {
+  return c0(B2, K), y0(B2, B2, W2), l0(B2, B2), B2;
+};
+var u2 = function(B2, K, W2, X2) {
+  var Y = K[0], $3 = K[1], Q3 = K[2], Z2 = K[3], H = W2[0], J = W2[1], O2 = W2[2], L2 = W2[3], C3, V3, E2, U, G;
+  if (V3 = Y * H + $3 * J + Q3 * O2 + Z2 * L2, V3 < 0)
+    V3 = -V3, H = -H, J = -J, O2 = -O2, L2 = -L2;
+  if (1 - V3 > N2)
+    C3 = Math.acos(V3), E2 = Math.sin(C3), U = Math.sin((1 - X2) * C3) / E2, G = Math.sin(X2 * C3) / E2;
+  else
+    U = 1 - X2, G = X2;
+  return B2[0] = U * Y + G * H, B2[1] = U * $3 + G * J, B2[2] = U * Q3 + G * O2, B2[3] = U * Z2 + G * L2, B2;
+};
+var nK = function(B2) {
+  var K = v2(), W2 = v2(), X2 = v2(), Y = Math.sqrt(1 - K), $3 = Math.sqrt(K);
+  return B2[0] = Y * Math.sin(2 * Math.PI * W2), B2[1] = Y * Math.cos(2 * Math.PI * W2), B2[2] = $3 * Math.sin(2 * Math.PI * X2), B2[3] = $3 * Math.cos(2 * Math.PI * X2), B2;
+};
+var lK = function(B2, K) {
+  var W2 = K[0], X2 = K[1], Y = K[2], $3 = K[3], Q3 = W2 * W2 + X2 * X2 + Y * Y + $3 * $3, Z2 = Q3 ? 1 / Q3 : 0;
+  return B2[0] = -W2 * Z2, B2[1] = -X2 * Z2, B2[2] = -Y * Z2, B2[3] = $3 * Z2, B2;
+};
+var cK = function(B2, K) {
+  return B2[0] = -K[0], B2[1] = -K[1], B2[2] = -K[2], B2[3] = K[3], B2;
+};
+var i0 = function(B2, K) {
+  var W2 = K[0] + K[4] + K[8], X2;
+  if (W2 > 0)
+    X2 = Math.sqrt(W2 + 1), B2[3] = 0.5 * X2, X2 = 0.5 / X2, B2[0] = (K[5] - K[7]) * X2, B2[1] = (K[6] - K[2]) * X2, B2[2] = (K[1] - K[3]) * X2;
+  else {
+    var Y = 0;
+    if (K[4] > K[0])
+      Y = 1;
+    if (K[8] > K[Y * 3 + Y])
+      Y = 2;
+    var $3 = (Y + 1) % 3, Q3 = (Y + 2) % 3;
+    X2 = Math.sqrt(K[Y * 3 + Y] - K[$3 * 3 + $3] - K[Q3 * 3 + Q3] + 1), B2[Y] = 0.5 * X2, X2 = 0.5 / X2, B2[3] = (K[$3 * 3 + Q3] - K[Q3 * 3 + $3]) * X2, B2[$3] = (K[$3 * 3 + Y] + K[Y * 3 + $3]) * X2, B2[Q3] = (K[Q3 * 3 + Y] + K[Y * 3 + Q3]) * X2;
+  }
+  return B2;
+};
+var iK = function(B2, K, W2, X2) {
+  var Y = 0.5 * Math.PI / 180;
+  K *= Y, W2 *= Y, X2 *= Y;
+  var $3 = Math.sin(K), Q3 = Math.cos(K), Z2 = Math.sin(W2), H = Math.cos(W2), J = Math.sin(X2), O2 = Math.cos(X2);
+  return B2[0] = $3 * H * O2 - Q3 * Z2 * J, B2[1] = Q3 * Z2 * O2 + $3 * H * J, B2[2] = Q3 * H * J - $3 * Z2 * O2, B2[3] = Q3 * H * O2 + $3 * Z2 * J, B2;
+};
+var yK = function(B2) {
+  return "quat(" + B2[0] + ", " + B2[1] + ", " + B2[2] + ", " + B2[3] + ")";
+};
+var $W = function(B2) {
+  return o0((K, W2) => K.setYRotation(W2), B2);
+};
+var QW = function(B2) {
+  return o0((K, W2) => K.setXRotation(W2), B2);
+};
+var t = function(B2, K, W2, X2) {
+  return X2[0] = B2, X2[1] = K, X2[2] = W2, X2;
+};
+var Q0 = function(B2, K) {
+  const W2 = B2.getMatrix();
+  K[0] = W2[12], K[1] = W2[13], K[2] = W2[14];
+};
+var BB = Object.defineProperty;
+var a = (B2, K) => {
+  for (var W2 in K)
+    BB(B2, W2, { get: K[W2], enumerable: true, configurable: true, set: (X2) => K[W2] = () => X2 });
+};
+var N2 = 0.000001;
+var R2 = typeof Float32Array !== "undefined" ? Float32Array : Array;
+var v2 = Math.random;
+var GW = Math.PI / 180;
+if (!Math.hypot)
+  Math.hypot = function() {
+    var B2 = 0, K = arguments.length;
+    while (K--)
+      B2 += arguments[K] * arguments[K];
+    return Math.sqrt(B2);
+  };
+var _2 = {};
+a(_2, { transpose: () => {
+  {
+    return HB;
+  }
+}, translate: () => {
+  {
+    return LB;
+  }
+}, targetTo: () => {
+  {
+    return vB;
+  }
+}, subtract: () => {
+  {
+    return E0;
+  }
+}, sub: () => {
+  {
+    return mB;
+  }
+}, str: () => {
+  {
+    return nB;
+  }
+}, set: () => {
+  {
+    return ZB;
+  }
+}, scale: () => {
+  {
+    return VB;
+  }
+}, rotateZ: () => {
+  {
+    return IB;
+  }
+}, rotateY: () => {
+  {
+    return EB;
+  }
+}, rotateX: () => {
+  {
+    return UB;
+  }
+}, rotate: () => {
+  {
+    return CB;
+  }
+}, perspectiveZO: () => {
+  {
+    return gB;
+  }
+}, perspectiveNO: () => {
+  {
+    return C0;
+  }
+}, perspectiveFromFieldOfView: () => {
+  {
+    return qB;
+  }
+}, perspective: () => {
+  {
+    return pB;
+  }
+}, orthoZO: () => {
+  {
+    return fB;
+  }
+}, orthoNO: () => {
+  {
+    return U0;
+  }
+}, ortho: () => {
+  {
+    return wB;
+  }
+}, multiplyScalarAndAdd: () => {
+  {
+    return yB;
+  }
+}, multiplyScalar: () => {
+  {
+    return iB;
+  }
+}, multiply: () => {
+  {
+    return G0;
+  }
+}, mul: () => {
+  {
+    return sB;
+  }
+}, lookAt: () => {
+  {
+    return dB;
+  }
+}, invert: () => {
+  {
+    return JB;
+  }
+}, identity: () => {
+  {
+    return O0;
+  }
+}, getTranslation: () => {
+  {
+    return _B;
+  }
+}, getScaling: () => {
+  {
+    return V0;
+  }
+}, getRotation: () => {
+  {
+    return RB;
+  }
+}, frustum: () => {
+  {
+    return FB;
+  }
+}, fromZRotation: () => {
+  {
+    return SB;
+  }
+}, fromYRotation: () => {
+  {
+    return NB;
+  }
+}, fromXRotation: () => {
+  {
+    return kB;
+  }
+}, fromValues: () => {
+  {
+    return QB;
+  }
+}, fromTranslation: () => {
+  {
+    return DB;
+  }
+}, fromScaling: () => {
+  {
+    return PB;
+  }
+}, fromRotationTranslationScaleOrigin: () => {
+  {
+    return hB;
+  }
+}, fromRotationTranslationScale: () => {
+  {
+    return jB;
+  }
+}, fromRotationTranslation: () => {
+  {
+    return L0;
+  }
+}, fromRotation: () => {
+  {
+    return AB;
+  }
+}, fromQuat2: () => {
+  {
+    return TB;
+  }
+}, fromQuat: () => {
+  {
+    return MB;
+  }
+}, frob: () => {
+  {
+    return lB;
+  }
+}, exactEquals: () => {
+  {
+    return zB;
+  }
+}, equals: () => {
+  {
+    return rB;
+  }
+}, determinant: () => {
+  {
+    return GB;
+  }
+}, create: () => {
+  {
+    return XB;
+  }
+}, copy: () => {
+  {
+    return $B;
+  }
+}, clone: () => {
+  {
+    return YB;
+  }
+}, adjoint: () => {
+  {
+    return OB;
+  }
+}, add: () => {
+  {
+    return cB;
+  }
+} });
+var pB = C0;
+var wB = U0;
+var sB = G0;
+var mB = E0;
+var s = {};
+a(s, { str: () => {
+  {
+    return yK;
+  }
+}, squaredLength: () => {
+  {
+    return s0;
+  }
+}, sqrLen: () => {
+  {
+    return oK;
+  }
+}, sqlerp: () => {
+  {
+    return KW;
+  }
+}, slerp: () => {
+  {
+    return u2;
+  }
+}, setAxisAngle: () => {
+  {
+    return v0;
+  }
+}, setAxes: () => {
+  {
+    return WW;
+  }
+}, set: () => {
+  {
+    return mK;
+  }
+}, scale: () => {
+  {
+    return y0;
+  }
+}, rotationTo: () => {
+  {
+    return BW;
+  }
+}, rotateZ: () => {
+  {
+    return fK;
+  }
+}, rotateY: () => {
+  {
+    return wK;
+  }
+}, rotateX: () => {
+  {
+    return qK;
+  }
+}, random: () => {
+  {
+    return nK;
+  }
+}, pow: () => {
+  {
+    return vK;
+  }
+}, normalize: () => {
+  {
+    return X0;
+  }
+}, multiply: () => {
+  {
+    return n0;
+  }
+}, mul: () => {
+  {
+    return eK;
+  }
+}, ln: () => {
+  {
+    return c0;
+  }
+}, lerp: () => {
+  {
+    return bK;
+  }
+}, length: () => {
+  {
+    return r0;
+  }
+}, len: () => {
+  {
+    return uK;
+  }
+}, invert: () => {
+  {
+    return lK;
+  }
+}, identity: () => {
+  {
+    return FK;
+  }
+}, getAxisAngle: () => {
+  {
+    return pK;
+  }
+}, getAngle: () => {
+  {
+    return gK;
+  }
+}, fromValues: () => {
+  {
+    return rK;
+  }
+}, fromMat3: () => {
+  {
+    return i0;
+  }
+}, fromEuler: () => {
+  {
+    return iK;
+  }
+}, exp: () => {
+  {
+    return l0;
+  }
+}, exactEquals: () => {
+  {
+    return tK;
+  }
+}, equals: () => {
+  {
+    return aK;
+  }
+}, dot: () => {
+  {
+    return z0;
+  }
+}, create: () => {
+  {
+    return W0;
+  }
+}, copy: () => {
+  {
+    return sK;
+  }
+}, conjugate: () => {
+  {
+    return cK;
+  }
+}, clone: () => {
+  {
+    return zK;
+  }
+}, calculateW: () => {
+  {
+    return dK;
+  }
+}, add: () => {
+  {
+    return xK;
+  }
+} });
+var r = {};
+a(r, { zero: () => {
+  {
+    return IK;
+  }
+}, transformQuat: () => {
+  {
+    return LK;
+  }
+}, transformMat4: () => {
+  {
+    return OK;
+  }
+}, transformMat3: () => {
+  {
+    return GK;
+  }
+}, subtract: () => {
+  {
+    return D0;
+  }
+}, sub: () => {
+  {
+    return kK;
+  }
+}, str: () => {
+  {
+    return DK;
+  }
+}, squaredLength: () => {
+  {
+    return S0;
+  }
+}, squaredDistance: () => {
+  {
+    return N0;
+  }
+}, sqrLen: () => {
+  {
+    return RK;
+  }
+}, sqrDist: () => {
+  {
+    return _K;
+  }
+}, set: () => {
+  {
+    return bB;
+  }
+}, scaleAndAdd: () => {
+  {
+    return XK;
+  }
+}, scale: () => {
+  {
+    return WK;
+  }
+}, round: () => {
+  {
+    return KK;
+  }
+}, rotateZ: () => {
+  {
+    return UK;
+  }
+}, rotateY: () => {
+  {
+    return CK;
+  }
+}, rotateX: () => {
+  {
+    return VK;
+  }
+}, random: () => {
+  {
+    return JK;
+  }
+}, normalize: () => {
+  {
+    return B0;
+  }
+}, negate: () => {
+  {
+    return YK;
+  }
+}, multiply: () => {
+  {
+    return P0;
+  }
+}, mul: () => {
+  {
+    return NK;
+  }
+}, min: () => {
+  {
+    return aB;
+  }
+}, max: () => {
+  {
+    return BK;
+  }
+}, lerp: () => {
+  {
+    return QK;
+  }
+}, length: () => {
+  {
+    return I0;
+  }
+}, len: () => {
+  {
+    return K0;
+  }
+}, inverse: () => {
+  {
+    return $K;
+  }
+}, hermite: () => {
+  {
+    return ZK;
+  }
+}, fromValues: () => {
+  {
+    return e;
+  }
+}, forEach: () => {
+  {
+    return jK;
+  }
+}, floor: () => {
+  {
+    return tB;
+  }
+}, exactEquals: () => {
+  {
+    return PK;
+  }
+}, equals: () => {
+  {
+    return AK;
+  }
+}, dot: () => {
+  {
+    return b;
+  }
+}, divide: () => {
+  {
+    return A0;
+  }
+}, div: () => {
+  {
+    return SK;
+  }
+}, distance: () => {
+  {
+    return k0;
+  }
+}, dist: () => {
+  {
+    return TK;
+  }
+}, cross: () => {
+  {
+    return z2;
+  }
+}, create: () => {
+  {
+    return x3;
+  }
+}, copy: () => {
+  {
+    return eB;
+  }
+}, clone: () => {
+  {
+    return xB;
+  }
+}, ceil: () => {
+  {
+    return oB;
+  }
+}, bezier: () => {
+  {
+    return HK;
+  }
+}, angle: () => {
+  {
+    return EK;
+  }
+}, add: () => {
+  {
+    return uB;
+  }
+} });
+var kK = D0;
+var NK = P0;
+var SK = A0;
+var TK = k0;
+var _K = N0;
+var K0 = I0;
+var RK = S0;
+var jK = function() {
+  var B2 = x3();
+  return function(K, W2, X2, Y, $3, Q3) {
+    var Z2, H;
+    if (!W2)
+      W2 = 3;
+    if (!X2)
+      X2 = 0;
+    if (Y)
+      H = Math.min(Y * W2 + X2, K.length);
+    else
+      H = K.length;
+    for (Z2 = X2;Z2 < H; Z2 += W2)
+      B2[0] = K[Z2], B2[1] = K[Z2 + 1], B2[2] = K[Z2 + 2], $3(B2, B2, Q3), K[Z2] = B2[0], K[Z2 + 1] = B2[1], K[Z2 + 2] = B2[2];
+    return K;
+  };
+}();
+var LW = function() {
+  var B2 = hK();
+  return function(K, W2, X2, Y, $3, Q3) {
+    var Z2, H;
+    if (!W2)
+      W2 = 4;
+    if (!X2)
+      X2 = 0;
+    if (Y)
+      H = Math.min(Y * W2 + X2, K.length);
+    else
+      H = K.length;
+    for (Z2 = X2;Z2 < H; Z2 += W2)
+      B2[0] = K[Z2], B2[1] = K[Z2 + 1], B2[2] = K[Z2 + 2], B2[3] = K[Z2 + 3], $3(B2, B2, Q3), K[Z2] = B2[0], K[Z2 + 1] = B2[1], K[Z2 + 2] = B2[2], K[Z2 + 3] = B2[3];
+    return K;
+  };
+}();
+var zK = T0;
+var rK = _0;
+var sK = R0;
+var mK = j0;
+var xK = h0;
+var eK = n0;
+var y0 = M0;
+var z0 = q0;
+var bK = w0;
+var r0 = F0;
+var uK = r0;
+var s0 = p0;
+var oK = s0;
+var X0 = g0;
+var tK = f0;
+var aK = d0;
+var BW = function() {
+  var B2 = x3(), K = e(1, 0, 0), W2 = e(0, 1, 0);
+  return function(X2, Y, $3) {
+    var Q3 = b(Y, $3);
+    if (Q3 < -0.999999) {
+      if (z2(B2, K, Y), K0(B2) < 0.000001)
+        z2(B2, W2, Y);
+      return B0(B2, B2), v0(X2, B2, Math.PI), X2;
+    } else if (Q3 > 0.999999)
+      return X2[0] = 0, X2[1] = 0, X2[2] = 0, X2[3] = 1, X2;
+    else
+      return z2(B2, Y, $3), X2[0] = B2[0], X2[1] = B2[1], X2[2] = B2[2], X2[3] = 1 + Q3, X0(X2, X2);
+  };
+}();
+var KW = function() {
+  var B2 = W0(), K = W0();
+  return function(W2, X2, Y, $3, Q3, Z2) {
+    return u2(B2, X2, Q3, Z2), u2(K, Y, $3, Z2), u2(W2, B2, K, 2 * Z2 * (1 - Z2)), W2;
+  };
+}();
+var WW = function() {
+  var B2 = J0();
+  return function(K, W2, X2, Y) {
+    return B2[0] = X2[0], B2[3] = X2[1], B2[6] = X2[2], B2[1] = Y[0], B2[4] = Y[1], B2[7] = Y[2], B2[2] = -W2[0], B2[5] = -W2[1], B2[8] = -W2[2], X0(K, i0(K, B2));
+  };
+}();
+
+class n2 {
+  d;
+  listeners = new Set;
+  constructor(B2) {
+    this.elem = B2;
+  }
+  addChangeListener(B2) {
+    return this.listeners.add(B2), this;
+  }
+  removeChangeListener(B2) {
+    this.listeners.delete(B2);
+  }
+  onChange() {
+    for (let B2 of this.listeners)
+      B2.onChange(this.elem);
+  }
+}
+var XW = Math.PI / 90;
+var Y0 = [0, 0, 0];
+var m0 = _2.create();
+var x0 = _2.create();
+var o = s.create();
+
+class m {
+  static HIDDEN = m.create().scale(0, 0, 0);
+  static IDENTITY = m.create();
+  #B = Float32Array.from(_2.create());
+  #K = new n2(this);
+  constructor() {
+    this.identity();
+  }
+  addChangeListener(B2) {
+    return this.#K.addChangeListener(B2), this;
+  }
+  removeChangeListener(B2) {
+    this.#K.removeChangeListener(B2);
+  }
+  static create() {
+    return new m;
+  }
+  copy(B2) {
+    return _2.copy(this.#B, B2.getMatrix()), this.#K.onChange(), this;
+  }
+  identity() {
+    return _2.identity(this.#B), this.#K.onChange(), this;
+  }
+  invert(B2) {
+    return _2.invert(this.#B, B2?.getMatrix() ?? this.getMatrix()), this.#K.onChange(), this;
+  }
+  multiply(B2) {
+    return _2.multiply(this.#B, this.#B, B2.getMatrix()), this.#K.onChange(), this;
+  }
+  multiply2(B2, K) {
+    return _2.multiply(this.#B, B2.getMatrix(), K.getMatrix()), this.#K.onChange(), this;
+  }
+  multiply3(B2, K, W2) {
+    return this.multiply2(B2, K), this.multiply(W2), this;
+  }
+  translate(B2, K, W2) {
+    const X2 = Y0;
+    return X2[0] = B2, X2[1] = K, X2[2] = W2, this.move(X2);
+  }
+  move(B2) {
+    return _2.translate(this.#B, this.#B, B2), this.#K.onChange(), this;
+  }
+  rotateX(B2) {
+    return _2.rotateX(this.#B, this.#B, B2), this.#K.onChange(), this;
+  }
+  rotateY(B2) {
+    return _2.rotateY(this.#B, this.#B, B2), this.#K.onChange(), this;
+  }
+  rotateZ(B2) {
+    return _2.rotateZ(this.#B, this.#B, B2), this.#K.onChange(), this;
+  }
+  setXRotation(B2) {
+    return _2.fromXRotation(this.getMatrix(), B2), this.#K.onChange(), this;
+  }
+  setYRotation(B2) {
+    return _2.fromYRotation(this.getMatrix(), B2), this.#K.onChange(), this;
+  }
+  scale(B2, K, W2) {
+    return _2.scale(this.#B, this.#B, [B2, K ?? B2, W2 ?? B2]), this.#K.onChange(), this;
+  }
+  perspective(B2, K, W2, X2) {
+    return _2.perspective(this.#B, B2 * XW, K, W2, X2), this.#K.onChange(), this;
+  }
+  ortho(B2, K, W2, X2, Y, $3) {
+    return _2.ortho(this.#B, B2, K, W2, X2, Y, $3), this.#K.onChange(), this;
+  }
+  combine(B2, K, W2 = 0.5) {
+    return _2.multiplyScalar(m0, B2.getMatrix(), 1 - W2), _2.multiplyScalar(x0, K.getMatrix(), W2), _2.add(this.#B, m0, x0), this.#K.onChange(), this;
+  }
+  static getMoveVector(B2, K, W2, X2) {
+    const Y = Y0;
+    if (Y[0] = B2, Y[1] = K, Y[2] = W2, X2)
+      _2.getRotation(o, X2.getMatrix()), s.invert(o, o), r.transformQuat(Y, Y, o);
+    return Y;
+  }
+  getPosition() {
+    const B2 = Y0;
+    return B2[0] = this.#B[12], B2[1] = this.#B[13], B2[2] = this.#B[14], B2;
+  }
+  setVector(B2) {
+    return this.setPosition(B2[0], B2[1], B2[2]);
+  }
+  setPosition(B2, K, W2) {
+    return this.#B[12] = B2, this.#B[13] = K, this.#B[14] = W2, this.#K.onChange(), this;
+  }
+  getMatrix() {
+    return this.#B;
+  }
+}
+var d = m;
+
+class e0 {
+  q;
+  w;
+  #B;
+  #K = false;
+  #W = 0;
+  #X;
+  #Y;
+  constructor(B2, K, W2) {
+    this.getValue = K, this.apply = W2, this.#X = B2, this.#B = this.getValue(B2);
+  }
+  set element(B2) {
+    this.#X = B2, this.#B = this.getValue(B2), this.#Y = undefined;
+  }
+  setGoal(B2, K, W2) {
+    if (this.#Y && this.#Y !== W2)
+      return;
+    if (this.#B !== B2 || this.#W !== K)
+      this.#W = K, this.#B = B2, this.#Y = W2, this.#K = true;
+  }
+  get goal() {
+    return this.#B;
+  }
+  update(B2) {
+    if (this.#K) {
+      const K = this.getValue(this.#X), W2 = this.goal - K, X2 = Math.min(Math.abs(W2), this.#W * B2);
+      if (X2 <= 0.01)
+        this.apply(this.#X, this.goal), this.#K = false, this.#Y?.onRelease?.(), this.#Y = undefined;
+      else
+        this.apply(this.#X, K + X2 * Math.sign(W2));
+    }
+    return this.#K;
+  }
+}
+
+class b0 {
+  i;
+  f;
+  warningLimit = 50000;
+  #B = new Set;
+  #K = [];
+  constructor(B2, K) {
+    this.initCall = B2, this.onRecycle = K;
+  }
+  create(...B2) {
+    const K = this.#K.pop();
+    if (K)
+      return this.#B.add(K), this.initCall(K, ...B2);
+    const W2 = this.initCall(undefined, ...B2);
+    return this.#B.add(W2), this.#X(), W2;
+  }
+  recycle(B2) {
+    this.#B.delete(B2), this.#W(B2);
+  }
+  recycleAll() {
+    for (let B2 of this.#B)
+      this.#W(B2);
+    this.#B.clear();
+  }
+  clear() {
+    this.#K.length = 0, this.#B.clear();
+  }
+  countObjectsInExistence() {
+    return this.#B.size + this.#K.length;
+  }
+  #W(B2) {
+    this.#K.push(B2), this.onRecycle?.(B2);
+  }
+  #X() {
+    if (this.countObjectsInExistence() === this.warningLimit)
+      console.warn("ObjectPool already created", this.#B.size + this.#K.length, "in", this.constructor.name);
+  }
+}
+
+class u0 extends b0 {
+  constructor() {
+    super((B2, K) => {
+      if (!B2)
+        return new e0(K, (W2) => W2.valueOf(), (W2, X2) => W2.setValue(X2));
+      return B2.element = K, B2;
+    });
+  }
+}
+var YW = new u0;
+
+class l2 {
+  q;
+  w;
+  #B = 0;
+  #K;
+  constructor(B2 = 0, K, W2 = YW) {
+    this.onChange = K, this.pool = W2, this.#B = B2;
+  }
+  valueOf() {
+    return this.#B;
+  }
+  setValue(B2) {
+    if (B2 !== this.#B)
+      this.#B = B2, this.onChange?.(this.#B);
+    return this;
+  }
+  addValue(B2) {
+    return this.setValue(this.#B + B2), this;
+  }
+  update(B2) {
+    if (this.#K) {
+      const K = !!this.#K.update(B2);
+      if (!K)
+        this.pool.recycle(this.#K), this.#K = undefined;
+      return K;
+    }
+    return false;
+  }
+  refresh({ deltaTime: B2, stopUpdate: K }) {
+    if (!this.update(B2))
+      K();
+  }
+  progressTowards(B2, K, W2, X2) {
+    if (!this.#K)
+      this.#K = this.pool.create(this);
+    if (this.#K.setGoal(B2, K, W2), X2)
+      X2.loop(this, undefined);
+  }
+  get goal() {
+    return this.#K?.goal ?? this.valueOf();
+  }
+}
+var o0 = function(B2, K) {
+  const W2 = d.create(), X2 = new Set;
+  if (K)
+    X2.add({ onChange: K });
+  const Y = { angle: new l2(0, ($3) => {
+    B2(W2, $3);
+    for (let Q3 of X2)
+      Q3.onChange(Y);
+  }), getMatrix() {
+    return W2.getMatrix();
+  }, addChangeListener($3) {
+    return X2.add($3), this;
+  }, removeChangeListener($3) {
+    X2.delete($3);
+  } };
+  return Y;
+};
+var w;
+(function(X2) {
+  X2[X2["AT_POSITION"] = 0] = "AT_POSITION";
+  X2[X2["MOVED"] = 1] = "MOVED";
+  X2[X2["BLOCKED"] = 2] = "BLOCKED";
+})(w || (w = {}));
+var $0 = function(B2, K) {
+  if (B2) {
+    const W2 = B2.length.valueOf();
+    for (let X2 = 0;X2 < W2; X2++) {
+      const Y = B2.at(X2);
+      if (Y !== undefined && K(Y, X2))
+        return true;
+    }
+  }
+  return false;
+};
+
+class t0 {
+  #B = d.create().setPosition(0, 0, 0);
+  #K = [0, 0, 0];
+  #W = new n2(this);
+  position = [0, 0, 0];
+  blockers;
+  constructor({ blockers: B2 } = {}) {
+    this.blockers = B2, this.#B.addChangeListener({ onChange: () => {
+      Q0(this.#B, this.position), this.#W.onChange();
+    } });
+  }
+  addChangeListener(B2) {
+    return this.#W.addChangeListener(B2), this;
+  }
+  removeChangeListener(B2) {
+    this.#W.removeChangeListener(B2);
+  }
+  moveBy(B2, K, W2, X2) {
+    const Y = d.getMoveVector(B2, K, W2, X2), $3 = $0(this.blockers, (Q3) => Q3.isBlocked(t(this.position[0] + Y[0], this.position[1] + Y[1], this.position[2] + Y[2], this.#K), this.position));
+    if (!$3)
+      if (Y[0] || Y[1] || Y[2])
+        this.#B.move(Y);
+      else
+        return w.AT_POSITION;
+    return $3 ? w.BLOCKED : w.MOVED;
+  }
+  moveTo(B2, K, W2) {
+    if (this.position[0] === B2 && this.position[1] === K && this.position[2] === W2)
+      return w.AT_POSITION;
+    const X2 = $0(this.blockers, (Y) => Y.isBlocked(t(B2, K, W2, this.#K), this.position));
+    if (!X2) {
+      const [Y, $3, Q3] = this.#B.getPosition();
+      if (Y !== B2 || $3 !== K || Q3 !== W2)
+        this.#B.setPosition(B2, K, W2);
+    }
+    return X2 ? w.BLOCKED : w.MOVED;
+  }
+  movedTo(B2, K, W2) {
+    return this.moveTo(B2, K, W2), this;
+  }
+  moveTowards(B2, K, W2, X2 = 0.1) {
+    const Y = this.position, $3 = B2 - Y[0], Q3 = K - Y[1], Z2 = W2 - Y[2], H = Math.sqrt($3 * $3 + Q3 * Q3 + Z2 * Z2);
+    if (H > 0.01) {
+      const J = Math.min(H, X2) / H;
+      return this.moveBy($3 * J, Q3 * J, Z2 * J);
+    } else
+      return this.moveTo(B2, K, W2);
+  }
+  attemptMoveTowards(B2, K, W2, X2 = 0.1) {
+    let Y = this.moveTowards(B2, K, W2, X2);
+    if (Y === w.BLOCKED && B2 !== this.position[0])
+      Y = this.moveTowards(B2, this.position[1], this.position[2], X2);
+    if (Y === w.BLOCKED && K !== this.position[1])
+      Y = this.moveTowards(this.position[0], K, this.position[2], X2);
+    if (Y === w.BLOCKED && W2)
+      Y = this.moveTowards(this.position[0], this.position[1], W2, X2);
+    return Y;
+  }
+  getMatrix() {
+    return this.#B.getMatrix();
+  }
+}
+var ZW = 1;
+var HW = 1;
+
+class a0 {
+  #B = d.create();
+  #K = d.create();
+  #W = d.create();
+  #X = [0, 0];
+  #Y = new n2(this);
+  perspective;
+  zoom;
+  constructor() {
+    const B2 = { onChange: () => {
+      this.#B.combine(this.#W, this.#K, this.perspective.valueOf());
+    } };
+    this.perspective = new l2(ZW, B2.onChange), this.zoom = new l2(HW, (K) => {
+      this.configure(this.#X, K);
+    }), this.#K.addChangeListener(B2), this.#W.addChangeListener(B2), this.#B.addChangeListener(this.#Y);
+  }
+  addChangeListener(B2) {
+    return this.#Y.addChangeListener(B2), this;
+  }
+  removeChangeListener(B2) {
+    this.#Y.removeChangeListener(B2);
+  }
+  configPerspectiveMatrix(B2, K, W2, X2) {
+    this.#K.perspective(B2, K, W2, X2);
+  }
+  configOrthoMatrix(B2, K, W2, X2) {
+    this.#W.ortho(-B2 / 2, B2 / 2, -K / 2, K / 2, W2, X2);
+  }
+  configure(B2, K, W2 = 0.5, X2 = 1e4) {
+    if (!K)
+      K = this.zoom.valueOf();
+    this.#X[0] = B2[0], this.#X[1] = B2[1];
+    const Y = this.#X[0] / this.#X[1], $3 = 45 / Math.sqrt(K);
+    this.configPerspectiveMatrix($3, Y, Math.max(W2, 0.00001), X2), this.configOrthoMatrix(Y / K / K, 1 / K / K, -X2, X2);
+  }
+  getMatrix() {
+    return this.#B.getMatrix();
+  }
+}
+var VERTICES_PER_SPRITE = 6;
+var TEX_BUFFER_ELEMS = 4;
+var EMPTY_TEX = new Float32Array(TEX_BUFFER_ELEMS).fill(0);
+
+class GraphicsEngine extends Disposable {
+  gl;
+  priority = Priority.LAST;
+  programs;
+  attributeBuffers;
+  animationSlots = new Map;
+  pixelListener;
+  maxSpriteCount = 0;
+  textureUpdateHandler;
+  tempBuffer = new Float32Array(4).fill(0);
+  visibleSprites = [];
+  constructor(gl) {
+    super();
+    this.gl = gl;
+    this.programs = this.own(new GLPrograms(gl));
+    const textureManager = new l({ gl });
+    this.textureUpdateHandler = new TextureUpdateHandler({
+      imageManager: new v,
+      textureManager
+    });
+    this.addOnDestroy(() => textureManager.dispose());
+    const PROGRAM_NAME = "main";
+    const replacementMap = {
+      AUTHOR: "Jack le hamster"
+    };
+    this.programs.addProgram(PROGRAM_NAME, replaceTilda(vertexShader_default, replacementMap), replaceTilda(fragmentShader_default, replacementMap));
+    this.attributeBuffers = this.own(new GLAttributeBuffers(gl, this.programs));
+    this.initialize(PROGRAM_NAME);
+    TextureUniformInitializer.initialize({ gl, program: this.programs.getProgram() });
+  }
+  resetViewportSize() {
+    this.gl.viewport(0, 0, this.gl.drawingBufferWidth, this.gl.drawingBufferHeight);
+  }
+  initialize(programName) {
+    this.programs.useProgram(programName);
+    this.gl.enable(GL.DEPTH_TEST);
+    this.gl.depthFunc(GL.LESS);
+    this.gl.clearDepth(1);
+    this.gl.enable(GL.BLEND);
+    this.gl.blendFunc(GL.SRC_ALPHA, GL.ONE_MINUS_SRC_ALPHA);
+    this.gl.viewport(0, 0, this.gl.drawingBufferWidth, this.gl.drawingBufferHeight);
+    this.gl.enable(GL.CULL_FACE);
+    this.gl.cullFace(GL.BACK);
+    this.gl.clearColor(0, 0, 0, 1);
+  }
+  deactivate() {
+    this.animationSlots.clear();
+    this.visibleSprites.length = 0;
+    this.#redraw();
+  }
+  setMaxSpriteCount(count) {
+    if (count > this.maxSpriteCount) {
+      this.maxSpriteCount = 1 << Math.ceil(Math.log2(count));
+      this.ensureBuffers(this.maxSpriteCount);
+    }
+  }
+  setBgColor(rgb) {
+    this.gl.clearColor(rgb[0], rgb[1], rgb[2], 1);
+    this.gl.clear(this.gl.COLOR_BUFFER_BIT);
+  }
+  ensureBuffers(instanceCount) {
+    if (instanceCount >= 1e5) {
+      console.warn("Sprite count has already reached:", instanceCount);
+    }
+    if (!this.attributeBuffers.hasBuffer(INDEX_LOC)) {
+      this.attributeBuffers.createBuffer({
+        location: INDEX_LOC,
+        target: GL.ELEMENT_ARRAY_BUFFER,
+        usage: GL.STATIC_DRAW,
+        vertexAttribPointerRows: 0,
+        data: Uint16Array.from([0, 1, 2, 2, 3, 0])
+      });
+    }
+    if (!this.attributeBuffers.hasBuffer(POSITION_LOC)) {
+      this.attributeBuffers.createBuffer({
+        location: POSITION_LOC,
+        target: GL.ARRAY_BUFFER,
+        usage: GL.STATIC_DRAW,
+        vertexAttribPointerRows: 1,
+        elemCount: 2,
+        data: Float32Array.from([-1, -1, 1, -1, 1, 1, -1, 1])
+      });
+    }
+    if (!this.attributeBuffers.hasBuffer(TRANSFORM_LOC)) {
+      this.attributeBuffers.createBuffer({
+        location: TRANSFORM_LOC,
+        target: GL.ARRAY_BUFFER,
+        usage: GL.DYNAMIC_DRAW,
+        vertexAttribPointerRows: 4,
+        elemCount: 4,
+        divisor: 1,
+        instanceCount
+      });
+    } else {
+      this.attributeBuffers.ensureSize(TRANSFORM_LOC, instanceCount);
+    }
+    if (!this.attributeBuffers.hasBuffer(SLOT_SIZE_LOC)) {
+      this.attributeBuffers.createBuffer({
+        location: SLOT_SIZE_LOC,
+        target: GL.ARRAY_BUFFER,
+        usage: GL.DYNAMIC_DRAW,
+        vertexAttribPointerRows: 1,
+        elemCount: TEX_BUFFER_ELEMS,
+        divisor: 1,
+        instanceCount
+      });
+    } else {
+      this.attributeBuffers.ensureSize(SLOT_SIZE_LOC, instanceCount);
+    }
+    if (!this.attributeBuffers.hasBuffer(ANIM_LOC)) {
+      this.attributeBuffers.createBuffer({
+        location: ANIM_LOC,
+        target: GL.ARRAY_BUFFER,
+        usage: GL.DYNAMIC_DRAW,
+        vertexAttribPointerRows: 1,
+        elemCount: 4,
+        divisor: 1,
+        instanceCount
+      });
+    } else {
+      this.attributeBuffers.ensureSize(ANIM_LOC, instanceCount);
+    }
+    if (!this.attributeBuffers.hasBuffer(INSTANCE_LOC)) {
+      this.attributeBuffers.createBuffer({
+        location: INSTANCE_LOC,
+        target: GL.ARRAY_BUFFER,
+        usage: GL.STATIC_DRAW,
+        vertexAttribPointerRows: 1,
+        elemCount: 1,
+        divisor: 1,
+        instanceCount,
+        callback: (index) => index
+      });
+    } else {
+      this.attributeBuffers.ensureSize(INSTANCE_LOC, instanceCount);
+    }
+    if (!this.attributeBuffers.hasBuffer(SPRITE_TYPE_LOC)) {
+      this.attributeBuffers.createBuffer({
+        location: SPRITE_TYPE_LOC,
+        target: GL.ARRAY_BUFFER,
+        usage: GL.STATIC_DRAW,
+        vertexAttribPointerRows: 1,
+        elemCount: 1,
+        divisor: 1,
+        instanceCount
+      });
+    } else {
+      this.attributeBuffers.ensureSize(SPRITE_TYPE_LOC, instanceCount);
+    }
+    return this.attributeBuffers;
+  }
+  async updateTextures(ids, medias) {
+    return this.textureUpdateHandler.updateTextures(ids, medias);
+  }
+  updateSpriteTransforms(spriteIds, sprites) {
+    const attributeBuffers = this.attributeBuffers;
+    attributeBuffers.bindBuffer(TRANSFORM_LOC);
+    spriteIds.forEach((spriteId) => {
+      const sprite = sprites.at(spriteId);
+      const visible = !!(sprite && !sprite?.hidden);
+      this.gl.bufferSubData(GL.ARRAY_BUFFER, 16 * Float32Array.BYTES_PER_ELEMENT * spriteId, (!visible ? d.HIDDEN : sprite.transform).getMatrix());
+      this.visibleSprites[spriteId] = visible;
+    });
+    spriteIds.clear();
+    while (this.visibleSprites.length && !this.visibleSprites[this.visibleSprites.length - 1]) {
+      this.visibleSprites.length--;
+    }
+  }
+  updateSpriteTexSlots(spriteIds, sprites) {
+    const attributeBuffers = this.attributeBuffers;
+    attributeBuffers.bindBuffer(SLOT_SIZE_LOC);
+    spriteIds.forEach((spriteId) => {
+      const sprite = sprites.at(spriteId);
+      if (!sprite) {
+        spriteIds.delete(spriteId);
+        return;
+      }
+      const slotBuffer = this.textureUpdateHandler.getSlotBuffer(sprite.imageId);
+      let buffer = slotBuffer ?? EMPTY_TEX;
+      if ((sprite.orientation ?? 1) < 0) {
+        this.tempBuffer[0] = buffer[0];
+        this.tempBuffer[1] = buffer[1];
+        this.tempBuffer[2] = -buffer[2];
+        this.tempBuffer[3] = buffer[3];
+        buffer = this.tempBuffer;
+      }
+      this.gl.bufferSubData(GL.ARRAY_BUFFER, TEX_BUFFER_ELEMS * Float32Array.BYTES_PER_ELEMENT * spriteId, buffer);
+      const spriteWaitingForTexture = sprite && !slotBuffer;
+      if (!spriteWaitingForTexture) {
+        spriteIds.delete(spriteId);
+      }
+    });
+  }
+  updateSpriteTypes(spriteIds, sprites) {
+    const attributeBuffers = this.attributeBuffers;
+    attributeBuffers.bindBuffer(SPRITE_TYPE_LOC);
+    spriteIds.forEach((spriteId) => {
+      const sprite = sprites.at(spriteId);
+      if (!sprite) {
+        return;
+      }
+      const type = sprite.spriteType ?? SpriteType.DEFAULT;
+      this.tempBuffer[0] = type;
+      this.gl.bufferSubData(GL.ARRAY_BUFFER, 1 * Float32Array.BYTES_PER_ELEMENT * spriteId, this.tempBuffer, 0, 1);
+    });
+    spriteIds.clear();
+  }
+  updateSpriteAnimations(spriteIds, sprites) {
+    const attributeBuffers = this.attributeBuffers;
+    attributeBuffers.bindBuffer(ANIM_LOC);
+    spriteIds.forEach((spriteId) => {
+      const sprite = sprites.at(spriteId);
+      if (sprite?.animationId === undefined) {
+        return;
+      }
+      const animation = this.animationSlots.get(sprite.animationId);
+      this.tempBuffer[0] = animation?.frames?.[0] ?? 0;
+      this.tempBuffer[1] = animation?.frames?.[1] ?? this.tempBuffer[0];
+      this.tempBuffer[2] = animation?.fps ?? 0;
+      this.tempBuffer[3] = animation?.maxFrameCount ?? Number.MAX_SAFE_INTEGER;
+      this.gl.bufferSubData(GL.ARRAY_BUFFER, 4 * Float32Array.BYTES_PER_ELEMENT * spriteId, this.tempBuffer);
+    });
+    spriteIds.clear();
+  }
+  updateAnimationDefinitions(ids, animations) {
+    for (let id of ids) {
+      const animation = animations.at(id.valueOf());
+      if (animation !== undefined) {
+        this.animationSlots.set(animation.id, animation);
+      }
+    }
+    ids.clear();
+  }
+  setPixelListener(listener) {
+    this.pixelListener = listener;
+  }
+  _pixel = new Uint8Array(4);
+  getPixel(x4, y) {
+    this.gl.readPixels(x4, y, 1, 1, this.gl.RGBA, this.gl.UNSIGNED_BYTE, this._pixel);
+    const [r2, g2, b2, _a] = this._pixel;
+    return r2 * 65536 + g2 * 256 + b2;
+  }
+  static clearBit = GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT;
+  refresh(updatePayload) {
+    if (updatePayload.renderFrame) {
+      this.#redraw();
+    }
+  }
+  #redraw() {
+    this.gl.clear(GraphicsEngine.clearBit);
+    if (this.visibleSprites.length) {
+      this.#drawElementsInstanced(VERTICES_PER_SPRITE, this.visibleSprites.length);
+      this.pixelListener?.setPixel(this.getPixel(this.pixelListener.x, this.pixelListener.y));
+    }
+  }
+  createMatrixUniformHandler(name, matrix) {
+    return new MatrixUniformHandler({
+      gl: this.gl,
+      program: this.programs.getProgram(this.programs.activeProgramId)
+    }, { name }, matrix);
+  }
+  createFloatUniformHandler(name, val) {
+    return new FloatUniformHandler({
+      gl: this.gl,
+      program: this.programs.getProgram(this.programs.activeProgramId)
+    }, { name }, val);
+  }
+  createVectorUniformHandler(name, vector) {
+    return new VectorUniformHandler({
+      gl: this.gl,
+      program: this.programs.getProgram(this.programs.activeProgramId)
+    }, { name }, vector);
+  }
+  #drawElementsInstanced(vertexCount, instances) {
+    this.gl.drawElementsInstanced(GL.TRIANGLES, vertexCount, GL.UNSIGNED_SHORT, 0, instances);
+  }
+}
+
+class AuxiliaryHolder {
+  auxiliaries = [];
+  active = false;
+  activate() {
+    if (this.active) {
+      return;
+    }
+    this.active = true;
+    this.auxiliaries.forEach((aux) => aux.activate?.());
+  }
+  deactivate() {
+    if (!this.active) {
+      return;
+    }
+    this.active = false;
+    this.auxiliaries.forEach((aux) => aux.deactivate?.());
+  }
+  addAuxiliary(aux) {
+    this.auxiliaries.push(aux);
+    if (this.active) {
+      aux.activate?.();
+    }
+    return this;
+  }
+  removeAuxiliary(aux) {
+    let j = 0;
+    for (let i = 0;i < this.auxiliaries.length; i++) {
+      const a2 = this.auxiliaries[i];
+      if (a2 !== aux) {
+        this.auxiliaries[j] = a2;
+        j++;
+      } else {
+        a2.deactivate?.();
+      }
+    }
+    this.auxiliaries.length = j;
+  }
+}
+
+class y {
+  q;
+  w;
+  #F;
+  #q = false;
+  #x = 0;
+  #w;
+  #y;
+  constructor(F, q, w2) {
+    this.getValue = q;
+    this.apply = w2;
+    this.#w = F, this.#F = this.getValue(F);
+  }
+  set element(F) {
+    this.#w = F, this.#F = this.getValue(F), this.#y = undefined;
+  }
+  setGoal(F, q, w2) {
+    if (this.#y && this.#y !== w2)
+      return;
+    if (this.#F !== F || this.#x !== q)
+      this.#x = q, this.#F = F, this.#y = w2, this.#q = true;
+  }
+  get goal() {
+    return this.#F;
+  }
+  update(F) {
+    if (this.#q) {
+      const q = this.getValue(this.#w), w2 = this.goal - q, x4 = Math.min(Math.abs(w2), this.#x * F);
+      if (x4 <= 0.01)
+        this.apply(this.#w, this.goal), this.#q = false, this.#y?.onRelease?.(), this.#y = undefined;
+      else
+        this.apply(this.#w, q + x4 * Math.sign(w2));
+    }
+    return this.#q;
+  }
+}
+
+class z3 {
+  i;
+  f;
+  warningLimit = 50000;
+  #F = new Set;
+  #q = [];
+  constructor(F, q) {
+    this.initCall = F, this.onRecycle = q;
+  }
+  create(...F) {
+    const q = this.#q.pop();
+    if (q)
+      return this.#F.add(q), this.initCall(q, ...F);
+    const w2 = this.initCall(undefined, ...F);
+    return this.#F.add(w2), this.#w(), w2;
+  }
+  recycle(F) {
+    this.#F.delete(F), this.#x(F);
+  }
+  recycleAll() {
+    for (let F of this.#F)
+      this.#x(F);
+    this.#F.clear();
+  }
+  clear() {
+    this.#q.length = 0, this.#F.clear();
+  }
+  countObjectsInExistence() {
+    return this.#F.size + this.#q.length;
+  }
+  #x(F) {
+    this.#q.push(F), this.onRecycle?.(F);
+  }
+  #w() {
+    if (this.countObjectsInExistence() === this.warningLimit)
+      console.warn("ObjectPool already created", this.#F.size + this.#q.length, "in", this.constructor.name);
+  }
+}
+
+class A2 extends z3 {
+  constructor() {
+    super((F, q) => {
+      if (!F)
+        return new y(q, (w2) => w2.valueOf(), (w2, x4) => w2.setValue(x4));
+      return F.element = q, F;
+    });
+  }
+}
+var G = new A2;
+
+class B2 {
+  q;
+  w;
+  #F = 0;
+  #q;
+  constructor(F = 0, q, w2 = G) {
+    this.onChange = q;
+    this.pool = w2;
+    this.#F = F;
+  }
+  valueOf() {
+    return this.#F;
+  }
+  setValue(F) {
+    if (F !== this.#F)
+      this.#F = F, this.onChange?.(this.#F);
+    return this;
+  }
+  addValue(F) {
+    return this.setValue(this.#F + F), this;
+  }
+  update(F) {
+    if (this.#q) {
+      const q = !!this.#q.update(F);
+      if (!q)
+        this.pool.recycle(this.#q), this.#q = undefined;
+      return q;
+    }
+    return false;
+  }
+  refresh({ deltaTime: F, stopUpdate: q }) {
+    if (!this.update(F))
+      q();
+  }
+  progressTowards(F, q, w2, x4) {
+    if (!this.#q)
+      this.#q = this.pool.create(this);
+    if (this.#q.setGoal(F, q, w2), x4)
+      x4.loop(this, undefined);
+  }
+  get goal() {
+    return this.#q?.goal ?? this.valueOf();
+  }
+}
+var z4 = function(D2, J = _3) {
+  R3(D2, (K, Q3) => D2.informUpdate(Q3, J));
+};
+
+class W2 {
+  i;
+  f;
+  warningLimit = 50000;
+  #D = new Set;
+  #J = [];
+  constructor(D2, J) {
+    this.initCall = D2, this.onRecycle = J;
+  }
+  create(...D2) {
+    const J = this.#J.pop();
+    if (J)
+      return this.#D.add(J), this.initCall(J, ...D2);
+    const K = this.initCall(undefined, ...D2);
+    return this.#D.add(K), this.#Q(), K;
+  }
+  recycle(D2) {
+    this.#D.delete(D2), this.#K(D2);
+  }
+  recycleAll() {
+    for (let D2 of this.#D)
+      this.#K(D2);
+    this.#D.clear();
+  }
+  clear() {
+    this.#J.length = 0, this.#D.clear();
+  }
+  countObjectsInExistence() {
+    return this.#D.size + this.#J.length;
+  }
+  #K(D2) {
+    this.#J.push(D2), this.onRecycle?.(D2);
+  }
+  #Q() {
+    if (this.countObjectsInExistence() === this.warningLimit)
+      console.warn("ObjectPool already created", this.#D.size + this.#J.length, "in", this.constructor.name);
+  }
+}
+
+class X2 {
+  listeners = new Set;
+  informUpdate(D2, J) {
+    this.listeners.forEach((K) => K.onUpdate(D2, J));
+  }
+  addUpdateListener(D2) {
+    this.listeners.add(D2);
+  }
+  removeUpdateListener(D2) {
+    this.listeners.delete(D2);
+  }
+}
+var R3 = function(D2, J) {
+  if (D2) {
+    const K = D2.length.valueOf();
+    for (let Q3 = 0;Q3 < K; Q3++)
+      J(D2.at(Q3), Q3);
+  }
+};
+
+class Z2 {
+  D;
+  J;
+  K;
+  Q;
+  #D = [];
+  constructor(D2, J, K, Q3) {
+    this.elems = D2;
+    this.informUpdate = J;
+    this.addElem = K;
+    this.removeElem = Q3;
+    this.elems = D2, this.initialize(D2);
+  }
+  initialize(D2) {
+    this.elems = D2, this.elems.addUpdateListener?.(this), R3(D2, (J, K) => this.onUpdate(K));
+  }
+  dispose() {
+    R3(this.elems, (D2, J) => this.onUpdate(J)), this.elems.removeUpdateListener?.(this), this.elems = G2, this.#D.length = 0;
+  }
+  onUpdate(D2, J) {
+    const K = this.elems.at(D2);
+    let Q3 = this.#D[D2];
+    if (Q3 === undefined) {
+      if (!K)
+        return;
+      const V3 = this.addElem(this.elems, D2);
+      this.#D[D2] = V3;
+      return;
+    } else if (!K) {
+      this.removeElem(Q3), this.#D[D2] = undefined;
+      return;
+    }
+    this.informUpdate(Q3, J);
+  }
+}
+
+class $3 extends W2 {
+  constructor({ informUpdate: D2, addElem: J, removeElem: K }) {
+    super((Q3, V3) => {
+      if (Q3)
+        return Q3.initialize(V3), Q3;
+      return new Z2(V3, D2, J, K);
+    }, (Q3) => {
+      Q3.dispose();
+    });
+  }
+}
+
+class B3 {
+  #D = [];
+  #J = [];
+  length;
+  constructor({ onChange: D2 } = {}) {
+    this.length = { valueOf: () => this.#D.length, onChange: D2 ? (J) => D2?.(J) : undefined };
+  }
+  at(D2) {
+    return this.#D.at(D2);
+  }
+  addElem(D2) {
+    const J = this.#K();
+    return this.#D[J] = D2, J;
+  }
+  removeElem(D2) {
+    const J = this.#D.at(D2);
+    if (J !== undefined)
+      this.#D[D2] = undefined, this.#J.push(D2);
+    return J;
+  }
+  clear() {
+    if (this.#D.length !== 0)
+      this.#D.length = 0, this.#Q();
+    this.#J.length = 0;
+  }
+  #K() {
+    let D2 = this.#J.pop();
+    if (D2 === undefined)
+      D2 = this.#D.length, this.#D.push(undefined), this.#Q();
+    return D2;
+  }
+  #Q() {
+    this.length.onChange?.(this.length.valueOf());
+  }
+}
+
+class H extends X2 {
+  #D;
+  #J = new Map;
+  #K = new O2;
+  #Q = new $3({ informUpdate: this.informUpdate.bind(this), addElem: this.#R.bind(this), removeElem: this.#V.bind(this) });
+  constructor({ onChange: D2 } = {}) {
+    super();
+    this.#D = new B3({ onChange: D2 });
+  }
+  get length() {
+    return this.#D.length;
+  }
+  at(D2) {
+    const J = this.#D.at(D2);
+    return J?.elems.at(J.index);
+  }
+  add(D2) {
+    const J = this.#Q.create(D2);
+    this.#J.set(D2, J);
+  }
+  remove(D2) {
+    const J = this.#J.get(D2);
+    if (J)
+      this.#J.delete(D2), this.#Q.recycle(J);
+  }
+  clear() {
+    R3(this.#D, (D2, J) => {
+      if (this.informUpdate(J), D2)
+        this.#K.recycle(D2);
+    }), this.#D.clear();
+  }
+  updateFully(D2) {
+    for (let [J, K] of this.#J)
+      R3(J, (Q3, V3) => K.onUpdate(V3, D2));
+  }
+  #R(D2, J) {
+    const K = this.#D.addElem(this.#K.create(D2, J));
+    return this.informUpdate(K), K;
+  }
+  #V(D2) {
+    const J = this.#D.removeElem(D2);
+    if (J)
+      this.#K.recycle(J), this.informUpdate(D2);
+  }
+}
+var G2 = [];
+
+class O2 extends W2 {
+  constructor() {
+    super((D2, J, K) => {
+      if (!D2)
+        return { elems: J, index: K };
+      return D2.elems = J, D2.index = K, D2;
+    }, (D2) => {
+      D2.elems = G2;
+    });
+  }
+}
+
+class Y {
+  i;
+  f;
+  warningLimit = 50000;
+  #D = new Set;
+  #J = [];
+  constructor(D2, J) {
+    this.initCall = D2, this.onRecycle = J;
+  }
+  create(...D2) {
+    const J = this.#J.pop();
+    if (J)
+      return this.#D.add(J), this.initCall(J, ...D2);
+    const K = this.initCall(undefined, ...D2);
+    return this.#D.add(K), this.#Q(), K;
+  }
+  recycle(D2) {
+    this.#D.delete(D2), this.#K(D2);
+  }
+  recycleAll() {
+    for (let D2 of this.#D)
+      this.#K(D2);
+    this.#D.clear();
+  }
+  clear() {
+    this.#J.length = 0, this.#D.clear();
+  }
+  countObjectsInExistence() {
+    return this.#D.size + this.#J.length;
+  }
+  #K(D2) {
+    this.#J.push(D2), this.onRecycle?.(D2);
+  }
+  #Q() {
+    if (this.countObjectsInExistence() === this.warningLimit)
+      console.warn("ObjectPool already created", this.#D.size + this.#J.length, "in", this.constructor.name);
+  }
+}
+var _3 = -1;
+
+class UpdateRegistry extends X2 {
+  applyUpdate;
+  motor;
+  updatedIds = new Set;
+  constructor(applyUpdate, motor) {
+    super();
+    this.applyUpdate = applyUpdate;
+    this.motor = motor;
+  }
+  informUpdate(id, type) {
+    super.informUpdate(id, type);
+    if (!this.updatedIds.has(id)) {
+      this.updatedIds.add(id);
+    }
+    this.motor.scheduleUpdate(this);
+  }
+  refresh(update) {
+    this.applyUpdate(this.updatedIds, update);
+    if (this.updatedIds.size) {
+      this.motor.scheduleUpdate(this, undefined, undefined, true);
+    }
+  }
+}
+
+class Camera extends AuxiliaryHolder {
+  position;
+  projection;
+  tilt = QW(() => this.#updateInformer.informUpdate(MatrixUniform.CAM_TILT));
+  turn = $W(() => this.#updateInformer.informUpdate(MatrixUniform.CAM_TURN));
+  curvature = new B2(0.05, () => this.#updateInformerFloat.informUpdate(FloatUniform.CURVATURE));
+  distance = new B2(0.5, () => this.#updateInformerFloat.informUpdate(FloatUniform.CAM_DISTANCE));
+  blur = new B2(1, () => this.#updateInformerFloat.informUpdate(FloatUniform.BG_BLUR));
+  fade = new B2(0, () => this.#updateInformerFloat.informUpdate(FloatUniform.FADE));
+  #camMatrix = d.create();
+  #bgColor = [0, 0, 0];
+  #viewportSize = [0, 0];
+  #updateInformer;
+  #updateInformerFloat;
+  #updateInformerVector;
+  #engine;
+  #positionChangeListener = {
+    onChange: () => {
+      this.#camMatrix.invert(this.position);
+      this.#updateInformer.informUpdate(MatrixUniform.CAM_POS);
+    }
+  };
+  #projectionChangeListener = {
+    onChange: () => this.#updateInformer.informUpdate(MatrixUniform.PROJECTION)
+  };
+  constructor({ engine, motor, position = new t0, projection = new a0 }) {
+    super();
+    this.#engine = engine;
+    this.position = position;
+    this.projection = projection;
+    const matrixUniformUpdaters = {
+      [MatrixUniform.PROJECTION]: engine.createMatrixUniformHandler(CAM_PROJECTION_LOC, this.projection),
+      [MatrixUniform.CAM_POS]: engine.createMatrixUniformHandler(CAM_POS_LOC, this.#camMatrix),
+      [MatrixUniform.CAM_TURN]: engine.createMatrixUniformHandler(CAM_TURN_LOC, this.turn),
+      [MatrixUniform.CAM_TILT]: engine.createMatrixUniformHandler(CAM_TILT_LOC, this.tilt)
+    };
+    this.#updateInformer = new UpdateRegistry((ids) => {
+      ids.forEach((type) => matrixUniformUpdaters[type].update());
+      ids.clear();
+    }, motor);
+    const vectorUniformUpdaters = {
+      [VectorUniform.BG_COLOR]: engine.createVectorUniformHandler(BG_COLOR_LOC, this.#bgColor)
+    };
+    this.#updateInformerVector = new UpdateRegistry((ids) => {
+      ids.forEach((type) => vectorUniformUpdaters[type].update());
+      ids.clear();
+    }, motor);
+    const valUniformUpdaters = {
+      [FloatUniform.BG_BLUR]: engine.createFloatUniformHandler(BG_BLUR_LOC, this.blur),
+      [FloatUniform.CAM_DISTANCE]: engine.createFloatUniformHandler(CAM_DISTANCE_LOC, this.distance),
+      [FloatUniform.CURVATURE]: engine.createFloatUniformHandler(CAM_CURVATURE_LOC, this.curvature),
+      [FloatUniform.TIME]: undefined,
+      [FloatUniform.FADE]: engine.createFloatUniformHandler(FADE_LOC, this.fade)
+    };
+    this.#updateInformerFloat = new UpdateRegistry((ids) => {
+      ids.forEach((type) => {
+        valUniformUpdaters[type]?.update();
+      });
+      ids.clear();
+    }, motor);
+  }
+  activate() {
+    super.activate();
+    this.#updateInformer.informUpdate(MatrixUniform.PROJECTION);
+    this.#updateInformer.informUpdate(MatrixUniform.CAM_POS);
+    this.#updateInformer.informUpdate(MatrixUniform.CAM_TURN);
+    this.#updateInformer.informUpdate(MatrixUniform.CAM_TILT);
+    this.#updateInformerFloat.informUpdate(FloatUniform.CURVATURE);
+    this.#updateInformerFloat.informUpdate(FloatUniform.CAM_DISTANCE);
+    this.#updateInformerFloat.informUpdate(FloatUniform.BG_BLUR);
+    this.#updateInformerVector.informUpdate(VectorUniform.BG_COLOR);
+    this.position.addChangeListener(this.#positionChangeListener);
+    this.projection.addChangeListener(this.#projectionChangeListener);
+  }
+  deactivate() {
+    this.projection.removeChangeListener(this.#projectionChangeListener);
+    this.position.removeChangeListener(this.#positionChangeListener);
+    super.deactivate();
+  }
+  resizeViewport(width, height) {
+    if (this.#viewportSize[0] !== width || this.#viewportSize[1] !== height) {
+      this.#viewportSize[0] = width;
+      this.#viewportSize[1] = height;
+      this.projection.configure(this.#viewportSize);
+    }
+  }
+  setBackgroundColor(rgb) {
+    const red = rgb >> 16 & 255;
+    const green = rgb >> 8 & 255;
+    const blue = rgb & 255;
+    this.#bgColor[0] = red / 255;
+    this.#bgColor[1] = green / 255;
+    this.#bgColor[2] = blue / 255;
+    this.#updateInformerVector.informUpdate(VectorUniform.BG_COLOR);
+    this.#engine.setBgColor(this.#bgColor);
+  }
+}
+var MatrixUniform;
+(function(MatrixUniform2) {
+  MatrixUniform2[MatrixUniform2["PROJECTION"] = 0] = "PROJECTION";
+  MatrixUniform2[MatrixUniform2["CAM_POS"] = 1] = "CAM_POS";
+  MatrixUniform2[MatrixUniform2["CAM_TURN"] = 2] = "CAM_TURN";
+  MatrixUniform2[MatrixUniform2["CAM_TILT"] = 3] = "CAM_TILT";
+})(MatrixUniform || (MatrixUniform = {}));
+var VectorUniform;
+(function(VectorUniform2) {
+  VectorUniform2[VectorUniform2["BG_COLOR"] = 0] = "BG_COLOR";
+})(VectorUniform || (VectorUniform = {}));
+var FloatUniform;
+(function(FloatUniform2) {
+  FloatUniform2[FloatUniform2["TIME"] = 0] = "TIME";
+  FloatUniform2[FloatUniform2["CURVATURE"] = 1] = "CURVATURE";
+  FloatUniform2[FloatUniform2["CAM_DISTANCE"] = 2] = "CAM_DISTANCE";
+  FloatUniform2[FloatUniform2["BG_BLUR"] = 3] = "BG_BLUR";
+  FloatUniform2[FloatUniform2["FADE"] = 4] = "FADE";
+})(FloatUniform || (FloatUniform = {}));
+
+class Auxiliaries {
+  auxiliaries;
+  constructor(auxiliaries) {
+    this.auxiliaries = auxiliaries;
+  }
+  static from(...aux) {
+    return new Auxiliaries(aux);
+  }
+  get length() {
+    return this.auxiliaries.length;
+  }
+  at(index) {
+    return this.auxiliaries.at(index);
+  }
+  activate() {
+    x2(this.auxiliaries, (aux) => aux?.activate?.());
+  }
+  deactivate() {
+    x2(this.auxiliaries, (aux) => aux?.deactivate?.());
+  }
+}
+
+class ControlledLooper extends Looper {
+  controls;
+  triggerred;
+  #listener;
+  constructor(motor, controls, triggerred, data, cycle) {
+    super({ motor, data, cycle }, { autoStart: false });
+    this.controls = controls;
+    this.triggerred = triggerred;
+    this.#listener = this;
+  }
+  onAction(controls) {
+    if (this.triggerred(controls)) {
+      this.start();
+    }
+  }
+  activate() {
+    super.activate();
+    this.controls.addListener(this.#listener);
+  }
+  deactivate() {
+    this.controls.removeListener(this.#listener);
+    super.deactivate();
+  }
+}
+
+class TurnAuxiliary extends ControlledLooper {
+  constructor({ controls, turn, motor }) {
+    super(motor, controls, ({ turnLeft, turnRight }) => turnLeft || turnRight, { controls, turn });
+  }
+  refresh({ data: { controls, turn }, deltaTime, stopUpdate }) {
+    const { turnLeft, turnRight } = controls;
+    const turnspeed = deltaTime / 400;
+    if (turnLeft) {
+      turn.angle.addValue(-turnspeed);
+    }
+    if (turnRight) {
+      turn.angle.addValue(turnspeed);
+    }
+    if (!turnLeft && !turnRight) {
+      stopUpdate();
+    }
+  }
+}
+
+class PositionStepAuxiliary extends ControlledLooper {
+  constructor({ controls, positionStep, turnGoal, motor }, config = {}) {
+    super(motor, controls, ({ backward, forward, left, right }) => backward || forward || left || right, { controls, positionStep, turnGoal, step: config.step ?? 2, speed: config.speed ?? 1, airBoost: config?.airBoost ?? 1 });
+  }
+  refresh({ deltaTime, data, stopUpdate }) {
+    const { backward, forward, left, right } = data.controls;
+    const { step, airBoost, positionStep } = data;
+    let dx = 0, dz = 0;
+    if (forward) {
+      dz--;
+    }
+    if (backward) {
+      dz++;
+    }
+    if (left) {
+      dx--;
+    }
+    if (right) {
+      dx++;
+    }
+    const turnGoal = data.turnGoal?.goal ?? 0;
+    let speed = (dx || dz ? deltaTime / 150 : deltaTime / 100) * data.speed;
+    if (data.positionStep.position[1] > 0) {
+      speed *= airBoost;
+    }
+    const cos = Math.cos(turnGoal);
+    const sin = Math.sin(turnGoal);
+    const relativeDx = dx * cos - dz * sin;
+    const relativeDz = dx * sin + dz * cos;
+    const moveResult = positionStep.cellMoveBy(relativeDx, 0, relativeDz, step, speed);
+    if (moveResult === w.AT_POSITION) {
+      stopUpdate();
+    }
+  }
+}
+
+class TiltResetAuxiliary {
+  controls;
+  listener;
+  constructor({ controls, tilt, motor }) {
+    this.listener = {
+      onQuickTiltReset: () => {
+        tilt.angle.progressTowards(0, 0.0033333333333333335, this, motor);
+      }
+    };
+    this.controls = controls;
+  }
+  activate() {
+    this.controls.addListener(this.listener);
+  }
+  deactivate() {
+    this.controls.removeListener(this.listener);
+  }
+}
+
+class ToggleAuxiliary {
+  #active = false;
+  #toggleIndex;
+  #auxiliary = {};
+  #keyboard;
+  #keys;
+  #auxiliaryFactories;
+  #keyListener;
+  constructor({ keyboard }, config) {
+    this.#keyboard = keyboard;
+    this.#keys = z(config.auxiliariesMap, (keyMap) => keyMap?.key);
+    this.#keyListener = {
+      onKeyDown: (keyCode) => {
+        if (this.#keys.indexOf(keyCode) >= 0) {
+          const wasActive = this.#active;
+          this.#auxiliary.deactivate?.();
+          this.toggle(keyCode);
+          this.#auxiliary = this.#auxiliaryFactories.at(this.#toggleIndex)?.() ?? {};
+          if (wasActive) {
+            this.#auxiliary.activate?.();
+          }
+        }
+      }
+    };
+    this.#auxiliaryFactories = z(config.auxiliariesMap, (keyMap) => keyMap?.aux);
+    this.#toggleIndex = config.initialIndex ?? 0;
+  }
+  toggle(key) {
+    if (this.#keys[this.#toggleIndex] !== key) {
+      this.#toggleIndex = this.#keys.indexOf(key);
+    } else {
+      const nextIndex = this.#keys.length ? (this.#toggleIndex + 1) % this.#keys.length : 0;
+      if (this.#keys[nextIndex] === key) {
+        this.#toggleIndex = nextIndex;
+      }
+    }
+  }
+  activate() {
+    if (!this.#active) {
+      this.#active = true;
+      this.#keyboard.addListener(this.#keyListener);
+      this.#auxiliary = this.#auxiliaryFactories.at(this.#toggleIndex)?.() ?? {};
+      this.#auxiliary.activate?.();
+    }
+  }
+  deactivate() {
+    if (this.#active) {
+      this.#active = false;
+      this.#keyboard.removeListener(this.#keyListener);
+      this.#auxiliary.deactivate?.();
+    }
+  }
+}
+var SpriteUpdateType;
+(function(SpriteUpdateType2) {
+  SpriteUpdateType2[SpriteUpdateType2["TRANSFORM"] = 1] = "TRANSFORM";
+  SpriteUpdateType2[SpriteUpdateType2["TEX_SLOT"] = 2] = "TEX_SLOT";
+  SpriteUpdateType2[SpriteUpdateType2["TYPE"] = 4] = "TYPE";
+  SpriteUpdateType2[SpriteUpdateType2["ANIM"] = 8] = "ANIM";
+})(SpriteUpdateType || (SpriteUpdateType = {}));
+
+class ItemsGroup extends X2 {
+  elems;
+  constructor(elems) {
+    super();
+    this.elems = elems;
+  }
+  informUpdate(id, type) {
+    super.informUpdate(id, type);
+    this.elems.informUpdate?.(id, type);
+  }
+  get length() {
+    return this.elems.length;
+  }
+  at(index) {
+    return this.elems.at(index);
+  }
+}
+var EMPTY_SPRITE = {
+  imageId: 0,
+  transform: new d
+};
+
+class SpriteModel {
+  sprite = EMPTY_SPRITE;
+  animationId = 0;
+  orientation = 1;
+  imageId = 0;
+  transform = d.create();
+  get spriteType() {
+    return this.sprite.spriteType;
+  }
+  get hidden() {
+    return this.sprite.hidden;
+  }
+}
+
+class SpriteGroup extends ItemsGroup {
+  #orientation = 1;
+  #animationId;
+  #imageId;
+  #transform;
+  #spriteModel = new SpriteModel;
+  constructor(sprites, transform) {
+    super(sprites);
+    this.#transform = transform;
+    this.#transform?.addChangeListener({ onChange: () => z4(this, SpriteUpdateType.TRANSFORM) });
+  }
+  setOrientation(value) {
+    if (this.#orientation !== value) {
+      this.#orientation = value;
+      x2(this.elems, (_4, index) => this.informUpdate(index, SpriteUpdateType.TEX_SLOT));
+    }
+  }
+  setAnimationId(value) {
+    if (this.#animationId !== value) {
+      this.#animationId = value;
+      x2(this.elems, (_4, index) => this.informUpdate(index, SpriteUpdateType.ANIM));
+    }
+  }
+  setImageId(value) {
+    if (this.#imageId !== value) {
+      this.#imageId = value;
+      x2(this.elems, (_4, index) => this.informUpdate(index, SpriteUpdateType.TEX_SLOT));
+    }
+  }
+  at(index) {
+    const s22 = super.at(index);
+    if (!s22) {
+      return;
+    }
+    this.#spriteModel.sprite = s22;
+    this.#spriteModel.transform.copy(s22.transform);
+    if (this.#transform) {
+      this.#spriteModel.transform.multiply2(this.#transform, this.#spriteModel.transform);
+    }
+    this.#spriteModel.orientation = this.#orientation * (s22.orientation ?? 1);
+    this.#spriteModel.animationId = this.#animationId ?? s22.animationId ?? 0;
+    this.#spriteModel.imageId = this.#imageId ?? s22.imageId;
+    return this.#spriteModel;
+  }
+}
+var G3 = function(F, n32, g2 = 0) {
+  return A3(F, n32) <= g2 * g2;
+};
+var A3 = function(F, n32) {
+  const g2 = F[0] - n32[0], k = F[1] - n32[1], w2 = F[2] - n32[2];
+  return g2 * g2 + k * k + w2 * w2;
+};
+
+class m2 {
+  i;
+  f;
+  warningLimit = 50000;
+  #F = new Set;
+  #n = [];
+  constructor(F, n32) {
+    this.initCall = F, this.onRecycle = n32;
+  }
+  create(...F) {
+    const n32 = this.#n.pop();
+    if (n32)
+      return this.#F.add(n32), this.initCall(n32, ...F);
+    const g2 = this.initCall(undefined, ...F);
+    return this.#F.add(g2), this.#k(), g2;
+  }
+  recycle(F) {
+    this.#F.delete(F), this.#g(F);
+  }
+  recycleAll() {
+    for (let F of this.#F)
+      this.#g(F);
+    this.#F.clear();
+  }
+  clear() {
+    this.#n.length = 0, this.#F.clear();
+  }
+  countObjectsInExistence() {
+    return this.#F.size + this.#n.length;
+  }
+  #g(F) {
+    this.#n.push(F), this.onRecycle?.(F);
+  }
+  #k() {
+    if (this.countObjectsInExistence() === this.warningLimit)
+      console.warn("ObjectPool already created", this.#F.size + this.#n.length, "in", this.constructor.name);
+  }
+}
+var H2 = -1;
+
+class SpriteUpdater extends X2 {
+  #sprites;
+  #updateRegisteries;
+  constructor({ engine, motor, sprites }) {
+    super();
+    this.#sprites = sprites;
+    this.#updateRegisteries = {
+      [SpriteUpdateType.TRANSFORM]: new UpdateRegistry((ids) => engine.updateSpriteTransforms(ids, this.#sprites), motor),
+      [SpriteUpdateType.TEX_SLOT]: new UpdateRegistry((ids) => engine.updateSpriteTexSlots(ids, this.#sprites), motor),
+      [SpriteUpdateType.TYPE]: new UpdateRegistry((ids) => engine.updateSpriteTypes(ids, this.#sprites), motor),
+      [SpriteUpdateType.ANIM]: new UpdateRegistry((ids) => engine.updateSpriteAnimations(ids, this.#sprites), motor)
+    };
+  }
+  onUpdate(id, type) {
+    this.informUpdate(id, type);
+  }
+  activate() {
+    this.#sprites.addUpdateListener?.(this);
+  }
+  deactivate() {
+    this.#sprites.removeUpdateListener?.(this);
+  }
+  informUpdate(id, type = H2) {
+    super.informUpdate(id, type);
+    if (type & SpriteUpdateType.TRANSFORM) {
+      this.#updateRegisteries[SpriteUpdateType.TRANSFORM].informUpdate(id);
+    }
+    if (type & SpriteUpdateType.TEX_SLOT) {
+      this.#updateRegisteries[SpriteUpdateType.TEX_SLOT].informUpdate(id);
+    }
+    if (type & SpriteUpdateType.TYPE) {
+      this.#updateRegisteries[SpriteUpdateType.TYPE].informUpdate(id);
+    }
+    if (type & SpriteUpdateType.ANIM) {
+      this.#updateRegisteries[SpriteUpdateType.ANIM].informUpdate(id);
+    }
+  }
+}
+
+class MoveAuxiliary extends ControlledLooper {
+  constructor({ controls, direction, motor, position }, config) {
+    super(motor, controls, ({ forward, backward, left, right }) => forward || backward || left || right, { controls, direction, position, speed: config?.speed ?? 1 });
+  }
+  refresh({ data, deltaTime, stopUpdate }) {
+    const { forward, backward, left, right } = data.controls;
+    const speed = deltaTime / 80 * data.speed;
+    let dx = 0, dz = 0;
+    if (forward) {
+      dz -= speed;
+    }
+    if (backward) {
+      dz += speed;
+    }
+    if (left) {
+      dx -= speed;
+    }
+    if (right) {
+      dx += speed;
+    }
+    data.position.moveBy(dx, 0, dz, data.direction);
+    if (!forward && !backward && !left && !right) {
+      stopUpdate();
+    }
+  }
+}
+
+class JumpAuxiliary extends ControlledLooper {
+  dy;
+  constructor({ controls, position, motor }, config) {
+    super(motor, controls, (controls2) => controls2.action, {
+      controls,
+      position,
+      gravity: config?.gravity ?? -1,
+      jump: config?.jump ?? 2,
+      plane: config?.plane ?? 5
+    });
+    this.dy = 0;
+  }
+  refresh({ deltaTime, data, stopUpdate }) {
+    if (!this.jump(deltaTime, data)) {
+      stopUpdate();
+    }
+  }
+  jump(deltaTime, data) {
+    const speed = deltaTime / 80;
+    const acceleration = deltaTime / 80;
+    const { action } = data.controls;
+    const onGround = data.position.position[1] <= 0;
+    const movingDown = !onGround && data.position.moveBy(0, speed * this.dy, 0);
+    if (onGround || !movingDown) {
+      if (action) {
+        this.dy = data.jump;
+        data.position.moveBy(0, speed * this.dy, 0);
+        return true;
+      }
+      this.dy = 0;
+    }
+    if (!onGround) {
+      const mul = this.dy < 0 ? 1 / data.plane : 1;
+      this.dy += data.gravity * acceleration * mul;
+    } else {
+      data.position.moveTo(data.position.position[0], 0, data.position.position[2]);
+    }
+    return !onGround;
+  }
+}
+
+class TimeAuxiliary extends Looper {
+  constructor({ engine, motor }) {
+    super({ motor, data: engine.createFloatUniformHandler(TIME_LOC) }, { autoStart: true });
+  }
+  refresh({ time, data, renderFrame }) {
+    if (renderFrame) {
+      data.updateValue(time);
+    }
+  }
+}
+
+class TiltAuxiliary extends ControlledLooper {
+  constructor({ controls, tilt, motor }) {
+    super(motor, controls, ({ up, down }) => up || down, { controls, tilt });
+  }
+  refresh({ data: { controls, tilt }, deltaTime, stopUpdate }) {
+    const { up, down } = controls;
+    const turnspeed = deltaTime / 400;
+    if (up) {
+      tilt.angle.addValue(-turnspeed);
+    }
+    if (down) {
+      tilt.angle.addValue(turnspeed);
+    }
+    if (!up && !down) {
+      stopUpdate();
+    }
+  }
+}
+
+class SmoothFollowAuxiliary extends Looper {
+  followee;
+  listener = { onChange: () => this.start() };
+  constructor({ followee, follower, motor }, config) {
+    super({
+      motor,
+      data: {
+        followee,
+        follower,
+        config: {
+          speed: config?.speed ?? 1,
+          followX: config?.followX ?? true,
+          followY: config?.followY ?? true,
+          followZ: config?.followZ ?? true
+        }
+      }
+    }, { autoStart: false });
+    this.followee = followee;
+  }
+  activate() {
+    super.activate();
+    this.followee.addChangeListener(this.listener);
+  }
+  deactivate() {
+    this.followee.removeChangeListener(this.listener);
+    super.deactivate();
+  }
+  refresh({ data: { follower, followee, config: { followX, followY, followZ, speed } }, stopUpdate }) {
+    const [x4, y22, z5] = followee.position;
+    const [fx, fy, fz] = follower.position;
+    const dx = followX ? x4 - fx : 0, dy2 = followY ? y22 - fy : 0, dz = followZ ? z5 - fz : 0;
+    const dist = Math.sqrt(dx * dx + dy2 * dy2 + dz * dz);
+    if (dist < 0.1) {
+      follower.moveTo(followX ? x4 : fx, followY ? y22 : fy, followZ ? z5 : fz);
+      stopUpdate();
+    } else {
+      const moveSpeed = Math.min(dist, speed * dist) / dist;
+      follower.moveBy(dx * moveSpeed, dy2 * moveSpeed, dz * moveSpeed);
+    }
+  }
+}
+
+class DirAuxiliary {
+  onFlip;
+  controls;
+  dx = 0;
+  constructor({ controls }, onFlip) {
+    this.onFlip = onFlip;
+    this.controls = controls;
+  }
+  checkControls(controls) {
+    let dx = 0;
+    if (controls.left) {
+      dx--;
+    }
+    if (controls.right) {
+      dx++;
+    }
+    if (dx && dx !== this.dx) {
+      this.dx = dx;
+      this.onFlip?.(this.dx);
+    }
+  }
+  onAction(controls) {
+    this.checkControls(controls);
+  }
+  onActionUp(controls) {
+    this.checkControls(controls);
+  }
+  activate() {
+    this.controls.addListener(this);
+  }
+  deactivate() {
+    this.controls.removeListener(this);
+  }
+}
+
+class Updater {
+  elems;
+  updateRegistry;
+  constructor({ updateRegistry, elems }) {
+    this.updateRegistry = updateRegistry;
+    this.elems = elems;
+  }
+  onUpdate(id, type) {
+    this.updateRegistry.informUpdate(id, type);
+  }
+  activate() {
+    this.elems.addUpdateListener?.(this);
+  }
+  deactivate() {
+    this.elems.removeUpdateListener?.(this);
+  }
+}
+
+class MediaUpdater extends Updater {
+  #savedMediaInfo = new Map;
+  #motor;
+  constructor({ engine, motor, medias }) {
+    super({
+      updateRegistry: new UpdateRegistry((ids) => {
+        ids.forEach((id) => this.removeMedia(id));
+        engine.updateTextures(ids, medias).then((mediaInfos) => mediaInfos.forEach((mediaInfo) => {
+          if (mediaInfo.isVideo) {
+            motor.scheduleUpdate(mediaInfo, undefined, mediaInfo.refreshRate);
+            this.#savedMediaInfo.set(mediaInfo.id, mediaInfo);
+          } else {
+            mediaInfo.dispose();
+          }
+        }));
+      }, motor),
+      elems: medias
+    });
+    this.#motor = motor;
+  }
+  removeMedia(id) {
+    const mediaInfo = this.#savedMediaInfo.get(id);
+    if (mediaInfo) {
+      this.#motor.stopUpdate(mediaInfo);
+      mediaInfo.dispose();
+      this.#savedMediaInfo.delete(id);
+    }
+  }
+  deactivate() {
+    this.#dispose();
+  }
+  #dispose() {
+    this.#savedMediaInfo.forEach((mediaInfo) => this.removeMedia(mediaInfo.id));
+  }
+}
+
+class AnimationUpdater extends Updater {
+  constructor({ engine, motor, animations }) {
+    super({
+      updateRegistry: new UpdateRegistry((ids) => {
+        engine.updateAnimationDefinitions(ids, animations);
+      }, motor),
+      elems: animations
+    });
+  }
+}
+
+class MotionAuxiliary {
+  onChange;
+  #controls;
+  #moving = false;
+  constructor({ controls }, onChange) {
+    this.onChange = onChange;
+    this.#controls = controls;
+  }
+  set moving(value) {
+    if (this.#moving !== value) {
+      this.#moving = value;
+      this.onChange?.(this.#moving);
+    }
+  }
+  checkMotion(controls) {
+    const { left, forward, backward, right } = controls;
+    this.moving = left || forward || backward || right;
+  }
+  onAction(controls) {
+    this.checkMotion(controls);
+  }
+  onActionUp(controls) {
+    this.checkMotion(controls);
+  }
+  activate() {
+    this.#controls.addListener(this);
+  }
+  deactivate() {
+    this.moving = false;
+    this.#controls.removeListener(this);
+  }
+}
+
+class FollowAuxiliary extends Looper {
+  followee;
+  config;
+  listener = {
+    onChange: () => {
+      if (this.config.followX || this.config.followY || this.config.followZ) {
+        this.start();
+      }
+    }
+  };
+  constructor({ followee, follower, motor }, config) {
+    super({ motor, data: { followee, follower } }, { autoStart: false });
+    this.followee = followee;
+    this.config = {
+      followX: config?.followX ?? true,
+      followY: config?.followY ?? true,
+      followZ: config?.followZ ?? true,
+      speed: config?.speed ?? 1
+    };
+  }
+  activate() {
+    super.activate();
+    this.followee.addChangeListener(this.listener);
+    this.start();
+  }
+  deactivate() {
+    this.followee.removeChangeListener(this.listener);
+    super.deactivate();
+  }
+  refresh({ data, stopUpdate }) {
+    const { followX, followY, followZ, speed } = this.config;
+    const x4 = followX ? data.followee.position[0] : data.follower.position[0];
+    const y22 = followY ? data.followee.position[1] : data.follower.position[1];
+    const z5 = followZ ? data.followee.position[2] : data.follower.position[2];
+    data.follower.moveTowards(x4, y22, z5, speed);
+    if (data.followee.position[0] === data.follower.position[0] && data.followee.position[1] === data.follower.position[1] && data.followee.position[2] === data.follower.position[2]) {
+      stopUpdate();
+    }
+  }
+}
+
+class DisplayBox {
+  #sprites;
+  constructor({ box, imageId, insideImageId }) {
+    if (!box.disabled) {
+      const cX = (box.left + box.right) / 2;
+      const cY = (box.top + box.bottom) / 2;
+      const cZ = (box.near + box.far) / 2;
+      const groundScale = [box.right - box.left, 2, box.near - box.far];
+      const sideScale = [2, box.top - box.bottom, box.near - box.far];
+      const faceScale = [box.right - box.left, box.top - box.bottom, 2];
+      const outside = [
+        d.create().translate(cX, box.bottom, cZ).scale(...groundScale).scale(0.5).rotateX(Math.PI / 2),
+        d.create().translate(cX, box.top, cZ).scale(...groundScale).scale(0.5).rotateX(-Math.PI / 2),
+        d.create().translate(box.left, cY, cZ).scale(...sideScale).scale(0.5).rotateY(-Math.PI / 2),
+        d.create().translate(box.right, cY, cZ).scale(...sideScale).scale(0.5).rotateY(Math.PI / 2),
+        d.create().translate(cX, cY, box.near).scale(...faceScale).scale(0.5).rotateY(0),
+        d.create().translate(cX, cY, box.far).scale(...faceScale).scale(0.5).rotateY(Math.PI)
+      ].map((transform) => ({ imageId, transform }));
+      const inside = !insideImageId ? [] : [
+        d.create().translate(cX, box.bottom, cZ).scale(...groundScale).scale(0.5).rotateX(-Math.PI / 2),
+        d.create().translate(cX, box.top, cZ).scale(...groundScale).scale(0.5).rotateX(+Math.PI / 2),
+        d.create().translate(box.left, cY, cZ).scale(...sideScale).scale(0.5).rotateY(+Math.PI / 2),
+        d.create().translate(box.right, cY, cZ).scale(...sideScale).scale(0.5).rotateY(-Math.PI / 2),
+        d.create().translate(cX, cY, box.near).scale(...faceScale).scale(0.5).rotateY(Math.PI),
+        d.create().translate(cX, cY, box.far).scale(...faceScale).scale(0.5).rotateY(0)
+      ].map((transform) => ({ imageId: insideImageId, transform }));
+      this.#sprites = [...inside, ...outside];
+    } else {
+      this.#sprites = [];
+    }
+  }
+  get length() {
+    return this.#sprites.length;
+  }
+  at(index) {
+    return this.#sprites.at(index);
+  }
+}
+var NULLBOX = {
+  top: 0,
+  bottom: 0,
+  left: 0,
+  right: 0,
+  near: 0,
+  far: 0,
+  disabled: false
+};
+
+class CollisionBox {
+  box;
+  position;
+  constructor(box, position) {
+    this.box = box;
+    this.position = position;
+  }
+  collideWith(box) {
+    return this.right > box.left && box.right > this.left && this.top > box.bottom && box.top > this.bottom && this.near > box.far && box.near > this.far;
+  }
+  gotoPosition(pos) {
+    this.position[0] = pos[0];
+    this.position[1] = pos[1];
+    this.position[2] = pos[2];
+  }
+  get top() {
+    return this.box.top + this.position[1];
+  }
+  get bottom() {
+    return this.box.bottom + this.position[1];
+  }
+  get left() {
+    return this.box.left + this.position[0];
+  }
+  get right() {
+    return this.box.right + this.position[0];
+  }
+  get near() {
+    return this.box.near + this.position[2];
+  }
+  get far() {
+    return this.box.far + this.position[2];
+  }
+}
+
+class CollisionDetector {
+  #collisionBox;
+  #heroCollisionBox;
+  #config;
+  #listener;
+  #collide = false;
+  #disabled;
+  constructor({ blockerBox, blockerPosition, heroBox = NULLBOX, listener = {} }, config = {}) {
+    this.#collisionBox = new CollisionBox(blockerBox, blockerPosition);
+    this.#heroCollisionBox = new CollisionBox(heroBox, [0, 0, 0]);
+    this.#listener = listener;
+    this.#config = { shouldBlock: config.shouldBlock ?? false };
+    this.#disabled = blockerBox.disabled;
+  }
+  isBlocked(to) {
+    if (this.#disabled) {
+      return false;
+    }
+    this.#heroCollisionBox.gotoPosition(to);
+    const collide = this.#heroCollisionBox.collideWith(this.#collisionBox);
+    if (collide !== this.#collide) {
+      this.#collide = collide;
+      this.#listener.onBlockChange?.(this.#collide);
+      if (this.#collide) {
+        this.#listener.onEnter?.();
+      } else {
+        this.#listener.onLeave?.();
+      }
+    }
+    return this.#config.shouldBlock ? collide : false;
+  }
+}
+var FADE_RATE = 0.002;
+
+class FadeApiAuxiliary {
+  camera;
+  config;
+  motor;
+  api;
+  constructor({ camera, motor, api }, config) {
+    this.camera = camera;
+    this.motor = motor;
+    this.api = api;
+    this.config = {
+      speed: config?.speed ?? 1
+    };
+    this.fadeIn = this.fadeIn.bind(this);
+    this.fadeOut = this.fadeOut.bind(this);
+  }
+  activate() {
+    const api = this.api;
+    api.fadeIn = this.fadeIn;
+    api.fadeOut = this.fadeOut;
+  }
+  deactivate() {
+    const api = this.api;
+    if (api.fadeIn === this.fadeIn) {
+      delete api.fadeIn;
+    }
+    if (api.fadeOut === this.fadeOut) {
+      delete api.fadeOut;
+    }
+  }
+  fadeOut() {
+    this.camera.fade.progressTowards(1, this.config.speed * FADE_RATE, this, this.motor);
+  }
+  fadeIn() {
+    this.camera.fade.progressTowards(0, this.config.speed * FADE_RATE, this, this.motor);
+  }
+}
+var k = (m32) => {
+  if (m32) {
+    const j = m32.getImageData(0, 0, m32.canvas.width, m32.canvas.height), { data: f2 } = j;
+    for (let b2 = 0;b2 < f2.length; b2 += 4)
+      f2[b2] = f2[b2 + 1] = f2[b2 + 2] = 0;
+    m32.putImageData(j, 0, 0);
+  }
+};
+
+class h2 {
+  i;
+  f;
+  warningLimit = 50000;
+  #i = new Set;
+  #f = [];
+  constructor(i, f2) {
+    this.initCall = i;
+    this.onRecycle = f2;
+  }
+  create(...i) {
+    const f2 = this.#f.pop();
+    if (f2)
+      return this.#i.add(f2), this.initCall(f2, ...i);
+    const v32 = this.initCall(undefined, ...i);
+    return this.#i.add(v32), this.#v(), v32;
+  }
+  recycle(i) {
+    this.#i.delete(i), this.#h(i);
+  }
+  recycleAll() {
+    for (let i of this.#i)
+      this.#h(i);
+    this.#i.clear();
+  }
+  clear() {
+    this.#f.length = 0, this.#i.clear();
+  }
+  countObjectsInExistence() {
+    return this.#i.size + this.#f.length;
+  }
+  #h(i) {
+    this.#f.push(i), this.onRecycle?.(i);
+  }
+  #v() {
+    if (this.countObjectsInExistence() === this.warningLimit)
+      console.warn("ObjectPool already created", this.#i.size + this.#f.length, "in", this.constructor.name);
+  }
+}
+
+class SpriteCellCreator extends X2 {
+  factory;
+  slots = [];
+  slotPool;
+  constructor({ factory, slotPool }) {
+    super();
+    this.factory = factory;
+    this.slotPool = slotPool ?? new SlotPool(copySprite);
+  }
+  trackCell(cell) {
+    return this.#createCell(cell);
+  }
+  untrackCells(cellTags) {
+    return this.#destroyCells(cellTags);
+  }
+  get length() {
+    return this.slots.length;
+  }
+  at(index) {
+    return this.slots[index]?.elem;
+  }
+  deactivate() {
+    this.slots.forEach((slot) => this.slotPool.recycle(slot));
+    this.slots.length = 0;
+  }
+  #createCell(cell) {
+    let count = 0;
+    const { tag } = cell;
+    const elems = this.factory.getElemsAtCell(cell);
+    x2(elems, (elem) => {
+      if (elem) {
+        const slot = this.slotPool.create(elem, tag);
+        const spriteId = this.slots.length;
+        this.slots.push(slot);
+        this.informUpdate(spriteId);
+        count++;
+      }
+    });
+    this.factory.doneCellTracking?.(cell);
+    return !!count;
+  }
+  #destroyCells(tags) {
+    for (let i = this.slots.length - 1;i >= 0; i--) {
+      const slot = this.slots[i];
+      if (tags.has(slot.tag)) {
+        this.informUpdate(i);
+        this.informUpdate(this.slots.length - 1, SpriteUpdateType.TRANSFORM);
+        this.slots[i] = this.slots[this.slots.length - 1];
+        this.slots.pop();
+        this.slotPool.recycle(slot);
+      }
+    }
+  }
+}
+
+class SlotPool extends h2 {
+  constructor(copy) {
+    super((slot, elem, tag) => {
+      if (!slot) {
+        return { elem: copy(elem), tag };
+      }
+      slot.elem = copy(elem, slot.elem);
+      slot.tag = tag;
+      return slot;
+    });
+  }
+}
+var N3 = function(m32, Y2, w2, H3) {
+  const J = Z3(m32, Y2, w2, H3), V3 = m32 * H3, W3 = Y2 * H3, K = w2 * H3;
+  return { pos: [m32, Y2, w2, H3], worldPosition: [V3, W3, K], tag: J };
+};
+var X3 = function(m32, Y2, w2, H3, J) {
+  const V3 = Z3(Y2, w2, H3, J), W3 = Y2 * J, K = w2 * J, $4 = H3 * J;
+  return m32.worldPosition[0] = W3, m32.worldPosition[1] = K, m32.worldPosition[2] = $4, m32.pos[0] = Y2, m32.pos[1] = w2, m32.pos[2] = H3, m32.pos[3] = J, m32.tag = V3, m32;
+};
+var Z3 = function(m32, Y2, w2, H3) {
+  return m32 + "," + Y2 + "," + w2 + "|" + H3;
+};
+var j = function(m32, Y2) {
+  return Math.round(m32 / Y2);
+};
+var P = function(m32, Y2) {
+  return new G4({ tracker: m32, boundary: Y2 });
+};
+var _4 = 3;
+
+class B4 {
+  i;
+  f;
+  warningLimit = 50000;
+  #m = new Set;
+  #Y = [];
+  constructor(m32, Y2) {
+    this.initCall = m32, this.onRecycle = Y2;
+  }
+  create(...m32) {
+    const Y2 = this.#Y.pop();
+    if (Y2)
+      return this.#m.add(Y2), this.initCall(Y2, ...m32);
+    const w2 = this.initCall(undefined, ...m32);
+    return this.#m.add(w2), this.#H(), w2;
+  }
+  recycle(m32) {
+    this.#m.delete(m32), this.#w(m32);
+  }
+  recycleAll() {
+    for (let m32 of this.#m)
+      this.#w(m32);
+    this.#m.clear();
+  }
+  clear() {
+    this.#Y.length = 0, this.#m.clear();
+  }
+  countObjectsInExistence() {
+    return this.#m.size + this.#Y.length;
+  }
+  #w(m32) {
+    this.#Y.push(m32), this.onRecycle?.(m32);
+  }
+  #H() {
+    if (this.countObjectsInExistence() === this.warningLimit)
+      console.warn("ObjectPool already created", this.#m.size + this.#Y.length, "in", this.constructor.name);
+  }
+}
+
+class Q3 extends B4 {
+  constructor() {
+    super((m32, Y2, w2, H3, J) => {
+      return !m32 ? N3(Y2, w2, H3, J) : X3(m32, Y2, w2, H3, J);
+    });
+  }
+  createFromPos(m32, Y2) {
+    const w2 = j(m32[0], Y2), H3 = j(m32[1], Y2), J = j(m32[2], Y2);
+    return this.create(w2, H3, J, Y2);
+  }
+}
+
+class A4 {
+  #m = new Set;
+  add(m32) {
+    this.#m.add(m32);
+  }
+  remove(m32) {
+    this.#m.delete(m32);
+  }
+  trackCell(m32) {
+    let Y2 = false;
+    return this.#m.forEach((w2) => {
+      if (w2.trackCell(m32))
+        Y2 = true;
+    }), Y2;
+  }
+  untrackCells(m32) {
+    this.#m.forEach((Y2) => {
+      Y2.untrackCells(m32);
+    });
+  }
+}
+
+class I {
+  i;
+  f;
+  warningLimit = 50000;
+  #m = new Set;
+  #Y = [];
+  constructor(m32, Y2) {
+    this.initCall = m32, this.onRecycle = Y2;
+  }
+  create(...m32) {
+    const Y2 = this.#Y.pop();
+    if (Y2)
+      return this.#m.add(Y2), this.initCall(Y2, ...m32);
+    const w2 = this.initCall(undefined, ...m32);
+    return this.#m.add(w2), this.#H(), w2;
+  }
+  recycle(m32) {
+    this.#m.delete(m32), this.#w(m32);
+  }
+  recycleAll() {
+    for (let m32 of this.#m)
+      this.#w(m32);
+    this.#m.clear();
+  }
+  clear() {
+    this.#Y.length = 0, this.#m.clear();
+  }
+  countObjectsInExistence() {
+    return this.#m.size + this.#Y.length;
+  }
+  #w(m32) {
+    this.#Y.push(m32), this.onRecycle?.(m32);
+  }
+  #H() {
+    if (this.countObjectsInExistence() === this.warningLimit)
+      console.warn("ObjectPool already created", this.#m.size + this.#Y.length, "in", this.constructor.name);
+  }
+}
+
+class R4 {
+  F;
+  #m;
+  #Y;
+  #w = new Map;
+  constructor(m32, Y2 = new b2) {
+    this.pool = Y2, this.#m = { value: m32 }, this.#Y = { value: m32 }, this.#m.next = this.#Y, this.#Y.prev = this.#m;
+  }
+  clear() {
+    while (this.#J(this.#m.next))
+      ;
+  }
+  get size() {
+    return this.#w.size;
+  }
+  contains(m32) {
+    return this.#w.has(m32);
+  }
+  pushTop(m32) {
+    this.#Q(this.#K(m32));
+  }
+  pushBottom(m32) {
+    this.#V(this.#K(m32));
+  }
+  moveToTop(m32) {
+    const Y2 = this.#w.get(m32);
+    if (Y2)
+      return this.#H(Y2), this.#Q(Y2), true;
+    return false;
+  }
+  moveToBottom(m32) {
+    const Y2 = this.#w.get(m32);
+    if (Y2)
+      return this.#H(Y2), this.#V(Y2), true;
+    return false;
+  }
+  popBottom() {
+    return this.#J(this.#m.next);
+  }
+  popTop() {
+    return this.#J(this.#Y.prev);
+  }
+  #H(m32) {
+    if (m32 === this.#Y || m32 === this.#m)
+      return false;
+    if (m32.prev && m32.next)
+      m32.prev.next = m32.next, m32.next.prev = m32.prev;
+    return m32.prev = m32.next = undefined, true;
+  }
+  #K(m32) {
+    const Y2 = this.pool.create(m32);
+    return this.#w.set(m32, Y2), Y2;
+  }
+  #J(m32) {
+    if (!this.#H(m32))
+      return;
+    return this.pool.recycle(m32), this.#w.delete(m32.value), m32.value;
+  }
+  #Q(m32) {
+    const Y2 = this.#Y.prev, w2 = m32;
+    w2.prev = Y2, w2.next = this.#Y, Y2.next = this.#Y.prev = w2;
+  }
+  #V(m32) {
+    const Y2 = this.#m.next, w2 = m32;
+    w2.next = Y2, w2.prev = this.#m, Y2.prev = this.#m.next = w2;
+  }
+}
+
+class b2 extends I {
+  constructor() {
+    super((m32, Y2) => {
+      if (!m32)
+        return { value: Y2 };
+      return m32.value = Y2, m32.prev = undefined, m32.next = undefined, m32;
+    });
+  }
+}
+var U = [3, 3, 3];
+
+class E2 {
+  cellTags = new R4("");
+  cellTrack;
+  cellPool = new Q3;
+  range;
+  base;
+  cellLimit;
+  cellSize;
+  _trimmedTags = new Set;
+  constructor({ cellTrack: m32 }, { range: Y2, cellLimit: w2, cellSize: H3 = 1 } = {}) {
+    this.range = [Y2?.[0] ?? U[0], Y2?.[1] ?? U[1], Y2?.[2] ?? U[2]], this.base = this.range.map((J) => Math.ceil(-J / 2)), this.cellLimit = Math.max(0, w2 ?? 10), this.cellSize = H3 ?? 1, this.cellTrack = m32;
+  }
+  onCell(m32) {
+    this.#m(m32), this.#w();
+  }
+  #m(m32) {
+    const { range: Y2, base: w2 } = this, { pos: H3 } = m32, J = H3[0] + w2[0], V3 = H3[1] + w2[1], W3 = H3[2] + w2[2];
+    for (let K = 0;K < Y2[0]; K++)
+      for (let $4 = 0;$4 < Y2[2]; $4++)
+        for (let O3 = 0;O3 < Y2[1]; O3++)
+          this.#Y(this.cellPool.create(J + $4, V3 + O3, W3 + K, this.cellSize));
+    this.cellPool.clear();
+  }
+  #Y(m32) {
+    if (!this.cellTags.contains(m32.tag)) {
+      if (this.cellTrack.trackCell(m32))
+        this.cellTags.pushTop(m32.tag);
+    } else
+      this.cellTags.moveToTop(m32.tag);
+  }
+  #w() {
+    while (this.cellTags.size > this.cellLimit) {
+      const m32 = this.cellTags.popBottom();
+      if (m32)
+        this._trimmedTags.add(m32);
+      else
+        break;
+    }
+    if (this._trimmedTags.size)
+      this.cellTrack.untrackCells(this._trimmedTags), this._trimmedTags.clear();
+  }
+  deactivate() {
+    this.cellTags.clear();
+  }
+}
+
+class G4 {
+  #m;
+  #Y;
+  constructor({ boundary: m32, tracker: Y2 }) {
+    this.#m = m32, this.#Y = Y2;
+  }
+  trackCell(m32) {
+    if (!this.#m.include(m32))
+      return false;
+    return this.#Y.trackCell(m32);
+  }
+  untrackCells(m32) {
+    this.#Y.untrackCells(m32);
+  }
+}
+
+class h3 {
+  minX;
+  maxX;
+  minY;
+  maxY;
+  minZ;
+  maxZ;
+  constructor(m32) {
+    this.minX = m32?.xRange?.[0] ?? Number.NEGATIVE_INFINITY, this.maxX = m32?.xRange?.[1] ?? Number.POSITIVE_INFINITY, this.minY = m32?.yRange?.[0] ?? Number.NEGATIVE_INFINITY, this.maxY = m32?.yRange?.[1] ?? Number.POSITIVE_INFINITY, this.minZ = m32?.zRange?.[0] ?? Number.NEGATIVE_INFINITY, this.maxZ = m32?.zRange?.[1] ?? Number.POSITIVE_INFINITY;
+  }
+  include(m32) {
+    const Y2 = m32.pos[0], w2 = m32.pos[1], H3 = m32.pos[2];
+    if (Y2 < this.minX || this.maxX < Y2 || w2 < this.minY || this.maxY < w2 || H3 < this.minZ || this.maxZ < H3)
+      return false;
+    return true;
+  }
+}
+
+class M2 {
+  #m;
+  #Y = new Set;
+  #w;
+  #H = new Q3;
+  #K = { onChange: () => this.#J(this.#w) };
+  constructor({ positionMatrix: m32 }, Y2) {
+    const w2 = Y2?.cellSize ?? 1;
+    this.#m = this.#H.create(Number.NaN, Number.NaN, Number.NaN, w2), this.#w = m32;
+  }
+  addListener(m32) {
+    return this.#Y.add(m32), this;
+  }
+  removeListener(m32) {
+    this.#Y.delete(m32);
+  }
+  #J(m32) {
+    let Y2 = this.#H.createFromPos(m32.position, this.#m.pos[_4]);
+    if (this.#m.pos[0] !== Y2.pos[0] || this.#m.pos[1] !== Y2.pos[1] || this.#m.pos[2] !== Y2.pos[2]) {
+      for (let H3 of this.#Y)
+        H3.onCell(Y2, this.#m);
+      const w2 = this.#m;
+      this.#m = Y2, Y2 = w2;
+    }
+    this.#H.recycle(Y2);
+  }
+  activate() {
+    this.#m.pos[0] = Number.NaN, this.#m.pos[1] = Number.NaN, this.#m.pos[2] = Number.NaN, this.#w.addChangeListener(this.#K), this.#J(this.#w);
+  }
+  deactivate() {
+    this.#w.removeChangeListener(this.#K);
+  }
+}
+
+class FixedSpriteFactory extends AuxiliaryHolder {
+  config;
+  spritesPerCell = new Map;
+  spritesList;
+  constructor(config, ...spritesList) {
+    super();
+    this.config = config;
+    this.spritesList = spritesList;
+    this.config = config;
+    spritesList.forEach((sprites) => this.addAuxiliary(sprites));
+  }
+  activate() {
+    super.activate();
+    const vector = [0, 0, 0];
+    this.spritesList.forEach((sprites) => {
+      x2(sprites, (sprite) => {
+        if (sprite) {
+          Q0(sprite.transform, vector);
+          const cellSize = this.config.cellSize ?? 1;
+          const cell = N3(j(vector[0], cellSize), j(vector[1], cellSize), j(vector[2], cellSize), cellSize);
+          if (!this.spritesPerCell.has(cell.tag)) {
+            this.spritesPerCell.set(cell.tag, []);
+          }
+          this.spritesPerCell.get(cell.tag)?.push(copySprite(sprite));
+        }
+      });
+    });
+  }
+  getElemsAtCell(cell) {
+    return this.spritesPerCell.get(cell.tag);
+  }
+}
+var import_seedrandom = __toESM(require_seedrandom2(), 1);
+
+class SpritePool extends h2 {
+  constructor() {
+    super((sprite, imageId) => {
+      if (!sprite) {
+        return { imageId, transform: d.create() };
+      }
+      sprite.imageId = imageId;
+      sprite.transform.identity();
+      sprite.spriteType = SpriteType.DEFAULT;
+      return sprite;
+    });
+  }
+}
+
+class StepBackAuxiliary extends Looper {
+  #previousCellPos;
+  #curCellPos;
+  constructor({ position, motor }, config = {}) {
+    super({ motor, data: { position, speed: config.speed ?? 1, step: config.step ?? 2 } }, { autoStart: false });
+    position.goBack = () => this.goBack();
+    const step = config.step ?? 2;
+    this.#curCellPos = [
+      j(position.position[0], step) * step,
+      0,
+      j(position.position[2], step) * step
+    ];
+    this.#previousCellPos = [...this.#curCellPos];
+  }
+  onCell(cell) {
+    if (this.#curCellPos[0] !== cell.pos[0] || this.#curCellPos[2] !== cell.pos[2]) {
+      const temp = this.#previousCellPos;
+      this.#previousCellPos = this.#curCellPos;
+      this.#curCellPos = temp;
+      this.#curCellPos[0] = cell.pos[0];
+      this.#curCellPos[2] = cell.pos[2];
+    }
+  }
+  goBack() {
+    this.#curCellPos[0] = this.#previousCellPos[0];
+    this.#curCellPos[2] = this.#previousCellPos[2];
+    this.start();
+  }
+  refresh({ deltaTime, data, stopUpdate }) {
+    const speed = deltaTime / 50 * data.speed;
+    let moveResult = data.position.moveTowards(this.#previousCellPos[0] * data.step, this.#previousCellPos[1] * data.step, this.#previousCellPos[2] * data.step, speed);
+    if (moveResult !== w.MOVED) {
+      stopUpdate();
+    }
+  }
+}
+var updateBodyRecord = function(record, accumulator, id, elems) {
+  if (!elems) {
+    if (record[id]) {
+      accumulator.remove(record[id]);
+      delete record[id];
+    }
+  } else {
+    if (!record[id]) {
+      accumulator.add(elems);
+      record[id] = elems;
+    }
+  }
+};
+
+class BodyModel {
+  sprites = new H;
+  colliders = new H;
+  #bodies = new H;
+  #spritesPerId = {};
+  #collidersPerId = {};
+  constructor({ sprites, colliders, bodies } = {}) {
+    this.#bodies.addUpdateListener({
+      onUpdate: (bodyId) => {
+        const body = this.#bodies.at(bodyId);
+        updateBodyRecord(this.#spritesPerId, this.sprites, bodyId, body?.sprites);
+        updateBodyRecord(this.#collidersPerId, this.colliders, bodyId, body?.colliders);
+      }
+    });
+    if (sprites) {
+      this.sprites.add(sprites);
+    }
+    if (colliders) {
+      this.colliders.add(colliders);
+    }
+    if (bodies) {
+      this.#bodies.add(bodies);
+    }
+  }
+  addSprites(sprites) {
+    this.sprites.add(sprites);
+  }
+  addColliders(colliders) {
+    this.colliders.add(colliders);
+  }
+  addBodies(bodies) {
+    this.#bodies.add(bodies);
+  }
+  removeSprites(sprites) {
+    this.sprites.remove(sprites);
+  }
+  removeColliders(colliders) {
+    this.colliders.remove(colliders);
+  }
+  removeBodies(bodies) {
+    this.#bodies.remove(bodies);
+  }
+  updateFully() {
+    this.sprites.updateFully();
+    this.colliders.updateFully();
+    this.#bodies.updateFully();
+  }
+}
+
+class PositionStep {
+  #goalPos;
+  #position;
+  #stepCount = 0;
+  constructor({ position }) {
+    this.#position = position;
+    this.#goalPos = [
+      this.#position.position[0],
+      this.#position.position[1],
+      this.#position.position[2]
+    ];
+  }
+  get position() {
+    return this.#position.position;
+  }
+  getMatrix() {
+    return this.#position.getMatrix();
+  }
+  addChangeListener(listener) {
+    this.#position.addChangeListener(listener);
+    return this;
+  }
+  removeChangeListener(listener) {
+    this.#position.removeChangeListener(listener);
+  }
+  cellMoveBy(dx, dy2, dz, cellSize, speed) {
+    const pos = this.#position.position;
+    const preX = j(pos[0], cellSize) * cellSize;
+    const preY = j(pos[1], cellSize) * cellSize;
+    const preZ = j(pos[2], cellSize) * cellSize;
+    const movement = dx || dy2 || dz;
+    if (movement || this.#stepCount > 0) {
+      const gx = (j(pos[0], cellSize) + dx) * cellSize;
+      const gy = (j(pos[1], cellSize) + dy2) * cellSize;
+      const gz = (j(pos[2], cellSize) + dz) * cellSize;
+      this.#goalPos[0] = gx;
+      this.#goalPos[1] = gy;
+      this.#goalPos[2] = gz;
+    }
+    if (!dx && !dy2 && !dz) {
+      this.#stepCount = 0;
+    }
+    const moveResult = this.#position.attemptMoveTowards(this.#goalPos[0], this.#goalPos[1], this.#goalPos[2], speed);
+    if (moveResult === w.BLOCKED) {
+      const gx = j(pos[0], cellSize) * cellSize;
+      const gy = j(pos[1], cellSize) * cellSize;
+      const gz = j(pos[2], cellSize) * cellSize;
+      this.#goalPos[0] = gx;
+      this.#goalPos[1] = gy;
+      this.#goalPos[2] = gz;
+    }
+    const newPos = this.#position.position;
+    if (j(newPos[0], cellSize) * cellSize !== preX || j(newPos[1], cellSize) * cellSize !== preY || j(newPos[2], cellSize) * cellSize !== preZ) {
+      this.#stepCount++;
+    }
+    if (!movement && G3(newPos, this.#goalPos)) {
+      return w.AT_POSITION;
+    }
+    return moveResult;
+  }
+}
+var usePopupManager = function() {
+  const [popups, setPopups] = import_react3.useState([]);
+  const topPopupUid = import_react3.useMemo(() => popups[popups.length - 1]?.uid ?? "", [popups]);
+  const addPopup = import_react3.useCallback((data) => setPopups((popups2) => {
+    return [...popups2, data];
+  }), [setPopups]);
+  const closePopup = import_react3.useCallback((uid) => {
+    setPopups((popups2) => {
+      if (!uid || uid === popups2[popups2.length - 1].uid) {
+        return popups2.slice(0, popups2.length - 1);
+      }
+      return popups2;
+    });
+  }, [setPopups]);
+  return {
+    popups,
+    addPopup,
+    closePopup,
+    topPopupUid
+  };
+};
+var Popup2 = function({
+  children,
+  position: [x4, y3],
+  size: [width, height],
+  positionFromRight,
+  positionFromBottom,
+  fontSize
+}) {
+  const [h4, setH] = import_react4.useState(10);
+  import_react4.useEffect(() => {
+    requestAnimationFrame(() => setH(100));
+  }, [setH]);
+  return jsx_dev_runtime2.jsxDEV("div", {
+    className: "pop-up",
+    style: {
+      position: "absolute",
+      left: positionFromRight ? `calc(100% - ${x4}px)` : x4,
+      top: positionFromBottom ? `calc(100% - ${y3}px)` : y3,
+      right: DEFAULT_PADDING,
+      bottom: DEFAULT_PADDING,
+      width,
+      height,
+      fontSize: fontSize ?? DEFAULT_FONT_SIZE
+    },
+    children: jsx_dev_runtime2.jsxDEV("div", {
+      style: {
+        ...POPUP_CSS,
+        width: "100%",
+        height: `${h4}%`,
+        overflow: "hidden",
+        transition: "height .2s"
+      },
+      children: jsx_dev_runtime2.jsxDEV("div", {
+        className: "double-border",
+        style: {
+          height: `calc(100% - ${DOUBLE_BORDER_HEIGHT_OFFSET}px)`,
+          ...DOUBLE_BORDER_CSS
+        },
+        children
+      }, undefined, false, undefined, this)
+    }, undefined, false, undefined, this)
+  }, undefined, false, undefined, this);
+};
+var useControlsLock = function({ uid, listener }) {
+  const { popupControl, addControlsLock, removeControlsLock, topPopupUid } = useGameContext();
+  const [locked, setLocked] = import_react5.useState(false);
+  const lockState = topPopupUid === uid ? LockStatus.UNLOCKED : LockStatus.LOCKED;
+  import_react5.useEffect(() => {
+    if (lockState) {
+      setLocked(true);
+      popupControl.addListener(listener);
+      return () => {
+        popupControl.removeListener(listener);
+        setLocked(false);
+      };
+    }
+  }, [listener, setLocked, popupControl, lockState]);
+  import_react5.useEffect(() => {
+    if (uid && locked) {
+      addControlsLock(uid);
+      return () => removeControlsLock(uid);
+    }
+  }, [addControlsLock, removeControlsLock, locked, uid]);
+};
+var useActions = function({ ui }) {
+  const performActions = import_react6.useCallback(async (actions) => {
+    for (let i = 0;i < actions.length; i++) {
+      await actions[i]?.(ui);
+    }
+  }, [ui]);
+  return { performActions };
+};
+var useDialog = function({ dialogData, ui, onDone }) {
+  const [index, setIndex] = import_react7.useState(0);
+  const { performActions } = useActions({ ui });
+  const nextMessage = import_react7.useCallback(() => setIndex((value) => value + 1), [setIndex]);
+  useControlsLock({ uid: dialogData.uid, listener: { onAction: nextMessage } });
+  import_react7.useEffect(() => {
+    ui.nextMessage = nextMessage;
+    return () => {
+      ui.nextMessage = () => {
+      };
+    };
+  }, [nextMessage, ui]);
+  const messages = import_react7.useMemo(() => dialogData.conversation.messages, [dialogData]);
+  const message = import_react7.useMemo(() => messages.at(index), [messages, index]);
+  import_react7.useEffect(() => {
+    const numMessages = messages.length.valueOf();
+    if (index >= numMessages) {
+      ui.closePopup(dialogData.uid);
+      onDone();
+    }
+  }, [index, ui, messages, dialogData, onDone]);
+  import_react7.useEffect(() => {
+    if (message?.action) {
+      const actions = Array.isArray(message.action) ? message.action : [message.action];
+      performActions(actions).then(nextMessage);
+    }
+  }, [message, performActions, dialogData, nextMessage]);
+  return {
+    text: message?.text
+  };
+};
+var Dialog = function({ dialogData, ui, onDone }) {
+  const { text } = useDialog({ dialogData, ui, onDone });
+  const position = [
+    dialogData?.position?.[0] ?? 50,
+    dialogData?.position?.[1] ?? 500
+  ];
+  const size = [
+    dialogData?.size?.[0],
+    dialogData?.size?.[1]
+  ];
+  const { fontSize, positionFromRight, positionFromBottom } = dialogData;
+  return jsx_dev_runtime3.jsxDEV(Popup2, {
+    position,
+    size,
+    fontSize,
+    positionFromBottom,
+    positionFromRight,
+    children: jsx_dev_runtime3.jsxDEV("div", {
+      style: { padding: 10 },
+      children: jsx_dev_runtime3.jsxDEV("progressive-text", {
+        period: "30",
+        children: text
+      }, undefined, false, undefined, this)
+    }, undefined, false, undefined, this)
+  }, undefined, false, undefined, this);
+};
+var useSelection = function({ menuData }) {
+  const [selectedIndex, setSelectedIndex] = import_react8.useState(0);
+  const { onSelection } = useGameContext();
+  import_react8.useEffect(() => {
+    onSelection(selectedIndex);
+  }, [selectedIndex, onSelection]);
+  const select = import_react8.useCallback((index) => {
+    const len = menuData.items.length.valueOf();
+    setSelectedIndex(index % len);
+  }, [setSelectedIndex, menuData]);
+  const moveSelection = import_react8.useCallback((dy2) => {
+    if (dy2) {
+      const len = menuData.items.length.valueOf();
+      setSelectedIndex((index) => (index + dy2 + len) % len);
+    }
+  }, [setSelectedIndex, menuData]);
+  const selectedItem = import_react8.useMemo(() => {
+    return menuData.items.at(selectedIndex);
+  }, [menuData, selectedIndex]);
+  return {
+    select,
+    moveSelection,
+    selectedItem
+  };
+};
+var useMenu = function({ menuData, ui, onDone }) {
+  const { moveSelection, selectedItem } = useSelection({ menuData });
+  const { performActions } = useActions({ ui });
+  const listener = import_react9.useMemo(() => ({
+    onAction() {
+      const behavior = selectedItem?.behavior ?? MenuItemBehavior.CLOSE_ON_SELECT;
+      if (behavior === MenuItemBehavior.CLOSE_ON_SELECT) {
+        ui.closePopup(menuData.uid);
+      }
+      const selectedAction = selectedItem?.action;
+      const actions = Array.isArray(selectedAction) ? selectedAction : [selectedAction];
+      performActions(actions).then(() => {
+        if (behavior === MenuItemBehavior.CLOSE_AFTER_SELECT) {
+          ui.closePopup(menuData.uid);
+        }
+        if (behavior !== MenuItemBehavior.NONE) {
+          onDone();
+        }
+      });
+    },
+    onUp() {
+      moveSelection(-1);
+    },
+    onDown() {
+      moveSelection(1);
+    }
+  }), [moveSelection, selectedItem, performActions]);
+  useControlsLock({ uid: menuData.uid, listener });
+  return { selectedItem };
+};
+var Menu = function({ menuData, ui, onDone }) {
+  const { selectedItem } = useMenu({ menuData, ui, onDone });
+  const position = [
+    menuData?.position?.[0] ?? 50,
+    menuData?.position?.[1] ?? 50
+  ];
+  const size = [
+    menuData?.size?.[0],
+    menuData?.size?.[1]
+  ];
+  return jsx_dev_runtime4.jsxDEV(Popup2, {
+    position,
+    size,
+    fontSize: menuData.fontSize,
+    positionFromBottom: !!menuData.positionFromBottom,
+    positionFromRight: !!menuData.positionFromRight,
+    children: z5(menuData.items, (item, index) => {
+      const style = {
+        color: selectedItem === item ? "black" : "white",
+        backgroundColor: selectedItem === item ? "white" : "black"
+      };
+      return jsx_dev_runtime4.jsxDEV("div", {
+        style,
+        children: item?.label
+      }, index, false, undefined, this);
+    })
+  }, undefined, false, undefined, this);
+};
+var PopupContainer = function({ popups, ui, onDone }) {
+  const [elemsMap, setElemsMap] = import_react10.useState({});
+  const createElement = import_react10.useCallback((data) => {
+    switch (data.type) {
+      case "dialog":
+        return jsx_dev_runtime5.jsxDEV(Dialog, {
+          dialogData: data,
+          ui,
+          onDone
+        }, data.uid, false, undefined, this);
+      case "menu":
+        return jsx_dev_runtime5.jsxDEV(Menu, {
+          menuData: data,
+          ui,
+          onDone
+        }, data.uid, false, undefined, this);
+    }
+    throw new Error(`Invalid data type: ${data.type}`);
+  }, [ui, onDone]);
+  import_react10.useEffect(() => {
+    setElemsMap((elemsMap2) => {
+      const newElemsMap = {};
+      popups.forEach((data) => {
+        if (data.uid) {
+          newElemsMap[data.uid] = elemsMap2[data.uid] ?? createElement(data);
+        }
+      });
+      return newElemsMap;
+    });
+  }, [popups, setElemsMap, createElement]);
+  const getRect = import_react10.useCallback(({ positionFromRight, positionFromBottom, position, size }) => {
+    const x4 = positionFromRight ? position?.[0] ?? 0 : Number.MAX_SAFE_INTEGER - (position?.[0] ?? 0);
+    const y3 = positionFromBottom ? position?.[1] ?? 0 : Number.MAX_SAFE_INTEGER - (position?.[1] ?? 0);
+    const width = size?.[0] ?? Number.MAX_SAFE_INTEGER;
+    const height = size?.[1] ?? Number.MAX_SAFE_INTEGER;
+    return { x: x4, y: y3, width, height };
+  }, []);
+  const elements = import_react10.useMemo(() => {
+    const sortedPopups = [...popups];
+    sortedPopups.sort((p1, p2) => {
+      const r1 = getRect(p1), r2 = getRect(p2);
+      return r1.y - r2.y;
+    });
+    return sortedPopups.map((data) => elemsMap[data.uid ?? ""]);
+  }, [elemsMap, popups, getRect]);
+  return jsx_dev_runtime5.jsxDEV(jsx_dev_runtime5.Fragment, {
+    children: elements
+  }, undefined, false, undefined, this);
+};
+var rng = function() {
+  if (!getRandomValues) {
+    getRandomValues = typeof crypto !== "undefined" && crypto.getRandomValues && crypto.getRandomValues.bind(crypto);
+    if (!getRandomValues) {
+      throw new Error("crypto.getRandomValues() not supported. See https://github.com/uuidjs/uuid#getrandomvalues-not-supported");
+    }
+  }
+  return getRandomValues(rnds8);
+};
+var unsafeStringify = function(arr, offset = 0) {
+  return byteToHex[arr[offset + 0]] + byteToHex[arr[offset + 1]] + byteToHex[arr[offset + 2]] + byteToHex[arr[offset + 3]] + "-" + byteToHex[arr[offset + 4]] + byteToHex[arr[offset + 5]] + "-" + byteToHex[arr[offset + 6]] + byteToHex[arr[offset + 7]] + "-" + byteToHex[arr[offset + 8]] + byteToHex[arr[offset + 9]] + "-" + byteToHex[arr[offset + 10]] + byteToHex[arr[offset + 11]] + byteToHex[arr[offset + 12]] + byteToHex[arr[offset + 13]] + byteToHex[arr[offset + 14]] + byteToHex[arr[offset + 15]];
+};
+var PopupOverlay = function({ popupManager, popupControl }) {
+  const { popups, addPopup, closePopup, topPopupUid } = usePopupManager();
+  const [selection, setSelection] = import_react11.useState(0);
+  const [, setOnDones] = import_react11.useState([]);
+  const gameContext = import_react11.useMemo(() => ({
+    addControlsLock: (uid) => popupManager.addControlsLock(uid),
+    removeControlsLock: (uid) => popupManager.removeControlsLock(uid),
+    openMenu: (data) => {
+      const type = "menu";
+      const uid = type + "-" + v4_default();
+      addPopup({ uid, type, ...data });
+    },
+    openDialog: (data) => {
+      const type = "dialog";
+      const uid = type + "-" + v4_default();
+      addPopup({ uid, type, ...data });
+    },
+    closePopup,
+    popupControl,
+    topPopupUid,
+    onSelection: setSelection
+  }), [
+    popupManager,
+    popupControl,
+    addPopup,
+    closePopup,
+    topPopupUid,
+    setSelection
+  ]);
+  import_react11.useEffect(() => {
+    popupManager.openMenu = async (data) => {
+      gameContext.openMenu(data);
+      return new Promise((resolve) => setOnDones((onDones) => [...onDones, resolve]));
+    };
+    popupManager.openDialog = async (data) => {
+      gameContext.openDialog(data);
+      return new Promise((resolve) => setOnDones((onDones) => [...onDones, resolve]));
+    };
+    popupManager.closePopup = gameContext.closePopup;
+    popupManager.selection = selection;
+  }, [popupManager, gameContext, selection]);
+  const onDone = import_react11.useCallback(() => {
+    setOnDones((previousOnDones) => {
+      const last = previousOnDones[previousOnDones.length - 1];
+      last?.();
+      return previousOnDones.slice(0, previousOnDones.length - 1);
+    });
+  }, [setOnDones]);
+  return jsx_dev_runtime6.jsxDEV(Provider, {
+    context: gameContext,
+    children: [
+      jsx_dev_runtime6.jsxDEV("div", {
+        style: {
+          backgroundColor: "#ffffff66",
+          position: "absolute",
+          width: "100%"
+        },
+        children: "Title"
+      }, undefined, false, undefined, this),
+      jsx_dev_runtime6.jsxDEV(PopupContainer, {
+        popups,
+        ui: popupManager,
+        onDone
+      }, undefined, false, undefined, this)
+    ]
+  }, undefined, true, undefined, this);
+};
+var attachPopup = function(root) {
+  const { offsetLeft: left, offsetTop: top } = root;
+  const rootElem = document.createElement("div");
+  const reactRoot = client.default.createRoot(rootElem);
+  const popupManager = new PopupManager;
+  const popupControl = new PopupControl;
+  reactRoot.render(jsx_dev_runtime6.jsxDEV("div", {
+    style: { ...STYLE, top, left },
+    children: jsx_dev_runtime6.jsxDEV(PopupOverlay, {
+      popupManager,
+      popupControl
+    }, undefined, false, undefined, this)
+  }, undefined, false, undefined, this));
+  root.appendChild(rootElem);
+  const detach = () => {
+    reactRoot.unmount();
+  };
+  return { ui: popupManager, popupControl, detach };
+};
+var __create2 = Object.create;
+var __defProp2 = Object.defineProperty;
+var __getProtoOf2 = Object.getPrototypeOf;
+var __getOwnPropNames2 = Object.getOwnPropertyNames;
+var __hasOwnProp2 = Object.prototype.hasOwnProperty;
+var __toESM2 = (mod, isNodeMode, target) => {
+  target = mod != null ? __create2(__getProtoOf2(mod)) : {};
+  const to = isNodeMode || !mod || !mod.__esModule ? __defProp2(target, "default", { value: mod, enumerable: true }) : target;
+  for (let key of __getOwnPropNames2(mod))
+    if (!__hasOwnProp2.call(to, key))
+      __defProp2(to, key, {
+        get: () => mod[key],
+        enumerable: true
+      });
+  return to;
+};
+var __commonJS2 = (cb, mod) => () => (mod || cb((mod = { exports: {} }).exports, mod), mod.exports);
+var require_react_development = __commonJS2((exports, module) => {
   if (true) {
     (function() {
       if (typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ !== "undefined" && typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStart === "function") {
@@ -21325,14 +26757,872 @@ var require_react_development = __commonJS((exports, module) => {
     })();
   }
 });
-var require_react = __commonJS((exports, module) => {
-  var react_development = __toESM(require_react_development(), 1);
+var require_react = __commonJS2((exports, module) => {
+  var react_development = __toESM2(require_react_development(), 1);
   if (false) {
   } else {
     module.exports = react_development;
   }
 });
-var require_scheduler_development = __commonJS((exports) => {
+var require_react_jsx_dev_runtime_development = __commonJS2((exports) => {
+  var React2 = __toESM2(require_react(), 1);
+  if (true) {
+    (function() {
+      var REACT_ELEMENT_TYPE = Symbol.for("react.element");
+      var REACT_PORTAL_TYPE = Symbol.for("react.portal");
+      var REACT_FRAGMENT_TYPE = Symbol.for("react.fragment");
+      var REACT_STRICT_MODE_TYPE = Symbol.for("react.strict_mode");
+      var REACT_PROFILER_TYPE = Symbol.for("react.profiler");
+      var REACT_PROVIDER_TYPE = Symbol.for("react.provider");
+      var REACT_CONTEXT_TYPE = Symbol.for("react.context");
+      var REACT_FORWARD_REF_TYPE = Symbol.for("react.forward_ref");
+      var REACT_SUSPENSE_TYPE = Symbol.for("react.suspense");
+      var REACT_SUSPENSE_LIST_TYPE = Symbol.for("react.suspense_list");
+      var REACT_MEMO_TYPE = Symbol.for("react.memo");
+      var REACT_LAZY_TYPE = Symbol.for("react.lazy");
+      var REACT_OFFSCREEN_TYPE = Symbol.for("react.offscreen");
+      var MAYBE_ITERATOR_SYMBOL = Symbol.iterator;
+      var FAUX_ITERATOR_SYMBOL = "@@iterator";
+      function getIteratorFn(maybeIterable) {
+        if (maybeIterable === null || typeof maybeIterable !== "object") {
+          return null;
+        }
+        var maybeIterator = MAYBE_ITERATOR_SYMBOL && maybeIterable[MAYBE_ITERATOR_SYMBOL] || maybeIterable[FAUX_ITERATOR_SYMBOL];
+        if (typeof maybeIterator === "function") {
+          return maybeIterator;
+        }
+        return null;
+      }
+      var ReactSharedInternals = React2.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;
+      function error(format) {
+        {
+          {
+            for (var _len2 = arguments.length, args = new Array(_len2 > 1 ? _len2 - 1 : 0), _key2 = 1;_key2 < _len2; _key2++) {
+              args[_key2 - 1] = arguments[_key2];
+            }
+            printWarning("error", format, args);
+          }
+        }
+      }
+      function printWarning(level, format, args) {
+        {
+          var ReactDebugCurrentFrame2 = ReactSharedInternals.ReactDebugCurrentFrame;
+          var stack = ReactDebugCurrentFrame2.getStackAddendum();
+          if (stack !== "") {
+            format += "%s";
+            args = args.concat([stack]);
+          }
+          var argsWithFormat = args.map(function(item) {
+            return String(item);
+          });
+          argsWithFormat.unshift("Warning: " + format);
+          Function.prototype.apply.call(console[level], console, argsWithFormat);
+        }
+      }
+      var enableScopeAPI = false;
+      var enableCacheElement = false;
+      var enableTransitionTracing = false;
+      var enableLegacyHidden = false;
+      var enableDebugTracing = false;
+      var REACT_MODULE_REFERENCE;
+      {
+        REACT_MODULE_REFERENCE = Symbol.for("react.module.reference");
+      }
+      function isValidElementType(type) {
+        if (typeof type === "string" || typeof type === "function") {
+          return true;
+        }
+        if (type === REACT_FRAGMENT_TYPE || type === REACT_PROFILER_TYPE || enableDebugTracing || type === REACT_STRICT_MODE_TYPE || type === REACT_SUSPENSE_TYPE || type === REACT_SUSPENSE_LIST_TYPE || enableLegacyHidden || type === REACT_OFFSCREEN_TYPE || enableScopeAPI || enableCacheElement || enableTransitionTracing) {
+          return true;
+        }
+        if (typeof type === "object" && type !== null) {
+          if (type.$$typeof === REACT_LAZY_TYPE || type.$$typeof === REACT_MEMO_TYPE || type.$$typeof === REACT_PROVIDER_TYPE || type.$$typeof === REACT_CONTEXT_TYPE || type.$$typeof === REACT_FORWARD_REF_TYPE || type.$$typeof === REACT_MODULE_REFERENCE || type.getModuleId !== undefined) {
+            return true;
+          }
+        }
+        return false;
+      }
+      function getWrappedName(outerType, innerType, wrapperName) {
+        var displayName = outerType.displayName;
+        if (displayName) {
+          return displayName;
+        }
+        var functionName = innerType.displayName || innerType.name || "";
+        return functionName !== "" ? wrapperName + "(" + functionName + ")" : wrapperName;
+      }
+      function getContextName(type) {
+        return type.displayName || "Context";
+      }
+      function getComponentNameFromType(type) {
+        if (type == null) {
+          return null;
+        }
+        {
+          if (typeof type.tag === "number") {
+            error("Received an unexpected object in getComponentNameFromType(). This is likely a bug in React. Please file an issue.");
+          }
+        }
+        if (typeof type === "function") {
+          return type.displayName || type.name || null;
+        }
+        if (typeof type === "string") {
+          return type;
+        }
+        switch (type) {
+          case REACT_FRAGMENT_TYPE:
+            return "Fragment";
+          case REACT_PORTAL_TYPE:
+            return "Portal";
+          case REACT_PROFILER_TYPE:
+            return "Profiler";
+          case REACT_STRICT_MODE_TYPE:
+            return "StrictMode";
+          case REACT_SUSPENSE_TYPE:
+            return "Suspense";
+          case REACT_SUSPENSE_LIST_TYPE:
+            return "SuspenseList";
+        }
+        if (typeof type === "object") {
+          switch (type.$$typeof) {
+            case REACT_CONTEXT_TYPE:
+              var context = type;
+              return getContextName(context) + ".Consumer";
+            case REACT_PROVIDER_TYPE:
+              var provider = type;
+              return getContextName(provider._context) + ".Provider";
+            case REACT_FORWARD_REF_TYPE:
+              return getWrappedName(type, type.render, "ForwardRef");
+            case REACT_MEMO_TYPE:
+              var outerName = type.displayName || null;
+              if (outerName !== null) {
+                return outerName;
+              }
+              return getComponentNameFromType(type.type) || "Memo";
+            case REACT_LAZY_TYPE: {
+              var lazyComponent = type;
+              var payload = lazyComponent._payload;
+              var init = lazyComponent._init;
+              try {
+                return getComponentNameFromType(init(payload));
+              } catch (x4) {
+                return null;
+              }
+            }
+          }
+        }
+        return null;
+      }
+      var assign = Object.assign;
+      var disabledDepth = 0;
+      var prevLog;
+      var prevInfo;
+      var prevWarn;
+      var prevError;
+      var prevGroup;
+      var prevGroupCollapsed;
+      var prevGroupEnd;
+      function disabledLog() {
+      }
+      disabledLog.__reactDisabledLog = true;
+      function disableLogs() {
+        {
+          if (disabledDepth === 0) {
+            prevLog = console.log;
+            prevInfo = console.info;
+            prevWarn = console.warn;
+            prevError = console.error;
+            prevGroup = console.group;
+            prevGroupCollapsed = console.groupCollapsed;
+            prevGroupEnd = console.groupEnd;
+            var props = {
+              configurable: true,
+              enumerable: true,
+              value: disabledLog,
+              writable: true
+            };
+            Object.defineProperties(console, {
+              info: props,
+              log: props,
+              warn: props,
+              error: props,
+              group: props,
+              groupCollapsed: props,
+              groupEnd: props
+            });
+          }
+          disabledDepth++;
+        }
+      }
+      function reenableLogs() {
+        {
+          disabledDepth--;
+          if (disabledDepth === 0) {
+            var props = {
+              configurable: true,
+              enumerable: true,
+              writable: true
+            };
+            Object.defineProperties(console, {
+              log: assign({}, props, {
+                value: prevLog
+              }),
+              info: assign({}, props, {
+                value: prevInfo
+              }),
+              warn: assign({}, props, {
+                value: prevWarn
+              }),
+              error: assign({}, props, {
+                value: prevError
+              }),
+              group: assign({}, props, {
+                value: prevGroup
+              }),
+              groupCollapsed: assign({}, props, {
+                value: prevGroupCollapsed
+              }),
+              groupEnd: assign({}, props, {
+                value: prevGroupEnd
+              })
+            });
+          }
+          if (disabledDepth < 0) {
+            error("disabledDepth fell below zero. This is a bug in React. Please file an issue.");
+          }
+        }
+      }
+      var ReactCurrentDispatcher = ReactSharedInternals.ReactCurrentDispatcher;
+      var prefix;
+      function describeBuiltInComponentFrame(name, source, ownerFn) {
+        {
+          if (prefix === undefined) {
+            try {
+              throw Error();
+            } catch (x4) {
+              var match = x4.stack.trim().match(/\n( *(at )?)/);
+              prefix = match && match[1] || "";
+            }
+          }
+          return "\n" + prefix + name;
+        }
+      }
+      var reentry = false;
+      var componentFrameCache;
+      {
+        var PossiblyWeakMap = typeof WeakMap === "function" ? WeakMap : Map;
+        componentFrameCache = new PossiblyWeakMap;
+      }
+      function describeNativeComponentFrame(fn, construct) {
+        if (!fn || reentry) {
+          return "";
+        }
+        {
+          var frame = componentFrameCache.get(fn);
+          if (frame !== undefined) {
+            return frame;
+          }
+        }
+        var control;
+        reentry = true;
+        var previousPrepareStackTrace = Error.prepareStackTrace;
+        Error.prepareStackTrace = undefined;
+        var previousDispatcher;
+        {
+          previousDispatcher = ReactCurrentDispatcher.current;
+          ReactCurrentDispatcher.current = null;
+          disableLogs();
+        }
+        try {
+          if (construct) {
+            var Fake = function() {
+              throw Error();
+            };
+            Object.defineProperty(Fake.prototype, "props", {
+              set: function() {
+                throw Error();
+              }
+            });
+            if (typeof Reflect === "object" && Reflect.construct) {
+              try {
+                Reflect.construct(Fake, []);
+              } catch (x4) {
+                control = x4;
+              }
+              Reflect.construct(fn, [], Fake);
+            } else {
+              try {
+                Fake.call();
+              } catch (x4) {
+                control = x4;
+              }
+              fn.call(Fake.prototype);
+            }
+          } else {
+            try {
+              throw Error();
+            } catch (x4) {
+              control = x4;
+            }
+            fn();
+          }
+        } catch (sample) {
+          if (sample && control && typeof sample.stack === "string") {
+            var sampleLines = sample.stack.split("\n");
+            var controlLines = control.stack.split("\n");
+            var s3 = sampleLines.length - 1;
+            var c = controlLines.length - 1;
+            while (s3 >= 1 && c >= 0 && sampleLines[s3] !== controlLines[c]) {
+              c--;
+            }
+            for (;s3 >= 1 && c >= 0; s3--, c--) {
+              if (sampleLines[s3] !== controlLines[c]) {
+                if (s3 !== 1 || c !== 1) {
+                  do {
+                    s3--;
+                    c--;
+                    if (c < 0 || sampleLines[s3] !== controlLines[c]) {
+                      var _frame = "\n" + sampleLines[s3].replace(" at new ", " at ");
+                      if (fn.displayName && _frame.includes("<anonymous>")) {
+                        _frame = _frame.replace("<anonymous>", fn.displayName);
+                      }
+                      {
+                        if (typeof fn === "function") {
+                          componentFrameCache.set(fn, _frame);
+                        }
+                      }
+                      return _frame;
+                    }
+                  } while (s3 >= 1 && c >= 0);
+                }
+                break;
+              }
+            }
+          }
+        } finally {
+          reentry = false;
+          {
+            ReactCurrentDispatcher.current = previousDispatcher;
+            reenableLogs();
+          }
+          Error.prepareStackTrace = previousPrepareStackTrace;
+        }
+        var name = fn ? fn.displayName || fn.name : "";
+        var syntheticFrame = name ? describeBuiltInComponentFrame(name) : "";
+        {
+          if (typeof fn === "function") {
+            componentFrameCache.set(fn, syntheticFrame);
+          }
+        }
+        return syntheticFrame;
+      }
+      function describeFunctionComponentFrame(fn, source, ownerFn) {
+        {
+          return describeNativeComponentFrame(fn, false);
+        }
+      }
+      function shouldConstruct(Component) {
+        var prototype = Component.prototype;
+        return !!(prototype && prototype.isReactComponent);
+      }
+      function describeUnknownElementTypeFrameInDEV(type, source, ownerFn) {
+        if (type == null) {
+          return "";
+        }
+        if (typeof type === "function") {
+          {
+            return describeNativeComponentFrame(type, shouldConstruct(type));
+          }
+        }
+        if (typeof type === "string") {
+          return describeBuiltInComponentFrame(type);
+        }
+        switch (type) {
+          case REACT_SUSPENSE_TYPE:
+            return describeBuiltInComponentFrame("Suspense");
+          case REACT_SUSPENSE_LIST_TYPE:
+            return describeBuiltInComponentFrame("SuspenseList");
+        }
+        if (typeof type === "object") {
+          switch (type.$$typeof) {
+            case REACT_FORWARD_REF_TYPE:
+              return describeFunctionComponentFrame(type.render);
+            case REACT_MEMO_TYPE:
+              return describeUnknownElementTypeFrameInDEV(type.type, source, ownerFn);
+            case REACT_LAZY_TYPE: {
+              var lazyComponent = type;
+              var payload = lazyComponent._payload;
+              var init = lazyComponent._init;
+              try {
+                return describeUnknownElementTypeFrameInDEV(init(payload), source, ownerFn);
+              } catch (x4) {
+              }
+            }
+          }
+        }
+        return "";
+      }
+      var hasOwnProperty = Object.prototype.hasOwnProperty;
+      var loggedTypeFailures = {};
+      var ReactDebugCurrentFrame = ReactSharedInternals.ReactDebugCurrentFrame;
+      function setCurrentlyValidatingElement(element) {
+        {
+          if (element) {
+            var owner = element._owner;
+            var stack = describeUnknownElementTypeFrameInDEV(element.type, element._source, owner ? owner.type : null);
+            ReactDebugCurrentFrame.setExtraStackFrame(stack);
+          } else {
+            ReactDebugCurrentFrame.setExtraStackFrame(null);
+          }
+        }
+      }
+      function checkPropTypes(typeSpecs, values, location, componentName, element) {
+        {
+          var has = Function.call.bind(hasOwnProperty);
+          for (var typeSpecName in typeSpecs) {
+            if (has(typeSpecs, typeSpecName)) {
+              var error$1 = undefined;
+              try {
+                if (typeof typeSpecs[typeSpecName] !== "function") {
+                  var err = Error((componentName || "React class") + ": " + location + " type `" + typeSpecName + "` is invalid; it must be a function, usually from the `prop-types` package, but received `" + typeof typeSpecs[typeSpecName] + "`.This often happens because of typos such as `PropTypes.function` instead of `PropTypes.func`.");
+                  err.name = "Invariant Violation";
+                  throw err;
+                }
+                error$1 = typeSpecs[typeSpecName](values, typeSpecName, componentName, location, null, "SECRET_DO_NOT_PASS_THIS_OR_YOU_WILL_BE_FIRED");
+              } catch (ex) {
+                error$1 = ex;
+              }
+              if (error$1 && !(error$1 instanceof Error)) {
+                setCurrentlyValidatingElement(element);
+                error("%s: type specification of %s `%s` is invalid; the type checker function must return `null` or an `Error` but returned a %s. You may have forgotten to pass an argument to the type checker creator (arrayOf, instanceOf, objectOf, oneOf, oneOfType, and shape all require an argument).", componentName || "React class", location, typeSpecName, typeof error$1);
+                setCurrentlyValidatingElement(null);
+              }
+              if (error$1 instanceof Error && !(error$1.message in loggedTypeFailures)) {
+                loggedTypeFailures[error$1.message] = true;
+                setCurrentlyValidatingElement(element);
+                error("Failed %s type: %s", location, error$1.message);
+                setCurrentlyValidatingElement(null);
+              }
+            }
+          }
+        }
+      }
+      var isArrayImpl = Array.isArray;
+      function isArray(a2) {
+        return isArrayImpl(a2);
+      }
+      function typeName(value) {
+        {
+          var hasToStringTag = typeof Symbol === "function" && Symbol.toStringTag;
+          var type = hasToStringTag && value[Symbol.toStringTag] || value.constructor.name || "Object";
+          return type;
+        }
+      }
+      function willCoercionThrow(value) {
+        {
+          try {
+            testStringCoercion(value);
+            return false;
+          } catch (e2) {
+            return true;
+          }
+        }
+      }
+      function testStringCoercion(value) {
+        return "" + value;
+      }
+      function checkKeyStringCoercion(value) {
+        {
+          if (willCoercionThrow(value)) {
+            error("The provided key is an unsupported type %s. This value must be coerced to a string before before using it here.", typeName(value));
+            return testStringCoercion(value);
+          }
+        }
+      }
+      var ReactCurrentOwner = ReactSharedInternals.ReactCurrentOwner;
+      var RESERVED_PROPS = {
+        key: true,
+        ref: true,
+        __self: true,
+        __source: true
+      };
+      var specialPropKeyWarningShown;
+      var specialPropRefWarningShown;
+      var didWarnAboutStringRefs;
+      {
+        didWarnAboutStringRefs = {};
+      }
+      function hasValidRef(config) {
+        {
+          if (hasOwnProperty.call(config, "ref")) {
+            var getter = Object.getOwnPropertyDescriptor(config, "ref").get;
+            if (getter && getter.isReactWarning) {
+              return false;
+            }
+          }
+        }
+        return config.ref !== undefined;
+      }
+      function hasValidKey(config) {
+        {
+          if (hasOwnProperty.call(config, "key")) {
+            var getter = Object.getOwnPropertyDescriptor(config, "key").get;
+            if (getter && getter.isReactWarning) {
+              return false;
+            }
+          }
+        }
+        return config.key !== undefined;
+      }
+      function warnIfStringRefCannotBeAutoConverted(config, self2) {
+        {
+          if (typeof config.ref === "string" && ReactCurrentOwner.current && self2 && ReactCurrentOwner.current.stateNode !== self2) {
+            var componentName = getComponentNameFromType(ReactCurrentOwner.current.type);
+            if (!didWarnAboutStringRefs[componentName]) {
+              error('Component "%s" contains the string ref "%s". Support for string refs will be removed in a future major release. This case cannot be automatically converted to an arrow function. We ask you to manually fix this case by using useRef() or createRef() instead. Learn more about using refs safely here: https://reactjs.org/link/strict-mode-string-ref', getComponentNameFromType(ReactCurrentOwner.current.type), config.ref);
+              didWarnAboutStringRefs[componentName] = true;
+            }
+          }
+        }
+      }
+      function defineKeyPropWarningGetter(props, displayName) {
+        {
+          var warnAboutAccessingKey = function() {
+            if (!specialPropKeyWarningShown) {
+              specialPropKeyWarningShown = true;
+              error("%s: `key` is not a prop. Trying to access it will result in `undefined` being returned. If you need to access the same value within the child component, you should pass it as a different prop. (https://reactjs.org/link/special-props)", displayName);
+            }
+          };
+          warnAboutAccessingKey.isReactWarning = true;
+          Object.defineProperty(props, "key", {
+            get: warnAboutAccessingKey,
+            configurable: true
+          });
+        }
+      }
+      function defineRefPropWarningGetter(props, displayName) {
+        {
+          var warnAboutAccessingRef = function() {
+            if (!specialPropRefWarningShown) {
+              specialPropRefWarningShown = true;
+              error("%s: `ref` is not a prop. Trying to access it will result in `undefined` being returned. If you need to access the same value within the child component, you should pass it as a different prop. (https://reactjs.org/link/special-props)", displayName);
+            }
+          };
+          warnAboutAccessingRef.isReactWarning = true;
+          Object.defineProperty(props, "ref", {
+            get: warnAboutAccessingRef,
+            configurable: true
+          });
+        }
+      }
+      var ReactElement = function(type, key, ref, self2, source, owner, props) {
+        var element = {
+          $$typeof: REACT_ELEMENT_TYPE,
+          type,
+          key,
+          ref,
+          props,
+          _owner: owner
+        };
+        {
+          element._store = {};
+          Object.defineProperty(element._store, "validated", {
+            configurable: false,
+            enumerable: false,
+            writable: true,
+            value: false
+          });
+          Object.defineProperty(element, "_self", {
+            configurable: false,
+            enumerable: false,
+            writable: false,
+            value: self2
+          });
+          Object.defineProperty(element, "_source", {
+            configurable: false,
+            enumerable: false,
+            writable: false,
+            value: source
+          });
+          if (Object.freeze) {
+            Object.freeze(element.props);
+            Object.freeze(element);
+          }
+        }
+        return element;
+      };
+      function jsxDEV(type, config, maybeKey, source, self2) {
+        {
+          var propName;
+          var props = {};
+          var key = null;
+          var ref = null;
+          if (maybeKey !== undefined) {
+            {
+              checkKeyStringCoercion(maybeKey);
+            }
+            key = "" + maybeKey;
+          }
+          if (hasValidKey(config)) {
+            {
+              checkKeyStringCoercion(config.key);
+            }
+            key = "" + config.key;
+          }
+          if (hasValidRef(config)) {
+            ref = config.ref;
+            warnIfStringRefCannotBeAutoConverted(config, self2);
+          }
+          for (propName in config) {
+            if (hasOwnProperty.call(config, propName) && !RESERVED_PROPS.hasOwnProperty(propName)) {
+              props[propName] = config[propName];
+            }
+          }
+          if (type && type.defaultProps) {
+            var defaultProps = type.defaultProps;
+            for (propName in defaultProps) {
+              if (props[propName] === undefined) {
+                props[propName] = defaultProps[propName];
+              }
+            }
+          }
+          if (key || ref) {
+            var displayName = typeof type === "function" ? type.displayName || type.name || "Unknown" : type;
+            if (key) {
+              defineKeyPropWarningGetter(props, displayName);
+            }
+            if (ref) {
+              defineRefPropWarningGetter(props, displayName);
+            }
+          }
+          return ReactElement(type, key, ref, self2, source, ReactCurrentOwner.current, props);
+        }
+      }
+      var ReactCurrentOwner$1 = ReactSharedInternals.ReactCurrentOwner;
+      var ReactDebugCurrentFrame$1 = ReactSharedInternals.ReactDebugCurrentFrame;
+      function setCurrentlyValidatingElement$1(element) {
+        {
+          if (element) {
+            var owner = element._owner;
+            var stack = describeUnknownElementTypeFrameInDEV(element.type, element._source, owner ? owner.type : null);
+            ReactDebugCurrentFrame$1.setExtraStackFrame(stack);
+          } else {
+            ReactDebugCurrentFrame$1.setExtraStackFrame(null);
+          }
+        }
+      }
+      var propTypesMisspellWarningShown;
+      {
+        propTypesMisspellWarningShown = false;
+      }
+      function isValidElement(object) {
+        {
+          return typeof object === "object" && object !== null && object.$$typeof === REACT_ELEMENT_TYPE;
+        }
+      }
+      function getDeclarationErrorAddendum() {
+        {
+          if (ReactCurrentOwner$1.current) {
+            var name = getComponentNameFromType(ReactCurrentOwner$1.current.type);
+            if (name) {
+              return "\n\nCheck the render method of `" + name + "`.";
+            }
+          }
+          return "";
+        }
+      }
+      function getSourceInfoErrorAddendum(source) {
+        {
+          if (source !== undefined) {
+            var fileName = source.fileName.replace(/^.*[\\\/]/, "");
+            var lineNumber = source.lineNumber;
+            return "\n\nCheck your code at " + fileName + ":" + lineNumber + ".";
+          }
+          return "";
+        }
+      }
+      var ownerHasKeyUseWarning = {};
+      function getCurrentComponentErrorInfo(parentType) {
+        {
+          var info = getDeclarationErrorAddendum();
+          if (!info) {
+            var parentName = typeof parentType === "string" ? parentType : parentType.displayName || parentType.name;
+            if (parentName) {
+              info = "\n\nCheck the top-level render call using <" + parentName + ">.";
+            }
+          }
+          return info;
+        }
+      }
+      function validateExplicitKey(element, parentType) {
+        {
+          if (!element._store || element._store.validated || element.key != null) {
+            return;
+          }
+          element._store.validated = true;
+          var currentComponentErrorInfo = getCurrentComponentErrorInfo(parentType);
+          if (ownerHasKeyUseWarning[currentComponentErrorInfo]) {
+            return;
+          }
+          ownerHasKeyUseWarning[currentComponentErrorInfo] = true;
+          var childOwner = "";
+          if (element && element._owner && element._owner !== ReactCurrentOwner$1.current) {
+            childOwner = " It was passed a child from " + getComponentNameFromType(element._owner.type) + ".";
+          }
+          setCurrentlyValidatingElement$1(element);
+          error('Each child in a list should have a unique "key" prop.%s%s See https://reactjs.org/link/warning-keys for more information.', currentComponentErrorInfo, childOwner);
+          setCurrentlyValidatingElement$1(null);
+        }
+      }
+      function validateChildKeys(node, parentType) {
+        {
+          if (typeof node !== "object") {
+            return;
+          }
+          if (isArray(node)) {
+            for (var i = 0;i < node.length; i++) {
+              var child = node[i];
+              if (isValidElement(child)) {
+                validateExplicitKey(child, parentType);
+              }
+            }
+          } else if (isValidElement(node)) {
+            if (node._store) {
+              node._store.validated = true;
+            }
+          } else if (node) {
+            var iteratorFn = getIteratorFn(node);
+            if (typeof iteratorFn === "function") {
+              if (iteratorFn !== node.entries) {
+                var iterator = iteratorFn.call(node);
+                var step;
+                while (!(step = iterator.next()).done) {
+                  if (isValidElement(step.value)) {
+                    validateExplicitKey(step.value, parentType);
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+      function validatePropTypes(element) {
+        {
+          var type = element.type;
+          if (type === null || type === undefined || typeof type === "string") {
+            return;
+          }
+          var propTypes;
+          if (typeof type === "function") {
+            propTypes = type.propTypes;
+          } else if (typeof type === "object" && (type.$$typeof === REACT_FORWARD_REF_TYPE || type.$$typeof === REACT_MEMO_TYPE)) {
+            propTypes = type.propTypes;
+          } else {
+            return;
+          }
+          if (propTypes) {
+            var name = getComponentNameFromType(type);
+            checkPropTypes(propTypes, element.props, "prop", name, element);
+          } else if (type.PropTypes !== undefined && !propTypesMisspellWarningShown) {
+            propTypesMisspellWarningShown = true;
+            var _name = getComponentNameFromType(type);
+            error("Component %s declared `PropTypes` instead of `propTypes`. Did you misspell the property assignment?", _name || "Unknown");
+          }
+          if (typeof type.getDefaultProps === "function" && !type.getDefaultProps.isReactClassApproved) {
+            error("getDefaultProps is only used on classic React.createClass definitions. Use a static property named `defaultProps` instead.");
+          }
+        }
+      }
+      function validateFragmentProps(fragment) {
+        {
+          var keys = Object.keys(fragment.props);
+          for (var i = 0;i < keys.length; i++) {
+            var key = keys[i];
+            if (key !== "children" && key !== "key") {
+              setCurrentlyValidatingElement$1(fragment);
+              error("Invalid prop `%s` supplied to `React.Fragment`. React.Fragment can only have `key` and `children` props.", key);
+              setCurrentlyValidatingElement$1(null);
+              break;
+            }
+          }
+          if (fragment.ref !== null) {
+            setCurrentlyValidatingElement$1(fragment);
+            error("Invalid attribute `ref` supplied to `React.Fragment`.");
+            setCurrentlyValidatingElement$1(null);
+          }
+        }
+      }
+      function jsxWithValidation(type, props, key, isStaticChildren, source, self2) {
+        {
+          var validType = isValidElementType(type);
+          if (!validType) {
+            var info = "";
+            if (type === undefined || typeof type === "object" && type !== null && Object.keys(type).length === 0) {
+              info += " You likely forgot to export your component from the file it's defined in, or you might have mixed up default and named imports.";
+            }
+            var sourceInfo = getSourceInfoErrorAddendum(source);
+            if (sourceInfo) {
+              info += sourceInfo;
+            } else {
+              info += getDeclarationErrorAddendum();
+            }
+            var typeString;
+            if (type === null) {
+              typeString = "null";
+            } else if (isArray(type)) {
+              typeString = "array";
+            } else if (type !== undefined && type.$$typeof === REACT_ELEMENT_TYPE) {
+              typeString = "<" + (getComponentNameFromType(type.type) || "Unknown") + " />";
+              info = " Did you accidentally export a JSX literal instead of a component?";
+            } else {
+              typeString = typeof type;
+            }
+            error("React.jsx: type is invalid -- expected a string (for built-in components) or a class/function (for composite components) but got: %s.%s", typeString, info);
+          }
+          var element = jsxDEV(type, props, key, source, self2);
+          if (element == null) {
+            return element;
+          }
+          if (validType) {
+            var children = props.children;
+            if (children !== undefined) {
+              if (isStaticChildren) {
+                if (isArray(children)) {
+                  for (var i = 0;i < children.length; i++) {
+                    validateChildKeys(children[i], type);
+                  }
+                  if (Object.freeze) {
+                    Object.freeze(children);
+                  }
+                } else {
+                  error("React.jsx: Static children should always be an array. You are likely explicitly calling React.jsxs or React.jsxDEV. Use the Babel transform instead.");
+                }
+              } else {
+                validateChildKeys(children, type);
+              }
+            }
+          }
+          if (type === REACT_FRAGMENT_TYPE) {
+            validateFragmentProps(element);
+          } else {
+            validatePropTypes(element);
+          }
+          return element;
+        }
+      }
+      var jsxDEV$1 = jsxWithValidation;
+      exports.Fragment = REACT_FRAGMENT_TYPE;
+      exports.jsxDEV = jsxDEV$1;
+    })();
+  }
+});
+var require_jsx_dev_runtime = __commonJS2((exports, module) => {
+  var react_jsx_dev_runtime_development = __toESM2(require_react_jsx_dev_runtime_development(), 1);
+  if (false) {
+  } else {
+    module.exports = react_jsx_dev_runtime_development;
+  }
+});
+var require_scheduler_development = __commonJS2((exports) => {
   if (true) {
     (function() {
       if (typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ !== "undefined" && typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStart === "function") {
@@ -21776,22 +28066,22 @@ var require_scheduler_development = __commonJS((exports) => {
     })();
   }
 });
-var require_scheduler = __commonJS((exports, module) => {
-  var scheduler_development = __toESM(require_scheduler_development(), 1);
+var require_scheduler = __commonJS2((exports, module) => {
+  var scheduler_development = __toESM2(require_scheduler_development(), 1);
   if (false) {
   } else {
     module.exports = scheduler_development;
   }
 });
-var require_react_dom_development = __commonJS((exports) => {
-  var React = __toESM(require_react(), 1);
-  var Scheduler = __toESM(require_scheduler(), 1);
+var require_react_dom_development = __commonJS2((exports) => {
+  var React4 = __toESM2(require_react(), 1);
+  var Scheduler = __toESM2(require_scheduler(), 1);
   if (true) {
     (function() {
       if (typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ !== "undefined" && typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStart === "function") {
         __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStart(new Error);
       }
-      var ReactSharedInternals = React.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;
+      var ReactSharedInternals = React4.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;
       var suppressWarning = false;
       function setSuppressWarning(newSuppressWarning) {
         {
@@ -21840,7 +28130,7 @@ var require_react_dom_development = __commonJS((exports) => {
       var HostPortal = 4;
       var HostComponent = 5;
       var HostText = 6;
-      var Fragment = 7;
+      var Fragment2 = 7;
       var Mode = 8;
       var ContextConsumer = 9;
       var ContextProvider = 10;
@@ -22797,7 +29087,7 @@ var require_react_dom_development = __commonJS((exports) => {
             return "DehydratedFragment";
           case ForwardRef:
             return getWrappedName$1(type, type.render, "ForwardRef");
-          case Fragment:
+          case Fragment2:
             return "Fragment";
           case HostComponent:
             return type;
@@ -23192,7 +29482,7 @@ var require_react_dom_development = __commonJS((exports) => {
         {
           if (props.value == null) {
             if (typeof props.children === "object" && props.children !== null) {
-              React.Children.forEach(props.children, function(child) {
+              React4.Children.forEach(props.children, function(child) {
                 if (child == null) {
                   return;
                 }
@@ -31318,7 +37608,7 @@ var require_react_dom_development = __commonJS((exports) => {
         }
       }
       var fakeInternalInstance = {};
-      var emptyRefsObject = new React.Component().refs;
+      var emptyRefsObject = new React4.Component().refs;
       var didWarnAboutStateAssignmentForComponent;
       var didWarnAboutUninitializedState;
       var didWarnAboutGetSnapshotBeforeUpdateWithoutDidUpdate;
@@ -32127,7 +38417,7 @@ var require_react_dom_development = __commonJS((exports) => {
           }
         }
         function updateFragment2(returnFiber, current2, fragment, lanes, key) {
-          if (current2 === null || current2.tag !== Fragment) {
+          if (current2 === null || current2.tag !== Fragment2) {
             var created = createFiberFromFragment(fragment, returnFiber.mode, lanes, key);
             created.return = returnFiber;
             return created;
@@ -32529,7 +38819,7 @@ var require_react_dom_development = __commonJS((exports) => {
             if (child.key === key) {
               var elementType = element.type;
               if (elementType === REACT_FRAGMENT_TYPE) {
-                if (child.tag === Fragment) {
+                if (child.tag === Fragment2) {
                   deleteRemainingChildren(returnFiber, child.sibling);
                   var existing = useFiber(child, element.props.children);
                   existing.return = returnFiber;
@@ -36570,7 +42860,7 @@ var require_react_dom_development = __commonJS((exports) => {
             var _resolvedProps2 = workInProgress2.elementType === type ? _unresolvedProps2 : resolveDefaultProps(type, _unresolvedProps2);
             return updateForwardRef(current2, workInProgress2, type, _resolvedProps2, renderLanes2);
           }
-          case Fragment:
+          case Fragment2:
             return updateFragment(current2, workInProgress2, renderLanes2);
           case Mode:
             return updateMode(current2, workInProgress2, renderLanes2);
@@ -36837,7 +43127,7 @@ var require_react_dom_development = __commonJS((exports) => {
           case SimpleMemoComponent:
           case FunctionComponent:
           case ForwardRef:
-          case Fragment:
+          case Fragment2:
           case Mode:
           case Profiler:
           case ContextConsumer:
@@ -41047,7 +47337,7 @@ var require_react_dom_development = __commonJS((exports) => {
         return fiber;
       }
       function createFiberFromFragment(elements, mode, lanes, key) {
-        var fiber = createFiber(Fragment, elements, key, mode);
+        var fiber = createFiber(Fragment2, elements, key, mode);
         fiber.lanes = lanes;
         return fiber;
       }
@@ -42091,15 +48381,15 @@ var require_react_dom_development = __commonJS((exports) => {
     })();
   }
 });
-var require_react_dom = __commonJS((exports, module) => {
-  var react_dom_development = __toESM(require_react_dom_development(), 1);
+var require_react_dom = __commonJS2((exports, module) => {
+  var react_dom_development = __toESM2(require_react_dom_development(), 1);
   if (false) {
   } else {
     module.exports = react_dom_development;
   }
 });
-var require_client = __commonJS((exports) => {
-  var m4 = __toESM(require_react_dom(), 1);
+var require_client = __commonJS2((exports) => {
+  var m4 = __toESM2(require_react_dom(), 1);
   if (false) {
   } else {
     i = m4.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;
@@ -42122,6268 +48412,245 @@ var require_client = __commonJS((exports) => {
   }
   var i;
 });
-var require_react_jsx_dev_runtime_development = __commonJS((exports) => {
-  var React2 = __toESM(require_react(), 1);
-  if (true) {
-    (function() {
-      var REACT_ELEMENT_TYPE = Symbol.for("react.element");
-      var REACT_PORTAL_TYPE = Symbol.for("react.portal");
-      var REACT_FRAGMENT_TYPE = Symbol.for("react.fragment");
-      var REACT_STRICT_MODE_TYPE = Symbol.for("react.strict_mode");
-      var REACT_PROFILER_TYPE = Symbol.for("react.profiler");
-      var REACT_PROVIDER_TYPE = Symbol.for("react.provider");
-      var REACT_CONTEXT_TYPE = Symbol.for("react.context");
-      var REACT_FORWARD_REF_TYPE = Symbol.for("react.forward_ref");
-      var REACT_SUSPENSE_TYPE = Symbol.for("react.suspense");
-      var REACT_SUSPENSE_LIST_TYPE = Symbol.for("react.suspense_list");
-      var REACT_MEMO_TYPE = Symbol.for("react.memo");
-      var REACT_LAZY_TYPE = Symbol.for("react.lazy");
-      var REACT_OFFSCREEN_TYPE = Symbol.for("react.offscreen");
-      var MAYBE_ITERATOR_SYMBOL = Symbol.iterator;
-      var FAUX_ITERATOR_SYMBOL = "@@iterator";
-      function getIteratorFn(maybeIterable) {
-        if (maybeIterable === null || typeof maybeIterable !== "object") {
-          return null;
-        }
-        var maybeIterator = MAYBE_ITERATOR_SYMBOL && maybeIterable[MAYBE_ITERATOR_SYMBOL] || maybeIterable[FAUX_ITERATOR_SYMBOL];
-        if (typeof maybeIterator === "function") {
-          return maybeIterator;
-        }
-        return null;
-      }
-      var ReactSharedInternals = React2.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;
-      function error(format) {
-        {
-          {
-            for (var _len2 = arguments.length, args = new Array(_len2 > 1 ? _len2 - 1 : 0), _key2 = 1;_key2 < _len2; _key2++) {
-              args[_key2 - 1] = arguments[_key2];
-            }
-            printWarning("error", format, args);
-          }
-        }
-      }
-      function printWarning(level, format, args) {
-        {
-          var ReactDebugCurrentFrame2 = ReactSharedInternals.ReactDebugCurrentFrame;
-          var stack = ReactDebugCurrentFrame2.getStackAddendum();
-          if (stack !== "") {
-            format += "%s";
-            args = args.concat([stack]);
-          }
-          var argsWithFormat = args.map(function(item) {
-            return String(item);
-          });
-          argsWithFormat.unshift("Warning: " + format);
-          Function.prototype.apply.call(console[level], console, argsWithFormat);
-        }
-      }
-      var enableScopeAPI = false;
-      var enableCacheElement = false;
-      var enableTransitionTracing = false;
-      var enableLegacyHidden = false;
-      var enableDebugTracing = false;
-      var REACT_MODULE_REFERENCE;
-      {
-        REACT_MODULE_REFERENCE = Symbol.for("react.module.reference");
-      }
-      function isValidElementType(type) {
-        if (typeof type === "string" || typeof type === "function") {
-          return true;
-        }
-        if (type === REACT_FRAGMENT_TYPE || type === REACT_PROFILER_TYPE || enableDebugTracing || type === REACT_STRICT_MODE_TYPE || type === REACT_SUSPENSE_TYPE || type === REACT_SUSPENSE_LIST_TYPE || enableLegacyHidden || type === REACT_OFFSCREEN_TYPE || enableScopeAPI || enableCacheElement || enableTransitionTracing) {
-          return true;
-        }
-        if (typeof type === "object" && type !== null) {
-          if (type.$$typeof === REACT_LAZY_TYPE || type.$$typeof === REACT_MEMO_TYPE || type.$$typeof === REACT_PROVIDER_TYPE || type.$$typeof === REACT_CONTEXT_TYPE || type.$$typeof === REACT_FORWARD_REF_TYPE || type.$$typeof === REACT_MODULE_REFERENCE || type.getModuleId !== undefined) {
-            return true;
-          }
-        }
-        return false;
-      }
-      function getWrappedName(outerType, innerType, wrapperName) {
-        var displayName = outerType.displayName;
-        if (displayName) {
-          return displayName;
-        }
-        var functionName = innerType.displayName || innerType.name || "";
-        return functionName !== "" ? wrapperName + "(" + functionName + ")" : wrapperName;
-      }
-      function getContextName(type) {
-        return type.displayName || "Context";
-      }
-      function getComponentNameFromType(type) {
-        if (type == null) {
-          return null;
-        }
-        {
-          if (typeof type.tag === "number") {
-            error("Received an unexpected object in getComponentNameFromType(). This is likely a bug in React. Please file an issue.");
-          }
-        }
-        if (typeof type === "function") {
-          return type.displayName || type.name || null;
-        }
-        if (typeof type === "string") {
-          return type;
-        }
-        switch (type) {
-          case REACT_FRAGMENT_TYPE:
-            return "Fragment";
-          case REACT_PORTAL_TYPE:
-            return "Portal";
-          case REACT_PROFILER_TYPE:
-            return "Profiler";
-          case REACT_STRICT_MODE_TYPE:
-            return "StrictMode";
-          case REACT_SUSPENSE_TYPE:
-            return "Suspense";
-          case REACT_SUSPENSE_LIST_TYPE:
-            return "SuspenseList";
-        }
-        if (typeof type === "object") {
-          switch (type.$$typeof) {
-            case REACT_CONTEXT_TYPE:
-              var context = type;
-              return getContextName(context) + ".Consumer";
-            case REACT_PROVIDER_TYPE:
-              var provider = type;
-              return getContextName(provider._context) + ".Provider";
-            case REACT_FORWARD_REF_TYPE:
-              return getWrappedName(type, type.render, "ForwardRef");
-            case REACT_MEMO_TYPE:
-              var outerName = type.displayName || null;
-              if (outerName !== null) {
-                return outerName;
-              }
-              return getComponentNameFromType(type.type) || "Memo";
-            case REACT_LAZY_TYPE: {
-              var lazyComponent = type;
-              var payload = lazyComponent._payload;
-              var init = lazyComponent._init;
-              try {
-                return getComponentNameFromType(init(payload));
-              } catch (x4) {
-                return null;
-              }
-            }
-          }
-        }
-        return null;
-      }
-      var assign = Object.assign;
-      var disabledDepth = 0;
-      var prevLog;
-      var prevInfo;
-      var prevWarn;
-      var prevError;
-      var prevGroup;
-      var prevGroupCollapsed;
-      var prevGroupEnd;
-      function disabledLog() {
-      }
-      disabledLog.__reactDisabledLog = true;
-      function disableLogs() {
-        {
-          if (disabledDepth === 0) {
-            prevLog = console.log;
-            prevInfo = console.info;
-            prevWarn = console.warn;
-            prevError = console.error;
-            prevGroup = console.group;
-            prevGroupCollapsed = console.groupCollapsed;
-            prevGroupEnd = console.groupEnd;
-            var props = {
-              configurable: true,
-              enumerable: true,
-              value: disabledLog,
-              writable: true
-            };
-            Object.defineProperties(console, {
-              info: props,
-              log: props,
-              warn: props,
-              error: props,
-              group: props,
-              groupCollapsed: props,
-              groupEnd: props
-            });
-          }
-          disabledDepth++;
-        }
-      }
-      function reenableLogs() {
-        {
-          disabledDepth--;
-          if (disabledDepth === 0) {
-            var props = {
-              configurable: true,
-              enumerable: true,
-              writable: true
-            };
-            Object.defineProperties(console, {
-              log: assign({}, props, {
-                value: prevLog
-              }),
-              info: assign({}, props, {
-                value: prevInfo
-              }),
-              warn: assign({}, props, {
-                value: prevWarn
-              }),
-              error: assign({}, props, {
-                value: prevError
-              }),
-              group: assign({}, props, {
-                value: prevGroup
-              }),
-              groupCollapsed: assign({}, props, {
-                value: prevGroupCollapsed
-              }),
-              groupEnd: assign({}, props, {
-                value: prevGroupEnd
-              })
-            });
-          }
-          if (disabledDepth < 0) {
-            error("disabledDepth fell below zero. This is a bug in React. Please file an issue.");
-          }
-        }
-      }
-      var ReactCurrentDispatcher = ReactSharedInternals.ReactCurrentDispatcher;
-      var prefix;
-      function describeBuiltInComponentFrame(name, source, ownerFn) {
-        {
-          if (prefix === undefined) {
-            try {
-              throw Error();
-            } catch (x4) {
-              var match = x4.stack.trim().match(/\n( *(at )?)/);
-              prefix = match && match[1] || "";
-            }
-          }
-          return "\n" + prefix + name;
-        }
-      }
-      var reentry = false;
-      var componentFrameCache;
-      {
-        var PossiblyWeakMap = typeof WeakMap === "function" ? WeakMap : Map;
-        componentFrameCache = new PossiblyWeakMap;
-      }
-      function describeNativeComponentFrame(fn, construct) {
-        if (!fn || reentry) {
-          return "";
-        }
-        {
-          var frame = componentFrameCache.get(fn);
-          if (frame !== undefined) {
-            return frame;
-          }
-        }
-        var control;
-        reentry = true;
-        var previousPrepareStackTrace = Error.prepareStackTrace;
-        Error.prepareStackTrace = undefined;
-        var previousDispatcher;
-        {
-          previousDispatcher = ReactCurrentDispatcher.current;
-          ReactCurrentDispatcher.current = null;
-          disableLogs();
-        }
-        try {
-          if (construct) {
-            var Fake = function() {
-              throw Error();
-            };
-            Object.defineProperty(Fake.prototype, "props", {
-              set: function() {
-                throw Error();
-              }
-            });
-            if (typeof Reflect === "object" && Reflect.construct) {
-              try {
-                Reflect.construct(Fake, []);
-              } catch (x4) {
-                control = x4;
-              }
-              Reflect.construct(fn, [], Fake);
-            } else {
-              try {
-                Fake.call();
-              } catch (x4) {
-                control = x4;
-              }
-              fn.call(Fake.prototype);
-            }
-          } else {
-            try {
-              throw Error();
-            } catch (x4) {
-              control = x4;
-            }
-            fn();
-          }
-        } catch (sample) {
-          if (sample && control && typeof sample.stack === "string") {
-            var sampleLines = sample.stack.split("\n");
-            var controlLines = control.stack.split("\n");
-            var s3 = sampleLines.length - 1;
-            var c = controlLines.length - 1;
-            while (s3 >= 1 && c >= 0 && sampleLines[s3] !== controlLines[c]) {
-              c--;
-            }
-            for (;s3 >= 1 && c >= 0; s3--, c--) {
-              if (sampleLines[s3] !== controlLines[c]) {
-                if (s3 !== 1 || c !== 1) {
-                  do {
-                    s3--;
-                    c--;
-                    if (c < 0 || sampleLines[s3] !== controlLines[c]) {
-                      var _frame = "\n" + sampleLines[s3].replace(" at new ", " at ");
-                      if (fn.displayName && _frame.includes("<anonymous>")) {
-                        _frame = _frame.replace("<anonymous>", fn.displayName);
-                      }
-                      {
-                        if (typeof fn === "function") {
-                          componentFrameCache.set(fn, _frame);
-                        }
-                      }
-                      return _frame;
-                    }
-                  } while (s3 >= 1 && c >= 0);
-                }
-                break;
-              }
-            }
-          }
-        } finally {
-          reentry = false;
-          {
-            ReactCurrentDispatcher.current = previousDispatcher;
-            reenableLogs();
-          }
-          Error.prepareStackTrace = previousPrepareStackTrace;
-        }
-        var name = fn ? fn.displayName || fn.name : "";
-        var syntheticFrame = name ? describeBuiltInComponentFrame(name) : "";
-        {
-          if (typeof fn === "function") {
-            componentFrameCache.set(fn, syntheticFrame);
-          }
-        }
-        return syntheticFrame;
-      }
-      function describeFunctionComponentFrame(fn, source, ownerFn) {
-        {
-          return describeNativeComponentFrame(fn, false);
-        }
-      }
-      function shouldConstruct(Component) {
-        var prototype = Component.prototype;
-        return !!(prototype && prototype.isReactComponent);
-      }
-      function describeUnknownElementTypeFrameInDEV(type, source, ownerFn) {
-        if (type == null) {
-          return "";
-        }
-        if (typeof type === "function") {
-          {
-            return describeNativeComponentFrame(type, shouldConstruct(type));
-          }
-        }
-        if (typeof type === "string") {
-          return describeBuiltInComponentFrame(type);
-        }
-        switch (type) {
-          case REACT_SUSPENSE_TYPE:
-            return describeBuiltInComponentFrame("Suspense");
-          case REACT_SUSPENSE_LIST_TYPE:
-            return describeBuiltInComponentFrame("SuspenseList");
-        }
-        if (typeof type === "object") {
-          switch (type.$$typeof) {
-            case REACT_FORWARD_REF_TYPE:
-              return describeFunctionComponentFrame(type.render);
-            case REACT_MEMO_TYPE:
-              return describeUnknownElementTypeFrameInDEV(type.type, source, ownerFn);
-            case REACT_LAZY_TYPE: {
-              var lazyComponent = type;
-              var payload = lazyComponent._payload;
-              var init = lazyComponent._init;
-              try {
-                return describeUnknownElementTypeFrameInDEV(init(payload), source, ownerFn);
-              } catch (x4) {
-              }
-            }
-          }
-        }
-        return "";
-      }
-      var hasOwnProperty = Object.prototype.hasOwnProperty;
-      var loggedTypeFailures = {};
-      var ReactDebugCurrentFrame = ReactSharedInternals.ReactDebugCurrentFrame;
-      function setCurrentlyValidatingElement(element) {
-        {
-          if (element) {
-            var owner = element._owner;
-            var stack = describeUnknownElementTypeFrameInDEV(element.type, element._source, owner ? owner.type : null);
-            ReactDebugCurrentFrame.setExtraStackFrame(stack);
-          } else {
-            ReactDebugCurrentFrame.setExtraStackFrame(null);
-          }
-        }
-      }
-      function checkPropTypes(typeSpecs, values, location, componentName, element) {
-        {
-          var has = Function.call.bind(hasOwnProperty);
-          for (var typeSpecName in typeSpecs) {
-            if (has(typeSpecs, typeSpecName)) {
-              var error$1 = undefined;
-              try {
-                if (typeof typeSpecs[typeSpecName] !== "function") {
-                  var err = Error((componentName || "React class") + ": " + location + " type `" + typeSpecName + "` is invalid; it must be a function, usually from the `prop-types` package, but received `" + typeof typeSpecs[typeSpecName] + "`.This often happens because of typos such as `PropTypes.function` instead of `PropTypes.func`.");
-                  err.name = "Invariant Violation";
-                  throw err;
-                }
-                error$1 = typeSpecs[typeSpecName](values, typeSpecName, componentName, location, null, "SECRET_DO_NOT_PASS_THIS_OR_YOU_WILL_BE_FIRED");
-              } catch (ex) {
-                error$1 = ex;
-              }
-              if (error$1 && !(error$1 instanceof Error)) {
-                setCurrentlyValidatingElement(element);
-                error("%s: type specification of %s `%s` is invalid; the type checker function must return `null` or an `Error` but returned a %s. You may have forgotten to pass an argument to the type checker creator (arrayOf, instanceOf, objectOf, oneOf, oneOfType, and shape all require an argument).", componentName || "React class", location, typeSpecName, typeof error$1);
-                setCurrentlyValidatingElement(null);
-              }
-              if (error$1 instanceof Error && !(error$1.message in loggedTypeFailures)) {
-                loggedTypeFailures[error$1.message] = true;
-                setCurrentlyValidatingElement(element);
-                error("Failed %s type: %s", location, error$1.message);
-                setCurrentlyValidatingElement(null);
-              }
-            }
-          }
-        }
-      }
-      var isArrayImpl = Array.isArray;
-      function isArray(a2) {
-        return isArrayImpl(a2);
-      }
-      function typeName(value) {
-        {
-          var hasToStringTag = typeof Symbol === "function" && Symbol.toStringTag;
-          var type = hasToStringTag && value[Symbol.toStringTag] || value.constructor.name || "Object";
-          return type;
-        }
-      }
-      function willCoercionThrow(value) {
-        {
-          try {
-            testStringCoercion(value);
-            return false;
-          } catch (e2) {
-            return true;
-          }
-        }
-      }
-      function testStringCoercion(value) {
-        return "" + value;
-      }
-      function checkKeyStringCoercion(value) {
-        {
-          if (willCoercionThrow(value)) {
-            error("The provided key is an unsupported type %s. This value must be coerced to a string before before using it here.", typeName(value));
-            return testStringCoercion(value);
-          }
-        }
-      }
-      var ReactCurrentOwner = ReactSharedInternals.ReactCurrentOwner;
-      var RESERVED_PROPS = {
-        key: true,
-        ref: true,
-        __self: true,
-        __source: true
-      };
-      var specialPropKeyWarningShown;
-      var specialPropRefWarningShown;
-      var didWarnAboutStringRefs;
-      {
-        didWarnAboutStringRefs = {};
-      }
-      function hasValidRef(config) {
-        {
-          if (hasOwnProperty.call(config, "ref")) {
-            var getter = Object.getOwnPropertyDescriptor(config, "ref").get;
-            if (getter && getter.isReactWarning) {
-              return false;
-            }
-          }
-        }
-        return config.ref !== undefined;
-      }
-      function hasValidKey(config) {
-        {
-          if (hasOwnProperty.call(config, "key")) {
-            var getter = Object.getOwnPropertyDescriptor(config, "key").get;
-            if (getter && getter.isReactWarning) {
-              return false;
-            }
-          }
-        }
-        return config.key !== undefined;
-      }
-      function warnIfStringRefCannotBeAutoConverted(config, self2) {
-        {
-          if (typeof config.ref === "string" && ReactCurrentOwner.current && self2 && ReactCurrentOwner.current.stateNode !== self2) {
-            var componentName = getComponentNameFromType(ReactCurrentOwner.current.type);
-            if (!didWarnAboutStringRefs[componentName]) {
-              error('Component "%s" contains the string ref "%s". Support for string refs will be removed in a future major release. This case cannot be automatically converted to an arrow function. We ask you to manually fix this case by using useRef() or createRef() instead. Learn more about using refs safely here: https://reactjs.org/link/strict-mode-string-ref', getComponentNameFromType(ReactCurrentOwner.current.type), config.ref);
-              didWarnAboutStringRefs[componentName] = true;
-            }
-          }
-        }
-      }
-      function defineKeyPropWarningGetter(props, displayName) {
-        {
-          var warnAboutAccessingKey = function() {
-            if (!specialPropKeyWarningShown) {
-              specialPropKeyWarningShown = true;
-              error("%s: `key` is not a prop. Trying to access it will result in `undefined` being returned. If you need to access the same value within the child component, you should pass it as a different prop. (https://reactjs.org/link/special-props)", displayName);
-            }
-          };
-          warnAboutAccessingKey.isReactWarning = true;
-          Object.defineProperty(props, "key", {
-            get: warnAboutAccessingKey,
-            configurable: true
-          });
-        }
-      }
-      function defineRefPropWarningGetter(props, displayName) {
-        {
-          var warnAboutAccessingRef = function() {
-            if (!specialPropRefWarningShown) {
-              specialPropRefWarningShown = true;
-              error("%s: `ref` is not a prop. Trying to access it will result in `undefined` being returned. If you need to access the same value within the child component, you should pass it as a different prop. (https://reactjs.org/link/special-props)", displayName);
-            }
-          };
-          warnAboutAccessingRef.isReactWarning = true;
-          Object.defineProperty(props, "ref", {
-            get: warnAboutAccessingRef,
-            configurable: true
-          });
-        }
-      }
-      var ReactElement = function(type, key, ref, self2, source, owner, props) {
-        var element = {
-          $$typeof: REACT_ELEMENT_TYPE,
-          type,
-          key,
-          ref,
-          props,
-          _owner: owner
-        };
-        {
-          element._store = {};
-          Object.defineProperty(element._store, "validated", {
-            configurable: false,
-            enumerable: false,
-            writable: true,
-            value: false
-          });
-          Object.defineProperty(element, "_self", {
-            configurable: false,
-            enumerable: false,
-            writable: false,
-            value: self2
-          });
-          Object.defineProperty(element, "_source", {
-            configurable: false,
-            enumerable: false,
-            writable: false,
-            value: source
-          });
-          if (Object.freeze) {
-            Object.freeze(element.props);
-            Object.freeze(element);
-          }
-        }
-        return element;
-      };
-      function jsxDEV(type, config, maybeKey, source, self2) {
-        {
-          var propName;
-          var props = {};
-          var key = null;
-          var ref = null;
-          if (maybeKey !== undefined) {
-            {
-              checkKeyStringCoercion(maybeKey);
-            }
-            key = "" + maybeKey;
-          }
-          if (hasValidKey(config)) {
-            {
-              checkKeyStringCoercion(config.key);
-            }
-            key = "" + config.key;
-          }
-          if (hasValidRef(config)) {
-            ref = config.ref;
-            warnIfStringRefCannotBeAutoConverted(config, self2);
-          }
-          for (propName in config) {
-            if (hasOwnProperty.call(config, propName) && !RESERVED_PROPS.hasOwnProperty(propName)) {
-              props[propName] = config[propName];
-            }
-          }
-          if (type && type.defaultProps) {
-            var defaultProps = type.defaultProps;
-            for (propName in defaultProps) {
-              if (props[propName] === undefined) {
-                props[propName] = defaultProps[propName];
-              }
-            }
-          }
-          if (key || ref) {
-            var displayName = typeof type === "function" ? type.displayName || type.name || "Unknown" : type;
-            if (key) {
-              defineKeyPropWarningGetter(props, displayName);
-            }
-            if (ref) {
-              defineRefPropWarningGetter(props, displayName);
-            }
-          }
-          return ReactElement(type, key, ref, self2, source, ReactCurrentOwner.current, props);
-        }
-      }
-      var ReactCurrentOwner$1 = ReactSharedInternals.ReactCurrentOwner;
-      var ReactDebugCurrentFrame$1 = ReactSharedInternals.ReactDebugCurrentFrame;
-      function setCurrentlyValidatingElement$1(element) {
-        {
-          if (element) {
-            var owner = element._owner;
-            var stack = describeUnknownElementTypeFrameInDEV(element.type, element._source, owner ? owner.type : null);
-            ReactDebugCurrentFrame$1.setExtraStackFrame(stack);
-          } else {
-            ReactDebugCurrentFrame$1.setExtraStackFrame(null);
-          }
-        }
-      }
-      var propTypesMisspellWarningShown;
-      {
-        propTypesMisspellWarningShown = false;
-      }
-      function isValidElement(object) {
-        {
-          return typeof object === "object" && object !== null && object.$$typeof === REACT_ELEMENT_TYPE;
-        }
-      }
-      function getDeclarationErrorAddendum() {
-        {
-          if (ReactCurrentOwner$1.current) {
-            var name = getComponentNameFromType(ReactCurrentOwner$1.current.type);
-            if (name) {
-              return "\n\nCheck the render method of `" + name + "`.";
-            }
-          }
-          return "";
-        }
-      }
-      function getSourceInfoErrorAddendum(source) {
-        {
-          if (source !== undefined) {
-            var fileName = source.fileName.replace(/^.*[\\\/]/, "");
-            var lineNumber = source.lineNumber;
-            return "\n\nCheck your code at " + fileName + ":" + lineNumber + ".";
-          }
-          return "";
-        }
-      }
-      var ownerHasKeyUseWarning = {};
-      function getCurrentComponentErrorInfo(parentType) {
-        {
-          var info = getDeclarationErrorAddendum();
-          if (!info) {
-            var parentName = typeof parentType === "string" ? parentType : parentType.displayName || parentType.name;
-            if (parentName) {
-              info = "\n\nCheck the top-level render call using <" + parentName + ">.";
-            }
-          }
-          return info;
-        }
-      }
-      function validateExplicitKey(element, parentType) {
-        {
-          if (!element._store || element._store.validated || element.key != null) {
-            return;
-          }
-          element._store.validated = true;
-          var currentComponentErrorInfo = getCurrentComponentErrorInfo(parentType);
-          if (ownerHasKeyUseWarning[currentComponentErrorInfo]) {
-            return;
-          }
-          ownerHasKeyUseWarning[currentComponentErrorInfo] = true;
-          var childOwner = "";
-          if (element && element._owner && element._owner !== ReactCurrentOwner$1.current) {
-            childOwner = " It was passed a child from " + getComponentNameFromType(element._owner.type) + ".";
-          }
-          setCurrentlyValidatingElement$1(element);
-          error('Each child in a list should have a unique "key" prop.%s%s See https://reactjs.org/link/warning-keys for more information.', currentComponentErrorInfo, childOwner);
-          setCurrentlyValidatingElement$1(null);
-        }
-      }
-      function validateChildKeys(node, parentType) {
-        {
-          if (typeof node !== "object") {
-            return;
-          }
-          if (isArray(node)) {
-            for (var i = 0;i < node.length; i++) {
-              var child = node[i];
-              if (isValidElement(child)) {
-                validateExplicitKey(child, parentType);
-              }
-            }
-          } else if (isValidElement(node)) {
-            if (node._store) {
-              node._store.validated = true;
-            }
-          } else if (node) {
-            var iteratorFn = getIteratorFn(node);
-            if (typeof iteratorFn === "function") {
-              if (iteratorFn !== node.entries) {
-                var iterator = iteratorFn.call(node);
-                var step;
-                while (!(step = iterator.next()).done) {
-                  if (isValidElement(step.value)) {
-                    validateExplicitKey(step.value, parentType);
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-      function validatePropTypes(element) {
-        {
-          var type = element.type;
-          if (type === null || type === undefined || typeof type === "string") {
-            return;
-          }
-          var propTypes;
-          if (typeof type === "function") {
-            propTypes = type.propTypes;
-          } else if (typeof type === "object" && (type.$$typeof === REACT_FORWARD_REF_TYPE || type.$$typeof === REACT_MEMO_TYPE)) {
-            propTypes = type.propTypes;
-          } else {
-            return;
-          }
-          if (propTypes) {
-            var name = getComponentNameFromType(type);
-            checkPropTypes(propTypes, element.props, "prop", name, element);
-          } else if (type.PropTypes !== undefined && !propTypesMisspellWarningShown) {
-            propTypesMisspellWarningShown = true;
-            var _name = getComponentNameFromType(type);
-            error("Component %s declared `PropTypes` instead of `propTypes`. Did you misspell the property assignment?", _name || "Unknown");
-          }
-          if (typeof type.getDefaultProps === "function" && !type.getDefaultProps.isReactClassApproved) {
-            error("getDefaultProps is only used on classic React.createClass definitions. Use a static property named `defaultProps` instead.");
-          }
-        }
-      }
-      function validateFragmentProps(fragment) {
-        {
-          var keys = Object.keys(fragment.props);
-          for (var i = 0;i < keys.length; i++) {
-            var key = keys[i];
-            if (key !== "children" && key !== "key") {
-              setCurrentlyValidatingElement$1(fragment);
-              error("Invalid prop `%s` supplied to `React.Fragment`. React.Fragment can only have `key` and `children` props.", key);
-              setCurrentlyValidatingElement$1(null);
-              break;
-            }
-          }
-          if (fragment.ref !== null) {
-            setCurrentlyValidatingElement$1(fragment);
-            error("Invalid attribute `ref` supplied to `React.Fragment`.");
-            setCurrentlyValidatingElement$1(null);
-          }
-        }
-      }
-      function jsxWithValidation(type, props, key, isStaticChildren, source, self2) {
-        {
-          var validType = isValidElementType(type);
-          if (!validType) {
-            var info = "";
-            if (type === undefined || typeof type === "object" && type !== null && Object.keys(type).length === 0) {
-              info += " You likely forgot to export your component from the file it's defined in, or you might have mixed up default and named imports.";
-            }
-            var sourceInfo = getSourceInfoErrorAddendum(source);
-            if (sourceInfo) {
-              info += sourceInfo;
-            } else {
-              info += getDeclarationErrorAddendum();
-            }
-            var typeString;
-            if (type === null) {
-              typeString = "null";
-            } else if (isArray(type)) {
-              typeString = "array";
-            } else if (type !== undefined && type.$$typeof === REACT_ELEMENT_TYPE) {
-              typeString = "<" + (getComponentNameFromType(type.type) || "Unknown") + " />";
-              info = " Did you accidentally export a JSX literal instead of a component?";
-            } else {
-              typeString = typeof type;
-            }
-            error("React.jsx: type is invalid -- expected a string (for built-in components) or a class/function (for composite components) but got: %s.%s", typeString, info);
-          }
-          var element = jsxDEV(type, props, key, source, self2);
-          if (element == null) {
-            return element;
-          }
-          if (validType) {
-            var children = props.children;
-            if (children !== undefined) {
-              if (isStaticChildren) {
-                if (isArray(children)) {
-                  for (var i = 0;i < children.length; i++) {
-                    validateChildKeys(children[i], type);
-                  }
-                  if (Object.freeze) {
-                    Object.freeze(children);
-                  }
-                } else {
-                  error("React.jsx: Static children should always be an array. You are likely explicitly calling React.jsxs or React.jsxDEV. Use the Babel transform instead.");
-                }
-              } else {
-                validateChildKeys(children, type);
-              }
-            }
-          }
-          if (type === REACT_FRAGMENT_TYPE) {
-            validateFragmentProps(element);
-          } else {
-            validatePropTypes(element);
-          }
-          return element;
-        }
-      }
-      var jsxDEV$1 = jsxWithValidation;
-      exports.Fragment = REACT_FRAGMENT_TYPE;
-      exports.jsxDEV = jsxDEV$1;
-    })();
-  }
-});
-var require_jsx_dev_runtime = __commonJS((exports, module) => {
-  var react_jsx_dev_runtime_development = __toESM(require_react_jsx_dev_runtime_development(), 1);
-  if (false) {
-  } else {
-    module.exports = react_jsx_dev_runtime_development;
-  }
-});
-var GL = globalThis.WebGL2RenderingContext ?? {};
-var POSITION_LOC = "position";
-var INDEX_LOC = "index";
-var TRANSFORM_LOC = "transform";
-var SLOT_SIZE_LOC = "slotSize_and_number";
-var ANIM_LOC = "animation";
-var INSTANCE_LOC = "instance";
-var SPRITE_TYPE_LOC = "spriteType";
-var CAM_POS_LOC = "camPos";
-var CAM_TILT_LOC = "camTilt";
-var CAM_TURN_LOC = "camTurn";
-var CAM_DISTANCE_LOC = "camDist";
-var CAM_PROJECTION_LOC = "projection";
-var CAM_CURVATURE_LOC = "curvature";
-var BG_BLUR_LOC = "bgBlur";
-var BG_COLOR_LOC = "bgColor";
-var MAX_TEXTURE_SIZE_LOC = "maxTextureSize";
-var TEXTURE_UNIFORM_LOC = "uTextures";
-var TIME_LOC = "time";
-var FADE_LOC = "fade";
+var import_react11 = __toESM2(require_react(), 1);
+var import_react2 = __toESM2(require_react(), 1);
+var import_react = __toESM2(require_react(), 1);
 
-class Disposable {
-  disposables;
-  own(destroyable) {
-    if (!this.disposables) {
-      this.disposables = new Set;
-    }
-    this.disposables.add(destroyable);
-    return destroyable;
-  }
-  disown(destroyable) {
-    this.disposables?.delete(destroyable);
-  }
-  addOnDestroy(callback) {
-    if (callback) {
-      this.disposables?.add({
-        destroy: callback
-      });
+class PopupControl {
+  #listeners = new Set;
+  onUp() {
+    for (const listener of this.#listeners) {
+      listener.onUp?.();
     }
   }
-  destroy() {
-    this.disposables?.forEach((disposable) => disposable.destroy());
-    this.disposables?.clear();
+  onDown() {
+    for (const listener of this.#listeners) {
+      listener.onDown?.();
+    }
+  }
+  onAction() {
+    for (const listener of this.#listeners) {
+      listener.onAction?.();
+    }
+  }
+  addListener(listener) {
+    this.#listeners.add(listener);
+  }
+  removeListener(listener) {
+    this.#listeners.delete(listener);
   }
 }
-var createProgram = function(gl, vertex, fragment) {
-  function createShader(shaderSource, type) {
-    function typeName(type2) {
-      return type2 === gl?.VERTEX_SHADER ? "vertex" : type2 === gl?.FRAGMENT_SHADER ? "fragment" : undefined;
-    }
-    if (type !== gl.VERTEX_SHADER && type !== gl.FRAGMENT_SHADER) {
-      throw new Error(`Shader error in ${typeName(type)}`);
-    }
-    const shader = gl.createShader(type);
-    if (!shader) {
-      throw new Error(`Unable to generate ${typeName(type)} shader.`);
-    }
-    gl.shaderSource(shader, shaderSource);
-    gl.compileShader(shader);
-    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-      console.error(`Shader compile error in ${typeName(type)}:` + gl.getShaderInfoLog(shader));
-    }
-    return shader;
-  }
-  const program = gl.createProgram();
-  if (!program) {
-    throw new Error(`Unable to create program.`);
-  }
-  const vertexShader = createShader(vertex, gl.VERTEX_SHADER);
-  const fragmentShader = createShader(fragment, gl.FRAGMENT_SHADER);
-  const vertexInfo = gl.getShaderInfoLog(vertexShader), fragmentInfo = gl.getShaderInfoLog(fragmentShader);
-  if (vertexInfo) {
-    console.log("VERTEX", vertexInfo);
-  }
-  if (fragmentInfo) {
-    console.log("FRAGMENT", fragmentInfo);
-  }
-  gl.attachShader(program, vertexShader);
-  gl.attachShader(program, fragmentShader);
-  gl.linkProgram(program);
-  const programInfo = gl.getProgramInfoLog(program);
-  if (programInfo) {
-    console.log("PROGRAM", programInfo);
-  }
-  gl.detachShader(program, vertexShader);
-  gl.detachShader(program, fragmentShader);
-  gl.deleteShader(vertexShader);
-  gl.deleteShader(fragmentShader);
-  gl.validateProgram(program);
-  Object.entries(GL).forEach(([k, value]) => {
-    if (value && gl.getError() === value) {
-      console.log(`gl.${k}`);
-    }
-  });
-  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-    throw new Error("Unable to initialize the shader program:\n" + gl.getProgramInfoLog(program));
-  }
-  return program;
+var DEFAULT_GAME_CONTEXT = {
+  addControlsLock: function(_uid) {
+    throw new Error("Function not implemented.");
+  },
+  removeControlsLock: function(_uid) {
+    throw new Error("Function not implemented.");
+  },
+  openMenu: function(_value) {
+    throw new Error("Function not implemented.");
+  },
+  openDialog: function(_value) {
+    throw new Error("Function not implemented.");
+  },
+  closePopup() {
+    throw new Error("Function not implemented.");
+  },
+  topPopupUid: "",
+  onSelection(selection) {
+    throw new Error("Function not implemented");
+  },
+  popupControl: new PopupControl
 };
-var deleteProgram = function(gl, program) {
-  gl.deleteProgram(program);
+var Context = import_react.default.createContext(DEFAULT_GAME_CONTEXT);
+var Context_default = Context;
+var jsx_dev_runtime = __toESM2(require_jsx_dev_runtime(), 1);
+var Provider = ({ children, context }) => {
+  return jsx_dev_runtime.jsxDEV(Context_default.Provider, {
+    value: context,
+    children
+  }, undefined, false, undefined, null);
+};
+var useGameContext = () => {
+  const context = import_react2.useContext(Context_default);
+  if (!context) {
+    throw new Error("useGameContext must be used within a Provider");
+  }
+  return context;
 };
 
-class GLProgram extends Disposable {
-  gl;
-  program;
-  constructor(gl, vertex, fragment) {
+class PopupManager {
+  #popupUids = [];
+  #listeners = new Set;
+  addControlsLock(uid) {
+    this.#popupUids.push(uid);
+    this.#listeners.forEach((listener) => listener.onPopup(this.#popupUids.length));
+  }
+  removeControlsLock(uid) {
+    this.#popupUids = this.#popupUids.filter((id) => id !== uid);
+    this.#listeners.forEach((listener) => listener.onPopup(this.#popupUids.length));
+  }
+  addDialogListener(listener) {
+    this.#listeners.add(listener);
+  }
+  removeDialogListener(listener) {
+    this.#listeners.delete(listener);
+  }
+  openDialog(_dialog) {
+    throw new Error("Not implemented");
+  }
+  openMenu(_menu) {
+    throw new Error("Not implemented");
+  }
+  closePopup() {
+    throw new Error("Not implemented");
+  }
+  nextMessage() {
+    throw new Error("Not implemented");
+  }
+  selection = 0;
+}
+var import_react3 = __toESM2(require_react(), 1);
+var import_react10 = __toESM2(require_react(), 1);
+var import_react4 = __toESM2(require_react(), 1);
+var jsx_dev_runtime2 = __toESM2(require_jsx_dev_runtime(), 1);
+var POPUP_CSS = {
+  outline: "3px solid #fff",
+  backgroundColor: "black",
+  borderRadius: 12,
+  padding: 3,
+  boxShadow: "10px 10px 0px #000000cc"
+};
+var DOUBLE_BORDER_CSS = {
+  border: "3px solid white",
+  borderRadius: 10,
+  outline: "3px solid black",
+  color: "white",
+  padding: 10
+};
+var DOUBLE_BORDER_HEIGHT_OFFSET = 27;
+var DEFAULT_PADDING = 50;
+var DEFAULT_FONT_SIZE = 24;
+var import_react7 = __toESM2(require_react(), 1);
+var import_react5 = __toESM2(require_react(), 1);
+var LockStatus;
+(function(LockStatus2) {
+  LockStatus2[LockStatus2["LOCKED"] = 0] = "LOCKED";
+  LockStatus2[LockStatus2["UNLOCKED"] = 1] = "UNLOCKED";
+})(LockStatus || (LockStatus = {}));
+var import_react6 = __toESM2(require_react(), 1);
+
+class ProgressiveText extends HTMLElement {
+  #observer;
+  #containerText;
+  #hiddenText;
+  #animationFrameRequest = 0;
+  constructor() {
     super();
-    this.gl = gl;
-    this.program = createProgram(gl, vertex.trim(), fragment.trim());
+    const shadowRoot = this.attachShadow({ mode: "open" });
+    this.#containerText = shadowRoot.appendChild(document.createElement("span"));
+    this.#hiddenText = shadowRoot.appendChild(document.createElement("span"));
+    this.#hiddenText.style.color = "#00000020";
+    this.#observer = new MutationObserver((mutationsList) => this.handleMutation(mutationsList));
   }
-  use() {
-    this.gl.useProgram(this.program);
-  }
-  destroy() {
-    super.destroy();
-    deleteProgram(this.gl, this.program);
-  }
-}
-
-class GLPrograms extends Disposable {
-  gl;
-  activeProgramId = "";
-  programs = {};
-  constructor(gl) {
-    super();
-    this.gl = gl;
-  }
-  addProgram(id, vertex, fragment) {
-    if (this.programs[id]) {
-      this.removeProgram(id);
-    }
-    this.programs[id] = this.own(new GLProgram(this.gl, vertex, fragment));
-  }
-  useProgram(id) {
-    if (this.activeProgramId !== id) {
-      this.activeProgramId = id;
-      this.programs[id].use();
-    }
-  }
-  removeProgram(id) {
-    this.programs[id].destroy();
-    delete this.programs[id];
-  }
-  getProgram(id) {
-    return this.programs[id ?? this.activeProgramId]?.program;
-  }
-}
-
-class VertexArray {
-  gl;
-  triangleArray;
-  constructor(gl) {
-    this.gl = gl;
-    this.triangleArray = this.gl.createVertexArray();
-  }
-  bind() {
-    this.gl.bindVertexArray(this.triangleArray);
-  }
-  destroy() {
-    this.gl.deleteVertexArray(this.triangleArray);
-    this.triangleArray = null;
-  }
-}
-
-class GLAttributeBuffers {
-  gl;
-  programs;
-  bufferRecord = {};
-  vertexArray;
-  copyBuffer = null;
-  constructor(gl, programs) {
-    this.gl = gl;
-    this.programs = programs;
-    this.vertexArray = new VertexArray(this.gl);
-  }
-  bindVertexArray() {
-    this.vertexArray.bind();
-  }
-  getAttributeLocation(name, programId) {
-    const program = this.programs.getProgram(programId);
-    return program ? this.gl.getAttribLocation(program, name) ?? -1 : -1;
-  }
-  hasBuffer(location) {
-    return !!this.bufferRecord[location];
-  }
-  enableVertexAttribArray(location, index = 0) {
-    const bufferInfo = this.bufferRecord[location];
-    if (!bufferInfo.enabledVertexAttribArray[index]) {
-      bufferInfo.enabledVertexAttribArray[index] = true;
-      this.gl.enableVertexAttribArray(bufferInfo.location + index);
-    }
-  }
-  disableVertexAttribArray(location) {
-    const bufferInfo = this.bufferRecord[location];
-    bufferInfo.enabledVertexAttribArray.forEach((enabled, index) => {
-      if (enabled) {
-        this.gl.disableVertexAttribArray(bufferInfo.location + index);
-        bufferInfo.enabledVertexAttribArray[index] = false;
-      }
+  connectedCallback() {
+    this.childNodes.forEach((node) => {
+      this.#observer.observe(node, { characterData: true });
+      this.startProgressingText(node.textContent ?? "");
     });
   }
-  createBuffer({ location, target, usage, vertexAttribPointerRows, elemCount = 0, divisor = 0, callback, instanceCount = 1, data }) {
-    this.deleteBuffer(location);
-    const bufferBuffer = this.gl.createBuffer();
-    if (!bufferBuffer) {
-      throw new Error(`Unable to create buffer "${location}"`);
-    }
-    const bytesPerRow = elemCount * Float32Array.BYTES_PER_ELEMENT;
-    const bytesPerInstance = vertexAttribPointerRows * bytesPerRow;
-    const bufferInfo = this.bufferRecord[location] = {
-      location: this.getAttributeLocation(location),
-      target,
-      usage,
-      buffer: bufferBuffer,
-      enabledVertexAttribArray: [],
-      bytesPerInstance,
-      instanceCount,
-      callback
-    };
-    this.vertexArray.bind();
-    this.gl.bindBuffer(bufferInfo.target, bufferInfo.buffer);
-    for (let row = 0;row < vertexAttribPointerRows; row++) {
-      const loc = bufferInfo.location + row;
-      this.gl.vertexAttribPointer(loc, elemCount, GL.FLOAT, false, bytesPerInstance, row * bytesPerRow);
-      this.enableVertexAttribArray(location, row);
-      this.gl.vertexAttribDivisor(loc, divisor);
-    }
-    if (data) {
-      this.gl.bufferData(target, data, bufferInfo.usage);
-    } else if (callback) {
-      this.gl.bufferData(target, Float32Array.from(new Array(instanceCount).fill(0).map((_, index) => callback(index))), bufferInfo.usage);
-    } else if (instanceCount) {
-      this.gl.bufferData(target, instanceCount * bytesPerInstance, bufferInfo.usage);
-    }
-    return bufferInfo;
+  disconnectedCallback() {
+    this.#observer.disconnect();
   }
-  ensureCopyBufferSize(newCount, bufferInfo) {
-    this.vertexArray.bind();
-    if (this.copyBuffer) {
-      const bufferSize = this.gl.getBufferParameter(GL.ARRAY_BUFFER, GL.BUFFER_SIZE);
-      if (bufferSize >= newCount * bufferInfo.bytesPerInstance) {
-        this.gl.bindBuffer(GL.ARRAY_BUFFER, this.copyBuffer);
-        return;
-      }
-      this.gl.deleteBuffer(this.copyBuffer);
-    }
-    this.copyBuffer = this.gl.createBuffer();
-    this.gl.bindBuffer(GL.ARRAY_BUFFER, this.copyBuffer);
-    this.gl.bufferData(GL.ARRAY_BUFFER, newCount * bufferInfo.bytesPerInstance, GL.DYNAMIC_COPY);
-  }
-  ensureSize(location, newCount) {
-    const bufferInfo = this.bufferRecord[location];
-    if (bufferInfo && bufferInfo.instanceCount < newCount) {
-      this.bindBuffer(location);
-      const bufferSize = this.gl.getBufferParameter(GL.ARRAY_BUFFER, GL.BUFFER_SIZE);
-      const oldBufferData = new Float32Array(bufferSize / Float32Array.BYTES_PER_ELEMENT);
-      this.gl.getBufferSubData(GL.ARRAY_BUFFER, 0, oldBufferData);
-      this.bindBuffer(location);
-      if (bufferInfo.callback) {
-        const callback = bufferInfo.callback;
-        this.gl.bufferData(bufferInfo.target, Float32Array.from(new Array(newCount).fill(0).map((_, index) => callback(index))), bufferInfo.usage);
-      } else if (newCount) {
-        this.gl.bufferData(bufferInfo.target, newCount * bufferInfo.bytesPerInstance, bufferInfo.usage);
-      }
-      this.gl.bufferSubData(bufferInfo.target, 0, oldBufferData);
-      bufferInfo.instanceCount = newCount;
-    }
-  }
-  bindBuffer(location) {
-    const bufferInfo = this.bufferRecord[location];
-    if (bufferInfo) {
-      this.vertexArray.bind();
-      this.gl.bindBuffer(bufferInfo.target, bufferInfo.buffer);
-    }
-  }
-  deleteBuffer(location) {
-    const bufferInfo = this.bufferRecord[location];
-    if (bufferInfo) {
-      this.disableVertexAttribArray(location);
-      this.gl.deleteBuffer(bufferInfo.buffer);
-      delete this.bufferRecord[location];
-    }
-  }
-  getAttributeBuffer(location) {
-    const bufferInfo = this.bufferRecord[location];
-    if (!bufferInfo) {
-      throw new Error(`Attribute "${location}" not created. Make sure "createBuffer" is called.`);
-    }
-    return bufferInfo;
-  }
-  clear() {
-    Object.keys(this.bufferRecord).forEach((location) => this.deleteBuffer(location));
-  }
-  destroy() {
-    this.clear();
-  }
-}
-var vertexShader_default = "#version 300 es\n//  ~{AUTHOR}\n\nprecision highp float;\n\n//  FUNCTIONS\nfloat rand(vec2 co) {\n  return fract(sin(dot(co, vec2(12.9898, 78.233))) * 43758.5453);\n}\n\n//  CONST\nconst mat4 identity = mat4(1.0);\nconst float SPRITE = 1.0;\nconst float HUD = 2.0;\nconst float DISTANT = 3.0;\nconst float WAVE = 4.0;\n\n//  IN\n//  shape\nlayout(location = 0) in vec2 position;\nlayout(location = 1) in mat4 transform;\n//  1, 2, 3, 4 reserved for transform\n//  animation\nlayout(location = 5) in vec4 slotSize_and_number;\nlayout(location = 6) in vec4 animation;\n//  instance\nlayout(location = 7) in float instance;\nlayout(location = 8) in float spriteType;\n\n//  UNIFORM\nuniform float maxTextureSize;\nuniform mat4 camPos;\nuniform mat4 camTurn;\nuniform mat4 camTilt;\nuniform float camDist;\nuniform mat4 projection;\nuniform float curvature;\nuniform float time;\n\n//  OUT\nout float vTextureIndex;\nout vec2 vTex;\nout float dist;\nout vec3 vInstanceColor;\nout vec2 var;\nout vec3 vNormal;\n\nvoid main() {\n  vec2 slotSize = vec2(pow(2.0, floor(slotSize_and_number.x / 16.0)),\n                       pow(2.0, mod(slotSize_and_number.x, 16.0)));\n  float slotNumber = slotSize_and_number.y;\n  vec2 spriteSize = abs(slotSize_and_number.zw);\n  vec2 tex = (position.xy) * vec2(0.49, -0.49) * sign(slotSize_and_number.zw) +\n             0.5; //  Texture corners 0..1\n  float sheetCols = ceil(1. / spriteSize[0]);\n  float frameStart = animation[0];\n  float frameEnd = animation[1];\n  float fps = animation[2];\n  float maxFrameCount = animation[3];\n  float frameOffset =\n      floor(mod(min(time * fps / 1000., maxFrameCount), frameEnd + 1.));\n  float frame = frameStart + frameOffset;\n  tex += vec2(1., 0) * mod(frame, sheetCols) +\n         vec2(0, 1.) * floor(frame / sheetCols);\n  tex *= spriteSize;\n\n  float maxCols = maxTextureSize / slotSize.x;\n  float maxRows = maxTextureSize / slotSize.y;\n  float slotX = mod(slotNumber, maxCols);\n  float slotY = mod(floor(slotNumber / maxCols), maxRows);\n\n  vec4 basePosition = vec4(position, 0.0, 1.0);\n\n  float isHud = max(0., 1. - 2. * abs(spriteType - HUD));\n  float isSprite = max(0., 1. - 2. * abs(spriteType - SPRITE));\n  float isDistant = max(0., 1. - 2. * abs(spriteType - DISTANT));\n  float isWave = max(0., 1. - 2. * abs(spriteType - WAVE));\n\n  mat4 billboardMatrix = inverse(camTilt * camTurn);\n  float isBillboard = max(isDistant, isSprite);\n  basePosition =\n      (isBillboard * billboardMatrix + (1. - isBillboard) * identity) *\n      basePosition;\n\n  vec4 worldPosition = transform * basePosition;\n  var = vec2(rand(worldPosition.xz), rand(worldPosition.xz - worldPosition.yx));\n\n  float noise = rand(worldPosition.xz) * 13.;\n  worldPosition.y += isWave * sin(noise + time / 1000.);\n\n  vNormal.y = 1.5 + isWave * sin(noise + 1333. + time / 777.);\n  vNormal.x = isWave * sin(noise + time / 1000.);\n  vNormal.z = isWave * cos(noise + time / 1001.);\n\n  // worldPosition => relativePositio\n  vec4 relativePosition = camTilt * camTurn * camPos * worldPosition;\n\n  float actualCurvature = curvature * (1. - isDistant);\n  relativePosition.y -= actualCurvature *\n                        ((relativePosition.z * relativePosition.z) +\n                         (relativePosition.x * relativePosition.x) / 4.) /\n                        10.;\n  relativePosition.x /= (1. + actualCurvature * 1.4);\n\n  relativePosition.z -= camDist;\n\n  dist = max(isDistant, isHud) + (1. - max(isDistant, isHud)) *\n                                     (relativePosition.z * relativePosition.z +\n                                      relativePosition.x * relativePosition.x);\n  // relativePosition => gl_Position\n  relativePosition = isHud * worldPosition + (1. - isHud) * relativePosition;\n  gl_Position = projection * relativePosition;\n\n  vTex = (vec2(slotX, slotY) + tex) * slotSize / maxTextureSize;\n  vTextureIndex = floor(slotNumber / (maxCols * maxRows));\n\n  //  instance\n  float r = fract(instance / (256.0 * 256.0 * 255.0));\n  float g = fract(instance / (256.0 * 255.0));\n  float b = fract(instance / 255.0);\n  vInstanceColor = vec3(r, g, b);\n}\n";
-var fragmentShader_default = "#version 300 es\n//  ~{AUTHOR}\n\nprecision highp float;\n\n//  CONST\nconst int NUM_TEXTURES = 16;\nconst float threshold = 0.00001;\n\n//  IN\n//  texture\nin float vTextureIndex;\nin vec2 vTex;\nin float dist;\nin vec3 vInstanceColor;\nin vec2 var;\nin vec3 vNormal;\n\n//  OUT\nout vec4 fragColor;\n\n// UNIFORMS\nuniform sampler2D uTextures[NUM_TEXTURES];\nuniform vec3 bgColor;\nuniform float bgBlur;\nuniform float time;\nuniform float fade;\n\n//  FUNCTIONS\nvec4 getTextureColor(float textureSlot, vec2 vTexturePoint);\n\nfloat rand(vec2 co) {\n  return fract(sin(dot(co, vec2(12.9898, 78.233))) * 43758.5453);\n}\n\nstruct DirectionalLight {\n  vec3 direction;\n  vec3 ambient;\n  vec3 diffuse;\n  vec3 specular;\n};\n\n// Function to calculate combined color with directional light\nvec3 calculateDirectionalLight(DirectionalLight dirLight, vec3 existingColor,\n                               vec3 normal) {\n  // Calculate diffuse reflection\n  float diff = max(dot(normal, -dirLight.direction), 0.0);\n  vec3 diffuse = dirLight.diffuse * diff;\n\n  // Combine existing color with diffuse reflection\n  return existingColor * (dirLight.ambient + diffuse);\n}\n\nvoid main() {\n  vec2 vFragment = vTex;\n  float blur = bgBlur * pow(dist, .7) / 20000.;\n  vec4 color = getTextureColor(vTextureIndex, vTex);\n  if (color.a < rand(vTex)) {\n    discard;\n  };\n  int blurPass = 8;\n  vec2 vecSeed = vTex * mod(time, 7.);\n  for (int i = 0; i < blurPass; i++) {\n    vFragment = vTex + blur * (rand(vecSeed + dist * float(i) - .5));\n    color += getTextureColor(vTextureIndex, vFragment);\n  }\n  color /= float(blurPass + 1);\n\n  float colorFactor = 1.25 * pow(dist, -.12) * (1. - fade);\n  color.rg += var.x * .02;\n  color.gb += var.y * .03;\n  color.rgb = color.rgb * colorFactor + bgColor * (1. - colorFactor);\n\n  color.rgb += vInstanceColor / 10.;\n\n  // Hardcoded DirectionalLight\n  DirectionalLight dirLight;\n  dirLight.direction = normalize(vec3(-1.0, -1.0, -1.0)); // Example direction\n  dirLight.ambient = vec3(0.1, 0.1, 0.1);       // Example ambient color\n  dirLight.diffuse = vec3(1.0, 1.0, 1.0) * 1.5; // More intense diffuse color\n  dirLight.specular = vec3(1.0, 1.0, 1.0);      // Example specular color\n\n  color.rgb = calculateDirectionalLight(dirLight, color.rgb, vNormal);\n\n  fragColor = vec4(color.rgb, 1.);\n}\n\nvec4 getTextureColor(float textureSlot, vec2 vTexturePoint) {\n  if (abs(0.0 - textureSlot) < threshold) {\n    return texture(uTextures[0], vTexturePoint);\n  }\n  if (abs(1.0 - textureSlot) < threshold) {\n    return texture(uTextures[1], vTexturePoint);\n  }\n  if (abs(2.0 - textureSlot) < threshold) {\n    return texture(uTextures[2], vTexturePoint);\n  }\n  if (abs(3.0 - textureSlot) < threshold) {\n    return texture(uTextures[3], vTexturePoint);\n  }\n  if (abs(4.0 - textureSlot) < threshold) {\n    return texture(uTextures[4], vTexturePoint);\n  }\n  if (abs(5.0 - textureSlot) < threshold) {\n    return texture(uTextures[5], vTexturePoint);\n  }\n  if (abs(6.0 - textureSlot) < threshold) {\n    return texture(uTextures[6], vTexturePoint);\n  }\n  if (abs(7.0 - textureSlot) < threshold) {\n    return texture(uTextures[7], vTexturePoint);\n  }\n  if (abs(8.0 - textureSlot) < threshold) {\n    return texture(uTextures[8], vTexturePoint);\n  }\n  if (abs(9.0 - textureSlot) < threshold) {\n    return texture(uTextures[9], vTexturePoint);\n  }\n  if (abs(10.0 - textureSlot) < threshold) {\n    return texture(uTextures[10], vTexturePoint);\n  }\n  if (abs(11.0 - textureSlot) < threshold) {\n    return texture(uTextures[11], vTexturePoint);\n  }\n  if (abs(12.0 - textureSlot) < threshold) {\n    return texture(uTextures[12], vTexturePoint);\n  }\n  if (abs(13.0 - textureSlot) < threshold) {\n    return texture(uTextures[13], vTexturePoint);\n  }\n  if (abs(14.0 - textureSlot) < threshold) {\n    return texture(uTextures[14], vTexturePoint);\n  }\n  if (abs(15.0 - textureSlot) < threshold) {\n    return texture(uTextures[15], vTexturePoint);\n  }\n  return texture(uTextures[0], vTexturePoint);\n}\n";
-
-class Z {
-  z;
-  b;
-  k;
-  y;
-  width;
-  height;
-  isVideo;
-  #z = new Set;
-  constructor(z, b, k, y) {
-    this.id = z;
-    this.texImgSrc = b;
-    this.refreshRate = k;
-    this.canvasImgSrc = y;
-    const N = b;
-    if (this.isVideo = !!(N.videoWidth || N.videoHeight), this.width = N.naturalWidth ?? N.videoWidth ?? N.displayWidth ?? N.width?.baseValue?.value ?? N.width, this.height = N.naturalHeight ?? N.videoHeight ?? N.displayHeight ?? N.height?.baseValue?.value ?? N.height, this.canvasImgSrc = y, !this.width || !this.height)
-      throw new Error("Invalid image");
-  }
-  refresh() {
-    this.refreshCallback?.();
-  }
-  static createFromCanvas(z, b) {
-    return new Z(z, b, undefined, b);
-  }
-  static async loadImage(z, b) {
-    const k = await new Promise((y, N) => {
-      const U = new Image;
-      U.crossOrigin = "anonymous";
-      const w = (j) => N(j.error);
-      U.addEventListener("error", w), U.addEventListener("load", () => y(U), { once: true }), U.src = b;
-    });
-    return new Z(z, k, undefined, k);
-  }
-  static async loadVideo(z, b, k, y = 30, N = 1, U = Number.MAX_SAFE_INTEGER) {
-    const w = await new Promise((P, H) => {
-      const F = document.createElement("video");
-      if (F.loop = true, k !== undefined)
-        F.volume = k;
-      F.addEventListener("loadedmetadata", () => {
-        F.play(), F.playbackRate = N, P(F);
-      }, { once: true }), document.addEventListener("focus", () => F.play()), F.addEventListener("error", (h) => H(h.error)), F.src = b;
-    }), j = new Z(z, w, Math.min(y * N, U));
-    return j.#z.add(() => w.pause()), j;
-  }
-  static async loadWebcam(z, b) {
-    const k = await new Promise((U, w) => {
-      const j = document.createElement("video");
-      j.loop = true, j.addEventListener("loadedmetadata", () => j.play()), j.addEventListener("playing", () => U(j), { once: true }), j.addEventListener("error", (P) => w(P.error));
-    }), y = new Z(z, k);
-    let N = false;
-    return navigator.mediaDevices.getUserMedia({ video: { deviceId: b } }).then((U) => {
-      if (!N)
-        k.srcObject = U, y.#z.add(() => U.getTracks().forEach((w) => w.stop()));
-    }), y.#z.add(() => {
-      N = true, k.pause();
-    }), y;
-  }
-  dispose() {
-    this.#z.forEach((z) => z()), this.#z.clear();
-  }
-}
-var T = function(z) {
-  return z;
-};
-
-class v {
-  renderProcedures = { image: T((z, b) => this.loadImage(z, b.src)), video: T((z, b) => this.loadVideo(z, b.src, b.volume, b.fps, b.playSpeed)), draw: T((z, b) => this.drawImage(z, b.draw)), canvas: T((z, b) => this.loadCanvas(z, b.canvas)), webcam: T((z, b) => this.loadWebCam(z, b.deviceId)) };
-  async postProcess(z, b) {
-    if (z.canvasImgSrc) {
-      const k = new OffscreenCanvas(z.width, z.height);
-      let y = k.getContext("2d");
-      if (y)
-        y.drawImage(z.canvasImgSrc, 0, 0), y = await b(y) ?? y;
-      const N = z.id;
-      return z.dispose(), Z.createFromCanvas(N, k);
-    }
-    return z;
-  }
-  async renderMedia(z, b) {
-    const k = await this.renderProcedures[b.type](z, b), { postProcess: y } = b;
-    return y ? this.postProcess(k, y) : k;
-  }
-  async drawImage(z, b) {
-    const k = new OffscreenCanvas(1, 1);
-    return b(k.getContext("2d")), Z.createFromCanvas(z, k);
-  }
-  async loadCanvas(z, b) {
-    return Z.createFromCanvas(z, b);
-  }
-  async loadImage(z, b) {
-    return await Z.loadImage(z, b);
-  }
-  async loadVideo(z, b, k, y, N, U) {
-    return await Z.loadVideo(z, b, k, y, N, U);
-  }
-  async loadWebCam(z, b) {
-    return await Z.loadWebcam(z, b);
-  }
-}
-var W = globalThis.WebGL2RenderingContext ?? {};
-var n = function(z, b = (k) => k.key) {
-  var k = [];
-  return M(z, "", true, (y) => k.push(y), b), k.join("");
-};
-var L = function(z) {
-  if (z === null)
-    return true;
-  var b = p(z.left), k = p(z.right);
-  if (Math.abs(b - k) <= 1 && L(z.left) && L(z.right))
-    return true;
-  return false;
-};
-var R = function(z, b, k, y, N) {
-  const U = N - y;
-  if (U > 0) {
-    const w = y + Math.floor(U / 2), j = b[w], P = k[w], H = { key: j, data: P, parent: z };
-    return H.left = R(H, b, k, y, w), H.right = R(H, b, k, w + 1, N), H;
-  }
-  return null;
-};
-var Q = function(z) {
-  if (z === null)
-    return 0;
-  const b = Q(z.left), k = Q(z.right);
-  return z.balanceFactor = b - k, Math.max(b, k) + 1;
-};
-var f = function(z, b, k, y, N) {
-  if (k >= y)
-    return;
-  const U = z[k + y >> 1];
-  let w = k - 1, j = y + 1;
-  while (true) {
-    do
-      w++;
-    while (N(z[w], U) < 0);
-    do
-      j--;
-    while (N(z[j], U) > 0);
-    if (w >= j)
-      break;
-    let P = z[w];
-    z[w] = z[j], z[j] = P, P = b[w], b[w] = b[j], b[j] = P;
-  }
-  f(z, b, k, j, N), f(z, b, j + 1, y, N);
-};
-var S = function(z, b) {
-  return Math.max(b, Math.pow(2, Math.ceil(Math.log(z) / Math.log(2))));
-};
-var O = function(z, b, k, y) {
-  if (k < 1)
-    throw new Error("Invalid count");
-  const N = S(z, y.min), U = S(b, y.min), w = new Map;
-  let j = y.min;
-  for (let P = 1;P <= k; P++) {
-    j = S(N * P, y.min);
-    const H = S(U * Math.ceil(k / P), y.min);
-    w.set(j, H);
-  }
-  for (let P = j;P <= y.max; P *= 2)
-    if (!w.has(P))
-      w.set(P, U);
-  return w;
-};
-var M = function(z, b, k, y, N) {
-  if (z) {
-    y(`${b}${k ? "\u2514\u2500\u2500 " : "\u251C\u2500\u2500 "}${N(z)}\n`);
-    const U = b + (k ? "    " : "\u2502   ");
-    if (z.left)
-      M(z.left, U, false, y, N);
-    if (z.right)
-      M(z.right, U, true, y, N);
-  }
-};
-var p = function(z) {
-  return z ? 1 + Math.max(p(z.left), p(z.right)) : 0;
-};
-var u = function(z, b) {
-  return z > b ? 1 : z < b ? -1 : 0;
-};
-var _ = function(z) {
-  var b = z.right;
-  if (z.right = b.left, b.left)
-    b.left.parent = z;
-  if (b.parent = z.parent, b.parent)
-    if (b.parent.left === z)
-      b.parent.left = b;
-    else
-      b.parent.right = b;
-  if (z.parent = b, b.left = z, z.balanceFactor += 1, b.balanceFactor < 0)
-    z.balanceFactor -= b.balanceFactor;
-  if (b.balanceFactor += 1, z.balanceFactor > 0)
-    b.balanceFactor += z.balanceFactor;
-  return b;
-};
-var E = function(z) {
-  var b = z.left;
-  if (z.left = b.right, z.left)
-    z.left.parent = z;
-  if (b.parent = z.parent, b.parent)
-    if (b.parent.left === z)
-      b.parent.left = b;
-    else
-      b.parent.right = b;
-  if (z.parent = b, b.right = z, z.balanceFactor -= 1, b.balanceFactor > 0)
-    z.balanceFactor -= b.balanceFactor;
-  if (b.balanceFactor -= 1, z.balanceFactor < 0)
-    b.balanceFactor += z.balanceFactor;
-  return b;
-};
-
-class X {
-  constructor(z, b = false) {
-    this._comparator = z || u, this._root = null, this._size = 0, this._noDuplicates = !!b;
-  }
-  destroy() {
-    return this.clear();
-  }
-  clear() {
-    return this._root = null, this._size = 0, this;
-  }
-  get size() {
-    return this._size;
-  }
-  contains(z) {
-    if (this._root) {
-      var b = this._root, k = this._comparator;
-      while (b) {
-        var y = k(z, b.key);
-        if (y === 0)
-          return true;
-        else if (y < 0)
-          b = b.left;
-        else
-          b = b.right;
+  handleMutation(mutationsList) {
+    for (const mutation of mutationsList) {
+      if (mutation.type === "characterData") {
+        this.startProgressingText(mutation.target.textContent ?? "");
       }
     }
-    return false;
   }
-  next(z) {
-    var b = z;
-    if (b)
-      if (b.right) {
-        b = b.right;
-        while (b.left)
-          b = b.left;
-      } else {
-        b = z.parent;
-        while (b && b.right === z)
-          z = b, b = b.parent;
-      }
-    return b;
-  }
-  prev(z) {
-    var b = z;
-    if (b)
-      if (b.left) {
-        b = b.left;
-        while (b.right)
-          b = b.right;
-      } else {
-        b = z.parent;
-        while (b && b.left === z)
-          z = b, b = b.parent;
-      }
-    return b;
-  }
-  forEach(z) {
-    var b = this._root, k = [], y = false, N = 0;
-    while (!y)
-      if (b)
-        k.push(b), b = b.left;
-      else if (k.length > 0)
-        b = k.pop(), z(b, N++), b = b.right;
-      else
-        y = true;
-    return this;
-  }
-  range(z, b, k, y) {
-    const N = [], U = this._comparator;
-    let w = this._root, j;
-    while (N.length !== 0 || w)
-      if (w)
-        N.push(w), w = w.left;
-      else {
-        if (w = N.pop(), j = U(w.key, b), j > 0)
-          break;
-        else if (U(w.key, z) >= 0) {
-          if (k.call(y, w))
-            return this;
-        }
-        w = w.right;
-      }
-    return this;
-  }
-  keys() {
-    var z = this._root, b = [], k = [], y = false;
-    while (!y)
-      if (z)
-        b.push(z), z = z.left;
-      else if (b.length > 0)
-        z = b.pop(), k.push(z.key), z = z.right;
-      else
-        y = true;
-    return k;
-  }
-  values() {
-    var z = this._root, b = [], k = [], y = false;
-    while (!y)
-      if (z)
-        b.push(z), z = z.left;
-      else if (b.length > 0)
-        z = b.pop(), k.push(z.data), z = z.right;
-      else
-        y = true;
-    return k;
-  }
-  at(z) {
-    var b = this._root, k = [], y = false, N = 0;
-    while (!y)
-      if (b)
-        k.push(b), b = b.left;
-      else if (k.length > 0) {
-        if (b = k.pop(), N === z)
-          return b;
-        N++, b = b.right;
-      } else
-        y = true;
-    return null;
-  }
-  minNode() {
-    var z = this._root;
-    if (!z)
-      return null;
-    while (z.left)
-      z = z.left;
-    return z;
-  }
-  maxNode() {
-    var z = this._root;
-    if (!z)
-      return null;
-    while (z.right)
-      z = z.right;
-    return z;
-  }
-  min() {
-    var z = this._root;
-    if (!z)
-      return null;
-    while (z.left)
-      z = z.left;
-    return z.key;
-  }
-  max() {
-    var z = this._root;
-    if (!z)
-      return null;
-    while (z.right)
-      z = z.right;
-    return z.key;
-  }
-  isEmpty() {
-    return !this._root;
-  }
-  pop() {
-    var z = this._root, b = null;
-    if (z) {
-      while (z.left)
-        z = z.left;
-      b = { key: z.key, data: z.data }, this.remove(z.key);
-    }
-    return b;
-  }
-  popMax() {
-    var z = this._root, b = null;
-    if (z) {
-      while (z.right)
-        z = z.right;
-      b = { key: z.key, data: z.data }, this.remove(z.key);
-    }
-    return b;
-  }
-  find(z) {
-    var b = this._root, k = b, y, N = this._comparator;
-    while (k)
-      if (y = N(z, k.key), y === 0)
-        return k;
-      else if (y < 0)
-        k = k.left;
-      else
-        k = k.right;
-    return null;
-  }
-  insert(z, b) {
-    if (!this._root)
-      return this._root = { parent: null, left: null, right: null, balanceFactor: 0, key: z, data: b }, this._size++, this._root;
-    var k = this._comparator, y = this._root, N = null, U = 0;
-    if (this._noDuplicates)
-      while (y)
-        if (U = k(z, y.key), N = y, U === 0)
-          return null;
-        else if (U < 0)
-          y = y.left;
-        else
-          y = y.right;
-    else
-      while (y)
-        if (U = k(z, y.key), N = y, U <= 0)
-          y = y.left;
-        else
-          y = y.right;
-    var w = { left: null, right: null, balanceFactor: 0, parent: N, key: z, data: b }, j;
-    if (U <= 0)
-      N.left = w;
-    else
-      N.right = w;
-    while (N) {
-      if (U = k(N.key, z), U < 0)
-        N.balanceFactor -= 1;
-      else
-        N.balanceFactor += 1;
-      if (N.balanceFactor === 0)
-        break;
-      else if (N.balanceFactor < -1) {
-        if (N.right.balanceFactor === 1)
-          E(N.right);
-        if (j = _(N), N === this._root)
-          this._root = j;
-        break;
-      } else if (N.balanceFactor > 1) {
-        if (N.left.balanceFactor === -1)
-          _(N.left);
-        if (j = E(N), N === this._root)
-          this._root = j;
-        break;
-      }
-      N = N.parent;
-    }
-    return this._size++, w;
-  }
-  remove(z) {
-    if (!this._root)
-      return null;
-    var b = this._root, k = this._comparator, y = 0;
-    while (b)
-      if (y = k(z, b.key), y === 0)
-        break;
-      else if (y < 0)
-        b = b.left;
-      else
-        b = b.right;
-    if (!b)
-      return null;
-    var N = b.key, U, w;
-    if (b.left) {
-      U = b.left;
-      while (U.left || U.right) {
-        while (U.right)
-          U = U.right;
-        if (b.key = U.key, b.data = U.data, U.left)
-          b = U, U = U.left;
-      }
-      b.key = U.key, b.data = U.data, b = U;
-    }
-    if (b.right) {
-      w = b.right;
-      while (w.left || w.right) {
-        while (w.left)
-          w = w.left;
-        if (b.key = w.key, b.data = w.data, w.right)
-          b = w, w = w.right;
-      }
-      b.key = w.key, b.data = w.data, b = w;
-    }
-    var j = b.parent, P = b, H;
-    while (j) {
-      if (j.left === P)
-        j.balanceFactor -= 1;
-      else
-        j.balanceFactor += 1;
-      if (j.balanceFactor < -1) {
-        if (j.right.balanceFactor === 1)
-          E(j.right);
-        if (H = _(j), j === this._root)
-          this._root = H;
-        j = H;
-      } else if (j.balanceFactor > 1) {
-        if (j.left.balanceFactor === -1)
-          _(j.left);
-        if (H = E(j), j === this._root)
-          this._root = H;
-        j = H;
-      }
-      if (j.balanceFactor === -1 || j.balanceFactor === 1)
-        break;
-      P = j, j = j.parent;
-    }
-    if (b.parent)
-      if (b.parent.left === b)
-        b.parent.left = null;
-      else
-        b.parent.right = null;
-    if (b === this._root)
-      this._root = null;
-    return this._size--, N;
-  }
-  load(z = [], b = [], k) {
-    if (this._size !== 0)
-      throw new Error("bulk-load: tree is not empty");
-    const y = z.length;
-    if (k)
-      f(z, b, 0, y - 1, this._comparator);
-    return this._root = R(null, z, b, 0, y), Q(this._root), this._size = y, this;
-  }
-  isBalanced() {
-    return L(this._root);
-  }
-  toString(z) {
-    return n(this._root, z);
-  }
-}
-X.default = X;
-
-class A {
-  size;
-  slotNumber;
-  x;
-  y;
-  textureIndex;
-  parent;
-  sibbling;
-  textureSizeLimits;
-  constructor(z, b, k, y) {
-    this.textureSizeLimits = k?.textureSizeLimits ?? y ?? { min: C, max: D }, this.size = z, this.slotNumber = b, this.parent = k, this.sibbling = undefined;
-    const { x: N, y: U, textureIndex: w } = this.calculatePosition(z, b);
-    this.x = N, this.y = U, this.textureIndex = w;
-  }
-  calculateTextureIndex(z, b) {
-    const [k, y] = z, N = this.textureSizeLimits.max / k * (this.textureSizeLimits.max / y);
-    return Math.floor(b / N);
-  }
-  calculatePosition(z, b) {
-    const [k, y] = z, N = this.textureSizeLimits.max / k, U = this.textureSizeLimits.max / y, w = b % N * k, j = Math.floor(b / N) % U * y;
-    return { x: w, y: j, textureIndex: this.calculateTextureIndex(z, b) };
-  }
-  getTag() {
-    return A.getTag(this);
-  }
-  static getTag(z) {
-    return `${z.size[0]}x${z.size[1]}-#${z.slotNumber}`;
-  }
-  static positionToTextureSlot(z, b, k, y, N) {
-    const [U, w] = k, j = N.textureSizeLimits.max / U, P = N.textureSizeLimits.max / U * (N.textureSizeLimits.max / w) * y + b / w * j + z / U;
-    return new A(k, P, N);
-  }
-  getPosition() {
-    return { x: this.x, y: this.y, size: this.size, textureIndex: this.textureIndex };
-  }
-  canSplitHorizontally() {
-    const [, z] = this.size;
-    return z > this.textureSizeLimits.min;
-  }
-  canSplitVertically() {
-    const [z] = this.size;
-    return z > this.textureSizeLimits.min;
-  }
-  splitHorizontally() {
-    const { x: z, y: b, size: k, textureIndex: y } = this, [N, U] = k;
-    if (!this.canSplitHorizontally())
-      throw new Error(`Cannot split texture slot of size ${N} horizontally`);
-    const w = N / 2, j = A.positionToTextureSlot(z, b, [w, U], y, this), P = A.positionToTextureSlot(z + w, b, [w, U], y, this);
-    return j.sibbling = P, P.sibbling = j, [j, P];
-  }
-  splitVertically() {
-    const { x: z, y: b, size: k, textureIndex: y } = this, [N, U] = k;
-    if (!this.canSplitVertically())
-      throw new Error(`Cannot split texture slot of size ${U} vertically`);
-    const w = U / 2, j = A.positionToTextureSlot(z, b, [N, w], y, this), P = A.positionToTextureSlot(z, b + w, [N, w], y, this);
-    return j.sibbling = P, P.sibbling = j, [j, P];
-  }
-}
-var x = false;
-var C = 16;
-var D = 4096;
-var g = 16;
-
-class B {
-  textureSlots = new X((z, b) => {
-    const k = z.size[0] * z.size[1] - b.size[0] * b.size[1];
-    if (k !== 0)
-      return k;
-    return z.slotNumber - b.slotNumber;
-  }, false);
-  allocatedTextures = {};
-  minTextureSize;
-  maxTextureSize;
-  numTextureSheets;
-  initialSlots = [];
-  constructor({ numTextureSheets: z, minTextureSize: b, maxTextureSize: k, excludeTexture: y } = {}, N) {
-    if (this.numTextureSheets = z ?? g, this.minTextureSize = b ?? C, this.maxTextureSize = k ?? D, N)
-      this.numTextureSheets = Math.min(this.numTextureSheets, N.getParameter(WebGL2RenderingContext.MAX_TEXTURE_IMAGE_UNITS)), this.maxTextureSize = Math.min(this.maxTextureSize, N.getParameter(WebGL2RenderingContext.MAX_TEXTURE_SIZE)), this.minTextureSize = Math.min(this.minTextureSize, this.maxTextureSize);
-    for (let U = 0;U < this.numTextureSheets; U++) {
-      if (y?.(U))
-        continue;
-      this.initialSlots.push(new A([this.maxTextureSize, this.maxTextureSize], U, undefined, { min: this.minTextureSize, max: this.maxTextureSize }));
-    }
-    this.initialSlots.forEach((U) => this.textureSlots.insert(U));
-  }
-  allocate(z, b, k = 1) {
-    const { size: y, slotNumber: N, x: U, y: w, textureIndex: j } = this.allocateHelper(z, b, k);
-    return { size: y, slotNumber: N, x: U, y: w, textureIndex: j };
-  }
-  deallocate(z) {
-    if (!this.isSlotUsed(z))
-      throw new Error("Slot is not allocated");
-    const b = this.allocatedTextures[A.getTag(z)];
-    this.deallocateHelper(b);
-  }
-  get countUsedTextureSheets() {
-    return this.initialSlots.filter((z) => this.isSlotUsed(z)).length;
-  }
-  allocateHelper(z, b, k = 1) {
-    const y = O(z, b, k, { min: this.minTextureSize, max: this.maxTextureSize }), N = this.findSlot(y);
-    if (!N)
-      throw new Error(`Could not find a slot for texture to fit ${k} sprites of size ${z}x${b}`);
-    this.textureSlots.remove(N);
-    const [U, w] = this.bestFit(y, N);
-    return this.fitSlot(N, U, w);
-  }
-  findSlot(z) {
-    for (let b = 0;b < this.textureSlots.size; b++) {
-      const k = this.textureSlots.at(b).key, [y, N] = k.size;
-      if (z.get(y) <= N)
-        return k;
-    }
-    return null;
-  }
-  calculateRatio(z, b) {
-    return Math.max(z / b, b / z);
-  }
-  bestFit(z, b) {
-    const [k, y] = b.size;
-    let N = b.textureSizeLimits.max;
-    return z.forEach((U, w) => {
-      if (w <= k && U <= y) {
-        const j = w * U, P = z.get(N) * N;
-        if (j < P)
-          N = w;
-        else if (j === P) {
-          if (this.calculateRatio(w, U) < this.calculateRatio(N, z.get(N)))
-            N = w;
-        }
-      }
-    }), [N, z.get(N)];
-  }
-  isSlotUsed(z) {
-    return !!this.allocatedTextures[A.getTag(z)];
-  }
-  deallocateHelper(z) {
-    if (z.parent && z.sibbling && !this.isSlotUsed(z.sibbling)) {
-      const b = z.sibbling;
-      if (this.textureSlots.remove(b), x && this.textureSlots.find(z))
-        throw new Error("Slot is not expected to be in the tree");
-      const k = z.parent;
-      this.deallocateHelper(k);
+  startProgressingText(text) {
+    cancelAnimationFrame(this.#animationFrameRequest);
+    let period = parseInt(this.getAttribute("period") ?? "10");
+    if (isNaN(period)) {
+      console.warn("Invalid period: ", period);
+      period = 10;
       return;
     }
-    this.textureSlots.insert(z), delete this.allocatedTextures[z.getTag()];
-  }
-  trySplitHorizontally(z, b, k) {
-    if (z.canSplitHorizontally()) {
-      const [y, N] = z.splitHorizontally();
-      if (y.size[0] >= b)
-        return this.textureSlots.insert(N), this.fitSlot(y, b, k);
-    }
-    return null;
-  }
-  trySplitVertically(z, b, k) {
-    if (z.canSplitVertically()) {
-      const [y, N] = z.splitVertically();
-      if (y.size[1] >= k)
-        return this.textureSlots.insert(N), this.fitSlot(y, b, k);
-    }
-    return null;
-  }
-  fitSlot(z, b, k) {
-    if (this.allocatedTextures[z.getTag()] = z, z.size[0] > z.size[1]) {
-      const y = this.trySplitHorizontally(z, b, k) ?? this.trySplitVertically(z, b, k);
-      if (y)
-        return y;
-    } else {
-      const y = this.trySplitVertically(z, b, k) ?? this.trySplitHorizontally(z, b, k);
-      if (y)
-        return y;
-    }
-    return z;
-  }
-}
-var V = 15;
-var $ = `TEXTURE${V}`;
-
-class l {
-  gl;
-  texturesById = {};
-  #z = new OffscreenCanvas(1, 1).getContext("2d");
-  #b = new B({ excludeTexture: (z) => z === V });
-  #k = new B({ excludeTexture: (z) => z !== V });
-  #y = new Set;
-  constructor({ gl: z, textureSlotAllocator: b = new B({ excludeTexture: (y) => y === V }), textureSlotAllocatorForVideo: k = new B({ excludeTexture: (y) => y !== V }) }) {
-    this.gl = z, this.#b = b, this.#k = k, this.#z.imageSmoothingEnabled = true;
-  }
-  getTexture(z) {
-    if (!this.texturesById[z]) {
-      const b = this.gl.createTexture();
-      if (!b)
-        return;
-      const k = z === $ ? this.#k : this.#b;
-      this.texturesById[z] = b, this.gl.bindTexture(W.TEXTURE_2D, b), this.gl.texImage2D(W.TEXTURE_2D, 0, W.RGBA, k.maxTextureSize, k.maxTextureSize, 0, W.RGBA, W.UNSIGNED_BYTE, null), this.generateMipMap(z);
-    }
-    return this.texturesById[z];
-  }
-  loadTexture(z, b, k, y, N) {
-    this.gl.activeTexture(W[b]), this.gl.bindTexture(W.TEXTURE_2D, k), this.applyTexImage2d(z, y, N), this.gl.texParameteri(W.TEXTURE_2D, W.TEXTURE_MIN_FILTER, W.LINEAR);
-  }
-  applyTexImage2d(z, [b, k, y, N], [U, w, j, P]) {
-    if (y === j && N === P && !b && !k)
-      this.gl.texSubImage2D(W.TEXTURE_2D, 0, U, w, j, P, W.RGBA, W.UNSIGNED_BYTE, z.texImgSrc);
-    else {
-      const H = this.#z.canvas;
-      if (z.texImgSrc instanceof ImageData) {
-        if (H.width = j || z.width, H.height = P || z.height, this.#z.putImageData(z.texImgSrc, 0, 0), b || k)
-          console.warn("Offset not available when sending imageData");
-      } else {
-        const F = y || z.width, h = N || z.height;
-        H.width = j || F, H.height = P || h, this.#z.drawImage(z.texImgSrc, b, k, F, h, 0, 0, H.width, H.height);
+    let startTime = 0;
+    const loop = (time) => {
+      if (!startTime) {
+        startTime = time;
       }
-      this.gl.texSubImage2D(W.TEXTURE_2D, 0, U, w, H.width, H.height, W.RGBA, W.UNSIGNED_BYTE, H);
-    }
-  }
-  allocateSlotForImage(z) {
-    const k = (z.isVideo ? this.#k : this.#b).allocate(z.width, z.height), y = `TEXTURE${k.textureIndex}`, N = this.getTexture(y);
-    if (!N)
-      throw new Error(`Invalid texture Id ${y}`);
-    const U = this.assignImageToTexture(z, y, N, [0, 0, z.width, z.height], [k.x, k.y, k.size[0], k.size[1]]);
-    return { slot: k, refreshCallback: U };
-  }
-  assignImageToTexture(z, b, k, y, N) {
-    const U = y ?? [0, 0, z.width, z.height], w = N ?? [0, 0, U[2], U[3]], j = () => {
-      this.gl.bindTexture(W.TEXTURE_2D, k), this.applyTexImage2d(z, U, w);
-    };
-    if (this.#y.has(z))
-      j();
-    else
-      this.loadTexture(z, b, k, U, w), this.#y.add(z);
-    return j;
-  }
-  setupTextureForVideo(z) {
-    const b = this.getTexture(z);
-    if (b)
-      this.gl.activeTexture(W[z]), this.gl.bindTexture(W.TEXTURE_2D, b), this.gl.texParameteri(W.TEXTURE_2D, W.TEXTURE_MIN_FILTER, W.LINEAR), this.gl.texParameteri(W.TEXTURE_2D, W.TEXTURE_MAG_FILTER, W.LINEAR);
-  }
-  generateMipMap(z) {
-    const b = this.getTexture(z);
-    if (b)
-      this.gl.activeTexture(W[z]), this.gl.bindTexture(W.TEXTURE_2D, b), this.gl.texParameteri(W.TEXTURE_2D, W.TEXTURE_MIN_FILTER, W.LINEAR_MIPMAP_LINEAR), this.gl.texParameteri(W.TEXTURE_2D, W.TEXTURE_MAG_FILTER, W.LINEAR), this.gl.generateMipmap(W.TEXTURE_2D);
-  }
-  dispose() {
-    Object.values(this.texturesById).forEach((z) => {
-      this.gl.deleteTexture(z);
-    });
-  }
-}
-var SpriteType;
-(function(SpriteType2) {
-  SpriteType2[SpriteType2["DEFAULT"] = 0] = "DEFAULT";
-  SpriteType2[SpriteType2["SPRITE"] = 1] = "SPRITE";
-  SpriteType2[SpriteType2["HUD"] = 2] = "HUD";
-  SpriteType2[SpriteType2["DISTANT"] = 3] = "DISTANT";
-  SpriteType2[SpriteType2["WAVE"] = 4] = "WAVE";
-})(SpriteType || (SpriteType = {}));
-var Priority;
-(function(Priority2) {
-  Priority2[Priority2["DEFAULT"] = 0] = "DEFAULT";
-  Priority2[Priority2["LAST"] = 1] = "LAST";
-})(Priority || (Priority = {}));
-
-class h {
-  i;
-  f;
-  warningLimit = 50000;
-  #i = new Set;
-  #f = [];
-  constructor(i, f2) {
-    this.initCall = i;
-    this.onRecycle = f2;
-  }
-  create(...i) {
-    const f2 = this.#f.pop();
-    if (f2)
-      return this.#i.add(f2), this.initCall(f2, ...i);
-    const v2 = this.initCall(undefined, ...i);
-    return this.#i.add(v2), this.#v(), v2;
-  }
-  recycle(i) {
-    this.#i.delete(i), this.#h(i);
-  }
-  recycleAll() {
-    for (let i of this.#i)
-      this.#h(i);
-    this.#i.clear();
-  }
-  clear() {
-    this.#f.length = 0, this.#i.clear();
-  }
-  countObjectsInExistence() {
-    return this.#i.size + this.#f.length;
-  }
-  #h(i) {
-    this.#f.push(i), this.onRecycle?.(i);
-  }
-  #v() {
-    if (this.countObjectsInExistence() === this.warningLimit)
-      console.warn("ObjectPool already created", this.#i.size + this.#f.length, "in", this.constructor.name);
-  }
-}
-
-class C2 extends h {
-  constructor() {
-    super((i) => {
-      if (!i)
-        return new Map;
-      return i;
-    }, (i) => i.clear());
-  }
-}
-var $2 = 1000;
-var Q2 = 16.5;
-var N = 10;
-
-class V2 {
-  requestAnimationFrame;
-  cancelAnimationFrame;
-  maxLoopJump;
-  constructor({ requestAnimationFrame: j = globalThis.requestAnimationFrame.bind(globalThis), cancelAnimationFrame: w = globalThis.cancelAnimationFrame.bind(globalThis) } = {}, { maxLoopJump: d = N } = {}) {
-    this.requestAnimationFrame = j, this.cancelAnimationFrame = w, this.maxLoopJump = d;
-  }
-  startLoop(j, w = {}) {
-    const d = w.frameDuration ?? (w.frameRate ? $2 / w.frameRate : undefined) ?? Q2;
-    let B2 = 0;
-    function W2(h2, v2) {
-      if (h2 > v2)
-        return B2 -= d * (h2 - v2), v2;
-      return h2;
-    }
-    const { maxLoopJump: Y, requestAnimationFrame: G, cancelAnimationFrame: Z2 } = this;
-    let y = 0;
-    const H = (h2) => {
-      K = G(H);
-      const v2 = W2(Math.round((h2 + B2 - y) / d), Y);
-      for (let z = 0;z < v2; z++)
-        y += d, j(y, z === v2 - 1);
-    };
-    let K = G(H);
-    return () => {
-      Z2(K);
-    };
-  }
-}
-var MILLIS_IN_SEC = 1000;
-
-class Motor {
-  time = 0;
-  apptPool = new AppointmentPool;
-  schedulePool = new C2;
-  schedule = this.schedulePool.create();
-  loopExecutor;
-  frameDuration;
-  constructor({ loopExecutor } = {}, config = {}) {
-    this.loopExecutor = loopExecutor ?? new V2;
-    this.frameDuration = config.frameDuration ?? (config.frameRate ? 1000 / config.frameRate : undefined) ?? Q2;
-  }
-  loop(cycle, data, frameRate) {
-    this.scheduleUpdate(cycle, data, frameRate ?? 1000);
-  }
-  scheduleUpdate(cycle, data, refreshRate = 0, future) {
-    let appt = this.schedule.get(cycle);
-    if (!appt) {
-      this.schedule.set(cycle, appt = this.apptPool.create(refreshRate, data));
-    } else if (appt.frameRate !== refreshRate) {
-      appt.frameRate = refreshRate;
-      appt.period = refreshRate ? 1000 / refreshRate : 0;
-      appt.data = data;
-    }
-    if (future) {
-      appt.meetingTime = this.time + Q2;
-    }
-  }
-  stopUpdate(cycle) {
-    const appt = this.schedule.get(cycle);
-    if (appt) {
-      this.apptPool.recycle(appt);
-    }
-    this.schedule.delete(cycle);
-  }
-  deactivate() {
-    this.stopLoop?.();
-  }
-  activate() {
-    this.startLoop();
-  }
-  startLoop() {
-    const updatePayload = {
-      time: 0,
-      deltaTime: this.frameDuration,
-      data: undefined,
-      renderFrame: true,
-      cycle: { refresh: () => {
-      } },
-      stopUpdate() {
-        this.stopped = true;
-      },
-      stopped: false
-    };
-    updatePayload.stopUpdate = updatePayload.stopUpdate.bind(updatePayload);
-    const performUpdate = (updatePayload2) => {
-      if (!this.schedule.size) {
-        return;
-      }
-      let agenda = this.schedule;
-      const futureSchedule = this.schedulePool.create();
-      const finalSchedule = this.schedulePool.create();
-      let limit = 100;
-      let final = false;
-      while (agenda) {
-        if (limit-- < 0) {
-          throw new Error("We keep scheduling updates within updates.");
-        }
-        this.schedule = this.schedulePool.create();
-        for (const entry of agenda) {
-          const update = entry[0];
-          const appt = entry[1];
-          if (updatePayload2.time < appt.meetingTime) {
-            futureSchedule.set(update, appt);
-            continue;
-          }
-          if (!final && update.priority === Priority.LAST) {
-            finalSchedule.set(update, appt);
-            continue;
-          }
-          updatePayload2.data = appt.data;
-          updatePayload2.cycle = update;
-          updatePayload2.stopped = false;
-          update.refresh(updatePayload2);
-          if (appt.period && !updatePayload2.stopped) {
-            appt.meetingTime = Math.max(appt.meetingTime + appt.period, updatePayload2.time);
-            futureSchedule.set(update, appt);
-          } else {
-            this.apptPool.recycle(appt);
-          }
-        }
-        this.schedulePool.recycle(agenda);
-        if (!final) {
-          if (this.schedule.size) {
-            agenda = this.schedule;
-          } else {
-            this.schedulePool.recycle(this.schedule);
-            final = true;
-            agenda = finalSchedule;
-          }
-        } else {
-          this.schedulePool.recycle(this.schedule);
-          agenda = undefined;
-          this.schedule = futureSchedule;
-        }
+      const numChars = Math.floor((time - startTime) / period);
+      const visibleText = text.slice(0, numChars);
+      const hiddenText = text.slice(numChars);
+      this.#containerText.textContent = visibleText;
+      this.#hiddenText.textContent = hiddenText;
+      if (numChars <= text.length) {
+        requestAnimationFrame(loop);
       }
     };
-    const stopLoop = this.loopExecutor.startLoop((time, render) => {
-      this.time = updatePayload.time = time;
-      updatePayload.renderFrame = render;
-      performUpdate(updatePayload);
-    }, { frameDuration: this.frameDuration });
-    this.stopLoop = () => {
-      stopLoop();
-      this.stopLoop = undefined;
-      this.apptPool.clear();
-    };
+    this.#animationFrameRequest = requestAnimationFrame(loop);
   }
 }
-
-class AppointmentPool extends h {
-  constructor() {
-    super((appt, frameRate, data) => {
-      if (!appt) {
-        return { meetingTime: 0, frameRate, period: frameRate ? MILLIS_IN_SEC / frameRate : 0, data };
-      }
-      appt.meetingTime = 0;
-      appt.period = frameRate ? MILLIS_IN_SEC / frameRate : 0;
-      appt.frameRate = frameRate;
-      appt.data = data;
-      return appt;
-    });
-  }
-}
-
-class Looper {
-  #cycle;
-  #motor;
-  #data;
-  #autoStart;
-  constructor({ motor, data, cycle }, { autoStart }) {
-    this.#cycle = cycle;
-    this.#motor = motor;
-    this.#data = data;
-    this.#autoStart = autoStart;
-  }
-  refresh(updatePayload) {
-    this.#cycle?.refresh(updatePayload);
-  }
-  activate() {
-    if (this.#autoStart) {
-      this.start();
-    }
-  }
-  deactivate() {
-    this.#motor.stopUpdate(this);
-  }
-  start() {
-    this.#motor.loop(this, this.#data);
-  }
-}
-var Policy;
-(function(Policy2) {
-  Policy2[Policy2["ACTIVE_CYCLE_PRIORITY"] = 0] = "ACTIVE_CYCLE_PRIORITY";
-  Policy2[Policy2["INCOMING_CYCLE_PRIORITY"] = 1] = "INCOMING_CYCLE_PRIORITY";
-})(Policy || (Policy = {}));
-
-class ControlledMotor {
-  motor;
-  activeCycle;
-  #policy;
-  constructor(motor, config = {}) {
-    this.motor = motor;
-    this.#policy = config.policy ?? Policy.ACTIVE_CYCLE_PRIORITY;
-  }
-  loop(cycle, data, frameRate) {
-    this.scheduleUpdate(cycle, data, frameRate ?? 1000);
-  }
-  scheduleUpdate(cycle, data, refreshRate, future) {
-    if (this.activeCycle) {
-      if (this.#policy === Policy.ACTIVE_CYCLE_PRIORITY) {
-        return;
-      }
-      this.stopUpdate(this.activeCycle);
-    }
-    this.activeCycle = cycle;
-    this.motor.scheduleUpdate(cycle, data, refreshRate);
-  }
-  stopUpdate(cycle) {
-    this.motor.stopUpdate(cycle);
-  }
-  get time() {
-    return this.motor.time;
-  }
-}
-var DEFAULT_MAX_TEXTURE_SIZE = 4096;
-
-class TextureUniformInitializer {
-  static initialize({ gl, program }, { maxTextureSize, textureUniformLoc = TEXTURE_UNIFORM_LOC, maxTextureSizeLoc = MAX_TEXTURE_SIZE_LOC } = {}) {
-    const maxTextureUniform = gl.getUniformLocation(program, maxTextureSizeLoc);
-    gl.uniform1f(maxTextureUniform, maxTextureSize ?? DEFAULT_MAX_TEXTURE_SIZE);
-    const maxTextureUnits = gl.getParameter(GL.MAX_TEXTURE_IMAGE_UNITS);
-    const arrayOfTextureIndex = new Array(maxTextureUnits).fill(null).map((_2, index) => index);
-    const texturesUniform = gl.getUniformLocation(program, textureUniformLoc);
-    gl.uniform1iv(texturesUniform, arrayOfTextureIndex);
-  }
-}
-
-class BaseUniformHandler {
-  updateCall;
-  gl;
-  location;
-  constructor({ gl, program }, { name }, updateCall) {
-    this.updateCall = updateCall;
-    this.gl = gl;
-    this.location = gl.getUniformLocation(program, name);
-  }
-  updateValue(value) {
-    this.updateCall(this.gl, this.location, value);
-  }
-}
-
-class MatrixUniformHandler extends BaseUniformHandler {
-  matrix;
-  constructor(props, config, matrix) {
-    super(props, config, (gl, location, matrix2) => gl.uniformMatrix4fv(location, false, matrix2.getMatrix()));
-    this.matrix = matrix;
-  }
-  update() {
-    this.updateValue(this.matrix);
-  }
-}
-
-class FloatUniformHandler extends BaseUniformHandler {
-  val;
-  constructor(props, config, val) {
-    super(props, config, (gl, location, value) => gl.uniform1f(location, value));
-    this.val = val;
-    if (val === undefined) {
-      this.update = () => {
-      };
-    }
-  }
-  update() {
-    this.updateValue(this.val.valueOf());
-  }
-}
-
-class VectorUniformHandler extends BaseUniformHandler {
-  vector;
-  constructor(props, config, vector) {
-    super(props, config, (gl, location, vector2) => gl.uniform3fv(location, vector2));
-    this.vector = vector;
-  }
-  update() {
-    this.updateValue(this.vector);
-  }
-}
-var x2 = function(u2, j) {
-  if (u2) {
-    const p2 = u2.length.valueOf();
-    for (let f2 = 0;f2 < p2; f2++)
-      j(u2.at(f2), f2);
-  }
-};
-var z = function(u2, j, p2 = []) {
-  const f2 = p2 ?? [], q = u2.length.valueOf();
+customElements.define("progressive-text", ProgressiveText);
+var jsx_dev_runtime3 = __toESM2(require_jsx_dev_runtime(), 1);
+var z5 = function(u3, j2, p2 = []) {
+  const f2 = p2 ?? [], q = u3.length.valueOf();
   f2.length = q;
-  for (let v2 = 0;v2 < q; v2++) {
-    const w = u2.at(v2);
-    f2[v2] = j(w, v2);
+  for (let v4 = 0;v4 < q; v4++) {
+    const w2 = u3.at(v4);
+    f2[v4] = j2(w2, v4);
   }
   return f2;
 };
-
-class TextureUpdateHandler {
-  #textureSlots = new Map;
-  #textureManager;
-  #imageManager;
-  constructor({ textureManager, imageManager }) {
-    this.#textureManager = textureManager;
-    this.#imageManager = imageManager;
-  }
-  getSlotBuffer(id) {
-    const slot = this.#textureSlots.get(id);
-    return slot?.buffer;
-  }
-  dispose() {
-    this.#textureSlots.clear();
-  }
-  async updateTextures(ids, medias) {
-    const mediaList = Array.from(ids).map((index) => medias.at(index));
-    ids.clear();
-    const mediaInfos = (await Promise.all(z(mediaList, async (media) => {
-      if (media?.id === undefined) {
-        return;
-      }
-      const mediaData = await this.#imageManager.renderMedia(media.id, media);
-      return { mediaData, mediaId: media.id, spriteSheet: media.spriteSheet };
-    }))).filter((data) => !!data);
-    const textureIndices = await Promise.all(mediaInfos.map(async ({ mediaData, mediaId, spriteSheet }) => {
-      const { slot, refreshCallback } = this.#textureManager.allocateSlotForImage(mediaData);
-      const slotW = Math.log2(slot.size[0]), slotH = Math.log2(slot.size[1]);
-      const wh = slotW * 16 + slotH;
-      const [spriteWidth, spriteHeight] = spriteSheet?.spriteSize ?? [mediaData.width, mediaData.height];
-      this.#textureSlots.set(mediaId, {
-        buffer: Float32Array.from([wh, slot.slotNumber, spriteWidth / mediaData.width, spriteHeight / mediaData.height])
-      });
-      mediaData.refreshCallback = refreshCallback;
-      return slot.textureIndex;
-    }));
-    const textureIndicesSet = new Set(textureIndices);
-    textureIndicesSet.forEach((textureIndex) => {
-      if (textureIndex === V) {
-        this.#textureManager.setupTextureForVideo(`TEXTURE${textureIndex}`);
-      } else {
-        this.#textureManager.generateMipMap(`TEXTURE${textureIndex}`);
-      }
-    });
-    return mediaInfos.map(({ mediaData }) => mediaData);
-  }
-}
-var J0 = function() {
-  var B2 = new R2(9);
-  if (R2 != Float32Array)
-    B2[1] = 0, B2[2] = 0, B2[3] = 0, B2[5] = 0, B2[6] = 0, B2[7] = 0;
-  return B2[0] = 1, B2[4] = 1, B2[8] = 1, B2;
-};
-var XB = function() {
-  var B2 = new R2(16);
-  if (R2 != Float32Array)
-    B2[1] = 0, B2[2] = 0, B2[3] = 0, B2[4] = 0, B2[6] = 0, B2[7] = 0, B2[8] = 0, B2[9] = 0, B2[11] = 0, B2[12] = 0, B2[13] = 0, B2[14] = 0;
-  return B2[0] = 1, B2[5] = 1, B2[10] = 1, B2[15] = 1, B2;
-};
-var YB = function(B2) {
-  var K = new R2(16);
-  return K[0] = B2[0], K[1] = B2[1], K[2] = B2[2], K[3] = B2[3], K[4] = B2[4], K[5] = B2[5], K[6] = B2[6], K[7] = B2[7], K[8] = B2[8], K[9] = B2[9], K[10] = B2[10], K[11] = B2[11], K[12] = B2[12], K[13] = B2[13], K[14] = B2[14], K[15] = B2[15], K;
-};
-var $B = function(B2, K) {
-  return B2[0] = K[0], B2[1] = K[1], B2[2] = K[2], B2[3] = K[3], B2[4] = K[4], B2[5] = K[5], B2[6] = K[6], B2[7] = K[7], B2[8] = K[8], B2[9] = K[9], B2[10] = K[10], B2[11] = K[11], B2[12] = K[12], B2[13] = K[13], B2[14] = K[14], B2[15] = K[15], B2;
-};
-var QB = function(B2, K, W2, X2, Y, $3, Q3, Z2, H, J, O2, L2, C3, V3, E2, U) {
-  var G = new R2(16);
-  return G[0] = B2, G[1] = K, G[2] = W2, G[3] = X2, G[4] = Y, G[5] = $3, G[6] = Q3, G[7] = Z2, G[8] = H, G[9] = J, G[10] = O2, G[11] = L2, G[12] = C3, G[13] = V3, G[14] = E2, G[15] = U, G;
-};
-var ZB = function(B2, K, W2, X2, Y, $3, Q3, Z2, H, J, O2, L2, C3, V3, E2, U, G) {
-  return B2[0] = K, B2[1] = W2, B2[2] = X2, B2[3] = Y, B2[4] = $3, B2[5] = Q3, B2[6] = Z2, B2[7] = H, B2[8] = J, B2[9] = O2, B2[10] = L2, B2[11] = C3, B2[12] = V3, B2[13] = E2, B2[14] = U, B2[15] = G, B2;
-};
-var O0 = function(B2) {
-  return B2[0] = 1, B2[1] = 0, B2[2] = 0, B2[3] = 0, B2[4] = 0, B2[5] = 1, B2[6] = 0, B2[7] = 0, B2[8] = 0, B2[9] = 0, B2[10] = 1, B2[11] = 0, B2[12] = 0, B2[13] = 0, B2[14] = 0, B2[15] = 1, B2;
-};
-var HB = function(B2, K) {
-  if (B2 === K) {
-    var W2 = K[1], X2 = K[2], Y = K[3], $3 = K[6], Q3 = K[7], Z2 = K[11];
-    B2[1] = K[4], B2[2] = K[8], B2[3] = K[12], B2[4] = W2, B2[6] = K[9], B2[7] = K[13], B2[8] = X2, B2[9] = $3, B2[11] = K[14], B2[12] = Y, B2[13] = Q3, B2[14] = Z2;
-  } else
-    B2[0] = K[0], B2[1] = K[4], B2[2] = K[8], B2[3] = K[12], B2[4] = K[1], B2[5] = K[5], B2[6] = K[9], B2[7] = K[13], B2[8] = K[2], B2[9] = K[6], B2[10] = K[10], B2[11] = K[14], B2[12] = K[3], B2[13] = K[7], B2[14] = K[11], B2[15] = K[15];
-  return B2;
-};
-var JB = function(B2, K) {
-  var W2 = K[0], X2 = K[1], Y = K[2], $3 = K[3], Q3 = K[4], Z2 = K[5], H = K[6], J = K[7], O2 = K[8], L2 = K[9], C3 = K[10], V3 = K[11], E2 = K[12], U = K[13], G = K[14], I = K[15], S2 = W2 * Z2 - X2 * Q3, k = W2 * H - Y * Q3, A2 = W2 * J - $3 * Q3, D2 = X2 * H - Y * Z2, P = X2 * J - $3 * Z2, F = Y * J - $3 * H, j = O2 * U - L2 * E2, h2 = O2 * G - C3 * E2, M2 = O2 * I - V3 * E2, p2 = L2 * G - C3 * U, g2 = L2 * I - V3 * U, q = C3 * I - V3 * G, T22 = S2 * q - k * g2 + A2 * p2 + D2 * M2 - P * h2 + F * j;
-  if (!T22)
-    return null;
-  return T22 = 1 / T22, B2[0] = (Z2 * q - H * g2 + J * p2) * T22, B2[1] = (Y * g2 - X2 * q - $3 * p2) * T22, B2[2] = (U * F - G * P + I * D2) * T22, B2[3] = (C3 * P - L2 * F - V3 * D2) * T22, B2[4] = (H * M2 - Q3 * q - J * h2) * T22, B2[5] = (W2 * q - Y * M2 + $3 * h2) * T22, B2[6] = (G * A2 - E2 * F - I * k) * T22, B2[7] = (O2 * F - C3 * A2 + V3 * k) * T22, B2[8] = (Q3 * g2 - Z2 * M2 + J * j) * T22, B2[9] = (X2 * M2 - W2 * g2 - $3 * j) * T22, B2[10] = (E2 * P - U * A2 + I * S2) * T22, B2[11] = (L2 * A2 - O2 * P - V3 * S2) * T22, B2[12] = (Z2 * h2 - Q3 * p2 - H * j) * T22, B2[13] = (W2 * p2 - X2 * h2 + Y * j) * T22, B2[14] = (U * k - E2 * D2 - G * S2) * T22, B2[15] = (O2 * D2 - L2 * k + C3 * S2) * T22, B2;
-};
-var OB = function(B2, K) {
-  var W2 = K[0], X2 = K[1], Y = K[2], $3 = K[3], Q3 = K[4], Z2 = K[5], H = K[6], J = K[7], O2 = K[8], L2 = K[9], C3 = K[10], V3 = K[11], E2 = K[12], U = K[13], G = K[14], I = K[15];
-  return B2[0] = Z2 * (C3 * I - V3 * G) - L2 * (H * I - J * G) + U * (H * V3 - J * C3), B2[1] = -(X2 * (C3 * I - V3 * G) - L2 * (Y * I - $3 * G) + U * (Y * V3 - $3 * C3)), B2[2] = X2 * (H * I - J * G) - Z2 * (Y * I - $3 * G) + U * (Y * J - $3 * H), B2[3] = -(X2 * (H * V3 - J * C3) - Z2 * (Y * V3 - $3 * C3) + L2 * (Y * J - $3 * H)), B2[4] = -(Q3 * (C3 * I - V3 * G) - O2 * (H * I - J * G) + E2 * (H * V3 - J * C3)), B2[5] = W2 * (C3 * I - V3 * G) - O2 * (Y * I - $3 * G) + E2 * (Y * V3 - $3 * C3), B2[6] = -(W2 * (H * I - J * G) - Q3 * (Y * I - $3 * G) + E2 * (Y * J - $3 * H)), B2[7] = W2 * (H * V3 - J * C3) - Q3 * (Y * V3 - $3 * C3) + O2 * (Y * J - $3 * H), B2[8] = Q3 * (L2 * I - V3 * U) - O2 * (Z2 * I - J * U) + E2 * (Z2 * V3 - J * L2), B2[9] = -(W2 * (L2 * I - V3 * U) - O2 * (X2 * I - $3 * U) + E2 * (X2 * V3 - $3 * L2)), B2[10] = W2 * (Z2 * I - J * U) - Q3 * (X2 * I - $3 * U) + E2 * (X2 * J - $3 * Z2), B2[11] = -(W2 * (Z2 * V3 - J * L2) - Q3 * (X2 * V3 - $3 * L2) + O2 * (X2 * J - $3 * Z2)), B2[12] = -(Q3 * (L2 * G - C3 * U) - O2 * (Z2 * G - H * U) + E2 * (Z2 * C3 - H * L2)), B2[13] = W2 * (L2 * G - C3 * U) - O2 * (X2 * G - Y * U) + E2 * (X2 * C3 - Y * L2), B2[14] = -(W2 * (Z2 * G - H * U) - Q3 * (X2 * G - Y * U) + E2 * (X2 * H - Y * Z2)), B2[15] = W2 * (Z2 * C3 - H * L2) - Q3 * (X2 * C3 - Y * L2) + O2 * (X2 * H - Y * Z2), B2;
-};
-var GB = function(B2) {
-  var K = B2[0], W2 = B2[1], X2 = B2[2], Y = B2[3], $3 = B2[4], Q3 = B2[5], Z2 = B2[6], H = B2[7], J = B2[8], O2 = B2[9], L2 = B2[10], C3 = B2[11], V3 = B2[12], E2 = B2[13], U = B2[14], G = B2[15], I = K * Q3 - W2 * $3, S2 = K * Z2 - X2 * $3, k = K * H - Y * $3, A2 = W2 * Z2 - X2 * Q3, D2 = W2 * H - Y * Q3, P = X2 * H - Y * Z2, F = J * E2 - O2 * V3, j = J * U - L2 * V3, h2 = J * G - C3 * V3, M2 = O2 * U - L2 * E2, p2 = O2 * G - C3 * E2, g2 = L2 * G - C3 * U;
-  return I * g2 - S2 * p2 + k * M2 + A2 * h2 - D2 * j + P * F;
-};
-var G0 = function(B2, K, W2) {
-  var X2 = K[0], Y = K[1], $3 = K[2], Q3 = K[3], Z2 = K[4], H = K[5], J = K[6], O2 = K[7], L2 = K[8], C3 = K[9], V3 = K[10], E2 = K[11], U = K[12], G = K[13], I = K[14], S2 = K[15], k = W2[0], A2 = W2[1], D2 = W2[2], P = W2[3];
-  return B2[0] = k * X2 + A2 * Z2 + D2 * L2 + P * U, B2[1] = k * Y + A2 * H + D2 * C3 + P * G, B2[2] = k * $3 + A2 * J + D2 * V3 + P * I, B2[3] = k * Q3 + A2 * O2 + D2 * E2 + P * S2, k = W2[4], A2 = W2[5], D2 = W2[6], P = W2[7], B2[4] = k * X2 + A2 * Z2 + D2 * L2 + P * U, B2[5] = k * Y + A2 * H + D2 * C3 + P * G, B2[6] = k * $3 + A2 * J + D2 * V3 + P * I, B2[7] = k * Q3 + A2 * O2 + D2 * E2 + P * S2, k = W2[8], A2 = W2[9], D2 = W2[10], P = W2[11], B2[8] = k * X2 + A2 * Z2 + D2 * L2 + P * U, B2[9] = k * Y + A2 * H + D2 * C3 + P * G, B2[10] = k * $3 + A2 * J + D2 * V3 + P * I, B2[11] = k * Q3 + A2 * O2 + D2 * E2 + P * S2, k = W2[12], A2 = W2[13], D2 = W2[14], P = W2[15], B2[12] = k * X2 + A2 * Z2 + D2 * L2 + P * U, B2[13] = k * Y + A2 * H + D2 * C3 + P * G, B2[14] = k * $3 + A2 * J + D2 * V3 + P * I, B2[15] = k * Q3 + A2 * O2 + D2 * E2 + P * S2, B2;
-};
-var LB = function(B2, K, W2) {
-  var X2 = W2[0], Y = W2[1], $3 = W2[2], Q3, Z2, H, J, O2, L2, C3, V3, E2, U, G, I;
-  if (K === B2)
-    B2[12] = K[0] * X2 + K[4] * Y + K[8] * $3 + K[12], B2[13] = K[1] * X2 + K[5] * Y + K[9] * $3 + K[13], B2[14] = K[2] * X2 + K[6] * Y + K[10] * $3 + K[14], B2[15] = K[3] * X2 + K[7] * Y + K[11] * $3 + K[15];
-  else
-    Q3 = K[0], Z2 = K[1], H = K[2], J = K[3], O2 = K[4], L2 = K[5], C3 = K[6], V3 = K[7], E2 = K[8], U = K[9], G = K[10], I = K[11], B2[0] = Q3, B2[1] = Z2, B2[2] = H, B2[3] = J, B2[4] = O2, B2[5] = L2, B2[6] = C3, B2[7] = V3, B2[8] = E2, B2[9] = U, B2[10] = G, B2[11] = I, B2[12] = Q3 * X2 + O2 * Y + E2 * $3 + K[12], B2[13] = Z2 * X2 + L2 * Y + U * $3 + K[13], B2[14] = H * X2 + C3 * Y + G * $3 + K[14], B2[15] = J * X2 + V3 * Y + I * $3 + K[15];
-  return B2;
-};
-var VB = function(B2, K, W2) {
-  var X2 = W2[0], Y = W2[1], $3 = W2[2];
-  return B2[0] = K[0] * X2, B2[1] = K[1] * X2, B2[2] = K[2] * X2, B2[3] = K[3] * X2, B2[4] = K[4] * Y, B2[5] = K[5] * Y, B2[6] = K[6] * Y, B2[7] = K[7] * Y, B2[8] = K[8] * $3, B2[9] = K[9] * $3, B2[10] = K[10] * $3, B2[11] = K[11] * $3, B2[12] = K[12], B2[13] = K[13], B2[14] = K[14], B2[15] = K[15], B2;
-};
-var CB = function(B2, K, W2, X2) {
-  var Y = X2[0], $3 = X2[1], Q3 = X2[2], Z2 = Math.hypot(Y, $3, Q3), H, J, O2, L2, C3, V3, E2, U, G, I, S2, k, A2, D2, P, F, j, h2, M2, p2, g2, q, T22, f2;
-  if (Z2 < N2)
-    return null;
-  if (Z2 = 1 / Z2, Y *= Z2, $3 *= Z2, Q3 *= Z2, H = Math.sin(W2), J = Math.cos(W2), O2 = 1 - J, L2 = K[0], C3 = K[1], V3 = K[2], E2 = K[3], U = K[4], G = K[5], I = K[6], S2 = K[7], k = K[8], A2 = K[9], D2 = K[10], P = K[11], F = Y * Y * O2 + J, j = $3 * Y * O2 + Q3 * H, h2 = Q3 * Y * O2 - $3 * H, M2 = Y * $3 * O2 - Q3 * H, p2 = $3 * $3 * O2 + J, g2 = Q3 * $3 * O2 + Y * H, q = Y * Q3 * O2 + $3 * H, T22 = $3 * Q3 * O2 - Y * H, f2 = Q3 * Q3 * O2 + J, B2[0] = L2 * F + U * j + k * h2, B2[1] = C3 * F + G * j + A2 * h2, B2[2] = V3 * F + I * j + D2 * h2, B2[3] = E2 * F + S2 * j + P * h2, B2[4] = L2 * M2 + U * p2 + k * g2, B2[5] = C3 * M2 + G * p2 + A2 * g2, B2[6] = V3 * M2 + I * p2 + D2 * g2, B2[7] = E2 * M2 + S2 * p2 + P * g2, B2[8] = L2 * q + U * T22 + k * f2, B2[9] = C3 * q + G * T22 + A2 * f2, B2[10] = V3 * q + I * T22 + D2 * f2, B2[11] = E2 * q + S2 * T22 + P * f2, K !== B2)
-    B2[12] = K[12], B2[13] = K[13], B2[14] = K[14], B2[15] = K[15];
-  return B2;
-};
-var UB = function(B2, K, W2) {
-  var X2 = Math.sin(W2), Y = Math.cos(W2), $3 = K[4], Q3 = K[5], Z2 = K[6], H = K[7], J = K[8], O2 = K[9], L2 = K[10], C3 = K[11];
-  if (K !== B2)
-    B2[0] = K[0], B2[1] = K[1], B2[2] = K[2], B2[3] = K[3], B2[12] = K[12], B2[13] = K[13], B2[14] = K[14], B2[15] = K[15];
-  return B2[4] = $3 * Y + J * X2, B2[5] = Q3 * Y + O2 * X2, B2[6] = Z2 * Y + L2 * X2, B2[7] = H * Y + C3 * X2, B2[8] = J * Y - $3 * X2, B2[9] = O2 * Y - Q3 * X2, B2[10] = L2 * Y - Z2 * X2, B2[11] = C3 * Y - H * X2, B2;
-};
-var EB = function(B2, K, W2) {
-  var X2 = Math.sin(W2), Y = Math.cos(W2), $3 = K[0], Q3 = K[1], Z2 = K[2], H = K[3], J = K[8], O2 = K[9], L2 = K[10], C3 = K[11];
-  if (K !== B2)
-    B2[4] = K[4], B2[5] = K[5], B2[6] = K[6], B2[7] = K[7], B2[12] = K[12], B2[13] = K[13], B2[14] = K[14], B2[15] = K[15];
-  return B2[0] = $3 * Y - J * X2, B2[1] = Q3 * Y - O2 * X2, B2[2] = Z2 * Y - L2 * X2, B2[3] = H * Y - C3 * X2, B2[8] = $3 * X2 + J * Y, B2[9] = Q3 * X2 + O2 * Y, B2[10] = Z2 * X2 + L2 * Y, B2[11] = H * X2 + C3 * Y, B2;
-};
-var IB = function(B2, K, W2) {
-  var X2 = Math.sin(W2), Y = Math.cos(W2), $3 = K[0], Q3 = K[1], Z2 = K[2], H = K[3], J = K[4], O2 = K[5], L2 = K[6], C3 = K[7];
-  if (K !== B2)
-    B2[8] = K[8], B2[9] = K[9], B2[10] = K[10], B2[11] = K[11], B2[12] = K[12], B2[13] = K[13], B2[14] = K[14], B2[15] = K[15];
-  return B2[0] = $3 * Y + J * X2, B2[1] = Q3 * Y + O2 * X2, B2[2] = Z2 * Y + L2 * X2, B2[3] = H * Y + C3 * X2, B2[4] = J * Y - $3 * X2, B2[5] = O2 * Y - Q3 * X2, B2[6] = L2 * Y - Z2 * X2, B2[7] = C3 * Y - H * X2, B2;
-};
-var DB = function(B2, K) {
-  return B2[0] = 1, B2[1] = 0, B2[2] = 0, B2[3] = 0, B2[4] = 0, B2[5] = 1, B2[6] = 0, B2[7] = 0, B2[8] = 0, B2[9] = 0, B2[10] = 1, B2[11] = 0, B2[12] = K[0], B2[13] = K[1], B2[14] = K[2], B2[15] = 1, B2;
-};
-var PB = function(B2, K) {
-  return B2[0] = K[0], B2[1] = 0, B2[2] = 0, B2[3] = 0, B2[4] = 0, B2[5] = K[1], B2[6] = 0, B2[7] = 0, B2[8] = 0, B2[9] = 0, B2[10] = K[2], B2[11] = 0, B2[12] = 0, B2[13] = 0, B2[14] = 0, B2[15] = 1, B2;
-};
-var AB = function(B2, K, W2) {
-  var X2 = W2[0], Y = W2[1], $3 = W2[2], Q3 = Math.hypot(X2, Y, $3), Z2, H, J;
-  if (Q3 < N2)
-    return null;
-  return Q3 = 1 / Q3, X2 *= Q3, Y *= Q3, $3 *= Q3, Z2 = Math.sin(K), H = Math.cos(K), J = 1 - H, B2[0] = X2 * X2 * J + H, B2[1] = Y * X2 * J + $3 * Z2, B2[2] = $3 * X2 * J - Y * Z2, B2[3] = 0, B2[4] = X2 * Y * J - $3 * Z2, B2[5] = Y * Y * J + H, B2[6] = $3 * Y * J + X2 * Z2, B2[7] = 0, B2[8] = X2 * $3 * J + Y * Z2, B2[9] = Y * $3 * J - X2 * Z2, B2[10] = $3 * $3 * J + H, B2[11] = 0, B2[12] = 0, B2[13] = 0, B2[14] = 0, B2[15] = 1, B2;
-};
-var kB = function(B2, K) {
-  var W2 = Math.sin(K), X2 = Math.cos(K);
-  return B2[0] = 1, B2[1] = 0, B2[2] = 0, B2[3] = 0, B2[4] = 0, B2[5] = X2, B2[6] = W2, B2[7] = 0, B2[8] = 0, B2[9] = -W2, B2[10] = X2, B2[11] = 0, B2[12] = 0, B2[13] = 0, B2[14] = 0, B2[15] = 1, B2;
-};
-var NB = function(B2, K) {
-  var W2 = Math.sin(K), X2 = Math.cos(K);
-  return B2[0] = X2, B2[1] = 0, B2[2] = -W2, B2[3] = 0, B2[4] = 0, B2[5] = 1, B2[6] = 0, B2[7] = 0, B2[8] = W2, B2[9] = 0, B2[10] = X2, B2[11] = 0, B2[12] = 0, B2[13] = 0, B2[14] = 0, B2[15] = 1, B2;
-};
-var SB = function(B2, K) {
-  var W2 = Math.sin(K), X2 = Math.cos(K);
-  return B2[0] = X2, B2[1] = W2, B2[2] = 0, B2[3] = 0, B2[4] = -W2, B2[5] = X2, B2[6] = 0, B2[7] = 0, B2[8] = 0, B2[9] = 0, B2[10] = 1, B2[11] = 0, B2[12] = 0, B2[13] = 0, B2[14] = 0, B2[15] = 1, B2;
-};
-var L0 = function(B2, K, W2) {
-  var X2 = K[0], Y = K[1], $3 = K[2], Q3 = K[3], Z2 = X2 + X2, H = Y + Y, J = $3 + $3, O2 = X2 * Z2, L2 = X2 * H, C3 = X2 * J, V3 = Y * H, E2 = Y * J, U = $3 * J, G = Q3 * Z2, I = Q3 * H, S2 = Q3 * J;
-  return B2[0] = 1 - (V3 + U), B2[1] = L2 + S2, B2[2] = C3 - I, B2[3] = 0, B2[4] = L2 - S2, B2[5] = 1 - (O2 + U), B2[6] = E2 + G, B2[7] = 0, B2[8] = C3 + I, B2[9] = E2 - G, B2[10] = 1 - (O2 + V3), B2[11] = 0, B2[12] = W2[0], B2[13] = W2[1], B2[14] = W2[2], B2[15] = 1, B2;
-};
-var TB = function(B2, K) {
-  var W2 = new R2(3), X2 = -K[0], Y = -K[1], $3 = -K[2], Q3 = K[3], Z2 = K[4], H = K[5], J = K[6], O2 = K[7], L2 = X2 * X2 + Y * Y + $3 * $3 + Q3 * Q3;
-  if (L2 > 0)
-    W2[0] = (Z2 * Q3 + O2 * X2 + H * $3 - J * Y) * 2 / L2, W2[1] = (H * Q3 + O2 * Y + J * X2 - Z2 * $3) * 2 / L2, W2[2] = (J * Q3 + O2 * $3 + Z2 * Y - H * X2) * 2 / L2;
-  else
-    W2[0] = (Z2 * Q3 + O2 * X2 + H * $3 - J * Y) * 2, W2[1] = (H * Q3 + O2 * Y + J * X2 - Z2 * $3) * 2, W2[2] = (J * Q3 + O2 * $3 + Z2 * Y - H * X2) * 2;
-  return L0(B2, K, W2), B2;
-};
-var _B = function(B2, K) {
-  return B2[0] = K[12], B2[1] = K[13], B2[2] = K[14], B2;
-};
-var V0 = function(B2, K) {
-  var W2 = K[0], X2 = K[1], Y = K[2], $3 = K[4], Q3 = K[5], Z2 = K[6], H = K[8], J = K[9], O2 = K[10];
-  return B2[0] = Math.hypot(W2, X2, Y), B2[1] = Math.hypot($3, Q3, Z2), B2[2] = Math.hypot(H, J, O2), B2;
-};
-var RB = function(B2, K) {
-  var W2 = new R2(3);
-  V0(W2, K);
-  var X2 = 1 / W2[0], Y = 1 / W2[1], $3 = 1 / W2[2], Q3 = K[0] * X2, Z2 = K[1] * Y, H = K[2] * $3, J = K[4] * X2, O2 = K[5] * Y, L2 = K[6] * $3, C3 = K[8] * X2, V3 = K[9] * Y, E2 = K[10] * $3, U = Q3 + O2 + E2, G = 0;
-  if (U > 0)
-    G = Math.sqrt(U + 1) * 2, B2[3] = 0.25 * G, B2[0] = (L2 - V3) / G, B2[1] = (C3 - H) / G, B2[2] = (Z2 - J) / G;
-  else if (Q3 > O2 && Q3 > E2)
-    G = Math.sqrt(1 + Q3 - O2 - E2) * 2, B2[3] = (L2 - V3) / G, B2[0] = 0.25 * G, B2[1] = (Z2 + J) / G, B2[2] = (C3 + H) / G;
-  else if (O2 > E2)
-    G = Math.sqrt(1 + O2 - Q3 - E2) * 2, B2[3] = (C3 - H) / G, B2[0] = (Z2 + J) / G, B2[1] = 0.25 * G, B2[2] = (L2 + V3) / G;
-  else
-    G = Math.sqrt(1 + E2 - Q3 - O2) * 2, B2[3] = (Z2 - J) / G, B2[0] = (C3 + H) / G, B2[1] = (L2 + V3) / G, B2[2] = 0.25 * G;
-  return B2;
-};
-var jB = function(B2, K, W2, X2) {
-  var Y = K[0], $3 = K[1], Q3 = K[2], Z2 = K[3], H = Y + Y, J = $3 + $3, O2 = Q3 + Q3, L2 = Y * H, C3 = Y * J, V3 = Y * O2, E2 = $3 * J, U = $3 * O2, G = Q3 * O2, I = Z2 * H, S2 = Z2 * J, k = Z2 * O2, A2 = X2[0], D2 = X2[1], P = X2[2];
-  return B2[0] = (1 - (E2 + G)) * A2, B2[1] = (C3 + k) * A2, B2[2] = (V3 - S2) * A2, B2[3] = 0, B2[4] = (C3 - k) * D2, B2[5] = (1 - (L2 + G)) * D2, B2[6] = (U + I) * D2, B2[7] = 0, B2[8] = (V3 + S2) * P, B2[9] = (U - I) * P, B2[10] = (1 - (L2 + E2)) * P, B2[11] = 0, B2[12] = W2[0], B2[13] = W2[1], B2[14] = W2[2], B2[15] = 1, B2;
-};
-var hB = function(B2, K, W2, X2, Y) {
-  var $3 = K[0], Q3 = K[1], Z2 = K[2], H = K[3], J = $3 + $3, O2 = Q3 + Q3, L2 = Z2 + Z2, C3 = $3 * J, V3 = $3 * O2, E2 = $3 * L2, U = Q3 * O2, G = Q3 * L2, I = Z2 * L2, S2 = H * J, k = H * O2, A2 = H * L2, D2 = X2[0], P = X2[1], F = X2[2], j = Y[0], h2 = Y[1], M2 = Y[2], p2 = (1 - (U + I)) * D2, g2 = (V3 + A2) * D2, q = (E2 - k) * D2, T22 = (V3 - A2) * P, f2 = (1 - (C3 + I)) * P, c = (G + S2) * P, i = (E2 + k) * F, Z02 = (G - S2) * F, H0 = (1 - (C3 + U)) * F;
-  return B2[0] = p2, B2[1] = g2, B2[2] = q, B2[3] = 0, B2[4] = T22, B2[5] = f2, B2[6] = c, B2[7] = 0, B2[8] = i, B2[9] = Z02, B2[10] = H0, B2[11] = 0, B2[12] = W2[0] + j - (p2 * j + T22 * h2 + i * M2), B2[13] = W2[1] + h2 - (g2 * j + f2 * h2 + Z02 * M2), B2[14] = W2[2] + M2 - (q * j + c * h2 + H0 * M2), B2[15] = 1, B2;
-};
-var MB = function(B2, K) {
-  var W2 = K[0], X2 = K[1], Y = K[2], $3 = K[3], Q3 = W2 + W2, Z2 = X2 + X2, H = Y + Y, J = W2 * Q3, O2 = X2 * Q3, L2 = X2 * Z2, C3 = Y * Q3, V3 = Y * Z2, E2 = Y * H, U = $3 * Q3, G = $3 * Z2, I = $3 * H;
-  return B2[0] = 1 - L2 - E2, B2[1] = O2 + I, B2[2] = C3 - G, B2[3] = 0, B2[4] = O2 - I, B2[5] = 1 - J - E2, B2[6] = V3 + U, B2[7] = 0, B2[8] = C3 + G, B2[9] = V3 - U, B2[10] = 1 - J - L2, B2[11] = 0, B2[12] = 0, B2[13] = 0, B2[14] = 0, B2[15] = 1, B2;
-};
-var FB = function(B2, K, W2, X2, Y, $3, Q3) {
-  var Z2 = 1 / (W2 - K), H = 1 / (Y - X2), J = 1 / ($3 - Q3);
-  return B2[0] = $3 * 2 * Z2, B2[1] = 0, B2[2] = 0, B2[3] = 0, B2[4] = 0, B2[5] = $3 * 2 * H, B2[6] = 0, B2[7] = 0, B2[8] = (W2 + K) * Z2, B2[9] = (Y + X2) * H, B2[10] = (Q3 + $3) * J, B2[11] = -1, B2[12] = 0, B2[13] = 0, B2[14] = Q3 * $3 * 2 * J, B2[15] = 0, B2;
-};
-var C0 = function(B2, K, W2, X2, Y) {
-  var $3 = 1 / Math.tan(K / 2), Q3;
-  if (B2[0] = $3 / W2, B2[1] = 0, B2[2] = 0, B2[3] = 0, B2[4] = 0, B2[5] = $3, B2[6] = 0, B2[7] = 0, B2[8] = 0, B2[9] = 0, B2[11] = -1, B2[12] = 0, B2[13] = 0, B2[15] = 0, Y != null && Y !== Infinity)
-    Q3 = 1 / (X2 - Y), B2[10] = (Y + X2) * Q3, B2[14] = 2 * Y * X2 * Q3;
-  else
-    B2[10] = -1, B2[14] = -2 * X2;
-  return B2;
-};
-var gB = function(B2, K, W2, X2, Y) {
-  var $3 = 1 / Math.tan(K / 2), Q3;
-  if (B2[0] = $3 / W2, B2[1] = 0, B2[2] = 0, B2[3] = 0, B2[4] = 0, B2[5] = $3, B2[6] = 0, B2[7] = 0, B2[8] = 0, B2[9] = 0, B2[11] = -1, B2[12] = 0, B2[13] = 0, B2[15] = 0, Y != null && Y !== Infinity)
-    Q3 = 1 / (X2 - Y), B2[10] = Y * Q3, B2[14] = Y * X2 * Q3;
-  else
-    B2[10] = -1, B2[14] = -X2;
-  return B2;
-};
-var qB = function(B2, K, W2, X2) {
-  var Y = Math.tan(K.upDegrees * Math.PI / 180), $3 = Math.tan(K.downDegrees * Math.PI / 180), Q3 = Math.tan(K.leftDegrees * Math.PI / 180), Z2 = Math.tan(K.rightDegrees * Math.PI / 180), H = 2 / (Q3 + Z2), J = 2 / (Y + $3);
-  return B2[0] = H, B2[1] = 0, B2[2] = 0, B2[3] = 0, B2[4] = 0, B2[5] = J, B2[6] = 0, B2[7] = 0, B2[8] = -((Q3 - Z2) * H * 0.5), B2[9] = (Y - $3) * J * 0.5, B2[10] = X2 / (W2 - X2), B2[11] = -1, B2[12] = 0, B2[13] = 0, B2[14] = X2 * W2 / (W2 - X2), B2[15] = 0, B2;
-};
-var U0 = function(B2, K, W2, X2, Y, $3, Q3) {
-  var Z2 = 1 / (K - W2), H = 1 / (X2 - Y), J = 1 / ($3 - Q3);
-  return B2[0] = -2 * Z2, B2[1] = 0, B2[2] = 0, B2[3] = 0, B2[4] = 0, B2[5] = -2 * H, B2[6] = 0, B2[7] = 0, B2[8] = 0, B2[9] = 0, B2[10] = 2 * J, B2[11] = 0, B2[12] = (K + W2) * Z2, B2[13] = (Y + X2) * H, B2[14] = (Q3 + $3) * J, B2[15] = 1, B2;
-};
-var fB = function(B2, K, W2, X2, Y, $3, Q3) {
-  var Z2 = 1 / (K - W2), H = 1 / (X2 - Y), J = 1 / ($3 - Q3);
-  return B2[0] = -2 * Z2, B2[1] = 0, B2[2] = 0, B2[3] = 0, B2[4] = 0, B2[5] = -2 * H, B2[6] = 0, B2[7] = 0, B2[8] = 0, B2[9] = 0, B2[10] = J, B2[11] = 0, B2[12] = (K + W2) * Z2, B2[13] = (Y + X2) * H, B2[14] = $3 * J, B2[15] = 1, B2;
-};
-var dB = function(B2, K, W2, X2) {
-  var Y, $3, Q3, Z2, H, J, O2, L2, C3, V3, E2 = K[0], U = K[1], G = K[2], I = X2[0], S2 = X2[1], k = X2[2], A2 = W2[0], D2 = W2[1], P = W2[2];
-  if (Math.abs(E2 - A2) < N2 && Math.abs(U - D2) < N2 && Math.abs(G - P) < N2)
-    return O0(B2);
-  if (O2 = E2 - A2, L2 = U - D2, C3 = G - P, V3 = 1 / Math.hypot(O2, L2, C3), O2 *= V3, L2 *= V3, C3 *= V3, Y = S2 * C3 - k * L2, $3 = k * O2 - I * C3, Q3 = I * L2 - S2 * O2, V3 = Math.hypot(Y, $3, Q3), !V3)
-    Y = 0, $3 = 0, Q3 = 0;
-  else
-    V3 = 1 / V3, Y *= V3, $3 *= V3, Q3 *= V3;
-  if (Z2 = L2 * Q3 - C3 * $3, H = C3 * Y - O2 * Q3, J = O2 * $3 - L2 * Y, V3 = Math.hypot(Z2, H, J), !V3)
-    Z2 = 0, H = 0, J = 0;
-  else
-    V3 = 1 / V3, Z2 *= V3, H *= V3, J *= V3;
-  return B2[0] = Y, B2[1] = Z2, B2[2] = O2, B2[3] = 0, B2[4] = $3, B2[5] = H, B2[6] = L2, B2[7] = 0, B2[8] = Q3, B2[9] = J, B2[10] = C3, B2[11] = 0, B2[12] = -(Y * E2 + $3 * U + Q3 * G), B2[13] = -(Z2 * E2 + H * U + J * G), B2[14] = -(O2 * E2 + L2 * U + C3 * G), B2[15] = 1, B2;
-};
-var vB = function(B2, K, W2, X2) {
-  var Y = K[0], $3 = K[1], Q3 = K[2], Z2 = X2[0], H = X2[1], J = X2[2], O2 = Y - W2[0], L2 = $3 - W2[1], C3 = Q3 - W2[2], V3 = O2 * O2 + L2 * L2 + C3 * C3;
-  if (V3 > 0)
-    V3 = 1 / Math.sqrt(V3), O2 *= V3, L2 *= V3, C3 *= V3;
-  var E2 = H * C3 - J * L2, U = J * O2 - Z2 * C3, G = Z2 * L2 - H * O2;
-  if (V3 = E2 * E2 + U * U + G * G, V3 > 0)
-    V3 = 1 / Math.sqrt(V3), E2 *= V3, U *= V3, G *= V3;
-  return B2[0] = E2, B2[1] = U, B2[2] = G, B2[3] = 0, B2[4] = L2 * G - C3 * U, B2[5] = C3 * E2 - O2 * G, B2[6] = O2 * U - L2 * E2, B2[7] = 0, B2[8] = O2, B2[9] = L2, B2[10] = C3, B2[11] = 0, B2[12] = Y, B2[13] = $3, B2[14] = Q3, B2[15] = 1, B2;
-};
-var nB = function(B2) {
-  return "mat4(" + B2[0] + ", " + B2[1] + ", " + B2[2] + ", " + B2[3] + ", " + B2[4] + ", " + B2[5] + ", " + B2[6] + ", " + B2[7] + ", " + B2[8] + ", " + B2[9] + ", " + B2[10] + ", " + B2[11] + ", " + B2[12] + ", " + B2[13] + ", " + B2[14] + ", " + B2[15] + ")";
-};
-var lB = function(B2) {
-  return Math.hypot(B2[0], B2[1], B2[2], B2[3], B2[4], B2[5], B2[6], B2[7], B2[8], B2[9], B2[10], B2[11], B2[12], B2[13], B2[14], B2[15]);
-};
-var cB = function(B2, K, W2) {
-  return B2[0] = K[0] + W2[0], B2[1] = K[1] + W2[1], B2[2] = K[2] + W2[2], B2[3] = K[3] + W2[3], B2[4] = K[4] + W2[4], B2[5] = K[5] + W2[5], B2[6] = K[6] + W2[6], B2[7] = K[7] + W2[7], B2[8] = K[8] + W2[8], B2[9] = K[9] + W2[9], B2[10] = K[10] + W2[10], B2[11] = K[11] + W2[11], B2[12] = K[12] + W2[12], B2[13] = K[13] + W2[13], B2[14] = K[14] + W2[14], B2[15] = K[15] + W2[15], B2;
-};
-var E0 = function(B2, K, W2) {
-  return B2[0] = K[0] - W2[0], B2[1] = K[1] - W2[1], B2[2] = K[2] - W2[2], B2[3] = K[3] - W2[3], B2[4] = K[4] - W2[4], B2[5] = K[5] - W2[5], B2[6] = K[6] - W2[6], B2[7] = K[7] - W2[7], B2[8] = K[8] - W2[8], B2[9] = K[9] - W2[9], B2[10] = K[10] - W2[10], B2[11] = K[11] - W2[11], B2[12] = K[12] - W2[12], B2[13] = K[13] - W2[13], B2[14] = K[14] - W2[14], B2[15] = K[15] - W2[15], B2;
-};
-var iB = function(B2, K, W2) {
-  return B2[0] = K[0] * W2, B2[1] = K[1] * W2, B2[2] = K[2] * W2, B2[3] = K[3] * W2, B2[4] = K[4] * W2, B2[5] = K[5] * W2, B2[6] = K[6] * W2, B2[7] = K[7] * W2, B2[8] = K[8] * W2, B2[9] = K[9] * W2, B2[10] = K[10] * W2, B2[11] = K[11] * W2, B2[12] = K[12] * W2, B2[13] = K[13] * W2, B2[14] = K[14] * W2, B2[15] = K[15] * W2, B2;
-};
-var yB = function(B2, K, W2, X2) {
-  return B2[0] = K[0] + W2[0] * X2, B2[1] = K[1] + W2[1] * X2, B2[2] = K[2] + W2[2] * X2, B2[3] = K[3] + W2[3] * X2, B2[4] = K[4] + W2[4] * X2, B2[5] = K[5] + W2[5] * X2, B2[6] = K[6] + W2[6] * X2, B2[7] = K[7] + W2[7] * X2, B2[8] = K[8] + W2[8] * X2, B2[9] = K[9] + W2[9] * X2, B2[10] = K[10] + W2[10] * X2, B2[11] = K[11] + W2[11] * X2, B2[12] = K[12] + W2[12] * X2, B2[13] = K[13] + W2[13] * X2, B2[14] = K[14] + W2[14] * X2, B2[15] = K[15] + W2[15] * X2, B2;
-};
-var zB = function(B2, K) {
-  return B2[0] === K[0] && B2[1] === K[1] && B2[2] === K[2] && B2[3] === K[3] && B2[4] === K[4] && B2[5] === K[5] && B2[6] === K[6] && B2[7] === K[7] && B2[8] === K[8] && B2[9] === K[9] && B2[10] === K[10] && B2[11] === K[11] && B2[12] === K[12] && B2[13] === K[13] && B2[14] === K[14] && B2[15] === K[15];
-};
-var rB = function(B2, K) {
-  var W2 = B2[0], X2 = B2[1], Y = B2[2], $3 = B2[3], Q3 = B2[4], Z2 = B2[5], H = B2[6], J = B2[7], O2 = B2[8], L2 = B2[9], C3 = B2[10], V3 = B2[11], E2 = B2[12], U = B2[13], G = B2[14], I = B2[15], S2 = K[0], k = K[1], A2 = K[2], D2 = K[3], P = K[4], F = K[5], j = K[6], h2 = K[7], M2 = K[8], p2 = K[9], g2 = K[10], q = K[11], T22 = K[12], f2 = K[13], c = K[14], i = K[15];
-  return Math.abs(W2 - S2) <= N2 * Math.max(1, Math.abs(W2), Math.abs(S2)) && Math.abs(X2 - k) <= N2 * Math.max(1, Math.abs(X2), Math.abs(k)) && Math.abs(Y - A2) <= N2 * Math.max(1, Math.abs(Y), Math.abs(A2)) && Math.abs($3 - D2) <= N2 * Math.max(1, Math.abs($3), Math.abs(D2)) && Math.abs(Q3 - P) <= N2 * Math.max(1, Math.abs(Q3), Math.abs(P)) && Math.abs(Z2 - F) <= N2 * Math.max(1, Math.abs(Z2), Math.abs(F)) && Math.abs(H - j) <= N2 * Math.max(1, Math.abs(H), Math.abs(j)) && Math.abs(J - h2) <= N2 * Math.max(1, Math.abs(J), Math.abs(h2)) && Math.abs(O2 - M2) <= N2 * Math.max(1, Math.abs(O2), Math.abs(M2)) && Math.abs(L2 - p2) <= N2 * Math.max(1, Math.abs(L2), Math.abs(p2)) && Math.abs(C3 - g2) <= N2 * Math.max(1, Math.abs(C3), Math.abs(g2)) && Math.abs(V3 - q) <= N2 * Math.max(1, Math.abs(V3), Math.abs(q)) && Math.abs(E2 - T22) <= N2 * Math.max(1, Math.abs(E2), Math.abs(T22)) && Math.abs(U - f2) <= N2 * Math.max(1, Math.abs(U), Math.abs(f2)) && Math.abs(G - c) <= N2 * Math.max(1, Math.abs(G), Math.abs(c)) && Math.abs(I - i) <= N2 * Math.max(1, Math.abs(I), Math.abs(i));
-};
-var x3 = function() {
-  var B2 = new R2(3);
-  if (R2 != Float32Array)
-    B2[0] = 0, B2[1] = 0, B2[2] = 0;
-  return B2;
-};
-var xB = function(B2) {
-  var K = new R2(3);
-  return K[0] = B2[0], K[1] = B2[1], K[2] = B2[2], K;
-};
-var I0 = function(B2) {
-  var K = B2[0], W2 = B2[1], X2 = B2[2];
-  return Math.hypot(K, W2, X2);
-};
-var e = function(B2, K, W2) {
-  var X2 = new R2(3);
-  return X2[0] = B2, X2[1] = K, X2[2] = W2, X2;
-};
-var eB = function(B2, K) {
-  return B2[0] = K[0], B2[1] = K[1], B2[2] = K[2], B2;
-};
-var bB = function(B2, K, W2, X2) {
-  return B2[0] = K, B2[1] = W2, B2[2] = X2, B2;
-};
-var uB = function(B2, K, W2) {
-  return B2[0] = K[0] + W2[0], B2[1] = K[1] + W2[1], B2[2] = K[2] + W2[2], B2;
-};
-var D0 = function(B2, K, W2) {
-  return B2[0] = K[0] - W2[0], B2[1] = K[1] - W2[1], B2[2] = K[2] - W2[2], B2;
-};
-var P0 = function(B2, K, W2) {
-  return B2[0] = K[0] * W2[0], B2[1] = K[1] * W2[1], B2[2] = K[2] * W2[2], B2;
-};
-var A0 = function(B2, K, W2) {
-  return B2[0] = K[0] / W2[0], B2[1] = K[1] / W2[1], B2[2] = K[2] / W2[2], B2;
-};
-var oB = function(B2, K) {
-  return B2[0] = Math.ceil(K[0]), B2[1] = Math.ceil(K[1]), B2[2] = Math.ceil(K[2]), B2;
-};
-var tB = function(B2, K) {
-  return B2[0] = Math.floor(K[0]), B2[1] = Math.floor(K[1]), B2[2] = Math.floor(K[2]), B2;
-};
-var aB = function(B2, K, W2) {
-  return B2[0] = Math.min(K[0], W2[0]), B2[1] = Math.min(K[1], W2[1]), B2[2] = Math.min(K[2], W2[2]), B2;
-};
-var BK = function(B2, K, W2) {
-  return B2[0] = Math.max(K[0], W2[0]), B2[1] = Math.max(K[1], W2[1]), B2[2] = Math.max(K[2], W2[2]), B2;
-};
-var KK = function(B2, K) {
-  return B2[0] = Math.round(K[0]), B2[1] = Math.round(K[1]), B2[2] = Math.round(K[2]), B2;
-};
-var WK = function(B2, K, W2) {
-  return B2[0] = K[0] * W2, B2[1] = K[1] * W2, B2[2] = K[2] * W2, B2;
-};
-var XK = function(B2, K, W2, X2) {
-  return B2[0] = K[0] + W2[0] * X2, B2[1] = K[1] + W2[1] * X2, B2[2] = K[2] + W2[2] * X2, B2;
-};
-var k0 = function(B2, K) {
-  var W2 = K[0] - B2[0], X2 = K[1] - B2[1], Y = K[2] - B2[2];
-  return Math.hypot(W2, X2, Y);
-};
-var N0 = function(B2, K) {
-  var W2 = K[0] - B2[0], X2 = K[1] - B2[1], Y = K[2] - B2[2];
-  return W2 * W2 + X2 * X2 + Y * Y;
-};
-var S0 = function(B2) {
-  var K = B2[0], W2 = B2[1], X2 = B2[2];
-  return K * K + W2 * W2 + X2 * X2;
-};
-var YK = function(B2, K) {
-  return B2[0] = -K[0], B2[1] = -K[1], B2[2] = -K[2], B2;
-};
-var $K = function(B2, K) {
-  return B2[0] = 1 / K[0], B2[1] = 1 / K[1], B2[2] = 1 / K[2], B2;
-};
-var B0 = function(B2, K) {
-  var W2 = K[0], X2 = K[1], Y = K[2], $3 = W2 * W2 + X2 * X2 + Y * Y;
-  if ($3 > 0)
-    $3 = 1 / Math.sqrt($3);
-  return B2[0] = K[0] * $3, B2[1] = K[1] * $3, B2[2] = K[2] * $3, B2;
-};
-var b = function(B2, K) {
-  return B2[0] * K[0] + B2[1] * K[1] + B2[2] * K[2];
-};
-var z2 = function(B2, K, W2) {
-  var X2 = K[0], Y = K[1], $3 = K[2], Q3 = W2[0], Z2 = W2[1], H = W2[2];
-  return B2[0] = Y * H - $3 * Z2, B2[1] = $3 * Q3 - X2 * H, B2[2] = X2 * Z2 - Y * Q3, B2;
-};
-var QK = function(B2, K, W2, X2) {
-  var Y = K[0], $3 = K[1], Q3 = K[2];
-  return B2[0] = Y + X2 * (W2[0] - Y), B2[1] = $3 + X2 * (W2[1] - $3), B2[2] = Q3 + X2 * (W2[2] - Q3), B2;
-};
-var ZK = function(B2, K, W2, X2, Y, $3) {
-  var Q3 = $3 * $3, Z2 = Q3 * (2 * $3 - 3) + 1, H = Q3 * ($3 - 2) + $3, J = Q3 * ($3 - 1), O2 = Q3 * (3 - 2 * $3);
-  return B2[0] = K[0] * Z2 + W2[0] * H + X2[0] * J + Y[0] * O2, B2[1] = K[1] * Z2 + W2[1] * H + X2[1] * J + Y[1] * O2, B2[2] = K[2] * Z2 + W2[2] * H + X2[2] * J + Y[2] * O2, B2;
-};
-var HK = function(B2, K, W2, X2, Y, $3) {
-  var Q3 = 1 - $3, Z2 = Q3 * Q3, H = $3 * $3, J = Z2 * Q3, O2 = 3 * $3 * Z2, L2 = 3 * H * Q3, C3 = H * $3;
-  return B2[0] = K[0] * J + W2[0] * O2 + X2[0] * L2 + Y[0] * C3, B2[1] = K[1] * J + W2[1] * O2 + X2[1] * L2 + Y[1] * C3, B2[2] = K[2] * J + W2[2] * O2 + X2[2] * L2 + Y[2] * C3, B2;
-};
-var JK = function(B2, K) {
-  K = K || 1;
-  var W2 = v2() * 2 * Math.PI, X2 = v2() * 2 - 1, Y = Math.sqrt(1 - X2 * X2) * K;
-  return B2[0] = Math.cos(W2) * Y, B2[1] = Math.sin(W2) * Y, B2[2] = X2 * K, B2;
-};
-var OK = function(B2, K, W2) {
-  var X2 = K[0], Y = K[1], $3 = K[2], Q3 = W2[3] * X2 + W2[7] * Y + W2[11] * $3 + W2[15];
-  return Q3 = Q3 || 1, B2[0] = (W2[0] * X2 + W2[4] * Y + W2[8] * $3 + W2[12]) / Q3, B2[1] = (W2[1] * X2 + W2[5] * Y + W2[9] * $3 + W2[13]) / Q3, B2[2] = (W2[2] * X2 + W2[6] * Y + W2[10] * $3 + W2[14]) / Q3, B2;
-};
-var GK = function(B2, K, W2) {
-  var X2 = K[0], Y = K[1], $3 = K[2];
-  return B2[0] = X2 * W2[0] + Y * W2[3] + $3 * W2[6], B2[1] = X2 * W2[1] + Y * W2[4] + $3 * W2[7], B2[2] = X2 * W2[2] + Y * W2[5] + $3 * W2[8], B2;
-};
-var LK = function(B2, K, W2) {
-  var X2 = W2[0], Y = W2[1], $3 = W2[2], Q3 = W2[3], Z2 = K[0], H = K[1], J = K[2], O2 = Y * J - $3 * H, L2 = $3 * Z2 - X2 * J, C3 = X2 * H - Y * Z2, V3 = Y * C3 - $3 * L2, E2 = $3 * O2 - X2 * C3, U = X2 * L2 - Y * O2, G = Q3 * 2;
-  return O2 *= G, L2 *= G, C3 *= G, V3 *= 2, E2 *= 2, U *= 2, B2[0] = Z2 + O2 + V3, B2[1] = H + L2 + E2, B2[2] = J + C3 + U, B2;
-};
-var VK = function(B2, K, W2, X2) {
-  var Y = [], $3 = [];
-  return Y[0] = K[0] - W2[0], Y[1] = K[1] - W2[1], Y[2] = K[2] - W2[2], $3[0] = Y[0], $3[1] = Y[1] * Math.cos(X2) - Y[2] * Math.sin(X2), $3[2] = Y[1] * Math.sin(X2) + Y[2] * Math.cos(X2), B2[0] = $3[0] + W2[0], B2[1] = $3[1] + W2[1], B2[2] = $3[2] + W2[2], B2;
-};
-var CK = function(B2, K, W2, X2) {
-  var Y = [], $3 = [];
-  return Y[0] = K[0] - W2[0], Y[1] = K[1] - W2[1], Y[2] = K[2] - W2[2], $3[0] = Y[2] * Math.sin(X2) + Y[0] * Math.cos(X2), $3[1] = Y[1], $3[2] = Y[2] * Math.cos(X2) - Y[0] * Math.sin(X2), B2[0] = $3[0] + W2[0], B2[1] = $3[1] + W2[1], B2[2] = $3[2] + W2[2], B2;
-};
-var UK = function(B2, K, W2, X2) {
-  var Y = [], $3 = [];
-  return Y[0] = K[0] - W2[0], Y[1] = K[1] - W2[1], Y[2] = K[2] - W2[2], $3[0] = Y[0] * Math.cos(X2) - Y[1] * Math.sin(X2), $3[1] = Y[0] * Math.sin(X2) + Y[1] * Math.cos(X2), $3[2] = Y[2], B2[0] = $3[0] + W2[0], B2[1] = $3[1] + W2[1], B2[2] = $3[2] + W2[2], B2;
-};
-var EK = function(B2, K) {
-  var W2 = B2[0], X2 = B2[1], Y = B2[2], $3 = K[0], Q3 = K[1], Z2 = K[2], H = Math.sqrt(W2 * W2 + X2 * X2 + Y * Y), J = Math.sqrt($3 * $3 + Q3 * Q3 + Z2 * Z2), O2 = H * J, L2 = O2 && b(B2, K) / O2;
-  return Math.acos(Math.min(Math.max(L2, -1), 1));
-};
-var IK = function(B2) {
-  return B2[0] = 0, B2[1] = 0, B2[2] = 0, B2;
-};
-var DK = function(B2) {
-  return "vec3(" + B2[0] + ", " + B2[1] + ", " + B2[2] + ")";
-};
-var PK = function(B2, K) {
-  return B2[0] === K[0] && B2[1] === K[1] && B2[2] === K[2];
-};
-var AK = function(B2, K) {
-  var W2 = B2[0], X2 = B2[1], Y = B2[2], $3 = K[0], Q3 = K[1], Z2 = K[2];
-  return Math.abs(W2 - $3) <= N2 * Math.max(1, Math.abs(W2), Math.abs($3)) && Math.abs(X2 - Q3) <= N2 * Math.max(1, Math.abs(X2), Math.abs(Q3)) && Math.abs(Y - Z2) <= N2 * Math.max(1, Math.abs(Y), Math.abs(Z2));
-};
-var hK = function() {
-  var B2 = new R2(4);
-  if (R2 != Float32Array)
-    B2[0] = 0, B2[1] = 0, B2[2] = 0, B2[3] = 0;
-  return B2;
-};
-var T0 = function(B2) {
-  var K = new R2(4);
-  return K[0] = B2[0], K[1] = B2[1], K[2] = B2[2], K[3] = B2[3], K;
-};
-var _0 = function(B2, K, W2, X2) {
-  var Y = new R2(4);
-  return Y[0] = B2, Y[1] = K, Y[2] = W2, Y[3] = X2, Y;
-};
-var R0 = function(B2, K) {
-  return B2[0] = K[0], B2[1] = K[1], B2[2] = K[2], B2[3] = K[3], B2;
-};
-var j0 = function(B2, K, W2, X2, Y) {
-  return B2[0] = K, B2[1] = W2, B2[2] = X2, B2[3] = Y, B2;
-};
-var h0 = function(B2, K, W2) {
-  return B2[0] = K[0] + W2[0], B2[1] = K[1] + W2[1], B2[2] = K[2] + W2[2], B2[3] = K[3] + W2[3], B2;
-};
-var M0 = function(B2, K, W2) {
-  return B2[0] = K[0] * W2, B2[1] = K[1] * W2, B2[2] = K[2] * W2, B2[3] = K[3] * W2, B2;
-};
-var F0 = function(B2) {
-  var K = B2[0], W2 = B2[1], X2 = B2[2], Y = B2[3];
-  return Math.hypot(K, W2, X2, Y);
-};
-var p0 = function(B2) {
-  var K = B2[0], W2 = B2[1], X2 = B2[2], Y = B2[3];
-  return K * K + W2 * W2 + X2 * X2 + Y * Y;
-};
-var g0 = function(B2, K) {
-  var W2 = K[0], X2 = K[1], Y = K[2], $3 = K[3], Q3 = W2 * W2 + X2 * X2 + Y * Y + $3 * $3;
-  if (Q3 > 0)
-    Q3 = 1 / Math.sqrt(Q3);
-  return B2[0] = W2 * Q3, B2[1] = X2 * Q3, B2[2] = Y * Q3, B2[3] = $3 * Q3, B2;
-};
-var q0 = function(B2, K) {
-  return B2[0] * K[0] + B2[1] * K[1] + B2[2] * K[2] + B2[3] * K[3];
-};
-var w0 = function(B2, K, W2, X2) {
-  var Y = K[0], $3 = K[1], Q3 = K[2], Z2 = K[3];
-  return B2[0] = Y + X2 * (W2[0] - Y), B2[1] = $3 + X2 * (W2[1] - $3), B2[2] = Q3 + X2 * (W2[2] - Q3), B2[3] = Z2 + X2 * (W2[3] - Z2), B2;
-};
-var f0 = function(B2, K) {
-  return B2[0] === K[0] && B2[1] === K[1] && B2[2] === K[2] && B2[3] === K[3];
-};
-var d0 = function(B2, K) {
-  var W2 = B2[0], X2 = B2[1], Y = B2[2], $3 = B2[3], Q3 = K[0], Z2 = K[1], H = K[2], J = K[3];
-  return Math.abs(W2 - Q3) <= N2 * Math.max(1, Math.abs(W2), Math.abs(Q3)) && Math.abs(X2 - Z2) <= N2 * Math.max(1, Math.abs(X2), Math.abs(Z2)) && Math.abs(Y - H) <= N2 * Math.max(1, Math.abs(Y), Math.abs(H)) && Math.abs($3 - J) <= N2 * Math.max(1, Math.abs($3), Math.abs(J));
-};
-var W0 = function() {
-  var B2 = new R2(4);
-  if (R2 != Float32Array)
-    B2[0] = 0, B2[1] = 0, B2[2] = 0;
-  return B2[3] = 1, B2;
-};
-var FK = function(B2) {
-  return B2[0] = 0, B2[1] = 0, B2[2] = 0, B2[3] = 1, B2;
-};
-var v0 = function(B2, K, W2) {
-  W2 = W2 * 0.5;
-  var X2 = Math.sin(W2);
-  return B2[0] = X2 * K[0], B2[1] = X2 * K[1], B2[2] = X2 * K[2], B2[3] = Math.cos(W2), B2;
-};
-var pK = function(B2, K) {
-  var W2 = Math.acos(K[3]) * 2, X2 = Math.sin(W2 / 2);
-  if (X2 > N2)
-    B2[0] = K[0] / X2, B2[1] = K[1] / X2, B2[2] = K[2] / X2;
-  else
-    B2[0] = 1, B2[1] = 0, B2[2] = 0;
-  return W2;
-};
-var gK = function(B2, K) {
-  var W2 = z0(B2, K);
-  return Math.acos(2 * W2 * W2 - 1);
-};
-var n0 = function(B2, K, W2) {
-  var X2 = K[0], Y = K[1], $3 = K[2], Q3 = K[3], Z2 = W2[0], H = W2[1], J = W2[2], O2 = W2[3];
-  return B2[0] = X2 * O2 + Q3 * Z2 + Y * J - $3 * H, B2[1] = Y * O2 + Q3 * H + $3 * Z2 - X2 * J, B2[2] = $3 * O2 + Q3 * J + X2 * H - Y * Z2, B2[3] = Q3 * O2 - X2 * Z2 - Y * H - $3 * J, B2;
-};
-var qK = function(B2, K, W2) {
-  W2 *= 0.5;
-  var X2 = K[0], Y = K[1], $3 = K[2], Q3 = K[3], Z2 = Math.sin(W2), H = Math.cos(W2);
-  return B2[0] = X2 * H + Q3 * Z2, B2[1] = Y * H + $3 * Z2, B2[2] = $3 * H - Y * Z2, B2[3] = Q3 * H - X2 * Z2, B2;
-};
-var wK = function(B2, K, W2) {
-  W2 *= 0.5;
-  var X2 = K[0], Y = K[1], $3 = K[2], Q3 = K[3], Z2 = Math.sin(W2), H = Math.cos(W2);
-  return B2[0] = X2 * H - $3 * Z2, B2[1] = Y * H + Q3 * Z2, B2[2] = $3 * H + X2 * Z2, B2[3] = Q3 * H - Y * Z2, B2;
-};
-var fK = function(B2, K, W2) {
-  W2 *= 0.5;
-  var X2 = K[0], Y = K[1], $3 = K[2], Q3 = K[3], Z2 = Math.sin(W2), H = Math.cos(W2);
-  return B2[0] = X2 * H + Y * Z2, B2[1] = Y * H - X2 * Z2, B2[2] = $3 * H + Q3 * Z2, B2[3] = Q3 * H - $3 * Z2, B2;
-};
-var dK = function(B2, K) {
-  var W2 = K[0], X2 = K[1], Y = K[2];
-  return B2[0] = W2, B2[1] = X2, B2[2] = Y, B2[3] = Math.sqrt(Math.abs(1 - W2 * W2 - X2 * X2 - Y * Y)), B2;
-};
-var l0 = function(B2, K) {
-  var W2 = K[0], X2 = K[1], Y = K[2], $3 = K[3], Q3 = Math.sqrt(W2 * W2 + X2 * X2 + Y * Y), Z2 = Math.exp($3), H = Q3 > 0 ? Z2 * Math.sin(Q3) / Q3 : 0;
-  return B2[0] = W2 * H, B2[1] = X2 * H, B2[2] = Y * H, B2[3] = Z2 * Math.cos(Q3), B2;
-};
-var c0 = function(B2, K) {
-  var W2 = K[0], X2 = K[1], Y = K[2], $3 = K[3], Q3 = Math.sqrt(W2 * W2 + X2 * X2 + Y * Y), Z2 = Q3 > 0 ? Math.atan2(Q3, $3) / Q3 : 0;
-  return B2[0] = W2 * Z2, B2[1] = X2 * Z2, B2[2] = Y * Z2, B2[3] = 0.5 * Math.log(W2 * W2 + X2 * X2 + Y * Y + $3 * $3), B2;
-};
-var vK = function(B2, K, W2) {
-  return c0(B2, K), y0(B2, B2, W2), l0(B2, B2), B2;
-};
-var u2 = function(B2, K, W2, X2) {
-  var Y = K[0], $3 = K[1], Q3 = K[2], Z2 = K[3], H = W2[0], J = W2[1], O2 = W2[2], L2 = W2[3], C3, V3, E2, U, G;
-  if (V3 = Y * H + $3 * J + Q3 * O2 + Z2 * L2, V3 < 0)
-    V3 = -V3, H = -H, J = -J, O2 = -O2, L2 = -L2;
-  if (1 - V3 > N2)
-    C3 = Math.acos(V3), E2 = Math.sin(C3), U = Math.sin((1 - X2) * C3) / E2, G = Math.sin(X2 * C3) / E2;
-  else
-    U = 1 - X2, G = X2;
-  return B2[0] = U * Y + G * H, B2[1] = U * $3 + G * J, B2[2] = U * Q3 + G * O2, B2[3] = U * Z2 + G * L2, B2;
-};
-var nK = function(B2) {
-  var K = v2(), W2 = v2(), X2 = v2(), Y = Math.sqrt(1 - K), $3 = Math.sqrt(K);
-  return B2[0] = Y * Math.sin(2 * Math.PI * W2), B2[1] = Y * Math.cos(2 * Math.PI * W2), B2[2] = $3 * Math.sin(2 * Math.PI * X2), B2[3] = $3 * Math.cos(2 * Math.PI * X2), B2;
-};
-var lK = function(B2, K) {
-  var W2 = K[0], X2 = K[1], Y = K[2], $3 = K[3], Q3 = W2 * W2 + X2 * X2 + Y * Y + $3 * $3, Z2 = Q3 ? 1 / Q3 : 0;
-  return B2[0] = -W2 * Z2, B2[1] = -X2 * Z2, B2[2] = -Y * Z2, B2[3] = $3 * Z2, B2;
-};
-var cK = function(B2, K) {
-  return B2[0] = -K[0], B2[1] = -K[1], B2[2] = -K[2], B2[3] = K[3], B2;
-};
-var i0 = function(B2, K) {
-  var W2 = K[0] + K[4] + K[8], X2;
-  if (W2 > 0)
-    X2 = Math.sqrt(W2 + 1), B2[3] = 0.5 * X2, X2 = 0.5 / X2, B2[0] = (K[5] - K[7]) * X2, B2[1] = (K[6] - K[2]) * X2, B2[2] = (K[1] - K[3]) * X2;
-  else {
-    var Y = 0;
-    if (K[4] > K[0])
-      Y = 1;
-    if (K[8] > K[Y * 3 + Y])
-      Y = 2;
-    var $3 = (Y + 1) % 3, Q3 = (Y + 2) % 3;
-    X2 = Math.sqrt(K[Y * 3 + Y] - K[$3 * 3 + $3] - K[Q3 * 3 + Q3] + 1), B2[Y] = 0.5 * X2, X2 = 0.5 / X2, B2[3] = (K[$3 * 3 + Q3] - K[Q3 * 3 + $3]) * X2, B2[$3] = (K[$3 * 3 + Y] + K[Y * 3 + $3]) * X2, B2[Q3] = (K[Q3 * 3 + Y] + K[Y * 3 + Q3]) * X2;
-  }
-  return B2;
-};
-var iK = function(B2, K, W2, X2) {
-  var Y = 0.5 * Math.PI / 180;
-  K *= Y, W2 *= Y, X2 *= Y;
-  var $3 = Math.sin(K), Q3 = Math.cos(K), Z2 = Math.sin(W2), H = Math.cos(W2), J = Math.sin(X2), O2 = Math.cos(X2);
-  return B2[0] = $3 * H * O2 - Q3 * Z2 * J, B2[1] = Q3 * Z2 * O2 + $3 * H * J, B2[2] = Q3 * H * J - $3 * Z2 * O2, B2[3] = Q3 * H * O2 + $3 * Z2 * J, B2;
-};
-var yK = function(B2) {
-  return "quat(" + B2[0] + ", " + B2[1] + ", " + B2[2] + ", " + B2[3] + ")";
-};
-var $W = function(B2) {
-  return o0((K, W2) => K.setYRotation(W2), B2);
-};
-var QW = function(B2) {
-  return o0((K, W2) => K.setXRotation(W2), B2);
-};
-var t = function(B2, K, W2, X2) {
-  return X2[0] = B2, X2[1] = K, X2[2] = W2, X2;
-};
-var Q0 = function(B2, K) {
-  const W2 = B2.getMatrix();
-  K[0] = W2[12], K[1] = W2[13], K[2] = W2[14];
-};
-var BB = Object.defineProperty;
-var a = (B2, K) => {
-  for (var W2 in K)
-    BB(B2, W2, { get: K[W2], enumerable: true, configurable: true, set: (X2) => K[W2] = () => X2 });
-};
-var N2 = 0.000001;
-var R2 = typeof Float32Array !== "undefined" ? Float32Array : Array;
-var v2 = Math.random;
-var GW = Math.PI / 180;
-if (!Math.hypot)
-  Math.hypot = function() {
-    var B2 = 0, K = arguments.length;
-    while (K--)
-      B2 += arguments[K] * arguments[K];
-    return Math.sqrt(B2);
-  };
-var _2 = {};
-a(_2, { transpose: () => {
-  {
-    return HB;
-  }
-}, translate: () => {
-  {
-    return LB;
-  }
-}, targetTo: () => {
-  {
-    return vB;
-  }
-}, subtract: () => {
-  {
-    return E0;
-  }
-}, sub: () => {
-  {
-    return mB;
-  }
-}, str: () => {
-  {
-    return nB;
-  }
-}, set: () => {
-  {
-    return ZB;
-  }
-}, scale: () => {
-  {
-    return VB;
-  }
-}, rotateZ: () => {
-  {
-    return IB;
-  }
-}, rotateY: () => {
-  {
-    return EB;
-  }
-}, rotateX: () => {
-  {
-    return UB;
-  }
-}, rotate: () => {
-  {
-    return CB;
-  }
-}, perspectiveZO: () => {
-  {
-    return gB;
-  }
-}, perspectiveNO: () => {
-  {
-    return C0;
-  }
-}, perspectiveFromFieldOfView: () => {
-  {
-    return qB;
-  }
-}, perspective: () => {
-  {
-    return pB;
-  }
-}, orthoZO: () => {
-  {
-    return fB;
-  }
-}, orthoNO: () => {
-  {
-    return U0;
-  }
-}, ortho: () => {
-  {
-    return wB;
-  }
-}, multiplyScalarAndAdd: () => {
-  {
-    return yB;
-  }
-}, multiplyScalar: () => {
-  {
-    return iB;
-  }
-}, multiply: () => {
-  {
-    return G0;
-  }
-}, mul: () => {
-  {
-    return sB;
-  }
-}, lookAt: () => {
-  {
-    return dB;
-  }
-}, invert: () => {
-  {
-    return JB;
-  }
-}, identity: () => {
-  {
-    return O0;
-  }
-}, getTranslation: () => {
-  {
-    return _B;
-  }
-}, getScaling: () => {
-  {
-    return V0;
-  }
-}, getRotation: () => {
-  {
-    return RB;
-  }
-}, frustum: () => {
-  {
-    return FB;
-  }
-}, fromZRotation: () => {
-  {
-    return SB;
-  }
-}, fromYRotation: () => {
-  {
-    return NB;
-  }
-}, fromXRotation: () => {
-  {
-    return kB;
-  }
-}, fromValues: () => {
-  {
-    return QB;
-  }
-}, fromTranslation: () => {
-  {
-    return DB;
-  }
-}, fromScaling: () => {
-  {
-    return PB;
-  }
-}, fromRotationTranslationScaleOrigin: () => {
-  {
-    return hB;
-  }
-}, fromRotationTranslationScale: () => {
-  {
-    return jB;
-  }
-}, fromRotationTranslation: () => {
-  {
-    return L0;
-  }
-}, fromRotation: () => {
-  {
-    return AB;
-  }
-}, fromQuat2: () => {
-  {
-    return TB;
-  }
-}, fromQuat: () => {
-  {
-    return MB;
-  }
-}, frob: () => {
-  {
-    return lB;
-  }
-}, exactEquals: () => {
-  {
-    return zB;
-  }
-}, equals: () => {
-  {
-    return rB;
-  }
-}, determinant: () => {
-  {
-    return GB;
-  }
-}, create: () => {
-  {
-    return XB;
-  }
-}, copy: () => {
-  {
-    return $B;
-  }
-}, clone: () => {
-  {
-    return YB;
-  }
-}, adjoint: () => {
-  {
-    return OB;
-  }
-}, add: () => {
-  {
-    return cB;
-  }
-} });
-var pB = C0;
-var wB = U0;
-var sB = G0;
-var mB = E0;
-var s = {};
-a(s, { str: () => {
-  {
-    return yK;
-  }
-}, squaredLength: () => {
-  {
-    return s0;
-  }
-}, sqrLen: () => {
-  {
-    return oK;
-  }
-}, sqlerp: () => {
-  {
-    return KW;
-  }
-}, slerp: () => {
-  {
-    return u2;
-  }
-}, setAxisAngle: () => {
-  {
-    return v0;
-  }
-}, setAxes: () => {
-  {
-    return WW;
-  }
-}, set: () => {
-  {
-    return mK;
-  }
-}, scale: () => {
-  {
-    return y0;
-  }
-}, rotationTo: () => {
-  {
-    return BW;
-  }
-}, rotateZ: () => {
-  {
-    return fK;
-  }
-}, rotateY: () => {
-  {
-    return wK;
-  }
-}, rotateX: () => {
-  {
-    return qK;
-  }
-}, random: () => {
-  {
-    return nK;
-  }
-}, pow: () => {
-  {
-    return vK;
-  }
-}, normalize: () => {
-  {
-    return X0;
-  }
-}, multiply: () => {
-  {
-    return n0;
-  }
-}, mul: () => {
-  {
-    return eK;
-  }
-}, ln: () => {
-  {
-    return c0;
-  }
-}, lerp: () => {
-  {
-    return bK;
-  }
-}, length: () => {
-  {
-    return r0;
-  }
-}, len: () => {
-  {
-    return uK;
-  }
-}, invert: () => {
-  {
-    return lK;
-  }
-}, identity: () => {
-  {
-    return FK;
-  }
-}, getAxisAngle: () => {
-  {
-    return pK;
-  }
-}, getAngle: () => {
-  {
-    return gK;
-  }
-}, fromValues: () => {
-  {
-    return rK;
-  }
-}, fromMat3: () => {
-  {
-    return i0;
-  }
-}, fromEuler: () => {
-  {
-    return iK;
-  }
-}, exp: () => {
-  {
-    return l0;
-  }
-}, exactEquals: () => {
-  {
-    return tK;
-  }
-}, equals: () => {
-  {
-    return aK;
-  }
-}, dot: () => {
-  {
-    return z0;
-  }
-}, create: () => {
-  {
-    return W0;
-  }
-}, copy: () => {
-  {
-    return sK;
-  }
-}, conjugate: () => {
-  {
-    return cK;
-  }
-}, clone: () => {
-  {
-    return zK;
-  }
-}, calculateW: () => {
-  {
-    return dK;
-  }
-}, add: () => {
-  {
-    return xK;
-  }
-} });
-var r = {};
-a(r, { zero: () => {
-  {
-    return IK;
-  }
-}, transformQuat: () => {
-  {
-    return LK;
-  }
-}, transformMat4: () => {
-  {
-    return OK;
-  }
-}, transformMat3: () => {
-  {
-    return GK;
-  }
-}, subtract: () => {
-  {
-    return D0;
-  }
-}, sub: () => {
-  {
-    return kK;
-  }
-}, str: () => {
-  {
-    return DK;
-  }
-}, squaredLength: () => {
-  {
-    return S0;
-  }
-}, squaredDistance: () => {
-  {
-    return N0;
-  }
-}, sqrLen: () => {
-  {
-    return RK;
-  }
-}, sqrDist: () => {
-  {
-    return _K;
-  }
-}, set: () => {
-  {
-    return bB;
-  }
-}, scaleAndAdd: () => {
-  {
-    return XK;
-  }
-}, scale: () => {
-  {
-    return WK;
-  }
-}, round: () => {
-  {
-    return KK;
-  }
-}, rotateZ: () => {
-  {
-    return UK;
-  }
-}, rotateY: () => {
-  {
-    return CK;
-  }
-}, rotateX: () => {
-  {
-    return VK;
-  }
-}, random: () => {
-  {
-    return JK;
-  }
-}, normalize: () => {
-  {
-    return B0;
-  }
-}, negate: () => {
-  {
-    return YK;
-  }
-}, multiply: () => {
-  {
-    return P0;
-  }
-}, mul: () => {
-  {
-    return NK;
-  }
-}, min: () => {
-  {
-    return aB;
-  }
-}, max: () => {
-  {
-    return BK;
-  }
-}, lerp: () => {
-  {
-    return QK;
-  }
-}, length: () => {
-  {
-    return I0;
-  }
-}, len: () => {
-  {
-    return K0;
-  }
-}, inverse: () => {
-  {
-    return $K;
-  }
-}, hermite: () => {
-  {
-    return ZK;
-  }
-}, fromValues: () => {
-  {
-    return e;
-  }
-}, forEach: () => {
-  {
-    return jK;
-  }
-}, floor: () => {
-  {
-    return tB;
-  }
-}, exactEquals: () => {
-  {
-    return PK;
-  }
-}, equals: () => {
-  {
-    return AK;
-  }
-}, dot: () => {
-  {
-    return b;
-  }
-}, divide: () => {
-  {
-    return A0;
-  }
-}, div: () => {
-  {
-    return SK;
-  }
-}, distance: () => {
-  {
-    return k0;
-  }
-}, dist: () => {
-  {
-    return TK;
-  }
-}, cross: () => {
-  {
-    return z2;
-  }
-}, create: () => {
-  {
-    return x3;
-  }
-}, copy: () => {
-  {
-    return eB;
-  }
-}, clone: () => {
-  {
-    return xB;
-  }
-}, ceil: () => {
-  {
-    return oB;
-  }
-}, bezier: () => {
-  {
-    return HK;
-  }
-}, angle: () => {
-  {
-    return EK;
-  }
-}, add: () => {
-  {
-    return uB;
-  }
-} });
-var kK = D0;
-var NK = P0;
-var SK = A0;
-var TK = k0;
-var _K = N0;
-var K0 = I0;
-var RK = S0;
-var jK = function() {
-  var B2 = x3();
-  return function(K, W2, X2, Y, $3, Q3) {
-    var Z2, H;
-    if (!W2)
-      W2 = 3;
-    if (!X2)
-      X2 = 0;
-    if (Y)
-      H = Math.min(Y * W2 + X2, K.length);
-    else
-      H = K.length;
-    for (Z2 = X2;Z2 < H; Z2 += W2)
-      B2[0] = K[Z2], B2[1] = K[Z2 + 1], B2[2] = K[Z2 + 2], $3(B2, B2, Q3), K[Z2] = B2[0], K[Z2 + 1] = B2[1], K[Z2 + 2] = B2[2];
-    return K;
-  };
-}();
-var LW = function() {
-  var B2 = hK();
-  return function(K, W2, X2, Y, $3, Q3) {
-    var Z2, H;
-    if (!W2)
-      W2 = 4;
-    if (!X2)
-      X2 = 0;
-    if (Y)
-      H = Math.min(Y * W2 + X2, K.length);
-    else
-      H = K.length;
-    for (Z2 = X2;Z2 < H; Z2 += W2)
-      B2[0] = K[Z2], B2[1] = K[Z2 + 1], B2[2] = K[Z2 + 2], B2[3] = K[Z2 + 3], $3(B2, B2, Q3), K[Z2] = B2[0], K[Z2 + 1] = B2[1], K[Z2 + 2] = B2[2], K[Z2 + 3] = B2[3];
-    return K;
-  };
-}();
-var zK = T0;
-var rK = _0;
-var sK = R0;
-var mK = j0;
-var xK = h0;
-var eK = n0;
-var y0 = M0;
-var z0 = q0;
-var bK = w0;
-var r0 = F0;
-var uK = r0;
-var s0 = p0;
-var oK = s0;
-var X0 = g0;
-var tK = f0;
-var aK = d0;
-var BW = function() {
-  var B2 = x3(), K = e(1, 0, 0), W2 = e(0, 1, 0);
-  return function(X2, Y, $3) {
-    var Q3 = b(Y, $3);
-    if (Q3 < -0.999999) {
-      if (z2(B2, K, Y), K0(B2) < 0.000001)
-        z2(B2, W2, Y);
-      return B0(B2, B2), v0(X2, B2, Math.PI), X2;
-    } else if (Q3 > 0.999999)
-      return X2[0] = 0, X2[1] = 0, X2[2] = 0, X2[3] = 1, X2;
-    else
-      return z2(B2, Y, $3), X2[0] = B2[0], X2[1] = B2[1], X2[2] = B2[2], X2[3] = 1 + Q3, X0(X2, X2);
-  };
-}();
-var KW = function() {
-  var B2 = W0(), K = W0();
-  return function(W2, X2, Y, $3, Q3, Z2) {
-    return u2(B2, X2, Q3, Z2), u2(K, Y, $3, Z2), u2(W2, B2, K, 2 * Z2 * (1 - Z2)), W2;
-  };
-}();
-var WW = function() {
-  var B2 = J0();
-  return function(K, W2, X2, Y) {
-    return B2[0] = X2[0], B2[3] = X2[1], B2[6] = X2[2], B2[1] = Y[0], B2[4] = Y[1], B2[7] = Y[2], B2[2] = -W2[0], B2[5] = -W2[1], B2[8] = -W2[2], X0(K, i0(K, B2));
-  };
-}();
-
-class n2 {
-  d;
-  listeners = new Set;
-  constructor(B2) {
-    this.elem = B2;
-  }
-  addChangeListener(B2) {
-    return this.listeners.add(B2), this;
-  }
-  removeChangeListener(B2) {
-    this.listeners.delete(B2);
-  }
-  onChange() {
-    for (let B2 of this.listeners)
-      B2.onChange(this.elem);
-  }
-}
-var XW = Math.PI / 90;
-var Y0 = [0, 0, 0];
-var m0 = _2.create();
-var x0 = _2.create();
-var o = s.create();
-
-class m {
-  static HIDDEN = m.create().scale(0, 0, 0);
-  static IDENTITY = m.create();
-  #B = Float32Array.from(_2.create());
-  #K = new n2(this);
-  constructor() {
-    this.identity();
-  }
-  addChangeListener(B2) {
-    return this.#K.addChangeListener(B2), this;
-  }
-  removeChangeListener(B2) {
-    this.#K.removeChangeListener(B2);
-  }
-  static create() {
-    return new m;
-  }
-  copy(B2) {
-    return _2.copy(this.#B, B2.getMatrix()), this.#K.onChange(), this;
-  }
-  identity() {
-    return _2.identity(this.#B), this.#K.onChange(), this;
-  }
-  invert(B2) {
-    return _2.invert(this.#B, B2?.getMatrix() ?? this.getMatrix()), this.#K.onChange(), this;
-  }
-  multiply(B2) {
-    return _2.multiply(this.#B, this.#B, B2.getMatrix()), this.#K.onChange(), this;
-  }
-  multiply2(B2, K) {
-    return _2.multiply(this.#B, B2.getMatrix(), K.getMatrix()), this.#K.onChange(), this;
-  }
-  multiply3(B2, K, W2) {
-    return this.multiply2(B2, K), this.multiply(W2), this;
-  }
-  translate(B2, K, W2) {
-    const X2 = Y0;
-    return X2[0] = B2, X2[1] = K, X2[2] = W2, this.move(X2);
-  }
-  move(B2) {
-    return _2.translate(this.#B, this.#B, B2), this.#K.onChange(), this;
-  }
-  rotateX(B2) {
-    return _2.rotateX(this.#B, this.#B, B2), this.#K.onChange(), this;
-  }
-  rotateY(B2) {
-    return _2.rotateY(this.#B, this.#B, B2), this.#K.onChange(), this;
-  }
-  rotateZ(B2) {
-    return _2.rotateZ(this.#B, this.#B, B2), this.#K.onChange(), this;
-  }
-  setXRotation(B2) {
-    return _2.fromXRotation(this.getMatrix(), B2), this.#K.onChange(), this;
-  }
-  setYRotation(B2) {
-    return _2.fromYRotation(this.getMatrix(), B2), this.#K.onChange(), this;
-  }
-  scale(B2, K, W2) {
-    return _2.scale(this.#B, this.#B, [B2, K ?? B2, W2 ?? B2]), this.#K.onChange(), this;
-  }
-  perspective(B2, K, W2, X2) {
-    return _2.perspective(this.#B, B2 * XW, K, W2, X2), this.#K.onChange(), this;
-  }
-  ortho(B2, K, W2, X2, Y, $3) {
-    return _2.ortho(this.#B, B2, K, W2, X2, Y, $3), this.#K.onChange(), this;
-  }
-  combine(B2, K, W2 = 0.5) {
-    return _2.multiplyScalar(m0, B2.getMatrix(), 1 - W2), _2.multiplyScalar(x0, K.getMatrix(), W2), _2.add(this.#B, m0, x0), this.#K.onChange(), this;
-  }
-  static getMoveVector(B2, K, W2, X2) {
-    const Y = Y0;
-    if (Y[0] = B2, Y[1] = K, Y[2] = W2, X2)
-      _2.getRotation(o, X2.getMatrix()), s.invert(o, o), r.transformQuat(Y, Y, o);
-    return Y;
-  }
-  getPosition() {
-    const B2 = Y0;
-    return B2[0] = this.#B[12], B2[1] = this.#B[13], B2[2] = this.#B[14], B2;
-  }
-  setVector(B2) {
-    return this.setPosition(B2[0], B2[1], B2[2]);
-  }
-  setPosition(B2, K, W2) {
-    return this.#B[12] = B2, this.#B[13] = K, this.#B[14] = W2, this.#K.onChange(), this;
-  }
-  getMatrix() {
-    return this.#B;
-  }
-}
-var d = m;
-
-class e0 {
-  q;
-  w;
-  #B;
-  #K = false;
-  #W = 0;
-  #X;
-  #Y;
-  constructor(B2, K, W2) {
-    this.getValue = K, this.apply = W2, this.#X = B2, this.#B = this.getValue(B2);
-  }
-  set element(B2) {
-    this.#X = B2, this.#B = this.getValue(B2), this.#Y = undefined;
-  }
-  setGoal(B2, K, W2) {
-    if (this.#Y && this.#Y !== W2)
-      return;
-    if (this.#B !== B2 || this.#W !== K)
-      this.#W = K, this.#B = B2, this.#Y = W2, this.#K = true;
-  }
-  get goal() {
-    return this.#B;
-  }
-  update(B2) {
-    if (this.#K) {
-      const K = this.getValue(this.#X), W2 = this.goal - K, X2 = Math.min(Math.abs(W2), this.#W * B2);
-      if (X2 <= 0.01)
-        this.apply(this.#X, this.goal), this.#K = false, this.#Y?.onRelease?.(), this.#Y = undefined;
-      else
-        this.apply(this.#X, K + X2 * Math.sign(W2));
-    }
-    return this.#K;
-  }
-}
-
-class b0 {
-  i;
-  f;
-  warningLimit = 50000;
-  #B = new Set;
-  #K = [];
-  constructor(B2, K) {
-    this.initCall = B2, this.onRecycle = K;
-  }
-  create(...B2) {
-    const K = this.#K.pop();
-    if (K)
-      return this.#B.add(K), this.initCall(K, ...B2);
-    const W2 = this.initCall(undefined, ...B2);
-    return this.#B.add(W2), this.#X(), W2;
-  }
-  recycle(B2) {
-    this.#B.delete(B2), this.#W(B2);
-  }
-  recycleAll() {
-    for (let B2 of this.#B)
-      this.#W(B2);
-    this.#B.clear();
-  }
-  clear() {
-    this.#K.length = 0, this.#B.clear();
-  }
-  countObjectsInExistence() {
-    return this.#B.size + this.#K.length;
-  }
-  #W(B2) {
-    this.#K.push(B2), this.onRecycle?.(B2);
-  }
-  #X() {
-    if (this.countObjectsInExistence() === this.warningLimit)
-      console.warn("ObjectPool already created", this.#B.size + this.#K.length, "in", this.constructor.name);
-  }
-}
-
-class u0 extends b0 {
-  constructor() {
-    super((B2, K) => {
-      if (!B2)
-        return new e0(K, (W2) => W2.valueOf(), (W2, X2) => W2.setValue(X2));
-      return B2.element = K, B2;
-    });
-  }
-}
-var YW = new u0;
-
-class l2 {
-  q;
-  w;
-  #B = 0;
-  #K;
-  constructor(B2 = 0, K, W2 = YW) {
-    this.onChange = K, this.pool = W2, this.#B = B2;
-  }
-  valueOf() {
-    return this.#B;
-  }
-  setValue(B2) {
-    if (B2 !== this.#B)
-      this.#B = B2, this.onChange?.(this.#B);
-    return this;
-  }
-  addValue(B2) {
-    return this.setValue(this.#B + B2), this;
-  }
-  update(B2) {
-    if (this.#K) {
-      const K = !!this.#K.update(B2);
-      if (!K)
-        this.pool.recycle(this.#K), this.#K = undefined;
-      return K;
-    }
-    return false;
-  }
-  refresh({ deltaTime: B2, stopUpdate: K }) {
-    if (!this.update(B2))
-      K();
-  }
-  progressTowards(B2, K, W2, X2) {
-    if (!this.#K)
-      this.#K = this.pool.create(this);
-    if (this.#K.setGoal(B2, K, W2), X2)
-      X2.loop(this, undefined);
-  }
-  get goal() {
-    return this.#K?.goal ?? this.valueOf();
-  }
-}
-var o0 = function(B2, K) {
-  const W2 = d.create(), X2 = new Set;
-  if (K)
-    X2.add({ onChange: K });
-  const Y = { angle: new l2(0, ($3) => {
-    B2(W2, $3);
-    for (let Q3 of X2)
-      Q3.onChange(Y);
-  }), getMatrix() {
-    return W2.getMatrix();
-  }, addChangeListener($3) {
-    return X2.add($3), this;
-  }, removeChangeListener($3) {
-    X2.delete($3);
-  } };
-  return Y;
-};
-var w;
-(function(X2) {
-  X2[X2["AT_POSITION"] = 0] = "AT_POSITION";
-  X2[X2["MOVED"] = 1] = "MOVED";
-  X2[X2["BLOCKED"] = 2] = "BLOCKED";
-})(w || (w = {}));
-var $0 = function(B2, K) {
-  if (B2) {
-    const W2 = B2.length.valueOf();
-    for (let X2 = 0;X2 < W2; X2++) {
-      const Y = B2.at(X2);
-      if (Y !== undefined && K(Y, X2))
-        return true;
-    }
-  }
-  return false;
-};
-
-class t0 {
-  #B = d.create().setPosition(0, 0, 0);
-  #K = [0, 0, 0];
-  #W = new n2(this);
-  position = [0, 0, 0];
-  blockers;
-  constructor({ blockers: B2 } = {}) {
-    this.blockers = B2, this.#B.addChangeListener({ onChange: () => {
-      Q0(this.#B, this.position), this.#W.onChange();
-    } });
-  }
-  addChangeListener(B2) {
-    return this.#W.addChangeListener(B2), this;
-  }
-  removeChangeListener(B2) {
-    this.#W.removeChangeListener(B2);
-  }
-  moveBy(B2, K, W2, X2) {
-    const Y = d.getMoveVector(B2, K, W2, X2), $3 = $0(this.blockers, (Q3) => Q3.isBlocked(t(this.position[0] + Y[0], this.position[1] + Y[1], this.position[2] + Y[2], this.#K), this.position));
-    if (!$3)
-      if (Y[0] || Y[1] || Y[2])
-        this.#B.move(Y);
-      else
-        return w.AT_POSITION;
-    return $3 ? w.BLOCKED : w.MOVED;
-  }
-  moveTo(B2, K, W2) {
-    if (this.position[0] === B2 && this.position[1] === K && this.position[2] === W2)
-      return w.AT_POSITION;
-    const X2 = $0(this.blockers, (Y) => Y.isBlocked(t(B2, K, W2, this.#K), this.position));
-    if (!X2) {
-      const [Y, $3, Q3] = this.#B.getPosition();
-      if (Y !== B2 || $3 !== K || Q3 !== W2)
-        this.#B.setPosition(B2, K, W2);
-    }
-    return X2 ? w.BLOCKED : w.MOVED;
-  }
-  movedTo(B2, K, W2) {
-    return this.moveTo(B2, K, W2), this;
-  }
-  moveTowards(B2, K, W2, X2 = 0.1) {
-    const Y = this.position, $3 = B2 - Y[0], Q3 = K - Y[1], Z2 = W2 - Y[2], H = Math.sqrt($3 * $3 + Q3 * Q3 + Z2 * Z2);
-    if (H > 0.01) {
-      const J = Math.min(H, X2) / H;
-      return this.moveBy($3 * J, Q3 * J, Z2 * J);
-    } else
-      return this.moveTo(B2, K, W2);
-  }
-  attemptMoveTowards(B2, K, W2, X2 = 0.1) {
-    let Y = this.moveTowards(B2, K, W2, X2);
-    if (Y === w.BLOCKED && B2 !== this.position[0])
-      Y = this.moveTowards(B2, this.position[1], this.position[2], X2);
-    if (Y === w.BLOCKED && K !== this.position[1])
-      Y = this.moveTowards(this.position[0], K, this.position[2], X2);
-    if (Y === w.BLOCKED && W2)
-      Y = this.moveTowards(this.position[0], this.position[1], W2, X2);
-    return Y;
-  }
-  getMatrix() {
-    return this.#B.getMatrix();
-  }
-}
-var ZW = 1;
-var HW = 1;
-
-class a0 {
-  #B = d.create();
-  #K = d.create();
-  #W = d.create();
-  #X = [0, 0];
-  #Y = new n2(this);
-  perspective;
-  zoom;
-  constructor() {
-    const B2 = { onChange: () => {
-      this.#B.combine(this.#W, this.#K, this.perspective.valueOf());
-    } };
-    this.perspective = new l2(ZW, B2.onChange), this.zoom = new l2(HW, (K) => {
-      this.configure(this.#X, K);
-    }), this.#K.addChangeListener(B2), this.#W.addChangeListener(B2), this.#B.addChangeListener(this.#Y);
-  }
-  addChangeListener(B2) {
-    return this.#Y.addChangeListener(B2), this;
-  }
-  removeChangeListener(B2) {
-    this.#Y.removeChangeListener(B2);
-  }
-  configPerspectiveMatrix(B2, K, W2, X2) {
-    this.#K.perspective(B2, K, W2, X2);
-  }
-  configOrthoMatrix(B2, K, W2, X2) {
-    this.#W.ortho(-B2 / 2, B2 / 2, -K / 2, K / 2, W2, X2);
-  }
-  configure(B2, K, W2 = 0.5, X2 = 1e4) {
-    if (!K)
-      K = this.zoom.valueOf();
-    this.#X[0] = B2[0], this.#X[1] = B2[1];
-    const Y = this.#X[0] / this.#X[1], $3 = 45 / Math.sqrt(K);
-    this.configPerspectiveMatrix($3, Y, Math.max(W2, 0.00001), X2), this.configOrthoMatrix(Y / K / K, 1 / K / K, -X2, X2);
-  }
-  getMatrix() {
-    return this.#B.getMatrix();
-  }
-}
-var VERTICES_PER_SPRITE = 6;
-var TEX_BUFFER_ELEMS = 4;
-var EMPTY_TEX = new Float32Array(TEX_BUFFER_ELEMS).fill(0);
-
-class GraphicsEngine extends Disposable {
-  gl;
-  priority = Priority.LAST;
-  programs;
-  attributeBuffers;
-  animationSlots = new Map;
-  pixelListener;
-  maxSpriteCount = 0;
-  textureUpdateHandler;
-  tempBuffer = new Float32Array(4).fill(0);
-  visibleSprites = [];
-  constructor(gl) {
-    super();
-    this.gl = gl;
-    this.programs = this.own(new GLPrograms(gl));
-    const textureManager = new l({ gl });
-    this.textureUpdateHandler = new TextureUpdateHandler({
-      imageManager: new v,
-      textureManager
-    });
-    this.addOnDestroy(() => textureManager.dispose());
-    const PROGRAM_NAME = "main";
-    const replacementMap = {
-      AUTHOR: "Jack le hamster"
-    };
-    this.programs.addProgram(PROGRAM_NAME, replaceTilda(vertexShader_default, replacementMap), replaceTilda(fragmentShader_default, replacementMap));
-    this.attributeBuffers = this.own(new GLAttributeBuffers(gl, this.programs));
-    this.initialize(PROGRAM_NAME);
-    TextureUniformInitializer.initialize({ gl, program: this.programs.getProgram() });
-  }
-  resetViewportSize() {
-    this.gl.viewport(0, 0, this.gl.drawingBufferWidth, this.gl.drawingBufferHeight);
-  }
-  initialize(programName) {
-    this.programs.useProgram(programName);
-    this.gl.enable(GL.DEPTH_TEST);
-    this.gl.depthFunc(GL.LESS);
-    this.gl.clearDepth(1);
-    this.gl.enable(GL.BLEND);
-    this.gl.blendFunc(GL.SRC_ALPHA, GL.ONE_MINUS_SRC_ALPHA);
-    this.gl.viewport(0, 0, this.gl.drawingBufferWidth, this.gl.drawingBufferHeight);
-    this.gl.enable(GL.CULL_FACE);
-    this.gl.cullFace(GL.BACK);
-    this.gl.clearColor(0, 0, 0, 1);
-  }
-  deactivate() {
-    this.animationSlots.clear();
-    this.visibleSprites.length = 0;
-    this.#redraw();
-  }
-  setMaxSpriteCount(count) {
-    if (count > this.maxSpriteCount) {
-      this.maxSpriteCount = 1 << Math.ceil(Math.log2(count));
-      this.ensureBuffers(this.maxSpriteCount);
-    }
-  }
-  setBgColor(rgb) {
-    this.gl.clearColor(rgb[0], rgb[1], rgb[2], 1);
-    this.gl.clear(this.gl.COLOR_BUFFER_BIT);
-  }
-  ensureBuffers(instanceCount) {
-    if (instanceCount >= 1e5) {
-      console.warn("Sprite count has already reached:", instanceCount);
-    }
-    if (!this.attributeBuffers.hasBuffer(INDEX_LOC)) {
-      this.attributeBuffers.createBuffer({
-        location: INDEX_LOC,
-        target: GL.ELEMENT_ARRAY_BUFFER,
-        usage: GL.STATIC_DRAW,
-        vertexAttribPointerRows: 0,
-        data: Uint16Array.from([0, 1, 2, 2, 3, 0])
-      });
-    }
-    if (!this.attributeBuffers.hasBuffer(POSITION_LOC)) {
-      this.attributeBuffers.createBuffer({
-        location: POSITION_LOC,
-        target: GL.ARRAY_BUFFER,
-        usage: GL.STATIC_DRAW,
-        vertexAttribPointerRows: 1,
-        elemCount: 2,
-        data: Float32Array.from([-1, -1, 1, -1, 1, 1, -1, 1])
-      });
-    }
-    if (!this.attributeBuffers.hasBuffer(TRANSFORM_LOC)) {
-      this.attributeBuffers.createBuffer({
-        location: TRANSFORM_LOC,
-        target: GL.ARRAY_BUFFER,
-        usage: GL.DYNAMIC_DRAW,
-        vertexAttribPointerRows: 4,
-        elemCount: 4,
-        divisor: 1,
-        instanceCount
-      });
-    } else {
-      this.attributeBuffers.ensureSize(TRANSFORM_LOC, instanceCount);
-    }
-    if (!this.attributeBuffers.hasBuffer(SLOT_SIZE_LOC)) {
-      this.attributeBuffers.createBuffer({
-        location: SLOT_SIZE_LOC,
-        target: GL.ARRAY_BUFFER,
-        usage: GL.DYNAMIC_DRAW,
-        vertexAttribPointerRows: 1,
-        elemCount: TEX_BUFFER_ELEMS,
-        divisor: 1,
-        instanceCount
-      });
-    } else {
-      this.attributeBuffers.ensureSize(SLOT_SIZE_LOC, instanceCount);
-    }
-    if (!this.attributeBuffers.hasBuffer(ANIM_LOC)) {
-      this.attributeBuffers.createBuffer({
-        location: ANIM_LOC,
-        target: GL.ARRAY_BUFFER,
-        usage: GL.DYNAMIC_DRAW,
-        vertexAttribPointerRows: 1,
-        elemCount: 4,
-        divisor: 1,
-        instanceCount
-      });
-    } else {
-      this.attributeBuffers.ensureSize(ANIM_LOC, instanceCount);
-    }
-    if (!this.attributeBuffers.hasBuffer(INSTANCE_LOC)) {
-      this.attributeBuffers.createBuffer({
-        location: INSTANCE_LOC,
-        target: GL.ARRAY_BUFFER,
-        usage: GL.STATIC_DRAW,
-        vertexAttribPointerRows: 1,
-        elemCount: 1,
-        divisor: 1,
-        instanceCount,
-        callback: (index) => index
-      });
-    } else {
-      this.attributeBuffers.ensureSize(INSTANCE_LOC, instanceCount);
-    }
-    if (!this.attributeBuffers.hasBuffer(SPRITE_TYPE_LOC)) {
-      this.attributeBuffers.createBuffer({
-        location: SPRITE_TYPE_LOC,
-        target: GL.ARRAY_BUFFER,
-        usage: GL.STATIC_DRAW,
-        vertexAttribPointerRows: 1,
-        elemCount: 1,
-        divisor: 1,
-        instanceCount
-      });
-    } else {
-      this.attributeBuffers.ensureSize(SPRITE_TYPE_LOC, instanceCount);
-    }
-    return this.attributeBuffers;
-  }
-  async updateTextures(ids, medias) {
-    return this.textureUpdateHandler.updateTextures(ids, medias);
-  }
-  updateSpriteTransforms(spriteIds, sprites) {
-    const attributeBuffers = this.attributeBuffers;
-    attributeBuffers.bindBuffer(TRANSFORM_LOC);
-    spriteIds.forEach((spriteId) => {
-      const sprite = sprites.at(spriteId);
-      const visible = !!(sprite && !sprite?.hidden);
-      this.gl.bufferSubData(GL.ARRAY_BUFFER, 16 * Float32Array.BYTES_PER_ELEMENT * spriteId, (!visible ? d.HIDDEN : sprite.transform).getMatrix());
-      this.visibleSprites[spriteId] = visible;
-    });
-    spriteIds.clear();
-    while (this.visibleSprites.length && !this.visibleSprites[this.visibleSprites.length - 1]) {
-      this.visibleSprites.length--;
-    }
-  }
-  updateSpriteTexSlots(spriteIds, sprites) {
-    const attributeBuffers = this.attributeBuffers;
-    attributeBuffers.bindBuffer(SLOT_SIZE_LOC);
-    spriteIds.forEach((spriteId) => {
-      const sprite = sprites.at(spriteId);
-      if (!sprite) {
-        spriteIds.delete(spriteId);
-        return;
-      }
-      const slotBuffer = this.textureUpdateHandler.getSlotBuffer(sprite.imageId);
-      let buffer = slotBuffer ?? EMPTY_TEX;
-      if ((sprite.orientation ?? 1) < 0) {
-        this.tempBuffer[0] = buffer[0];
-        this.tempBuffer[1] = buffer[1];
-        this.tempBuffer[2] = -buffer[2];
-        this.tempBuffer[3] = buffer[3];
-        buffer = this.tempBuffer;
-      }
-      this.gl.bufferSubData(GL.ARRAY_BUFFER, TEX_BUFFER_ELEMS * Float32Array.BYTES_PER_ELEMENT * spriteId, buffer);
-      const spriteWaitingForTexture = sprite && !slotBuffer;
-      if (!spriteWaitingForTexture) {
-        spriteIds.delete(spriteId);
-      }
-    });
-  }
-  updateSpriteTypes(spriteIds, sprites) {
-    const attributeBuffers = this.attributeBuffers;
-    attributeBuffers.bindBuffer(SPRITE_TYPE_LOC);
-    spriteIds.forEach((spriteId) => {
-      const sprite = sprites.at(spriteId);
-      if (!sprite) {
-        return;
-      }
-      const type = sprite.spriteType ?? SpriteType.DEFAULT;
-      this.tempBuffer[0] = type;
-      this.gl.bufferSubData(GL.ARRAY_BUFFER, 1 * Float32Array.BYTES_PER_ELEMENT * spriteId, this.tempBuffer, 0, 1);
-    });
-    spriteIds.clear();
-  }
-  updateSpriteAnimations(spriteIds, sprites) {
-    const attributeBuffers = this.attributeBuffers;
-    attributeBuffers.bindBuffer(ANIM_LOC);
-    spriteIds.forEach((spriteId) => {
-      const sprite = sprites.at(spriteId);
-      if (sprite?.animationId === undefined) {
-        return;
-      }
-      const animation = this.animationSlots.get(sprite.animationId);
-      this.tempBuffer[0] = animation?.frames?.[0] ?? 0;
-      this.tempBuffer[1] = animation?.frames?.[1] ?? this.tempBuffer[0];
-      this.tempBuffer[2] = animation?.fps ?? 0;
-      this.tempBuffer[3] = animation?.maxFrameCount ?? Number.MAX_SAFE_INTEGER;
-      this.gl.bufferSubData(GL.ARRAY_BUFFER, 4 * Float32Array.BYTES_PER_ELEMENT * spriteId, this.tempBuffer);
-    });
-    spriteIds.clear();
-  }
-  updateAnimationDefinitions(ids, animations) {
-    for (let id of ids) {
-      const animation = animations.at(id.valueOf());
-      if (animation !== undefined) {
-        this.animationSlots.set(animation.id, animation);
-      }
-    }
-    ids.clear();
-  }
-  setPixelListener(listener) {
-    this.pixelListener = listener;
-  }
-  _pixel = new Uint8Array(4);
-  getPixel(x4, y) {
-    this.gl.readPixels(x4, y, 1, 1, this.gl.RGBA, this.gl.UNSIGNED_BYTE, this._pixel);
-    const [r2, g2, b2, _a] = this._pixel;
-    return r2 * 65536 + g2 * 256 + b2;
-  }
-  static clearBit = GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT;
-  refresh(updatePayload) {
-    if (updatePayload.renderFrame) {
-      this.#redraw();
-    }
-  }
-  #redraw() {
-    this.gl.clear(GraphicsEngine.clearBit);
-    if (this.visibleSprites.length) {
-      this.#drawElementsInstanced(VERTICES_PER_SPRITE, this.visibleSprites.length);
-      this.pixelListener?.setPixel(this.getPixel(this.pixelListener.x, this.pixelListener.y));
-    }
-  }
-  createMatrixUniformHandler(name, matrix) {
-    return new MatrixUniformHandler({
-      gl: this.gl,
-      program: this.programs.getProgram(this.programs.activeProgramId)
-    }, { name }, matrix);
-  }
-  createFloatUniformHandler(name, val) {
-    return new FloatUniformHandler({
-      gl: this.gl,
-      program: this.programs.getProgram(this.programs.activeProgramId)
-    }, { name }, val);
-  }
-  createVectorUniformHandler(name, vector) {
-    return new VectorUniformHandler({
-      gl: this.gl,
-      program: this.programs.getProgram(this.programs.activeProgramId)
-    }, { name }, vector);
-  }
-  #drawElementsInstanced(vertexCount, instances) {
-    this.gl.drawElementsInstanced(GL.TRIANGLES, vertexCount, GL.UNSIGNED_SHORT, 0, instances);
-  }
-}
-
-class AuxiliaryHolder {
-  auxiliaries = [];
-  active = false;
-  activate() {
-    if (this.active) {
-      return;
-    }
-    this.active = true;
-    this.auxiliaries.forEach((aux) => aux.activate?.());
-  }
-  deactivate() {
-    if (!this.active) {
-      return;
-    }
-    this.active = false;
-    this.auxiliaries.forEach((aux) => aux.deactivate?.());
-  }
-  addAuxiliary(aux) {
-    this.auxiliaries.push(aux);
-    if (this.active) {
-      aux.activate?.();
-    }
-    return this;
-  }
-  removeAuxiliary(aux) {
-    let j = 0;
-    for (let i = 0;i < this.auxiliaries.length; i++) {
-      const a2 = this.auxiliaries[i];
-      if (a2 !== aux) {
-        this.auxiliaries[j] = a2;
-        j++;
-      } else {
-        a2.deactivate?.();
-      }
-    }
-    this.auxiliaries.length = j;
-  }
-}
-
-class y {
-  q;
-  w;
-  #F;
-  #q = false;
-  #x = 0;
-  #w;
-  #y;
-  constructor(F, q, w2) {
-    this.getValue = q;
-    this.apply = w2;
-    this.#w = F, this.#F = this.getValue(F);
-  }
-  set element(F) {
-    this.#w = F, this.#F = this.getValue(F), this.#y = undefined;
-  }
-  setGoal(F, q, w2) {
-    if (this.#y && this.#y !== w2)
-      return;
-    if (this.#F !== F || this.#x !== q)
-      this.#x = q, this.#F = F, this.#y = w2, this.#q = true;
-  }
-  get goal() {
-    return this.#F;
-  }
-  update(F) {
-    if (this.#q) {
-      const q = this.getValue(this.#w), w2 = this.goal - q, x4 = Math.min(Math.abs(w2), this.#x * F);
-      if (x4 <= 0.01)
-        this.apply(this.#w, this.goal), this.#q = false, this.#y?.onRelease?.(), this.#y = undefined;
-      else
-        this.apply(this.#w, q + x4 * Math.sign(w2));
-    }
-    return this.#q;
-  }
-}
-
-class z3 {
-  i;
-  f;
-  warningLimit = 50000;
-  #F = new Set;
-  #q = [];
-  constructor(F, q) {
-    this.initCall = F, this.onRecycle = q;
-  }
-  create(...F) {
-    const q = this.#q.pop();
-    if (q)
-      return this.#F.add(q), this.initCall(q, ...F);
-    const w2 = this.initCall(undefined, ...F);
-    return this.#F.add(w2), this.#w(), w2;
-  }
-  recycle(F) {
-    this.#F.delete(F), this.#x(F);
-  }
-  recycleAll() {
-    for (let F of this.#F)
-      this.#x(F);
-    this.#F.clear();
-  }
-  clear() {
-    this.#q.length = 0, this.#F.clear();
-  }
-  countObjectsInExistence() {
-    return this.#F.size + this.#q.length;
-  }
-  #x(F) {
-    this.#q.push(F), this.onRecycle?.(F);
-  }
-  #w() {
-    if (this.countObjectsInExistence() === this.warningLimit)
-      console.warn("ObjectPool already created", this.#F.size + this.#q.length, "in", this.constructor.name);
-  }
-}
-
-class A2 extends z3 {
-  constructor() {
-    super((F, q) => {
-      if (!F)
-        return new y(q, (w2) => w2.valueOf(), (w2, x4) => w2.setValue(x4));
-      return F.element = q, F;
-    });
-  }
-}
-var G = new A2;
-
-class B2 {
-  q;
-  w;
-  #F = 0;
-  #q;
-  constructor(F = 0, q, w2 = G) {
-    this.onChange = q;
-    this.pool = w2;
-    this.#F = F;
-  }
-  valueOf() {
-    return this.#F;
-  }
-  setValue(F) {
-    if (F !== this.#F)
-      this.#F = F, this.onChange?.(this.#F);
-    return this;
-  }
-  addValue(F) {
-    return this.setValue(this.#F + F), this;
-  }
-  update(F) {
-    if (this.#q) {
-      const q = !!this.#q.update(F);
-      if (!q)
-        this.pool.recycle(this.#q), this.#q = undefined;
-      return q;
-    }
-    return false;
-  }
-  refresh({ deltaTime: F, stopUpdate: q }) {
-    if (!this.update(F))
-      q();
-  }
-  progressTowards(F, q, w2, x4) {
-    if (!this.#q)
-      this.#q = this.pool.create(this);
-    if (this.#q.setGoal(F, q, w2), x4)
-      x4.loop(this, undefined);
-  }
-  get goal() {
-    return this.#q?.goal ?? this.valueOf();
-  }
-}
-var z4 = function(D2, J = _3) {
-  R3(D2, (K, Q3) => D2.informUpdate(Q3, J));
-};
-
-class W2 {
-  i;
-  f;
-  warningLimit = 50000;
-  #D = new Set;
-  #J = [];
-  constructor(D2, J) {
-    this.initCall = D2, this.onRecycle = J;
-  }
-  create(...D2) {
-    const J = this.#J.pop();
-    if (J)
-      return this.#D.add(J), this.initCall(J, ...D2);
-    const K = this.initCall(undefined, ...D2);
-    return this.#D.add(K), this.#Q(), K;
-  }
-  recycle(D2) {
-    this.#D.delete(D2), this.#K(D2);
-  }
-  recycleAll() {
-    for (let D2 of this.#D)
-      this.#K(D2);
-    this.#D.clear();
-  }
-  clear() {
-    this.#J.length = 0, this.#D.clear();
-  }
-  countObjectsInExistence() {
-    return this.#D.size + this.#J.length;
-  }
-  #K(D2) {
-    this.#J.push(D2), this.onRecycle?.(D2);
-  }
-  #Q() {
-    if (this.countObjectsInExistence() === this.warningLimit)
-      console.warn("ObjectPool already created", this.#D.size + this.#J.length, "in", this.constructor.name);
-  }
-}
-
-class X2 {
-  listeners = new Set;
-  informUpdate(D2, J) {
-    this.listeners.forEach((K) => K.onUpdate(D2, J));
-  }
-  addUpdateListener(D2) {
-    this.listeners.add(D2);
-  }
-  removeUpdateListener(D2) {
-    this.listeners.delete(D2);
-  }
-}
-var R3 = function(D2, J) {
-  if (D2) {
-    const K = D2.length.valueOf();
-    for (let Q3 = 0;Q3 < K; Q3++)
-      J(D2.at(Q3), Q3);
-  }
-};
-
-class Z2 {
-  D;
-  J;
-  K;
-  Q;
-  #D = [];
-  constructor(D2, J, K, Q3) {
-    this.elems = D2;
-    this.informUpdate = J;
-    this.addElem = K;
-    this.removeElem = Q3;
-    this.elems = D2, this.initialize(D2);
-  }
-  initialize(D2) {
-    this.elems = D2, this.elems.addUpdateListener?.(this), R3(D2, (J, K) => this.onUpdate(K));
-  }
-  dispose() {
-    R3(this.elems, (D2, J) => this.onUpdate(J)), this.elems.removeUpdateListener?.(this), this.elems = G2, this.#D.length = 0;
-  }
-  onUpdate(D2, J) {
-    const K = this.elems.at(D2);
-    let Q3 = this.#D[D2];
-    if (Q3 === undefined) {
-      if (!K)
-        return;
-      const V3 = this.addElem(this.elems, D2);
-      this.#D[D2] = V3;
-      return;
-    } else if (!K) {
-      this.removeElem(Q3), this.#D[D2] = undefined;
-      return;
-    }
-    this.informUpdate(Q3, J);
-  }
-}
-
-class $3 extends W2 {
-  constructor({ informUpdate: D2, addElem: J, removeElem: K }) {
-    super((Q3, V3) => {
-      if (Q3)
-        return Q3.initialize(V3), Q3;
-      return new Z2(V3, D2, J, K);
-    }, (Q3) => {
-      Q3.dispose();
-    });
-  }
-}
-
-class B3 {
-  #D = [];
-  #J = [];
-  length;
-  constructor({ onChange: D2 } = {}) {
-    this.length = { valueOf: () => this.#D.length, onChange: D2 ? (J) => D2?.(J) : undefined };
-  }
-  at(D2) {
-    return this.#D.at(D2);
-  }
-  addElem(D2) {
-    const J = this.#K();
-    return this.#D[J] = D2, J;
-  }
-  removeElem(D2) {
-    const J = this.#D.at(D2);
-    if (J !== undefined)
-      this.#D[D2] = undefined, this.#J.push(D2);
-    return J;
-  }
-  clear() {
-    if (this.#D.length !== 0)
-      this.#D.length = 0, this.#Q();
-    this.#J.length = 0;
-  }
-  #K() {
-    let D2 = this.#J.pop();
-    if (D2 === undefined)
-      D2 = this.#D.length, this.#D.push(undefined), this.#Q();
-    return D2;
-  }
-  #Q() {
-    this.length.onChange?.(this.length.valueOf());
-  }
-}
-
-class H extends X2 {
-  #D;
-  #J = new Map;
-  #K = new O2;
-  #Q = new $3({ informUpdate: this.informUpdate.bind(this), addElem: this.#R.bind(this), removeElem: this.#V.bind(this) });
-  constructor({ onChange: D2 } = {}) {
-    super();
-    this.#D = new B3({ onChange: D2 });
-  }
-  get length() {
-    return this.#D.length;
-  }
-  at(D2) {
-    const J = this.#D.at(D2);
-    return J?.elems.at(J.index);
-  }
-  add(D2) {
-    const J = this.#Q.create(D2);
-    this.#J.set(D2, J);
-  }
-  remove(D2) {
-    const J = this.#J.get(D2);
-    if (J)
-      this.#J.delete(D2), this.#Q.recycle(J);
-  }
-  clear() {
-    R3(this.#D, (D2, J) => {
-      if (this.informUpdate(J), D2)
-        this.#K.recycle(D2);
-    }), this.#D.clear();
-  }
-  updateFully(D2) {
-    for (let [J, K] of this.#J)
-      R3(J, (Q3, V3) => K.onUpdate(V3, D2));
-  }
-  #R(D2, J) {
-    const K = this.#D.addElem(this.#K.create(D2, J));
-    return this.informUpdate(K), K;
-  }
-  #V(D2) {
-    const J = this.#D.removeElem(D2);
-    if (J)
-      this.#K.recycle(J), this.informUpdate(D2);
-  }
-}
-var G2 = [];
-
-class O2 extends W2 {
-  constructor() {
-    super((D2, J, K) => {
-      if (!D2)
-        return { elems: J, index: K };
-      return D2.elems = J, D2.index = K, D2;
-    }, (D2) => {
-      D2.elems = G2;
-    });
-  }
-}
-
-class Y {
-  i;
-  f;
-  warningLimit = 50000;
-  #D = new Set;
-  #J = [];
-  constructor(D2, J) {
-    this.initCall = D2, this.onRecycle = J;
-  }
-  create(...D2) {
-    const J = this.#J.pop();
-    if (J)
-      return this.#D.add(J), this.initCall(J, ...D2);
-    const K = this.initCall(undefined, ...D2);
-    return this.#D.add(K), this.#Q(), K;
-  }
-  recycle(D2) {
-    this.#D.delete(D2), this.#K(D2);
-  }
-  recycleAll() {
-    for (let D2 of this.#D)
-      this.#K(D2);
-    this.#D.clear();
-  }
-  clear() {
-    this.#J.length = 0, this.#D.clear();
-  }
-  countObjectsInExistence() {
-    return this.#D.size + this.#J.length;
-  }
-  #K(D2) {
-    this.#J.push(D2), this.onRecycle?.(D2);
-  }
-  #Q() {
-    if (this.countObjectsInExistence() === this.warningLimit)
-      console.warn("ObjectPool already created", this.#D.size + this.#J.length, "in", this.constructor.name);
-  }
-}
-var _3 = -1;
-
-class UpdateRegistry extends X2 {
-  applyUpdate;
-  motor;
-  updatedIds = new Set;
-  constructor(applyUpdate, motor) {
-    super();
-    this.applyUpdate = applyUpdate;
-    this.motor = motor;
-  }
-  informUpdate(id, type) {
-    super.informUpdate(id, type);
-    if (!this.updatedIds.has(id)) {
-      this.updatedIds.add(id);
-    }
-    this.motor.scheduleUpdate(this);
-  }
-  refresh(update) {
-    this.applyUpdate(this.updatedIds, update);
-    if (this.updatedIds.size) {
-      this.motor.scheduleUpdate(this, undefined, undefined, true);
-    }
-  }
-}
-
-class Camera extends AuxiliaryHolder {
-  position;
-  projection;
-  tilt = QW(() => this.#updateInformer.informUpdate(MatrixUniform.CAM_TILT));
-  turn = $W(() => this.#updateInformer.informUpdate(MatrixUniform.CAM_TURN));
-  curvature = new B2(0.05, () => this.#updateInformerFloat.informUpdate(FloatUniform.CURVATURE));
-  distance = new B2(0.5, () => this.#updateInformerFloat.informUpdate(FloatUniform.CAM_DISTANCE));
-  blur = new B2(1, () => this.#updateInformerFloat.informUpdate(FloatUniform.BG_BLUR));
-  fade = new B2(0, () => this.#updateInformerFloat.informUpdate(FloatUniform.FADE));
-  #camMatrix = d.create();
-  #bgColor = [0, 0, 0];
-  #viewportSize = [0, 0];
-  #updateInformer;
-  #updateInformerFloat;
-  #updateInformerVector;
-  #engine;
-  #positionChangeListener = {
-    onChange: () => {
-      this.#camMatrix.invert(this.position);
-      this.#updateInformer.informUpdate(MatrixUniform.CAM_POS);
-    }
-  };
-  #projectionChangeListener = {
-    onChange: () => this.#updateInformer.informUpdate(MatrixUniform.PROJECTION)
-  };
-  constructor({ engine, motor, position = new t0, projection = new a0 }) {
-    super();
-    this.#engine = engine;
-    this.position = position;
-    this.projection = projection;
-    const matrixUniformUpdaters = {
-      [MatrixUniform.PROJECTION]: engine.createMatrixUniformHandler(CAM_PROJECTION_LOC, this.projection),
-      [MatrixUniform.CAM_POS]: engine.createMatrixUniformHandler(CAM_POS_LOC, this.#camMatrix),
-      [MatrixUniform.CAM_TURN]: engine.createMatrixUniformHandler(CAM_TURN_LOC, this.turn),
-      [MatrixUniform.CAM_TILT]: engine.createMatrixUniformHandler(CAM_TILT_LOC, this.tilt)
-    };
-    this.#updateInformer = new UpdateRegistry((ids) => {
-      ids.forEach((type) => matrixUniformUpdaters[type].update());
-      ids.clear();
-    }, motor);
-    const vectorUniformUpdaters = {
-      [VectorUniform.BG_COLOR]: engine.createVectorUniformHandler(BG_COLOR_LOC, this.#bgColor)
-    };
-    this.#updateInformerVector = new UpdateRegistry((ids) => {
-      ids.forEach((type) => vectorUniformUpdaters[type].update());
-      ids.clear();
-    }, motor);
-    const valUniformUpdaters = {
-      [FloatUniform.BG_BLUR]: engine.createFloatUniformHandler(BG_BLUR_LOC, this.blur),
-      [FloatUniform.CAM_DISTANCE]: engine.createFloatUniformHandler(CAM_DISTANCE_LOC, this.distance),
-      [FloatUniform.CURVATURE]: engine.createFloatUniformHandler(CAM_CURVATURE_LOC, this.curvature),
-      [FloatUniform.TIME]: undefined,
-      [FloatUniform.FADE]: engine.createFloatUniformHandler(FADE_LOC, this.fade)
-    };
-    this.#updateInformerFloat = new UpdateRegistry((ids) => {
-      ids.forEach((type) => {
-        valUniformUpdaters[type]?.update();
-      });
-      ids.clear();
-    }, motor);
-  }
-  activate() {
-    super.activate();
-    this.#updateInformer.informUpdate(MatrixUniform.PROJECTION);
-    this.#updateInformer.informUpdate(MatrixUniform.CAM_POS);
-    this.#updateInformer.informUpdate(MatrixUniform.CAM_TURN);
-    this.#updateInformer.informUpdate(MatrixUniform.CAM_TILT);
-    this.#updateInformerFloat.informUpdate(FloatUniform.CURVATURE);
-    this.#updateInformerFloat.informUpdate(FloatUniform.CAM_DISTANCE);
-    this.#updateInformerFloat.informUpdate(FloatUniform.BG_BLUR);
-    this.#updateInformerVector.informUpdate(VectorUniform.BG_COLOR);
-    this.position.addChangeListener(this.#positionChangeListener);
-    this.projection.addChangeListener(this.#projectionChangeListener);
-  }
-  deactivate() {
-    this.projection.removeChangeListener(this.#projectionChangeListener);
-    this.position.removeChangeListener(this.#positionChangeListener);
-    super.deactivate();
-  }
-  resizeViewport(width, height) {
-    if (this.#viewportSize[0] !== width || this.#viewportSize[1] !== height) {
-      this.#viewportSize[0] = width;
-      this.#viewportSize[1] = height;
-      this.projection.configure(this.#viewportSize);
-    }
-  }
-  setBackgroundColor(rgb) {
-    const red = rgb >> 16 & 255;
-    const green = rgb >> 8 & 255;
-    const blue = rgb & 255;
-    this.#bgColor[0] = red / 255;
-    this.#bgColor[1] = green / 255;
-    this.#bgColor[2] = blue / 255;
-    this.#updateInformerVector.informUpdate(VectorUniform.BG_COLOR);
-    this.#engine.setBgColor(this.#bgColor);
-  }
-}
-var MatrixUniform;
-(function(MatrixUniform2) {
-  MatrixUniform2[MatrixUniform2["PROJECTION"] = 0] = "PROJECTION";
-  MatrixUniform2[MatrixUniform2["CAM_POS"] = 1] = "CAM_POS";
-  MatrixUniform2[MatrixUniform2["CAM_TURN"] = 2] = "CAM_TURN";
-  MatrixUniform2[MatrixUniform2["CAM_TILT"] = 3] = "CAM_TILT";
-})(MatrixUniform || (MatrixUniform = {}));
-var VectorUniform;
-(function(VectorUniform2) {
-  VectorUniform2[VectorUniform2["BG_COLOR"] = 0] = "BG_COLOR";
-})(VectorUniform || (VectorUniform = {}));
-var FloatUniform;
-(function(FloatUniform2) {
-  FloatUniform2[FloatUniform2["TIME"] = 0] = "TIME";
-  FloatUniform2[FloatUniform2["CURVATURE"] = 1] = "CURVATURE";
-  FloatUniform2[FloatUniform2["CAM_DISTANCE"] = 2] = "CAM_DISTANCE";
-  FloatUniform2[FloatUniform2["BG_BLUR"] = 3] = "BG_BLUR";
-  FloatUniform2[FloatUniform2["FADE"] = 4] = "FADE";
-})(FloatUniform || (FloatUniform = {}));
-
-class Auxiliaries {
-  auxiliaries;
-  constructor(auxiliaries) {
-    this.auxiliaries = auxiliaries;
-  }
-  static from(...aux) {
-    return new Auxiliaries(aux);
-  }
-  get length() {
-    return this.auxiliaries.length;
-  }
-  at(index) {
-    return this.auxiliaries.at(index);
-  }
-  activate() {
-    x2(this.auxiliaries, (aux) => aux?.activate?.());
-  }
-  deactivate() {
-    x2(this.auxiliaries, (aux) => aux?.deactivate?.());
-  }
-}
-
-class ControlledLooper extends Looper {
-  controls;
-  triggerred;
-  #listener;
-  constructor(motor, controls, triggerred, data, cycle) {
-    super({ motor, data, cycle }, { autoStart: false });
-    this.controls = controls;
-    this.triggerred = triggerred;
-    this.#listener = this;
-  }
-  onAction(controls) {
-    if (this.triggerred(controls)) {
-      this.start();
-    }
-  }
-  activate() {
-    super.activate();
-    this.controls.addListener(this.#listener);
-  }
-  deactivate() {
-    this.controls.removeListener(this.#listener);
-    super.deactivate();
-  }
-}
-
-class TurnAuxiliary extends ControlledLooper {
-  constructor({ controls, turn, motor }) {
-    super(motor, controls, ({ turnLeft, turnRight }) => turnLeft || turnRight, { controls, turn });
-  }
-  refresh({ data: { controls, turn }, deltaTime, stopUpdate }) {
-    const { turnLeft, turnRight } = controls;
-    const turnspeed = deltaTime / 400;
-    if (turnLeft) {
-      turn.angle.addValue(-turnspeed);
-    }
-    if (turnRight) {
-      turn.angle.addValue(turnspeed);
-    }
-    if (!turnLeft && !turnRight) {
-      stopUpdate();
-    }
-  }
-}
-
-class PositionStepAuxiliary extends ControlledLooper {
-  constructor({ controls, positionStep, turnGoal, motor }, config = {}) {
-    super(motor, controls, ({ backward, forward, left, right }) => backward || forward || left || right, { controls, positionStep, turnGoal, step: config.step ?? 2, speed: config.speed ?? 1, airBoost: config?.airBoost ?? 1 });
-  }
-  refresh({ deltaTime, data, stopUpdate }) {
-    const { backward, forward, left, right } = data.controls;
-    const { step, airBoost, positionStep } = data;
-    let dx = 0, dz = 0;
-    if (forward) {
-      dz--;
-    }
-    if (backward) {
-      dz++;
-    }
-    if (left) {
-      dx--;
-    }
-    if (right) {
-      dx++;
-    }
-    const turnGoal = data.turnGoal?.goal ?? 0;
-    let speed = (dx || dz ? deltaTime / 150 : deltaTime / 100) * data.speed;
-    if (data.positionStep.position[1] > 0) {
-      speed *= airBoost;
-    }
-    const cos = Math.cos(turnGoal);
-    const sin = Math.sin(turnGoal);
-    const relativeDx = dx * cos - dz * sin;
-    const relativeDz = dx * sin + dz * cos;
-    const moveResult = positionStep.cellMoveBy(relativeDx, 0, relativeDz, step, speed);
-    if (moveResult === w.AT_POSITION) {
-      stopUpdate();
-    }
-  }
-}
-
-class TiltResetAuxiliary {
-  controls;
-  listener;
-  constructor({ controls, tilt, motor }) {
-    this.listener = {
-      onQuickTiltReset: () => {
-        tilt.angle.progressTowards(0, 0.0033333333333333335, this, motor);
-      }
-    };
-    this.controls = controls;
-  }
-  activate() {
-    this.controls.addListener(this.listener);
-  }
-  deactivate() {
-    this.controls.removeListener(this.listener);
-  }
-}
-
-class ToggleAuxiliary {
-  #active = false;
-  #toggleIndex;
-  #auxiliary = {};
-  #keyboard;
-  #keys;
-  #auxiliaryFactories;
-  #keyListener;
-  constructor({ keyboard }, config) {
-    this.#keyboard = keyboard;
-    this.#keys = z(config.auxiliariesMap, (keyMap) => keyMap?.key);
-    this.#keyListener = {
-      onKeyDown: (keyCode) => {
-        if (this.#keys.indexOf(keyCode) >= 0) {
-          const wasActive = this.#active;
-          this.#auxiliary.deactivate?.();
-          this.toggle(keyCode);
-          this.#auxiliary = this.#auxiliaryFactories.at(this.#toggleIndex)?.() ?? {};
-          if (wasActive) {
-            this.#auxiliary.activate?.();
-          }
-        }
-      }
-    };
-    this.#auxiliaryFactories = z(config.auxiliariesMap, (keyMap) => keyMap?.aux);
-    this.#toggleIndex = config.initialIndex ?? 0;
-  }
-  toggle(key) {
-    if (this.#keys[this.#toggleIndex] !== key) {
-      this.#toggleIndex = this.#keys.indexOf(key);
-    } else {
-      const nextIndex = this.#keys.length ? (this.#toggleIndex + 1) % this.#keys.length : 0;
-      if (this.#keys[nextIndex] === key) {
-        this.#toggleIndex = nextIndex;
-      }
-    }
-  }
-  activate() {
-    if (!this.#active) {
-      this.#active = true;
-      this.#keyboard.addListener(this.#keyListener);
-      this.#auxiliary = this.#auxiliaryFactories.at(this.#toggleIndex)?.() ?? {};
-      this.#auxiliary.activate?.();
-    }
-  }
-  deactivate() {
-    if (this.#active) {
-      this.#active = false;
-      this.#keyboard.removeListener(this.#keyListener);
-      this.#auxiliary.deactivate?.();
-    }
-  }
-}
-var SpriteUpdateType;
-(function(SpriteUpdateType2) {
-  SpriteUpdateType2[SpriteUpdateType2["TRANSFORM"] = 1] = "TRANSFORM";
-  SpriteUpdateType2[SpriteUpdateType2["TEX_SLOT"] = 2] = "TEX_SLOT";
-  SpriteUpdateType2[SpriteUpdateType2["TYPE"] = 4] = "TYPE";
-  SpriteUpdateType2[SpriteUpdateType2["ANIM"] = 8] = "ANIM";
-})(SpriteUpdateType || (SpriteUpdateType = {}));
-
-class ItemsGroup extends X2 {
-  elems;
-  constructor(elems) {
-    super();
-    this.elems = elems;
-  }
-  informUpdate(id, type) {
-    super.informUpdate(id, type);
-    this.elems.informUpdate?.(id, type);
-  }
-  get length() {
-    return this.elems.length;
-  }
-  at(index) {
-    return this.elems.at(index);
-  }
-}
-var EMPTY_SPRITE = {
-  imageId: 0,
-  transform: new d
-};
-
-class SpriteModel {
-  sprite = EMPTY_SPRITE;
-  animationId = 0;
-  orientation = 1;
-  imageId = 0;
-  transform = d.create();
-  get spriteType() {
-    return this.sprite.spriteType;
-  }
-  get hidden() {
-    return this.sprite.hidden;
-  }
-}
-
-class SpriteGroup extends ItemsGroup {
-  #orientation = 1;
-  #animationId;
-  #imageId;
-  #transform;
-  #spriteModel = new SpriteModel;
-  constructor(sprites, transform) {
-    super(sprites);
-    this.#transform = transform;
-    this.#transform?.addChangeListener({ onChange: () => z4(this, SpriteUpdateType.TRANSFORM) });
-  }
-  setOrientation(value) {
-    if (this.#orientation !== value) {
-      this.#orientation = value;
-      x2(this.elems, (_4, index) => this.informUpdate(index, SpriteUpdateType.TEX_SLOT));
-    }
-  }
-  setAnimationId(value) {
-    if (this.#animationId !== value) {
-      this.#animationId = value;
-      x2(this.elems, (_4, index) => this.informUpdate(index, SpriteUpdateType.ANIM));
-    }
-  }
-  setImageId(value) {
-    if (this.#imageId !== value) {
-      this.#imageId = value;
-      x2(this.elems, (_4, index) => this.informUpdate(index, SpriteUpdateType.TEX_SLOT));
-    }
-  }
-  at(index) {
-    const s22 = super.at(index);
-    if (!s22) {
-      return;
-    }
-    this.#spriteModel.sprite = s22;
-    this.#spriteModel.transform.copy(s22.transform);
-    if (this.#transform) {
-      this.#spriteModel.transform.multiply2(this.#transform, this.#spriteModel.transform);
-    }
-    this.#spriteModel.orientation = this.#orientation * (s22.orientation ?? 1);
-    this.#spriteModel.animationId = this.#animationId ?? s22.animationId ?? 0;
-    this.#spriteModel.imageId = this.#imageId ?? s22.imageId;
-    return this.#spriteModel;
-  }
-}
-var G3 = function(F, n32, g2 = 0) {
-  return A3(F, n32) <= g2 * g2;
-};
-var A3 = function(F, n32) {
-  const g2 = F[0] - n32[0], k = F[1] - n32[1], w2 = F[2] - n32[2];
-  return g2 * g2 + k * k + w2 * w2;
-};
-
-class m2 {
-  i;
-  f;
-  warningLimit = 50000;
-  #F = new Set;
-  #n = [];
-  constructor(F, n32) {
-    this.initCall = F, this.onRecycle = n32;
-  }
-  create(...F) {
-    const n32 = this.#n.pop();
-    if (n32)
-      return this.#F.add(n32), this.initCall(n32, ...F);
-    const g2 = this.initCall(undefined, ...F);
-    return this.#F.add(g2), this.#k(), g2;
-  }
-  recycle(F) {
-    this.#F.delete(F), this.#g(F);
-  }
-  recycleAll() {
-    for (let F of this.#F)
-      this.#g(F);
-    this.#F.clear();
-  }
-  clear() {
-    this.#n.length = 0, this.#F.clear();
-  }
-  countObjectsInExistence() {
-    return this.#F.size + this.#n.length;
-  }
-  #g(F) {
-    this.#n.push(F), this.onRecycle?.(F);
-  }
-  #k() {
-    if (this.countObjectsInExistence() === this.warningLimit)
-      console.warn("ObjectPool already created", this.#F.size + this.#n.length, "in", this.constructor.name);
-  }
-}
-var H2 = -1;
-
-class SpriteUpdater extends X2 {
-  #sprites;
-  #updateRegisteries;
-  constructor({ engine, motor, sprites }) {
-    super();
-    this.#sprites = sprites;
-    this.#updateRegisteries = {
-      [SpriteUpdateType.TRANSFORM]: new UpdateRegistry((ids) => engine.updateSpriteTransforms(ids, this.#sprites), motor),
-      [SpriteUpdateType.TEX_SLOT]: new UpdateRegistry((ids) => engine.updateSpriteTexSlots(ids, this.#sprites), motor),
-      [SpriteUpdateType.TYPE]: new UpdateRegistry((ids) => engine.updateSpriteTypes(ids, this.#sprites), motor),
-      [SpriteUpdateType.ANIM]: new UpdateRegistry((ids) => engine.updateSpriteAnimations(ids, this.#sprites), motor)
-    };
-  }
-  onUpdate(id, type) {
-    this.informUpdate(id, type);
-  }
-  activate() {
-    this.#sprites.addUpdateListener?.(this);
-  }
-  deactivate() {
-    this.#sprites.removeUpdateListener?.(this);
-  }
-  informUpdate(id, type = H2) {
-    super.informUpdate(id, type);
-    if (type & SpriteUpdateType.TRANSFORM) {
-      this.#updateRegisteries[SpriteUpdateType.TRANSFORM].informUpdate(id);
-    }
-    if (type & SpriteUpdateType.TEX_SLOT) {
-      this.#updateRegisteries[SpriteUpdateType.TEX_SLOT].informUpdate(id);
-    }
-    if (type & SpriteUpdateType.TYPE) {
-      this.#updateRegisteries[SpriteUpdateType.TYPE].informUpdate(id);
-    }
-    if (type & SpriteUpdateType.ANIM) {
-      this.#updateRegisteries[SpriteUpdateType.ANIM].informUpdate(id);
-    }
-  }
-}
-
-class MoveAuxiliary extends ControlledLooper {
-  constructor({ controls, direction, motor, position }, config) {
-    super(motor, controls, ({ forward, backward, left, right }) => forward || backward || left || right, { controls, direction, position, speed: config?.speed ?? 1 });
-  }
-  refresh({ data, deltaTime, stopUpdate }) {
-    const { forward, backward, left, right } = data.controls;
-    const speed = deltaTime / 80 * data.speed;
-    let dx = 0, dz = 0;
-    if (forward) {
-      dz -= speed;
-    }
-    if (backward) {
-      dz += speed;
-    }
-    if (left) {
-      dx -= speed;
-    }
-    if (right) {
-      dx += speed;
-    }
-    data.position.moveBy(dx, 0, dz, data.direction);
-    if (!forward && !backward && !left && !right) {
-      stopUpdate();
-    }
-  }
-}
-
-class JumpAuxiliary extends ControlledLooper {
-  dy;
-  constructor({ controls, position, motor }, config) {
-    super(motor, controls, (controls2) => controls2.action, {
-      controls,
-      position,
-      gravity: config?.gravity ?? -1,
-      jump: config?.jump ?? 2,
-      plane: config?.plane ?? 5
-    });
-    this.dy = 0;
-  }
-  refresh({ deltaTime, data, stopUpdate }) {
-    if (!this.jump(deltaTime, data)) {
-      stopUpdate();
-    }
-  }
-  jump(deltaTime, data) {
-    const speed = deltaTime / 80;
-    const acceleration = deltaTime / 80;
-    const { action } = data.controls;
-    const onGround = data.position.position[1] <= 0;
-    const movingDown = !onGround && data.position.moveBy(0, speed * this.dy, 0);
-    if (onGround || !movingDown) {
-      if (action) {
-        this.dy = data.jump;
-        data.position.moveBy(0, speed * this.dy, 0);
-        return true;
-      }
-      this.dy = 0;
-    }
-    if (!onGround) {
-      const mul = this.dy < 0 ? 1 / data.plane : 1;
-      this.dy += data.gravity * acceleration * mul;
-    } else {
-      data.position.moveTo(data.position.position[0], 0, data.position.position[2]);
-    }
-    return !onGround;
-  }
-}
-
-class TimeAuxiliary extends Looper {
-  constructor({ engine, motor }) {
-    super({ motor, data: engine.createFloatUniformHandler(TIME_LOC) }, { autoStart: true });
-  }
-  refresh({ time, data, renderFrame }) {
-    if (renderFrame) {
-      data.updateValue(time);
-    }
-  }
-}
-
-class TiltAuxiliary extends ControlledLooper {
-  constructor({ controls, tilt, motor }) {
-    super(motor, controls, ({ up, down }) => up || down, { controls, tilt });
-  }
-  refresh({ data: { controls, tilt }, deltaTime, stopUpdate }) {
-    const { up, down } = controls;
-    const turnspeed = deltaTime / 400;
-    if (up) {
-      tilt.angle.addValue(-turnspeed);
-    }
-    if (down) {
-      tilt.angle.addValue(turnspeed);
-    }
-    if (!up && !down) {
-      stopUpdate();
-    }
-  }
-}
-
-class SmoothFollowAuxiliary extends Looper {
-  followee;
-  listener = { onChange: () => this.start() };
-  constructor({ followee, follower, motor }, config) {
-    super({
-      motor,
-      data: {
-        followee,
-        follower,
-        config: {
-          speed: config?.speed ?? 1,
-          followX: config?.followX ?? true,
-          followY: config?.followY ?? true,
-          followZ: config?.followZ ?? true
-        }
-      }
-    }, { autoStart: false });
-    this.followee = followee;
-  }
-  activate() {
-    super.activate();
-    this.followee.addChangeListener(this.listener);
-  }
-  deactivate() {
-    this.followee.removeChangeListener(this.listener);
-    super.deactivate();
-  }
-  refresh({ data: { follower, followee, config: { followX, followY, followZ, speed } }, stopUpdate }) {
-    const [x4, y22, z5] = followee.position;
-    const [fx, fy, fz] = follower.position;
-    const dx = followX ? x4 - fx : 0, dy2 = followY ? y22 - fy : 0, dz = followZ ? z5 - fz : 0;
-    const dist = Math.sqrt(dx * dx + dy2 * dy2 + dz * dz);
-    if (dist < 0.1) {
-      follower.moveTo(followX ? x4 : fx, followY ? y22 : fy, followZ ? z5 : fz);
-      stopUpdate();
-    } else {
-      const moveSpeed = Math.min(dist, speed * dist) / dist;
-      follower.moveBy(dx * moveSpeed, dy2 * moveSpeed, dz * moveSpeed);
-    }
-  }
-}
-
-class DirAuxiliary {
-  onFlip;
-  controls;
-  dx = 0;
-  constructor({ controls }, onFlip) {
-    this.onFlip = onFlip;
-    this.controls = controls;
-  }
-  checkControls(controls) {
-    let dx = 0;
-    if (controls.left) {
-      dx--;
-    }
-    if (controls.right) {
-      dx++;
-    }
-    if (dx && dx !== this.dx) {
-      this.dx = dx;
-      this.onFlip?.(this.dx);
-    }
-  }
-  onAction(controls) {
-    this.checkControls(controls);
-  }
-  onActionUp(controls) {
-    this.checkControls(controls);
-  }
-  activate() {
-    this.controls.addListener(this);
-  }
-  deactivate() {
-    this.controls.removeListener(this);
-  }
-}
-
-class Updater {
-  elems;
-  updateRegistry;
-  constructor({ updateRegistry, elems }) {
-    this.updateRegistry = updateRegistry;
-    this.elems = elems;
-  }
-  onUpdate(id, type) {
-    this.updateRegistry.informUpdate(id, type);
-  }
-  activate() {
-    this.elems.addUpdateListener?.(this);
-  }
-  deactivate() {
-    this.elems.removeUpdateListener?.(this);
-  }
-}
-
-class MediaUpdater extends Updater {
-  #savedMediaInfo = new Map;
-  #motor;
-  constructor({ engine, motor, medias }) {
-    super({
-      updateRegistry: new UpdateRegistry((ids) => {
-        ids.forEach((id) => this.removeMedia(id));
-        engine.updateTextures(ids, medias).then((mediaInfos) => mediaInfos.forEach((mediaInfo) => {
-          if (mediaInfo.isVideo) {
-            motor.scheduleUpdate(mediaInfo, undefined, mediaInfo.refreshRate);
-            this.#savedMediaInfo.set(mediaInfo.id, mediaInfo);
-          } else {
-            mediaInfo.dispose();
-          }
-        }));
-      }, motor),
-      elems: medias
-    });
-    this.#motor = motor;
-  }
-  removeMedia(id) {
-    const mediaInfo = this.#savedMediaInfo.get(id);
-    if (mediaInfo) {
-      this.#motor.stopUpdate(mediaInfo);
-      mediaInfo.dispose();
-      this.#savedMediaInfo.delete(id);
-    }
-  }
-  deactivate() {
-    this.#dispose();
-  }
-  #dispose() {
-    this.#savedMediaInfo.forEach((mediaInfo) => this.removeMedia(mediaInfo.id));
-  }
-}
-
-class AnimationUpdater extends Updater {
-  constructor({ engine, motor, animations }) {
-    super({
-      updateRegistry: new UpdateRegistry((ids) => {
-        engine.updateAnimationDefinitions(ids, animations);
-      }, motor),
-      elems: animations
-    });
-  }
-}
-
-class MotionAuxiliary {
-  onChange;
-  #controls;
-  #moving = false;
-  constructor({ controls }, onChange) {
-    this.onChange = onChange;
-    this.#controls = controls;
-  }
-  set moving(value) {
-    if (this.#moving !== value) {
-      this.#moving = value;
-      this.onChange?.(this.#moving);
-    }
-  }
-  checkMotion(controls) {
-    const { left, forward, backward, right } = controls;
-    this.moving = left || forward || backward || right;
-  }
-  onAction(controls) {
-    this.checkMotion(controls);
-  }
-  onActionUp(controls) {
-    this.checkMotion(controls);
-  }
-  activate() {
-    this.#controls.addListener(this);
-  }
-  deactivate() {
-    this.moving = false;
-    this.#controls.removeListener(this);
-  }
-}
-
-class FollowAuxiliary extends Looper {
-  followee;
-  config;
-  listener = {
-    onChange: () => {
-      if (this.config.followX || this.config.followY || this.config.followZ) {
-        this.start();
-      }
-    }
-  };
-  constructor({ followee, follower, motor }, config) {
-    super({ motor, data: { followee, follower } }, { autoStart: false });
-    this.followee = followee;
-    this.config = {
-      followX: config?.followX ?? true,
-      followY: config?.followY ?? true,
-      followZ: config?.followZ ?? true,
-      speed: config?.speed ?? 1
-    };
-  }
-  activate() {
-    super.activate();
-    this.followee.addChangeListener(this.listener);
-    this.start();
-  }
-  deactivate() {
-    this.followee.removeChangeListener(this.listener);
-    super.deactivate();
-  }
-  refresh({ data, stopUpdate }) {
-    const { followX, followY, followZ, speed } = this.config;
-    const x4 = followX ? data.followee.position[0] : data.follower.position[0];
-    const y22 = followY ? data.followee.position[1] : data.follower.position[1];
-    const z5 = followZ ? data.followee.position[2] : data.follower.position[2];
-    data.follower.moveTowards(x4, y22, z5, speed);
-    if (data.followee.position[0] === data.follower.position[0] && data.followee.position[1] === data.follower.position[1] && data.followee.position[2] === data.follower.position[2]) {
-      stopUpdate();
-    }
-  }
-}
-
-class DisplayBox {
-  #sprites;
-  constructor({ box, imageId, insideImageId }) {
-    if (!box.disabled) {
-      const cX = (box.left + box.right) / 2;
-      const cY = (box.top + box.bottom) / 2;
-      const cZ = (box.near + box.far) / 2;
-      const groundScale = [box.right - box.left, 2, box.near - box.far];
-      const sideScale = [2, box.top - box.bottom, box.near - box.far];
-      const faceScale = [box.right - box.left, box.top - box.bottom, 2];
-      const outside = [
-        d.create().translate(cX, box.bottom, cZ).scale(...groundScale).scale(0.5).rotateX(Math.PI / 2),
-        d.create().translate(cX, box.top, cZ).scale(...groundScale).scale(0.5).rotateX(-Math.PI / 2),
-        d.create().translate(box.left, cY, cZ).scale(...sideScale).scale(0.5).rotateY(-Math.PI / 2),
-        d.create().translate(box.right, cY, cZ).scale(...sideScale).scale(0.5).rotateY(Math.PI / 2),
-        d.create().translate(cX, cY, box.near).scale(...faceScale).scale(0.5).rotateY(0),
-        d.create().translate(cX, cY, box.far).scale(...faceScale).scale(0.5).rotateY(Math.PI)
-      ].map((transform) => ({ imageId, transform }));
-      const inside = !insideImageId ? [] : [
-        d.create().translate(cX, box.bottom, cZ).scale(...groundScale).scale(0.5).rotateX(-Math.PI / 2),
-        d.create().translate(cX, box.top, cZ).scale(...groundScale).scale(0.5).rotateX(+Math.PI / 2),
-        d.create().translate(box.left, cY, cZ).scale(...sideScale).scale(0.5).rotateY(+Math.PI / 2),
-        d.create().translate(box.right, cY, cZ).scale(...sideScale).scale(0.5).rotateY(-Math.PI / 2),
-        d.create().translate(cX, cY, box.near).scale(...faceScale).scale(0.5).rotateY(Math.PI),
-        d.create().translate(cX, cY, box.far).scale(...faceScale).scale(0.5).rotateY(0)
-      ].map((transform) => ({ imageId: insideImageId, transform }));
-      this.#sprites = [...inside, ...outside];
-    } else {
-      this.#sprites = [];
-    }
-  }
-  get length() {
-    return this.#sprites.length;
-  }
-  at(index) {
-    return this.#sprites.at(index);
-  }
-}
-var NULLBOX = {
-  top: 0,
-  bottom: 0,
-  left: 0,
-  right: 0,
-  near: 0,
-  far: 0,
-  disabled: false
-};
-
-class CollisionBox {
-  box;
-  position;
-  constructor(box, position) {
-    this.box = box;
-    this.position = position;
-  }
-  collideWith(box) {
-    return this.right > box.left && box.right > this.left && this.top > box.bottom && box.top > this.bottom && this.near > box.far && box.near > this.far;
-  }
-  gotoPosition(pos) {
-    this.position[0] = pos[0];
-    this.position[1] = pos[1];
-    this.position[2] = pos[2];
-  }
-  get top() {
-    return this.box.top + this.position[1];
-  }
-  get bottom() {
-    return this.box.bottom + this.position[1];
-  }
-  get left() {
-    return this.box.left + this.position[0];
-  }
-  get right() {
-    return this.box.right + this.position[0];
-  }
-  get near() {
-    return this.box.near + this.position[2];
-  }
-  get far() {
-    return this.box.far + this.position[2];
-  }
-}
-
-class CollisionDetector {
-  #collisionBox;
-  #heroCollisionBox;
-  #config;
-  #listener;
-  #collide = false;
-  #disabled;
-  constructor({ blockerBox, blockerPosition, heroBox = NULLBOX, listener = {} }, config = {}) {
-    this.#collisionBox = new CollisionBox(blockerBox, blockerPosition);
-    this.#heroCollisionBox = new CollisionBox(heroBox, [0, 0, 0]);
-    this.#listener = listener;
-    this.#config = { shouldBlock: config.shouldBlock ?? false };
-    this.#disabled = blockerBox.disabled;
-  }
-  isBlocked(to) {
-    if (this.#disabled) {
-      return false;
-    }
-    this.#heroCollisionBox.gotoPosition(to);
-    const collide = this.#heroCollisionBox.collideWith(this.#collisionBox);
-    if (collide !== this.#collide) {
-      this.#collide = collide;
-      this.#listener.onBlockChange?.(this.#collide);
-      if (this.#collide) {
-        this.#listener.onEnter?.();
-      } else {
-        this.#listener.onLeave?.();
-      }
-    }
-    return this.#config.shouldBlock ? collide : false;
-  }
-}
-var FADE_RATE = 0.002;
-
-class FadeApiAuxiliary {
-  camera;
-  config;
-  motor;
-  api;
-  constructor({ camera, motor, api }, config) {
-    this.camera = camera;
-    this.motor = motor;
-    this.api = api;
-    this.config = {
-      speed: config?.speed ?? 1
-    };
-    this.fadeIn = this.fadeIn.bind(this);
-    this.fadeOut = this.fadeOut.bind(this);
-  }
-  activate() {
-    const api = this.api;
-    api.fadeIn = this.fadeIn;
-    api.fadeOut = this.fadeOut;
-  }
-  deactivate() {
-    const api = this.api;
-    if (api.fadeIn === this.fadeIn) {
-      delete api.fadeIn;
-    }
-    if (api.fadeOut === this.fadeOut) {
-      delete api.fadeOut;
-    }
-  }
-  fadeOut() {
-    this.camera.fade.progressTowards(1, this.config.speed * FADE_RATE, this, this.motor);
-  }
-  fadeIn() {
-    this.camera.fade.progressTowards(0, this.config.speed * FADE_RATE, this, this.motor);
-  }
-}
-var k = (m32) => {
-  if (m32) {
-    const j = m32.getImageData(0, 0, m32.canvas.width, m32.canvas.height), { data: f2 } = j;
-    for (let b2 = 0;b2 < f2.length; b2 += 4)
-      f2[b2] = f2[b2 + 1] = f2[b2 + 2] = 0;
-    m32.putImageData(j, 0, 0);
-  }
-};
-
-class h2 {
-  i;
-  f;
-  warningLimit = 50000;
-  #i = new Set;
-  #f = [];
-  constructor(i, f2) {
-    this.initCall = i;
-    this.onRecycle = f2;
-  }
-  create(...i) {
-    const f2 = this.#f.pop();
-    if (f2)
-      return this.#i.add(f2), this.initCall(f2, ...i);
-    const v32 = this.initCall(undefined, ...i);
-    return this.#i.add(v32), this.#v(), v32;
-  }
-  recycle(i) {
-    this.#i.delete(i), this.#h(i);
-  }
-  recycleAll() {
-    for (let i of this.#i)
-      this.#h(i);
-    this.#i.clear();
-  }
-  clear() {
-    this.#f.length = 0, this.#i.clear();
-  }
-  countObjectsInExistence() {
-    return this.#i.size + this.#f.length;
-  }
-  #h(i) {
-    this.#f.push(i), this.onRecycle?.(i);
-  }
-  #v() {
-    if (this.countObjectsInExistence() === this.warningLimit)
-      console.warn("ObjectPool already created", this.#i.size + this.#f.length, "in", this.constructor.name);
-  }
-}
-
-class SpriteCellCreator extends X2 {
-  factory;
-  slots = [];
-  slotPool;
-  constructor({ factory, slotPool }) {
-    super();
-    this.factory = factory;
-    this.slotPool = slotPool ?? new SlotPool(copySprite);
-  }
-  trackCell(cell) {
-    return this.#createCell(cell);
-  }
-  untrackCells(cellTags) {
-    return this.#destroyCells(cellTags);
-  }
-  get length() {
-    return this.slots.length;
-  }
-  at(index) {
-    return this.slots[index]?.elem;
-  }
-  deactivate() {
-    this.slots.forEach((slot) => this.slotPool.recycle(slot));
-    this.slots.length = 0;
-  }
-  #createCell(cell) {
-    let count = 0;
-    const { tag } = cell;
-    const elems = this.factory.getElemsAtCell(cell);
-    x2(elems, (elem) => {
-      if (elem) {
-        const slot = this.slotPool.create(elem, tag);
-        const spriteId = this.slots.length;
-        this.slots.push(slot);
-        this.informUpdate(spriteId);
-        count++;
-      }
-    });
-    this.factory.doneCellTracking?.(cell);
-    return !!count;
-  }
-  #destroyCells(tags) {
-    for (let i = this.slots.length - 1;i >= 0; i--) {
-      const slot = this.slots[i];
-      if (tags.has(slot.tag)) {
-        this.informUpdate(i);
-        this.informUpdate(this.slots.length - 1, SpriteUpdateType.TRANSFORM);
-        this.slots[i] = this.slots[this.slots.length - 1];
-        this.slots.pop();
-        this.slotPool.recycle(slot);
-      }
-    }
-  }
-}
-
-class SlotPool extends h2 {
-  constructor(copy) {
-    super((slot, elem, tag) => {
-      if (!slot) {
-        return { elem: copy(elem), tag };
-      }
-      slot.elem = copy(elem, slot.elem);
-      slot.tag = tag;
-      return slot;
-    });
-  }
-}
-var N3 = function(m32, Y2, w2, H3) {
-  const J = Z3(m32, Y2, w2, H3), V3 = m32 * H3, W3 = Y2 * H3, K = w2 * H3;
-  return { pos: [m32, Y2, w2, H3], worldPosition: [V3, W3, K], tag: J };
-};
-var X3 = function(m32, Y2, w2, H3, J) {
-  const V3 = Z3(Y2, w2, H3, J), W3 = Y2 * J, K = w2 * J, $4 = H3 * J;
-  return m32.worldPosition[0] = W3, m32.worldPosition[1] = K, m32.worldPosition[2] = $4, m32.pos[0] = Y2, m32.pos[1] = w2, m32.pos[2] = H3, m32.pos[3] = J, m32.tag = V3, m32;
-};
-var Z3 = function(m32, Y2, w2, H3) {
-  return m32 + "," + Y2 + "," + w2 + "|" + H3;
-};
-var j = function(m32, Y2) {
-  return Math.round(m32 / Y2);
-};
-var P = function(m32, Y2) {
-  return new G4({ tracker: m32, boundary: Y2 });
-};
-var _4 = 3;
-
-class B4 {
-  i;
-  f;
-  warningLimit = 50000;
-  #m = new Set;
-  #Y = [];
-  constructor(m32, Y2) {
-    this.initCall = m32, this.onRecycle = Y2;
-  }
-  create(...m32) {
-    const Y2 = this.#Y.pop();
-    if (Y2)
-      return this.#m.add(Y2), this.initCall(Y2, ...m32);
-    const w2 = this.initCall(undefined, ...m32);
-    return this.#m.add(w2), this.#H(), w2;
-  }
-  recycle(m32) {
-    this.#m.delete(m32), this.#w(m32);
-  }
-  recycleAll() {
-    for (let m32 of this.#m)
-      this.#w(m32);
-    this.#m.clear();
-  }
-  clear() {
-    this.#Y.length = 0, this.#m.clear();
-  }
-  countObjectsInExistence() {
-    return this.#m.size + this.#Y.length;
-  }
-  #w(m32) {
-    this.#Y.push(m32), this.onRecycle?.(m32);
-  }
-  #H() {
-    if (this.countObjectsInExistence() === this.warningLimit)
-      console.warn("ObjectPool already created", this.#m.size + this.#Y.length, "in", this.constructor.name);
-  }
-}
-
-class Q3 extends B4 {
-  constructor() {
-    super((m32, Y2, w2, H3, J) => {
-      return !m32 ? N3(Y2, w2, H3, J) : X3(m32, Y2, w2, H3, J);
-    });
-  }
-  createFromPos(m32, Y2) {
-    const w2 = j(m32[0], Y2), H3 = j(m32[1], Y2), J = j(m32[2], Y2);
-    return this.create(w2, H3, J, Y2);
-  }
-}
-
-class A4 {
-  #m = new Set;
-  add(m32) {
-    this.#m.add(m32);
-  }
-  remove(m32) {
-    this.#m.delete(m32);
-  }
-  trackCell(m32) {
-    let Y2 = false;
-    return this.#m.forEach((w2) => {
-      if (w2.trackCell(m32))
-        Y2 = true;
-    }), Y2;
-  }
-  untrackCells(m32) {
-    this.#m.forEach((Y2) => {
-      Y2.untrackCells(m32);
-    });
-  }
-}
-
-class I {
-  i;
-  f;
-  warningLimit = 50000;
-  #m = new Set;
-  #Y = [];
-  constructor(m32, Y2) {
-    this.initCall = m32, this.onRecycle = Y2;
-  }
-  create(...m32) {
-    const Y2 = this.#Y.pop();
-    if (Y2)
-      return this.#m.add(Y2), this.initCall(Y2, ...m32);
-    const w2 = this.initCall(undefined, ...m32);
-    return this.#m.add(w2), this.#H(), w2;
-  }
-  recycle(m32) {
-    this.#m.delete(m32), this.#w(m32);
-  }
-  recycleAll() {
-    for (let m32 of this.#m)
-      this.#w(m32);
-    this.#m.clear();
-  }
-  clear() {
-    this.#Y.length = 0, this.#m.clear();
-  }
-  countObjectsInExistence() {
-    return this.#m.size + this.#Y.length;
-  }
-  #w(m32) {
-    this.#Y.push(m32), this.onRecycle?.(m32);
-  }
-  #H() {
-    if (this.countObjectsInExistence() === this.warningLimit)
-      console.warn("ObjectPool already created", this.#m.size + this.#Y.length, "in", this.constructor.name);
-  }
-}
-
-class R4 {
-  F;
-  #m;
-  #Y;
-  #w = new Map;
-  constructor(m32, Y2 = new b2) {
-    this.pool = Y2, this.#m = { value: m32 }, this.#Y = { value: m32 }, this.#m.next = this.#Y, this.#Y.prev = this.#m;
-  }
-  clear() {
-    while (this.#J(this.#m.next))
-      ;
-  }
-  get size() {
-    return this.#w.size;
-  }
-  contains(m32) {
-    return this.#w.has(m32);
-  }
-  pushTop(m32) {
-    this.#Q(this.#K(m32));
-  }
-  pushBottom(m32) {
-    this.#V(this.#K(m32));
-  }
-  moveToTop(m32) {
-    const Y2 = this.#w.get(m32);
-    if (Y2)
-      return this.#H(Y2), this.#Q(Y2), true;
-    return false;
-  }
-  moveToBottom(m32) {
-    const Y2 = this.#w.get(m32);
-    if (Y2)
-      return this.#H(Y2), this.#V(Y2), true;
-    return false;
-  }
-  popBottom() {
-    return this.#J(this.#m.next);
-  }
-  popTop() {
-    return this.#J(this.#Y.prev);
-  }
-  #H(m32) {
-    if (m32 === this.#Y || m32 === this.#m)
-      return false;
-    if (m32.prev && m32.next)
-      m32.prev.next = m32.next, m32.next.prev = m32.prev;
-    return m32.prev = m32.next = undefined, true;
-  }
-  #K(m32) {
-    const Y2 = this.pool.create(m32);
-    return this.#w.set(m32, Y2), Y2;
-  }
-  #J(m32) {
-    if (!this.#H(m32))
-      return;
-    return this.pool.recycle(m32), this.#w.delete(m32.value), m32.value;
-  }
-  #Q(m32) {
-    const Y2 = this.#Y.prev, w2 = m32;
-    w2.prev = Y2, w2.next = this.#Y, Y2.next = this.#Y.prev = w2;
-  }
-  #V(m32) {
-    const Y2 = this.#m.next, w2 = m32;
-    w2.next = Y2, w2.prev = this.#m, Y2.prev = this.#m.next = w2;
-  }
-}
-
-class b2 extends I {
-  constructor() {
-    super((m32, Y2) => {
-      if (!m32)
-        return { value: Y2 };
-      return m32.value = Y2, m32.prev = undefined, m32.next = undefined, m32;
-    });
-  }
-}
-var U = [3, 3, 3];
-
-class E2 {
-  cellTags = new R4("");
-  cellTrack;
-  cellPool = new Q3;
-  range;
-  base;
-  cellLimit;
-  cellSize;
-  _trimmedTags = new Set;
-  constructor({ cellTrack: m32 }, { range: Y2, cellLimit: w2, cellSize: H3 = 1 } = {}) {
-    this.range = [Y2?.[0] ?? U[0], Y2?.[1] ?? U[1], Y2?.[2] ?? U[2]], this.base = this.range.map((J) => Math.ceil(-J / 2)), this.cellLimit = Math.max(0, w2 ?? 10), this.cellSize = H3 ?? 1, this.cellTrack = m32;
-  }
-  onCell(m32) {
-    this.#m(m32), this.#w();
-  }
-  #m(m32) {
-    const { range: Y2, base: w2 } = this, { pos: H3 } = m32, J = H3[0] + w2[0], V3 = H3[1] + w2[1], W3 = H3[2] + w2[2];
-    for (let K = 0;K < Y2[0]; K++)
-      for (let $4 = 0;$4 < Y2[2]; $4++)
-        for (let O3 = 0;O3 < Y2[1]; O3++)
-          this.#Y(this.cellPool.create(J + $4, V3 + O3, W3 + K, this.cellSize));
-    this.cellPool.clear();
-  }
-  #Y(m32) {
-    if (!this.cellTags.contains(m32.tag)) {
-      if (this.cellTrack.trackCell(m32))
-        this.cellTags.pushTop(m32.tag);
-    } else
-      this.cellTags.moveToTop(m32.tag);
-  }
-  #w() {
-    while (this.cellTags.size > this.cellLimit) {
-      const m32 = this.cellTags.popBottom();
-      if (m32)
-        this._trimmedTags.add(m32);
-      else
-        break;
-    }
-    if (this._trimmedTags.size)
-      this.cellTrack.untrackCells(this._trimmedTags), this._trimmedTags.clear();
-  }
-  deactivate() {
-    this.cellTags.clear();
-  }
-}
-
-class G4 {
-  #m;
-  #Y;
-  constructor({ boundary: m32, tracker: Y2 }) {
-    this.#m = m32, this.#Y = Y2;
-  }
-  trackCell(m32) {
-    if (!this.#m.include(m32))
-      return false;
-    return this.#Y.trackCell(m32);
-  }
-  untrackCells(m32) {
-    this.#Y.untrackCells(m32);
-  }
-}
-
-class h3 {
-  minX;
-  maxX;
-  minY;
-  maxY;
-  minZ;
-  maxZ;
-  constructor(m32) {
-    this.minX = m32?.xRange?.[0] ?? Number.NEGATIVE_INFINITY, this.maxX = m32?.xRange?.[1] ?? Number.POSITIVE_INFINITY, this.minY = m32?.yRange?.[0] ?? Number.NEGATIVE_INFINITY, this.maxY = m32?.yRange?.[1] ?? Number.POSITIVE_INFINITY, this.minZ = m32?.zRange?.[0] ?? Number.NEGATIVE_INFINITY, this.maxZ = m32?.zRange?.[1] ?? Number.POSITIVE_INFINITY;
-  }
-  include(m32) {
-    const Y2 = m32.pos[0], w2 = m32.pos[1], H3 = m32.pos[2];
-    if (Y2 < this.minX || this.maxX < Y2 || w2 < this.minY || this.maxY < w2 || H3 < this.minZ || this.maxZ < H3)
-      return false;
-    return true;
-  }
-}
-
-class M2 {
-  #m;
-  #Y = new Set;
-  #w;
-  #H = new Q3;
-  #K = { onChange: () => this.#J(this.#w) };
-  constructor({ positionMatrix: m32 }, Y2) {
-    const w2 = Y2?.cellSize ?? 1;
-    this.#m = this.#H.create(Number.NaN, Number.NaN, Number.NaN, w2), this.#w = m32;
-  }
-  addListener(m32) {
-    return this.#Y.add(m32), this;
-  }
-  removeListener(m32) {
-    this.#Y.delete(m32);
-  }
-  #J(m32) {
-    let Y2 = this.#H.createFromPos(m32.position, this.#m.pos[_4]);
-    if (this.#m.pos[0] !== Y2.pos[0] || this.#m.pos[1] !== Y2.pos[1] || this.#m.pos[2] !== Y2.pos[2]) {
-      for (let H3 of this.#Y)
-        H3.onCell(Y2, this.#m);
-      const w2 = this.#m;
-      this.#m = Y2, Y2 = w2;
-    }
-    this.#H.recycle(Y2);
-  }
-  activate() {
-    this.#m.pos[0] = Number.NaN, this.#m.pos[1] = Number.NaN, this.#m.pos[2] = Number.NaN, this.#w.addChangeListener(this.#K), this.#J(this.#w);
-  }
-  deactivate() {
-    this.#w.removeChangeListener(this.#K);
-  }
-}
-
-class FixedSpriteFactory extends AuxiliaryHolder {
-  config;
-  spritesPerCell = new Map;
-  spritesList;
-  constructor(config, ...spritesList) {
-    super();
-    this.config = config;
-    this.spritesList = spritesList;
-    this.config = config;
-    spritesList.forEach((sprites) => this.addAuxiliary(sprites));
-  }
-  activate() {
-    super.activate();
-    const vector = [0, 0, 0];
-    this.spritesList.forEach((sprites) => {
-      x2(sprites, (sprite) => {
-        if (sprite) {
-          Q0(sprite.transform, vector);
-          const cellSize = this.config.cellSize ?? 1;
-          const cell = N3(j(vector[0], cellSize), j(vector[1], cellSize), j(vector[2], cellSize), cellSize);
-          if (!this.spritesPerCell.has(cell.tag)) {
-            this.spritesPerCell.set(cell.tag, []);
-          }
-          this.spritesPerCell.get(cell.tag)?.push(copySprite(sprite));
-        }
-      });
-    });
-  }
-  getElemsAtCell(cell) {
-    return this.spritesPerCell.get(cell.tag);
-  }
-}
-var import_seedrandom = __toESM(require_seedrandom2(), 1);
-
-class SpritePool extends h2 {
-  constructor() {
-    super((sprite, imageId) => {
-      if (!sprite) {
-        return { imageId, transform: d.create() };
-      }
-      sprite.imageId = imageId;
-      sprite.transform.identity();
-      sprite.spriteType = SpriteType.DEFAULT;
-      return sprite;
-    });
-  }
-}
-
-class StepBackAuxiliary extends Looper {
-  #previousCellPos;
-  #curCellPos;
-  constructor({ position, motor }, config = {}) {
-    super({ motor, data: { position, speed: config.speed ?? 1, step: config.step ?? 2 } }, { autoStart: false });
-    position.goBack = () => this.goBack();
-    const step = config.step ?? 2;
-    this.#curCellPos = [
-      j(position.position[0], step) * step,
-      0,
-      j(position.position[2], step) * step
-    ];
-    this.#previousCellPos = [...this.#curCellPos];
-  }
-  onCell(cell) {
-    if (this.#curCellPos[0] !== cell.pos[0] || this.#curCellPos[2] !== cell.pos[2]) {
-      const temp = this.#previousCellPos;
-      this.#previousCellPos = this.#curCellPos;
-      this.#curCellPos = temp;
-      this.#curCellPos[0] = cell.pos[0];
-      this.#curCellPos[2] = cell.pos[2];
-    }
-  }
-  goBack() {
-    this.#curCellPos[0] = this.#previousCellPos[0];
-    this.#curCellPos[2] = this.#previousCellPos[2];
-    this.start();
-  }
-  refresh({ deltaTime, data, stopUpdate }) {
-    const speed = deltaTime / 50 * data.speed;
-    let moveResult = data.position.moveTowards(this.#previousCellPos[0] * data.step, this.#previousCellPos[1] * data.step, this.#previousCellPos[2] * data.step, speed);
-    if (moveResult !== w.MOVED) {
-      stopUpdate();
-    }
-  }
-}
-var updateBodyRecord = function(record, accumulator, id, elems) {
-  if (!elems) {
-    if (record[id]) {
-      accumulator.remove(record[id]);
-      delete record[id];
-    }
-  } else {
-    if (!record[id]) {
-      accumulator.add(elems);
-      record[id] = elems;
-    }
-  }
-};
-
-class BodyModel {
-  sprites = new H;
-  colliders = new H;
-  #bodies = new H;
-  #spritesPerId = {};
-  #collidersPerId = {};
-  constructor({ sprites, colliders, bodies } = {}) {
-    this.#bodies.addUpdateListener({
-      onUpdate: (bodyId) => {
-        const body = this.#bodies.at(bodyId);
-        updateBodyRecord(this.#spritesPerId, this.sprites, bodyId, body?.sprites);
-        updateBodyRecord(this.#collidersPerId, this.colliders, bodyId, body?.colliders);
-      }
-    });
-    if (sprites) {
-      this.sprites.add(sprites);
-    }
-    if (colliders) {
-      this.colliders.add(colliders);
-    }
-    if (bodies) {
-      this.#bodies.add(bodies);
-    }
-  }
-  addSprites(sprites) {
-    this.sprites.add(sprites);
-  }
-  addColliders(colliders) {
-    this.colliders.add(colliders);
-  }
-  addBodies(bodies) {
-    this.#bodies.add(bodies);
-  }
-  removeSprites(sprites) {
-    this.sprites.remove(sprites);
-  }
-  removeColliders(colliders) {
-    this.colliders.remove(colliders);
-  }
-  removeBodies(bodies) {
-    this.#bodies.remove(bodies);
-  }
-  updateFully() {
-    this.sprites.updateFully();
-    this.colliders.updateFully();
-    this.#bodies.updateFully();
-  }
-}
-
-class PositionStep {
-  #goalPos;
-  #position;
-  #stepCount = 0;
-  constructor({ position }) {
-    this.#position = position;
-    this.#goalPos = [
-      this.#position.position[0],
-      this.#position.position[1],
-      this.#position.position[2]
-    ];
-  }
-  get position() {
-    return this.#position.position;
-  }
-  getMatrix() {
-    return this.#position.getMatrix();
-  }
-  addChangeListener(listener) {
-    this.#position.addChangeListener(listener);
-    return this;
-  }
-  removeChangeListener(listener) {
-    this.#position.removeChangeListener(listener);
-  }
-  cellMoveBy(dx, dy2, dz, cellSize, speed) {
-    const pos = this.#position.position;
-    const preX = j(pos[0], cellSize) * cellSize;
-    const preY = j(pos[1], cellSize) * cellSize;
-    const preZ = j(pos[2], cellSize) * cellSize;
-    const movement = dx || dy2 || dz;
-    if (movement || this.#stepCount > 0) {
-      const gx = (j(pos[0], cellSize) + dx) * cellSize;
-      const gy = (j(pos[1], cellSize) + dy2) * cellSize;
-      const gz = (j(pos[2], cellSize) + dz) * cellSize;
-      this.#goalPos[0] = gx;
-      this.#goalPos[1] = gy;
-      this.#goalPos[2] = gz;
-    }
-    if (!dx && !dy2 && !dz) {
-      this.#stepCount = 0;
-    }
-    const moveResult = this.#position.attemptMoveTowards(this.#goalPos[0], this.#goalPos[1], this.#goalPos[2], speed);
-    if (moveResult === w.BLOCKED) {
-      const gx = j(pos[0], cellSize) * cellSize;
-      const gy = j(pos[1], cellSize) * cellSize;
-      const gz = j(pos[2], cellSize) * cellSize;
-      this.#goalPos[0] = gx;
-      this.#goalPos[1] = gy;
-      this.#goalPos[2] = gz;
-    }
-    const newPos = this.#position.position;
-    if (j(newPos[0], cellSize) * cellSize !== preX || j(newPos[1], cellSize) * cellSize !== preY || j(newPos[2], cellSize) * cellSize !== preZ) {
-      this.#stepCount++;
-    }
-    if (!movement && G3(newPos, this.#goalPos)) {
-      return w.AT_POSITION;
-    }
-    return moveResult;
-  }
-}
+var import_react9 = __toESM2(require_react(), 1);
+var import_react8 = __toESM2(require_react(), 1);
 var MenuItemBehavior;
 (function(MenuItemBehavior2) {
   MenuItemBehavior2[MenuItemBehavior2["NONE"] = 0] = "NONE";
   MenuItemBehavior2[MenuItemBehavior2["CLOSE_ON_SELECT"] = 1] = "CLOSE_ON_SELECT";
   MenuItemBehavior2[MenuItemBehavior2["CLOSE_AFTER_SELECT"] = 2] = "CLOSE_AFTER_SELECT";
 })(MenuItemBehavior || (MenuItemBehavior = {}));
+var jsx_dev_runtime4 = __toESM2(require_jsx_dev_runtime(), 1);
+var jsx_dev_runtime5 = __toESM2(require_jsx_dev_runtime(), 1);
+var getRandomValues;
+var rnds8 = new Uint8Array(16);
+var byteToHex = [];
+for (let i = 0;i < 256; ++i) {
+  byteToHex.push((i + 256).toString(16).slice(1));
+}
+var randomUUID = typeof crypto !== "undefined" && crypto.randomUUID && crypto.randomUUID.bind(crypto);
+var native_default = {
+  randomUUID
+};
+var v4 = function(options, buf, offset) {
+  if (native_default.randomUUID && !buf && !options) {
+    return native_default.randomUUID();
+  }
+  options = options || {};
+  const rnds = options.random || (options.rng || rng)();
+  rnds[6] = rnds[6] & 15 | 64;
+  rnds[8] = rnds[8] & 63 | 128;
+  if (buf) {
+    offset = offset || 0;
+    for (let i = 0;i < 16; ++i) {
+      buf[offset + i] = rnds[i];
+    }
+    return buf;
+  }
+  return unsafeStringify(rnds);
+};
+var v4_default = v4;
+var client = __toESM2(require_client(), 1);
+var jsx_dev_runtime6 = __toESM2(require_jsx_dev_runtime(), 1);
+var STYLE = {
+  position: "absolute",
+  pointerEvents: "none",
+  width: "100%",
+  height: "100%"
+};
 var Assets;
 (function(Assets2) {
   Assets2[Assets2["DOBUKI"] = 0] = "DOBUKI";
@@ -48801,7 +49068,7 @@ class DemoGame extends AuxiliaryHolder {
       [0, 0, -1],
       [-1, 0, 0],
       [1, 0, 0]
-    ].map(([x4, y3, z5]) => [x4 * CELLSIZE, y3 * CELLSIZE, z5 * CELLSIZE]);
+    ].map(([x4, y3, z6]) => [x4 * CELLSIZE, y3 * CELLSIZE, z6 * CELLSIZE]);
     blockPositions.forEach((blockPosition) => {
       const blockBoxSprites = new SpriteGroup(new DisplayBox({ box: blockBox, imageId: Assets.GROUND, insideImageId: Assets.BRICK }), new t0().movedTo(blockPosition[0], blockPosition[1], blockPosition[2]));
       const factory = new FixedSpriteFactory({ cellSize: CELLSIZE }, blockBoxSprites);
@@ -49088,243 +49355,22 @@ class WebGlCanvas extends DOMWrap {
     canvas.style.pointerEvents = "none";
   }
 }
-var client = __toESM(require_client(), 1);
-var import_react11 = __toESM(require_react(), 1);
-var import_react2 = __toESM(require_react(), 1);
-var import_react = __toESM(require_react(), 1);
-
-class PopupControl {
-  #listeners = new Set;
-  onUp() {
-    for (const listener of this.#listeners) {
-      listener.onUp?.();
-    }
-  }
-  onDown() {
-    for (const listener of this.#listeners) {
-      listener.onDown?.();
-    }
-  }
-  onAction() {
-    for (const listener of this.#listeners) {
-      listener.onAction?.();
-    }
-  }
-  addListener(listener) {
-    this.#listeners.add(listener);
-  }
-  removeListener(listener) {
-    this.#listeners.delete(listener);
-  }
-}
-var DEFAULT_GAME_CONTEXT = {
-  addControlsLock: function(_uid) {
-    throw new Error("Function not implemented.");
-  },
-  removeControlsLock: function(_uid) {
-    throw new Error("Function not implemented.");
-  },
-  openMenu: function(_value) {
-    throw new Error("Function not implemented.");
-  },
-  openDialog: function(_value) {
-    throw new Error("Function not implemented.");
-  },
-  closePopup() {
-    throw new Error("Function not implemented.");
-  },
-  topPopupUid: "",
-  onSelection(selection) {
-    throw new Error("Function not implemented");
-  },
-  popupControl: new PopupControl
-};
-var Context = import_react.default.createContext(DEFAULT_GAME_CONTEXT);
-var Context_default = Context;
-var jsx_dev_runtime = __toESM(require_jsx_dev_runtime(), 1);
-var Provider = ({ children, context }) => {
-  return jsx_dev_runtime.jsxDEV(Context_default.Provider, {
-    value: context,
-    children
-  }, undefined, false, undefined, null);
-};
-var useGameContext = () => {
-  const context = import_react2.useContext(Context_default);
-  if (!context) {
-    throw new Error("useGameContext must be used within a Provider");
-  }
-  return context;
-};
-var import_react3 = __toESM(require_react(), 1);
-var import_react10 = __toESM(require_react(), 1);
-var import_react4 = __toESM(require_react(), 1);
-var jsx_dev_runtime2 = __toESM(require_jsx_dev_runtime(), 1);
-var POPUP_CSS = {
-  outline: "3px solid #fff",
-  backgroundColor: "black",
-  borderRadius: 12,
-  padding: 3,
-  boxShadow: "10px 10px 0px #000000cc"
-};
-var DOUBLE_BORDER_CSS = {
-  border: "3px solid white",
-  borderRadius: 10,
-  outline: "3px solid black",
-  color: "white",
-  padding: 10
-};
-var DOUBLE_BORDER_HEIGHT_OFFSET = 27;
-var DEFAULT_PADDING = 50;
-var DEFAULT_FONT_SIZE = 24;
-var import_react7 = __toESM(require_react(), 1);
-var import_react5 = __toESM(require_react(), 1);
-var LockStatus;
-(function(LockStatus2) {
-  LockStatus2[LockStatus2["LOCKED"] = 0] = "LOCKED";
-  LockStatus2[LockStatus2["UNLOCKED"] = 1] = "UNLOCKED";
-})(LockStatus || (LockStatus = {}));
-var import_react6 = __toESM(require_react(), 1);
-
-class ProgressiveText extends HTMLElement {
-  #observer;
-  #containerText;
-  #hiddenText;
-  #animationFrameRequest = 0;
-  constructor() {
-    super();
-    const shadowRoot = this.attachShadow({ mode: "open" });
-    this.#containerText = shadowRoot.appendChild(document.createElement("span"));
-    this.#hiddenText = shadowRoot.appendChild(document.createElement("span"));
-    this.#hiddenText.style.color = "#00000020";
-    this.#observer = new MutationObserver((mutationsList) => this.handleMutation(mutationsList));
-  }
-  connectedCallback() {
-    this.childNodes.forEach((node) => {
-      this.#observer.observe(node, { characterData: true });
-      this.startProgressingText(node.textContent ?? "");
-    });
-  }
-  disconnectedCallback() {
-    this.#observer.disconnect();
-  }
-  handleMutation(mutationsList) {
-    for (const mutation of mutationsList) {
-      if (mutation.type === "characterData") {
-        this.startProgressingText(mutation.target.textContent ?? "");
-      }
-    }
-  }
-  startProgressingText(text) {
-    cancelAnimationFrame(this.#animationFrameRequest);
-    let period = parseInt(this.getAttribute("period") ?? "10");
-    if (isNaN(period)) {
-      console.warn("Invalid period: ", period);
-      period = 10;
-      return;
-    }
-    let startTime = 0;
-    const loop = (time) => {
-      if (!startTime) {
-        startTime = time;
-      }
-      const numChars = Math.floor((time - startTime) / period);
-      const visibleText = text.slice(0, numChars);
-      const hiddenText = text.slice(numChars);
-      this.#containerText.textContent = visibleText;
-      this.#hiddenText.textContent = hiddenText;
-      if (numChars <= text.length) {
-        requestAnimationFrame(loop);
-      }
-    };
-    this.#animationFrameRequest = requestAnimationFrame(loop);
-  }
-}
-customElements.define("progressive-text", ProgressiveText);
-var jsx_dev_runtime3 = __toESM(require_jsx_dev_runtime(), 1);
-var import_react9 = __toESM(require_react(), 1);
-var import_react8 = __toESM(require_react(), 1);
-var jsx_dev_runtime4 = __toESM(require_jsx_dev_runtime(), 1);
-var jsx_dev_runtime5 = __toESM(require_jsx_dev_runtime(), 1);
-var getRandomValues;
-var rnds8 = new Uint8Array(16);
-var byteToHex = [];
-for (let i = 0;i < 256; ++i) {
-  byteToHex.push((i + 256).toString(16).slice(1));
-}
-var randomUUID = typeof crypto !== "undefined" && crypto.randomUUID && crypto.randomUUID.bind(crypto);
-var native_default = {
-  randomUUID
-};
-var v4 = function(options, buf, offset) {
-  if (native_default.randomUUID && !buf && !options) {
-    return native_default.randomUUID();
-  }
-  options = options || {};
-  const rnds = options.random || (options.rng || rng)();
-  rnds[6] = rnds[6] & 15 | 64;
-  rnds[8] = rnds[8] & 63 | 128;
-  if (buf) {
-    offset = offset || 0;
-    for (let i = 0;i < 16; ++i) {
-      buf[offset + i] = rnds[i];
-    }
-    return buf;
-  }
-  return unsafeStringify(rnds);
-};
-var v4_default = v4;
-var jsx_dev_runtime6 = __toESM(require_jsx_dev_runtime(), 1);
-
-class PopupManager {
-  #popups = [];
-  #listeners;
-  constructor(listeners) {
-    this.#listeners = listeners;
-  }
-  addControlsLock(uid) {
-    this.#popups.push(uid);
-    this.#listeners.forEach((listener) => listener.onPopup(this.#popups.length));
-  }
-  removeControlsLock(uid) {
-    this.#popups = this.#popups.filter((id) => id !== uid);
-    this.#listeners.forEach((listener) => listener.onPopup(this.#popups.length));
-  }
-  openDialog(_dialog) {
-    throw new Error("Not implemented");
-  }
-  openMenu(_menu) {
-    throw new Error("Not implemented");
-  }
-  closePopup() {
-    throw new Error("Not implemented");
-  }
-  nextMessage() {
-    throw new Error("Not implemented");
-  }
-  selection = 0;
-}
-var jsx_dev_runtime7 = __toESM(require_jsx_dev_runtime(), 1);
-var STYLE = {
-  position: "absolute",
-  pointerEvents: "none",
-  width: "100%",
-  height: "100%"
-};
 
 class Hud extends AuxiliaryHolder {
-  #webGlCanvas;
-  #rootElem = document.createElement("div");
-  #root = client.default.createRoot(this.#rootElem);
-  #listeners = new Set;
-  #popupManager = new PopupManager(this.#listeners);
+  #dom;
+  ui;
   #controls;
   #controlsListener;
-  #popupControl = new PopupControl;
-  constructor({ controls, webGlCanvas }) {
+  #popupControl;
+  #div;
+  constructor({ controls, dom }) {
     super();
-    this.#webGlCanvas = webGlCanvas;
+    this.#dom = dom;
     this.#controls = controls;
-    this.#rootElem.style.pointerEvents = "none";
+    this.#div = document.createElement("div");
+    const { ui, popupControl } = attachPopup(this.#div);
+    this.ui = ui;
+    this.#popupControl = popupControl;
     this.#controlsListener = {
       onAction: (controls2) => {
         const dy2 = (controls2.forward ? -1 : 0) + (controls2.backward ? 1 : 0);
@@ -49339,48 +49385,15 @@ class Hud extends AuxiliaryHolder {
       }
     };
   }
-  async openDialog(dialog) {
-    return this.#popupManager.openDialog?.(dialog);
-  }
-  async openMenu(menuData) {
-    return this.#popupManager.openMenu?.(menuData);
-  }
-  nextMessage() {
-    this.#popupManager.nextMessage();
-  }
-  closePopup() {
-    this.#popupManager.closePopup?.();
-  }
-  get selection() {
-    return this.#popupManager.selection;
-  }
   activate() {
     super.activate();
-    document.body.appendChild(this.#rootElem);
-    this.#root.render(this.createElement());
+    document.body.appendChild(this.#div);
     this.#controls.addListener(this.#controlsListener);
   }
   deactivate() {
     this.#controls.removeListener(this.#controlsListener);
-    this.#root.unmount();
-    document.body.removeChild(this.#rootElem);
+    document.body.removeChild(this.#div);
     super.deactivate();
-  }
-  addDialogListener(listener) {
-    this.#listeners.add(listener);
-  }
-  removeDialogListener(listener) {
-    this.#listeners.delete(listener);
-  }
-  createElement() {
-    const { offsetLeft: left, offsetTop: top } = this.#webGlCanvas.elem;
-    return jsx_dev_runtime7.jsxDEV("div", {
-      style: { ...STYLE, top, left },
-      children: jsx_dev_runtime7.jsxDEV(PopupOverlay, {
-        popupManager: this.#popupManager,
-        popupControl: this.#popupControl
-      }, undefined, false, undefined, this)
-    }, undefined, false, undefined, this);
   }
 }
 var QUICK_TAP_TIME = 200;

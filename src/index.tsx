@@ -23,8 +23,8 @@ export async function testCanvas(canvas: HTMLCanvasElement) {
   const menuControls = new KeyboardControls(keyboard);
 
   const webGlCanvas = new WebGlCanvas(canvas);
-  const ui: Hud = new Hud({ controls: menuControls, dom: webGlCanvas });
-  ui.addDialogListener({
+  const hud: Hud = new Hud({ controls: menuControls, dom: webGlCanvas });
+  hud.ui.addDialogListener({
     onPopup(count) {
       gameControls.enabled = count === 0;
       menuControls.enabled = count !== 0;
@@ -53,14 +53,14 @@ export async function testCanvas(canvas: HTMLCanvasElement) {
   const world = new DemoGame({
     engine,
     motor,
-    ui,
+    ui: hud.ui,
     keyboard,
     controls: gameControls,
   });
   core.addAuxiliary(motor);
   core.addAuxiliary(world);
   core.addAuxiliary(webGlCanvas);
-  core.addAuxiliary(ui);
+  core.addAuxiliary(hud);
   core.addAuxiliary(gameControls);
   core.addAuxiliary(
     new ResizeAux({
@@ -74,7 +74,7 @@ export async function testCanvas(canvas: HTMLCanvasElement) {
   core.activate();
   motor.loop(engine, undefined);
   onStop = () => core.deactivate();
-  return { engine, motor, world, ui, core };
+  return { engine, motor, world, hud, core };
 }
 
 export function stop(): void {

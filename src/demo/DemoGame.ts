@@ -28,7 +28,6 @@ import { ItemsGroup } from "world/sprite/aux/ItemsGroup";
 import { ICollisionDetector, IPositionMatrix, Matrix, PositionMatrix } from "dok-matrix";
 import { DisplayBox } from "world/collision/DisplayBox";
 import { CollisionDetector } from "world/collision/CollisionDetector";
-import { UserInterface } from "ui/popup/UserInterface";
 import { IControls } from "controls/IControls";
 import { IFade, FadeApiAuxiliary } from "world/aux/FadeApiAuxiliary";
 import { Box } from "world/collision/Box";
@@ -46,7 +45,7 @@ import { goBackAction } from "world/aux/GoBack";
 import { BodyModel } from "world/sprite/body/BodyModel";
 import { PositionStep } from "world/aux/PositionStep";
 import { IKeyboard } from "controls/IKeyboard";
-import { MenuItemBehavior } from 'ui/popup/menu/MenuItemBehavior';
+import { MenuItemBehavior, UserInterface } from "dialog-system";
 
 enum Assets {
   DOBUKI = 0,
