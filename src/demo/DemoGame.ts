@@ -411,23 +411,34 @@ export class DemoGame extends AuxiliaryHolder {
               onEnter() {
                 displayBox.setImageId(Assets.WIREFRAME_RED);
                 ui.openDialog({
+                  layout: {
+                    uid: "main-dialog",
+                    position: [undefined, 200],
+                    positionFromBottom: true,
+                  },
                   conversation: {
                     messages: [
                       { text: "Hello there." },
                       {
                         text: "How are you?",
                         action: () => ui.openMenu({
-                          position: [400, 340],
-                          size: [undefined, 150],
-                          positionFromRight: true,
+
+                          layout: {
+                            position: [400, 360],
+                            size: [undefined, 150],
+                            positionFromRight: true,
+                            positionFromBottom: true,
+                          },
                           items: [
                             {
                               label: "I don't know",
                               behavior: MenuItemBehavior.NONE,
                               action: [
                                 ui => ui.openDialog({
-                                  position: [100, 100],
-                                  size: [300, 200],
+                                  layout: {
+                                    position: [100, 100],
+                                    size: [300, 200],
+                                  },
                                   conversation: {
                                     messages: [
                                       { text: "You should know!" },
@@ -439,6 +450,11 @@ export class DemoGame extends AuxiliaryHolder {
                             {
                               label: "good",
                               action: ui => ui.openDialog({
+                                layout: {
+                                  uid: "main-dialog",
+                                  position: [undefined, 200],
+                                  positionFromBottom: true,
+                                },
                                 conversation: {
                                   messages: [
                                     { text: "That's nice to know!" },

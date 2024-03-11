@@ -55,11 +55,10 @@
   },
   "dependencies": {
     "cell-tracker": "^1.0.25",
-    "dialog-system": "^1.0.3",
+    "dialog-system": "^1.0.8",
     "gl-texture-manager": "^1.0.14",
     "list-accumulator": "^1.0.13",
-    "seedrandom": "^3.0.5",
-    "uuid": "^9.0.1"
+    "seedrandom": "^3.0.5"
   },
   "engines": {
     "node": ">=14.0.0"
