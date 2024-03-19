@@ -104,8 +104,9 @@ void main() {
 
   relativePosition.z -= camDist;
 
+  float focusDistZ = (10. + relativePosition.z);
   dist = max(isDistant, isHud) + (1. - max(isDistant, isHud)) *
-                                     (relativePosition.z * relativePosition.z +
+                                     (focusDistZ * focusDistZ +
                                       relativePosition.x * relativePosition.x);
   // relativePosition => gl_Position
   relativePosition = isHud * worldPosition + (1. - isHud) * relativePosition;

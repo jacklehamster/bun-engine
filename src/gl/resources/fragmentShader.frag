@@ -66,7 +66,7 @@ void main() {
   }
   color /= float(blurPass + 1);
 
-  float colorFactor = 1.25 * pow(dist, -.12) * (1. - fade);
+  float colorFactor = 1. * pow(dist, -.12) * (1. - fade);
   color.rg += var.x * .02;
   color.gb += var.y * .03;
   color.rgb = color.rgb * colorFactor + bgColor * (1. - colorFactor);
