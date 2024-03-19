@@ -24578,13 +24578,723 @@ class PositionStep {
     return moveResult;
   }
 }
-var usePopupManager = function() {
+var Assets;
+(function(Assets2) {
+  Assets2[Assets2["DOBUKI"] = 0] = "DOBUKI";
+  Assets2[Assets2["LOGO"] = 1] = "LOGO";
+  Assets2[Assets2["GROUND"] = 2] = "GROUND";
+  Assets2[Assets2["VIDEO"] = 3] = "VIDEO";
+  Assets2[Assets2["WIREFRAME"] = 4] = "WIREFRAME";
+  Assets2[Assets2["WIREFRAME_RED"] = 5] = "WIREFRAME_RED";
+  Assets2[Assets2["GRASS"] = 6] = "GRASS";
+  Assets2[Assets2["BRICK"] = 7] = "BRICK";
+  Assets2[Assets2["DODO"] = 8] = "DODO";
+  Assets2[Assets2["DODO_SHADOW"] = 9] = "DODO_SHADOW";
+  Assets2[Assets2["TREE"] = 10] = "TREE";
+  Assets2[Assets2["BUN"] = 11] = "BUN";
+  Assets2[Assets2["BUN_SHADOW"] = 12] = "BUN_SHADOW";
+  Assets2[Assets2["WOLF"] = 13] = "WOLF";
+  Assets2[Assets2["WOLF_SHADOW"] = 14] = "WOLF_SHADOW";
+  Assets2[Assets2["WATER"] = 15] = "WATER";
+  Assets2[Assets2["BUSHES"] = 16] = "BUSHES";
+  Assets2[Assets2["GRASS_GROUND"] = 17] = "GRASS_GROUND";
+})(Assets || (Assets = {}));
+var Anims;
+(function(Anims2) {
+  Anims2[Anims2["STILL"] = 0] = "STILL";
+  Anims2[Anims2["RUN"] = 1] = "RUN";
+  Anims2[Anims2["WOLF_STILL"] = 2] = "WOLF_STILL";
+  Anims2[Anims2["WOLF_JUMP"] = 3] = "WOLF_JUMP";
+})(Anims || (Anims = {}));
+var LOGO_SIZE = 512;
+var CELLSIZE = 2;
+
+class DemoGame extends AuxiliaryHolder {
+  api = {};
+  camera;
+  constructor({ engine, motor, ui, keyboard, controls }) {
+    super();
+    const mediaAccumulator = new H;
+    this.addAuxiliary(new MediaUpdater({ engine, motor, medias: mediaAccumulator }));
+    const mediaItems = new ItemsGroup([{
+      id: Assets.DOBUKI,
+      type: "image",
+      src: "dobuki.png"
+    }, {
+      id: Assets.BUN,
+      type: "image",
+      src: "bun.png"
+    }, {
+      id: Assets.BUN_SHADOW,
+      type: "image",
+      src: "bun.png",
+      postProcess: k
+    }, {
+      id: Assets.DODO,
+      type: "image",
+      src: "dodo.png",
+      spriteSheet: {
+        spriteSize: [190, 209]
+      }
+    }, {
+      id: Assets.DODO_SHADOW,
+      type: "image",
+      src: "dodo.png",
+      spriteSheet: {
+        spriteSize: [190, 209]
+      },
+      postProcess: k
+    }, {
+      id: Assets.WOLF,
+      type: "image",
+      src: "wolf.png",
+      spriteSheet: {
+        spriteSize: [200, 256]
+      }
+    }, {
+      id: Assets.WOLF_SHADOW,
+      type: "image",
+      src: "wolf.png",
+      spriteSheet: {
+        spriteSize: [200, 256]
+      },
+      postProcess: k
+    }, {
+      id: Assets.LOGO,
+      type: "draw",
+      draw: (ctx) => {
+        const { canvas } = ctx;
+        canvas.width = LOGO_SIZE;
+        canvas.height = LOGO_SIZE;
+        const centerX = canvas.width / 2, centerY = canvas.height / 2;
+        const halfSize = canvas.width / 2;
+        ctx.imageSmoothingEnabled = true;
+        ctx.lineWidth = canvas.width / 50;
+        ctx.strokeStyle = "black";
+        ctx.fillStyle = "gold";
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, halfSize * 0.8, 0, 2 * Math.PI);
+        ctx.fill();
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, halfSize * 0.5, 0, Math.PI);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(canvas.width / 3, canvas.height / 3, halfSize * 0.1, 0, Math.PI, true);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(canvas.width / 3 * 2, canvas.height / 3, halfSize * 0.1, 0, Math.PI * 2, true);
+        ctx.stroke();
+      }
+    }, {
+      id: Assets.GROUND,
+      type: "draw",
+      draw: (ctx) => {
+        const { canvas } = ctx;
+        canvas.width = LOGO_SIZE;
+        canvas.height = LOGO_SIZE;
+        ctx.fillStyle = "#ddd";
+        ctx.lineWidth = canvas.width / 50;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.strokeStyle = "black";
+        ctx.fillStyle = "silver";
+        ctx.beginPath();
+        ctx.rect(canvas.width * 0.2, canvas.height * 0.2, canvas.width * 0.6, canvas.height * 0.6);
+        ctx.fill();
+        ctx.stroke();
+      }
+    }, {
+      id: Assets.GRASS_GROUND,
+      type: "draw",
+      draw: (ctx) => {
+        const { canvas } = ctx;
+        canvas.width = LOGO_SIZE;
+        canvas.height = LOGO_SIZE;
+        ctx.fillStyle = "green";
+        ctx.lineWidth = canvas.width / 50;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.strokeStyle = "#6f6";
+        ctx.fillStyle = "lightgreen";
+        ctx.beginPath();
+        ctx.rect(canvas.width * 0.2, canvas.height * 0.2, canvas.width * 0.6, canvas.height * 0.6);
+        ctx.fill();
+        ctx.stroke();
+      }
+    }, {
+      id: Assets.BRICK,
+      type: "draw",
+      draw: (ctx) => {
+        const { canvas } = ctx;
+        canvas.width = LOGO_SIZE;
+        canvas.height = LOGO_SIZE;
+        ctx.fillStyle = "#ddd";
+        ctx.lineWidth = canvas.width / 50;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
+    }, {
+      id: Assets.VIDEO,
+      type: "video",
+      src: "sample.mp4",
+      volume: 0,
+      fps: 30,
+      playSpeed: 0.5,
+      maxRefreshRate: 30
+    }, {
+      id: Assets.WIREFRAME,
+      type: "draw",
+      draw: (ctx) => {
+        const { canvas } = ctx;
+        canvas.width = LOGO_SIZE;
+        canvas.height = LOGO_SIZE;
+        ctx.lineWidth = 40;
+        ctx.setLineDash([20, 5]);
+        ctx.strokeStyle = "lightblue";
+        ctx.beginPath();
+        ctx.rect(10, 10, canvas.width - 20, canvas.height - 20);
+        ctx.stroke();
+      }
+    }, {
+      id: Assets.WIREFRAME_RED,
+      type: "draw",
+      draw: (ctx) => {
+        const { canvas } = ctx;
+        canvas.width = LOGO_SIZE;
+        canvas.height = LOGO_SIZE;
+        ctx.lineWidth = 40;
+        ctx.setLineDash([20, 5]);
+        ctx.strokeStyle = "red";
+        ctx.beginPath();
+        ctx.rect(10, 10, canvas.width - 20, canvas.height - 20);
+        ctx.stroke();
+      }
+    }, {
+      id: Assets.GRASS,
+      type: "draw",
+      draw: (ctx) => {
+        const { canvas } = ctx;
+        canvas.width = 1024;
+        canvas.height = 1024;
+        ctx.fillStyle = "green";
+        ctx.lineWidth = canvas.width / 50;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
+    }, {
+      id: Assets.BUSHES,
+      type: "draw",
+      draw: (ctx) => {
+        const { canvas } = ctx;
+        canvas.width = 1024;
+        canvas.height = 1024;
+        ctx.fillStyle = "#050";
+        ctx.lineWidth = canvas.width / 50;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
+    }, {
+      id: Assets.WATER,
+      type: "draw",
+      draw: (ctx) => {
+        const { canvas } = ctx;
+        canvas.width = 1024;
+        canvas.height = 1024;
+        ctx.fillStyle = "#68f";
+        ctx.lineWidth = canvas.width / 50;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
+    }, {
+      id: Assets.TREE,
+      type: "draw",
+      draw: (ctx) => {
+        const { canvas } = ctx;
+        canvas.width = 200;
+        canvas.height = 200;
+        ctx.fillStyle = "#0f0";
+        ctx.beginPath();
+        ctx.moveTo(100, 0);
+        ctx.lineTo(200, 150);
+        ctx.lineTo(0, 150);
+        ctx.fill();
+        ctx.fillStyle = "#430";
+        ctx.fillRect(75, 125, 50, 50);
+      }
+    }]);
+    mediaAccumulator.add(mediaItems);
+    this.addAuxiliary({
+      activate() {
+        mediaAccumulator.updateFully();
+      }
+    });
+    const animationAccumulator = new H;
+    this.addAuxiliary(new AnimationUpdater({ engine, motor, animations: animationAccumulator }));
+    const animationItems = new ItemsGroup([{
+      id: Anims.STILL,
+      frames: [0]
+    }, {
+      id: Anims.RUN,
+      frames: [1, 5],
+      fps: 24
+    }, {
+      id: Anims.WOLF_STILL,
+      frames: [0, 4],
+      fps: 15
+    }]);
+    animationAccumulator.add(animationItems);
+    this.addAuxiliary({
+      activate() {
+        animationAccumulator.updateFully();
+      }
+    });
+    const cellTrackers = new A4;
+    const spritesAccumulator = new H({
+      onChange: (value) => engine.setMaxSpriteCount(value)
+    });
+    this.addAuxiliary({
+      deactivate() {
+        engine.setMaxSpriteCount(0);
+      }
+    });
+    this.addAuxiliary(new SpriteUpdater({ engine, motor, sprites: spritesAccumulator }));
+    const exitBlock = {
+      top: 2,
+      bottom: -1,
+      left: -0.1,
+      right: 0.1,
+      near: 0,
+      far: -0.5
+    };
+    const exitCell = N3(0, 0, 0, CELLSIZE);
+    const exitPosition = exitCell.worldPosition;
+    const worldColliders = new H;
+    const heroBox = {
+      top: 1,
+      bottom: -1,
+      left: -0.9,
+      right: 0.9,
+      near: 0.9,
+      far: -0.9
+    };
+    const blockBox = {
+      top: 2,
+      bottom: -1,
+      left: -1,
+      right: 1,
+      near: 1,
+      far: -1
+    };
+    {
+      const dobukiCell = N3(-3, 0, -1, CELLSIZE);
+      const dobukiBox = {
+        top: 1,
+        bottom: -1,
+        left: -0.1,
+        right: 0.1,
+        near: 0,
+        far: -0.5
+      };
+      const dobukiPosition = dobukiCell.worldPosition;
+      const dobukiBlockPosition = [
+        dobukiPosition[0],
+        dobukiPosition[1],
+        dobukiPosition[2] - CELLSIZE
+      ];
+      const bodyModel = new BodyModel({
+        colliders: [
+          new CollisionDetector({
+            blockerBox: blockBox,
+            blockerPosition: dobukiBlockPosition,
+            heroBox,
+            listener: {
+              onBlockChange(blocked) {
+                displayBox.setImageId(blocked ? Assets.WIREFRAME_RED : Assets.WIREFRAME);
+              }
+            }
+          }, { shouldBlock: true }),
+          new CollisionDetector({
+            blockerBox: dobukiBox,
+            blockerPosition: dobukiPosition,
+            heroBox,
+            listener: {
+              onEnter() {
+                displayBox.setImageId(Assets.WIREFRAME_RED);
+                ui.openDialog({
+                  layout: {
+                    name: "main-dialog",
+                    position: [undefined, 200],
+                    positionFromBottom: true
+                  },
+                  messages: [
+                    { text: "Hello there." },
+                    {
+                      text: "How are you?",
+                      action: () => ui.openMenu({
+                        behavior: "CLOSE_AFTER_SELECT",
+                        layout: {
+                          position: [400, 360],
+                          size: [undefined, 150],
+                          positionFromRight: true,
+                          positionFromBottom: true
+                        },
+                        items: [
+                          {
+                            label: "I don't know",
+                            behavior: "NONE",
+                            action: [
+                              (ui2) => ui2.openDialog({
+                                layout: {
+                                  position: [100, 100],
+                                  size: [300, 200]
+                                },
+                                messages: [
+                                  { text: "You should know!" }
+                                ]
+                              })
+                            ]
+                          },
+                          {
+                            label: "good",
+                            action: (ui2) => ui2.openDialog({
+                              layout: {
+                                name: "main-dialog",
+                                position: [undefined, 200],
+                                positionFromBottom: true
+                              },
+                              messages: [
+                                { text: "That's nice to know!" }
+                              ]
+                            })
+                          },
+                          {
+                            label: "bad"
+                          }
+                        ]
+                      })
+                    },
+                    { text: "Bye bye." },
+                    {
+                      action: [
+                        goBackAction(heroPos)
+                      ]
+                    }
+                  ]
+                });
+              },
+              onLeave() {
+                displayBox.setImageId(Assets.WIREFRAME);
+              }
+            }
+          }, { shouldBlock: false })
+        ]
+      });
+      const dobukiPosMatrix = new t0().movedTo(dobukiPosition[0], dobukiPosition[1], dobukiPosition[2]);
+      bodyModel.addSprites(new SpriteGroup([{
+        imageId: Assets.DOBUKI,
+        spriteType: SpriteType.SPRITE,
+        transform: d.create().translate(0, -0.3, -1)
+      }], dobukiPosMatrix));
+      bodyModel.addSprites(new SpriteGroup(new DisplayBox({ box: dobukiBox, imageId: Assets.WIREFRAME, insideImageId: Assets.WIREFRAME }), dobukiPosMatrix));
+      bodyModel.addSprites(new SpriteGroup(new DisplayBox({ box: blockBox, imageId: Assets.WIREFRAME, insideImageId: Assets.WIREFRAME }), new t0().movedTo(dobukiBlockPosition[0], dobukiBlockPosition[1], dobukiBlockPosition[2])));
+      worldColliders.add(bodyModel.colliders);
+      const factory = new FixedSpriteFactory({ cellSize: CELLSIZE }, bodyModel.sprites);
+      const creator = new SpriteCellCreator({ factory });
+      spritesAccumulator.add(creator);
+      cellTrackers.add(creator);
+      this.addAuxiliary(factory);
+    }
+    const blockPositions = [
+      [-1, 0, -1],
+      [1, 0, -1],
+      [0, 0, -1],
+      [-1, 0, 0],
+      [1, 0, 0]
+    ].map(([x4, y3, z5]) => [x4 * CELLSIZE, y3 * CELLSIZE, z5 * CELLSIZE]);
+    blockPositions.forEach((blockPosition) => {
+      const blockBoxSprites = new SpriteGroup(new DisplayBox({ box: blockBox, imageId: Assets.GROUND, insideImageId: Assets.BRICK }), new t0().movedTo(blockPosition[0], blockPosition[1], blockPosition[2]));
+      const factory = new FixedSpriteFactory({ cellSize: CELLSIZE }, blockBoxSprites);
+      this.addAuxiliary(factory);
+      const creator = new SpriteCellCreator({ factory });
+      spritesAccumulator.add(creator);
+      cellTrackers.add(creator);
+    });
+    {
+      const factory = new FixedSpriteFactory({ cellSize: CELLSIZE }, new SpriteGroup(new DisplayBox({ box: exitBlock, imageId: Assets.WIREFRAME, insideImageId: Assets.WIREFRAME }), new t0().movedTo(exitPosition[0], exitPosition[1], exitPosition[2])), [
+        d.create().translate(-3.01, 0, 0).rotateY(Math.PI / 2),
+        d.create().translate(-3.01, 0, 0).rotateY(-Math.PI / 2),
+        d.create().translate(3.01, 0, 0).rotateY(-Math.PI / 2),
+        d.create().translate(3.01, 0, 0).rotateY(Math.PI / 2)
+      ].map((transform) => ({ imageId: Assets.LOGO, transform })), [
+        d.create().translate(0, -0.9, 0).rotateX(-Math.PI / 2),
+        d.create().translate(0, -0.9, 2).rotateX(-Math.PI / 2),
+        d.create().translate(-2, -0.9, 2).rotateX(-Math.PI / 2),
+        d.create().translate(2, -0.9, 2).rotateX(-Math.PI / 2)
+      ].map((transform) => ({ imageId: Assets.GRASS_GROUND, transform })));
+      const creator = new SpriteCellCreator({ factory });
+      spritesAccumulator.add(creator);
+      cellTrackers.add(creator);
+      this.addAuxiliary(factory);
+    }
+    const camPosition = new t0;
+    const camera = this.camera = new Camera({ engine, motor, position: camPosition });
+    this.addAuxiliary(camera);
+    {
+      const arrayPool = new h2((a2) => a2 ?? [], (a2) => a2.length = 0);
+      const arrayPool2 = new h2((a2) => a2 ?? [], (a2) => a2.length = 0);
+      const spritePool = new SpritePool;
+      const spritesMap = new Map;
+      const collidersMap = new Map;
+      cellTrackers.add(P({
+        trackCell: (cell) => {
+          const rng = import_seedrandom.alea(cell.tag);
+          const sprites = arrayPool.create();
+          const cellPos = cell.pos;
+          const px = cell.worldPosition[0];
+          const pz = cell.worldPosition[2];
+          const distSq = cellPos[0] * cellPos[0] + cellPos[2] * cellPos[2];
+          const isWater = distSq > 1000;
+          const hasTree = distSq > 10 && rng() < 0.1 && !isWater;
+          const ground = spritePool.create(hasTree ? Assets.BUSHES : isWater ? Assets.WATER : Assets.GRASS);
+          ground.spriteType = isWater ? SpriteType.WAVE : SpriteType.DEFAULT;
+          ground.transform.translate(px, -1 - (isWater ? 1 : 0), pz).rotateX(-Math.PI / 2);
+          sprites.push(ground);
+          const count = hasTree ? 5 + rng() * 10 : 0;
+          for (let i = 0;i < count; i++) {
+            const tree = spritePool.create(Assets.TREE);
+            tree.spriteType = SpriteType.SPRITE;
+            const size = 1 + Math.floor(2 * rng());
+            tree.transform.translate(px + (rng() - 0.5) * 2.5, -1 + size / 2, pz + (rng() - 0.5) * 2.5).scale(0.2 + rng(), size, 0.2 + rng());
+            sprites.push(tree);
+          }
+          if (!isWater && !count && rng() < 0.02) {
+            const bun = spritePool.create(Assets.BUN);
+            bun.spriteType = SpriteType.SPRITE;
+            bun.transform.translate(px, -0.7, pz).scale(0.5);
+            const bunShadow = spritePool.create(Assets.BUN_SHADOW);
+            bunShadow.transform.translate(px, -1, pz).rotateX(-Math.PI / 2).scale(0.5);
+            sprites.push(bun, bunShadow);
+          }
+          if (!isWater && !count && rng() < 0.01) {
+            const scale = 1.5;
+            const wolf = spritePool.create(Assets.WOLF);
+            wolf.spriteType = SpriteType.SPRITE;
+            wolf.transform.translate(px, 0, pz).scale(scale);
+            const shadow = spritePool.create(Assets.WOLF_SHADOW);
+            shadow.transform.translate(px, -0.99, pz - 0.5).rotateX(-Math.PI / 2).scale(scale);
+            sprites.push(wolf, shadow);
+          }
+          spritesMap.set(cell.tag, sprites);
+          spritesAccumulator.add(sprites);
+          if (hasTree || isWater) {
+            const colliders = arrayPool2.create();
+            colliders.push(new CollisionDetector({
+              blockerBox: blockBox,
+              blockerPosition: [px, 0, pz],
+              heroBox
+            }, { shouldBlock: true }));
+            collidersMap.set(cell.tag, colliders);
+            worldColliders.add(colliders);
+          }
+          return sprites.length > 0;
+        },
+        untrackCells: function(cellTags) {
+          cellTags.forEach((tag) => {
+            const sprites = spritesMap.get(tag);
+            if (sprites) {
+              spritesAccumulator.remove(sprites);
+              sprites.forEach((sprite) => spritePool.recycle(sprite));
+              spritesMap.delete(tag);
+              arrayPool.recycle(sprites);
+            }
+            const colliders = collidersMap.get(tag);
+            if (colliders) {
+              worldColliders.remove(colliders);
+              collidersMap.delete(tag);
+              arrayPool2.recycle(colliders);
+            }
+          });
+        }
+      }, new h3({ yRange: [0, 0] })));
+    }
+    worldColliders.add([
+      ...blockPositions.map((blockPosition) => new CollisionDetector({
+        blockerBox: blockBox,
+        blockerPosition: blockPosition,
+        heroBox,
+        listener: {
+          onBlockChange(blocked) {
+            displayBox.setImageId(blocked ? Assets.WIREFRAME_RED : Assets.WIREFRAME);
+          }
+        }
+      }, { shouldBlock: true })),
+      new CollisionDetector({
+        blockerBox: exitBlock,
+        blockerPosition: exitPosition,
+        heroBox,
+        listener: {
+          onEnter() {
+            displayBox.setImageId(Assets.WIREFRAME_RED);
+            ui.openDialog({
+              messages: [
+                { text: "Going down..." },
+                {
+                  text: "",
+                  action: () => new Promise((resolve) => {
+                    camera.fade.progressTowards(1, 0.005, {
+                      onRelease: resolve
+                    }, motor);
+                  })
+                },
+                {
+                  action: () => {
+                    console.log("Change scene");
+                  }
+                }
+              ]
+            });
+          },
+          onLeave() {
+            displayBox.setImageId(Assets.WIREFRAME);
+          }
+        }
+      }, { shouldBlock: false })
+    ]);
+    const heroPos = new t0({ blockers: worldColliders }).movedTo(0, 0, 3);
+    const heroSprites = new SpriteGroup([{
+      imageId: Assets.DODO,
+      spriteType: SpriteType.SPRITE,
+      transform: d.create().translate(0, -0.3, 0),
+      animationId: Anims.STILL
+    }], heroPos);
+    spritesAccumulator.add(heroSprites);
+    this.addAuxiliary({
+      activate() {
+        spritesAccumulator.updateFully();
+      }
+    });
+    const displayBox = new SpriteGroup(new DisplayBox({ box: heroBox, imageId: Assets.WIREFRAME }), heroPos);
+    spritesAccumulator.add(displayBox);
+    const shadowPos = new t0({});
+    const shadowHeroSprites = new SpriteGroup([
+      {
+        imageId: Assets.DODO_SHADOW,
+        transform: d.create().translate(0, -0.89, 0.5).rotateX(-Math.PI / 2).scale(1, 0.3, 1),
+        animationId: Anims.STILL
+      }
+    ], shadowPos);
+    this.addAuxiliary(new FollowAuxiliary({
+      motor,
+      follower: shadowPos,
+      followee: heroPos
+    }, {
+      followY: false
+    }));
+    spritesAccumulator.add(shadowHeroSprites);
+    const videoSprites = new SpriteGroup([
+      {
+        imageId: Assets.VIDEO,
+        spriteType: SpriteType.DISTANT,
+        transform: d.create().translate(3000, 1000, -5000).scale(480, 270, 1)
+      }
+    ]);
+    spritesAccumulator.add(videoSprites);
+    const controlledMotor = new ControlledMotor(motor, { policy: Policy.INCOMING_CYCLE_PRIORITY });
+    const stepBack = new StepBackAuxiliary({ motor: controlledMotor, position: heroPos });
+    const posStep = new PositionStepAuxiliary({ motor: controlledMotor, controls, positionStep: new PositionStep({ position: heroPos }), turnGoal: camera.turn.angle }, { speed: 1.5, airBoost: 1.5 });
+    this.addAuxiliary(keyboard).addAuxiliary(new ToggleAuxiliary({ keyboard }, {
+      auxiliariesMap: [
+        {
+          key: "Tab",
+          aux: () => Auxiliaries.from(posStep, stepBack, new SmoothFollowAuxiliary({ motor, follower: camPosition, followee: heroPos }, { speed: 0.05, followY: false }), new JumpAuxiliary({ motor, controls, position: heroPos }, { gravity: -2, jump: 3 }))
+        },
+        {
+          key: "Tab",
+          aux: () => Auxiliaries.from(new TurnAuxiliary({ motor, controls, turn: camera.turn }), new TiltAuxiliary({ motor, controls, tilt: camera.tilt }), new MoveAuxiliary({ motor, controls, direction: camera.turn, position: heroPos }), new JumpAuxiliary({ motor, controls, position: heroPos }), new TiltResetAuxiliary({ motor, controls, tilt: camera.tilt }), new SmoothFollowAuxiliary({ motor, follower: camPosition, followee: heroPos }, { speed: 0.05 }))
+        }
+      ]
+    })).addAuxiliary(new DirAuxiliary({ controls }, (dx) => {
+      heroSprites.setOrientation(dx);
+      shadowHeroSprites.setOrientation(dx);
+    })).addAuxiliary(new MotionAuxiliary({ controls }, (moving) => {
+      const animId = moving ? Anims.RUN : Anims.STILL;
+      heroSprites.setAnimationId(animId);
+      shadowHeroSprites.setAnimationId(animId);
+    }));
+    const surroundingTracker = new E2({ cellTrack: cellTrackers }, {
+      cellLimit: 200,
+      range: [7, 3, 7],
+      cellSize: CELLSIZE
+    });
+    this.addAuxiliary(new M2({ positionMatrix: heroPos }, { cellSize: CELLSIZE }).addListener(surroundingTracker).addListener(stepBack));
+    camera.distance.setValue(15);
+    camera.tilt.angle.setValue(0.8);
+    camera.projection.zoom.setValue(0.25);
+    camera.projection.perspective.setValue(0.05);
+    camera.setBackgroundColor(0);
+    this.addAuxiliary(new TimeAuxiliary({ motor, engine })).addAuxiliary(new FadeApiAuxiliary({ camera, motor, api: this.api }));
+  }
+}
+
+class ResizeAux {
+  engine;
+  camera;
+  canvas;
+  constructor({ engine, camera, canvas }) {
+    this.engine = engine;
+    this.camera = camera;
+    this.canvas = canvas;
+    this.onResize = this.onResize.bind(this);
+  }
+  activate() {
+    window.addEventListener("resize", this.onResize);
+    this.checkCanvasSize();
+  }
+  deactivate() {
+    window.removeEventListener("resize", this.onResize);
+  }
+  onResize() {
+    this.checkCanvasSize();
+  }
+  checkCanvasSize() {
+    if (this.canvas) {
+      if (this.canvas instanceof HTMLCanvasElement) {
+        this.canvas.width = this.canvas.offsetWidth * 2;
+        this.canvas.height = this.canvas.offsetHeight * 2;
+      }
+      this.camera?.resizeViewport(this.canvas.width, this.canvas.height);
+      this.engine.resetViewportSize();
+    }
+  }
+}
+
+class DOMWrap extends AuxiliaryHolder {
+  elem;
+  constructor(elem) {
+    super();
+    this.elem = elem;
+  }
+}
+var DEFAULT_ATTRIBUTES = {
+  alpha: true,
+  antialias: true,
+  depth: true,
+  failIfMajorPerformanceCaveat: undefined,
+  powerPreference: "default",
+  premultipliedAlpha: true,
+  preserveDrawingBuffer: false,
+  stencil: false
+};
+
+class WebGlCanvas extends DOMWrap {
+  gl;
+  constructor(canvas, { attributes } = {}, config) {
+    super(canvas);
+    const gl = canvas.getContext("webgl2", { ...DEFAULT_ATTRIBUTES, ...attributes });
+    this.gl = config?.logGL ? logProxy(gl) : gl;
+    canvas.style.pointerEvents = "none";
+  }
+}
+var usePopups = function() {
   const [popups, setPopups] = import_react3.useState([]);
   return {
     popups,
-    addPopup: import_react3.useCallback((data) => setPopups((popups2) => {
-      return [...popups2, data];
-    }), [setPopups]),
+    addPopup: import_react3.useCallback((data) => setPopups((popups2) => [...popups2, data]), [setPopups]),
     closePopup: import_react3.useCallback((uid) => {
       setPopups((popups2) => {
         if (!uid || uid === popups2[popups2.length - 1].uid) {
@@ -24596,15 +25306,69 @@ var usePopupManager = function() {
     topPopupUid: import_react3.useMemo(() => popups[popups.length - 1]?.uid ?? "", [popups])
   };
 };
+var PopupContainer = function({ popups, ui, onDone, registry }) {
+  const [elemsMap, setElemsMap] = import_react4.useState({});
+  const createElement = import_react4.useCallback((data) => {
+    if (!data.type) {
+      throw new Error(`Invalid data type: ${data.type}`);
+    }
+    return registry[data.type](data, ui, onDone);
+  }, [ui, onDone, registry]);
+  import_react4.useEffect(() => {
+    setElemsMap((elemsMap2) => {
+      const newElemsMap = {};
+      popups.forEach((data) => {
+        if (data.uid) {
+          newElemsMap[data.uid] = elemsMap2[data.uid] ?? createElement(data);
+        }
+      });
+      return newElemsMap;
+    });
+  }, [popups, setElemsMap, createElement]);
+  const { getLayout } = useGameContext();
+  const getRect = import_react4.useCallback((layout = {}) => {
+    const { positionFromRight, positionFromBottom, position, size } = getLayout(layout);
+    const x4 = positionFromRight ? position?.[0] ?? 0 : Number.MAX_SAFE_INTEGER - (position?.[0] ?? 0);
+    const y3 = positionFromBottom ? position?.[1] ?? 0 : Number.MAX_SAFE_INTEGER - (position?.[1] ?? 0);
+    const width = size?.[0] ?? Number.MAX_SAFE_INTEGER;
+    const height = size?.[1] ?? Number.MAX_SAFE_INTEGER;
+    return { x: x4, y: y3, width, height };
+  }, [getLayout]);
+  const elements = import_react4.useMemo(() => {
+    const sortedPopups = [...popups];
+    sortedPopups.sort((p1, p2) => {
+      const r1 = getRect(p1.layout), r2 = getRect(p2.layout);
+      return r2.y - r1.y;
+    });
+    return sortedPopups.map((data) => elemsMap[data.uid ?? ""]);
+  }, [elemsMap, popups, getRect]);
+  return jsx_dev_runtime2.jsxDEV(jsx_dev_runtime2.Fragment, {
+    children: elements
+  }, undefined, false, undefined, this);
+};
+var rng = function() {
+  if (!getRandomValues) {
+    getRandomValues = typeof crypto !== "undefined" && crypto.getRandomValues && crypto.getRandomValues.bind(crypto);
+    if (!getRandomValues) {
+      throw new Error("crypto.getRandomValues() not supported. See https://github.com/uuidjs/uuid#getrandomvalues-not-supported");
+    }
+  }
+  return getRandomValues(rnds8);
+};
+var unsafeStringify = function(arr, offset = 0) {
+  return byteToHex[arr[offset + 0]] + byteToHex[arr[offset + 1]] + byteToHex[arr[offset + 2]] + byteToHex[arr[offset + 3]] + "-" + byteToHex[arr[offset + 4]] + byteToHex[arr[offset + 5]] + "-" + byteToHex[arr[offset + 6]] + byteToHex[arr[offset + 7]] + "-" + byteToHex[arr[offset + 8]] + byteToHex[arr[offset + 9]] + "-" + byteToHex[arr[offset + 10]] + byteToHex[arr[offset + 11]] + byteToHex[arr[offset + 12]] + byteToHex[arr[offset + 13]] + byteToHex[arr[offset + 14]] + byteToHex[arr[offset + 15]];
+};
 var usePopupLayout = function({ layout }) {
-  const x4 = layout.position?.[0] ?? DEFAULT_HORIZONTAL_PADDING;
-  const y3 = layout.position?.[1] ?? DEFAULT_VERTICAL_PADDING;
-  const left = layout.positionFromRight ? `calc(100% - ${x4}px)` : x4;
-  const top = layout.positionFromBottom ? `calc(100% - ${y3}px)` : y3;
+  const { getLayout } = useGameContext();
+  const layoutModel = getLayout(layout);
+  const x4 = layoutModel.position?.[0] || DEFAULT_HORIZONTAL_PADDING;
+  const y3 = layoutModel.position?.[1] || DEFAULT_VERTICAL_PADDING;
+  const left = layoutModel.positionFromRight ? `calc(100% - ${x4}px)` : x4;
+  const top = layoutModel.positionFromBottom ? `calc(100% - ${y3}px)` : y3;
   const right = DEFAULT_HORIZONTAL_PADDING;
   const bottom = DEFAULT_VERTICAL_PADDING;
-  const width = layout.size?.[0];
-  const height = layout.size?.[1];
+  const width = layoutModel.size?.[0] || undefined;
+  const height = layoutModel.size?.[1] || undefined;
   return {
     left,
     top,
@@ -24614,27 +25378,14 @@ var usePopupLayout = function({ layout }) {
     height
   };
 };
-var useUniquePopupOnLayout = function({ layout, disabled }) {
-  const [visible, setVisible] = import_react4.useState(true);
-  const { layoutReplacementCallbacks } = useGameContext();
-  const hide = import_react4.useCallback(() => setVisible(false), [setVisible]);
-  import_react4.useLayoutEffect(() => {
-    const layoutUid = layout.uid;
-    if (layoutUid && !disabled) {
-      layoutReplacementCallbacks[layoutUid]?.();
-      layoutReplacementCallbacks[layoutUid] = hide;
-      setVisible(true);
-    }
-  }, [disabled, hide, layout, layoutReplacementCallbacks]);
-  return { visible };
-};
 var Popup2 = function({
-  popUid,
   children,
   layout,
   fontSize,
   disabled,
-  hidden
+  hidden,
+  displayNone,
+  onDone
 }) {
   const [h4, setH] = import_react5.useState(0);
   import_react5.useEffect(() => {
@@ -24643,9 +25394,7 @@ var Popup2 = function({
   const { top, left, right, bottom, width, height } = usePopupLayout({
     layout
   });
-  const { visible } = useUniquePopupOnLayout({ layout, disabled });
-  return !hidden && jsx_dev_runtime2.jsxDEV("div", {
-    className: "pop-up",
+  return !hidden && jsx_dev_runtime3.jsxDEV("div", {
     style: {
       position: "absolute",
       left,
@@ -24655,22 +25404,26 @@ var Popup2 = function({
       width,
       height,
       fontSize: fontSize ?? DEFAULT_FONT_SIZE,
-      display: visible ? "" : "none"
+      display: displayNone ? "none" : ""
     },
-    children: jsx_dev_runtime2.jsxDEV("div", {
+    children: jsx_dev_runtime3.jsxDEV("div", {
+      className: "pop-up",
       style: {
         ...POPUP_CSS,
         width: "100%",
         height: `${h4}%`,
         overflow: "hidden",
-        transition: "height .2s"
+        transition: "height .2s",
+        outlineColor: disabled ? "whitesmoke" : "white"
       },
-      children: jsx_dev_runtime2.jsxDEV("div", {
+      children: jsx_dev_runtime3.jsxDEV("div", {
         className: "double-border",
         style: {
           ...DOUBLE_BORDER_CSS,
           height: `calc(100% - ${DOUBLE_BORDER_HEIGHT_OFFSET}px)`,
-          pointerEvents: disabled ? "none" : undefined
+          pointerEvents: disabled ? "none" : undefined,
+          borderColor: disabled ? "silver" : "white",
+          color: disabled ? "whitesmoke" : "white"
         },
         children
       }, undefined, false, undefined, this)
@@ -24699,37 +25452,16 @@ var useControlsLock = function({ uid, listener }) {
   }, [addControlsLock, removeControlsLock, locked, uid]);
   return { lockState };
 };
-var useActions = function({ ui }) {
-  const registry = import_react7.useMemo(() => new ConversionRegistry, []);
-  const performActions = import_react7.useCallback(async (actions, state) => {
-    for (const action of actions) {
-      if (action) {
-        const popActionFun = typeof action === "function" ? action : registry.convert(action);
-        await popActionFun(ui, state);
-      }
-    }
-    return state;
-  }, [ui, registry]);
+var useReplaceUiMethod = function({ ui, methodName, method }) {
   import_react7.useEffect(() => {
-    ui.performActions = performActions;
-  }, [ui, performActions]);
-  return { performActions };
+    const preMethod = ui[methodName];
+    ui[methodName] = method;
+    return () => {
+      ui[methodName] = preMethod;
+    };
+  }, [method, ui, methodName]);
 };
 var useDialog = function({ dialogData, ui, onDone }) {
-  const { performActions } = useActions({ ui });
-  const [state, dispatch] = import_react8.useReducer(reducer, {
-    conversations: [dialogData.conversation],
-    indices: [0],
-    get conversation() {
-      return this.conversations[this.conversations.length - 1];
-    },
-    get index() {
-      return this.indices[this.indices.length - 1];
-    }
-  });
-  const nextMessage = import_react8.useCallback(() => {
-    dispatch({ nextMessage: true });
-  }, [dispatch]);
   const { lockState } = useControlsLock({
     uid: dialogData.uid,
     listener: {
@@ -24738,48 +25470,75 @@ var useDialog = function({ dialogData, ui, onDone }) {
       }
     }
   });
+  const disabled = lockState === LockStatus.LOCKED;
+  const [index, setIndex] = import_react8.useState(0);
+  const nextMessage = import_react8.useCallback((idx = 1) => {
+    setIndex((index2) => index2 + idx);
+  }, [setIndex]);
+  const previousMessage = import_react8.useCallback((idx = 1) => {
+    setIndex((index2) => index2 - idx);
+  }, [setIndex]);
+  useReplaceUiMethod({ ui, methodName: "nextMessage", method: nextMessage });
+  useReplaceUiMethod({ ui, methodName: "previousMessage", method: previousMessage });
+  const messages = import_react8.useMemo(() => dialogData.messages, [dialogData]);
+  const message = import_react8.useMemo(() => messages?.at(index), [messages, index]);
+  const { closePopup } = useGameContext();
   import_react8.useEffect(() => {
-    ui.nextMessage = nextMessage;
-    return () => {
-      ui.nextMessage = () => {
-      };
-    };
-  }, [nextMessage, ui]);
-  const messages = import_react8.useMemo(() => state.conversation?.messages, [state]);
-  const message = import_react8.useMemo(() => messages?.at(state.index), [messages, state]);
-  import_react8.useEffect(() => {
-    if (!state.conversation) {
-      ui.closePopup(dialogData.uid);
+    if (!message) {
+      closePopup(dialogData.uid);
       onDone();
     }
-  }, [state, ui, onDone, dialogData]);
+  }, [dialogData, onDone, message, closePopup]);
   import_react8.useEffect(() => {
-    if (message?.action) {
+    if (typeof message === "object" && message?.action) {
       const actions = Array.isArray(message.action) ? message.action : [message.action];
-      performActions(actions, {}).then(() => nextMessage());
+      ui.performActions(actions, {}, (state) => {
+        if (!state.stayOnMessage) {
+          nextMessage();
+        }
+        return state;
+      });
     }
-  }, [message, performActions, dialogData, nextMessage]);
+  }, [message, ui, dialogData, nextMessage]);
   return {
-    text: message?.text,
-    disabled: lockState === LockStatus.LOCKED
+    text: typeof message === "string" ? message : message?.text,
+    disabled
   };
+};
+var useUniquePopupOnLayout = function({ layout, disabled }) {
+  const [visible, setVisible] = import_react9.useState(true);
+  const { layoutReplacementCallbacks } = useGameContext();
+  const hide = import_react9.useCallback(() => setVisible(false), [setVisible]);
+  import_react9.useEffect(() => {
+    const layoutName = typeof layout === "string" ? layout : layout.name;
+    if (layoutName && !disabled) {
+      layoutReplacementCallbacks[layoutName]?.();
+      layoutReplacementCallbacks[layoutName] = hide;
+      setVisible(true);
+    }
+  }, [disabled, hide, layout, layoutReplacementCallbacks]);
+  return { visible };
 };
 var Dialog = function({ dialogData, ui, onDone }) {
   const { text, disabled } = useDialog({ dialogData, ui, onDone });
+  const layout = dialogData.layout ?? {};
   const { popupControl } = useGameContext();
-  return jsx_dev_runtime3.jsxDEV(Popup2, {
+  const { visible } = useUniquePopupOnLayout({ layout, disabled });
+  return jsx_dev_runtime4.jsxDEV(Popup2, {
     popUid: dialogData.uid,
     layout: dialogData.layout ?? {},
     fontSize: dialogData.style?.fontSize,
     disabled,
-    children: jsx_dev_runtime3.jsxDEV("div", {
+    displayNone: !visible,
+    onDone,
+    children: jsx_dev_runtime4.jsxDEV("div", {
       style: {
         padding: 10,
         width: "100%",
         height: "100%"
       },
       onClick: () => popupControl.onAction(),
-      children: jsx_dev_runtime3.jsxDEV("progressive-text", {
+      children: jsx_dev_runtime4.jsxDEV("progressive-text", {
         period: "30",
         children: text
       }, undefined, false, undefined, this)
@@ -24787,16 +25546,14 @@ var Dialog = function({ dialogData, ui, onDone }) {
   }, undefined, false, undefined, this);
 };
 var useSelection = function({ menuData }) {
-  const [selectedIndex, setSelectedIndex] = import_react9.useState(0);
-  const [scroll, setScroll] = import_react9.useState(0);
-  const { onSelection } = useGameContext();
-  import_react9.useEffect(() => onSelection(selectedIndex), [selectedIndex, onSelection]);
-  const scrollDown = import_react9.useCallback(() => {
+  const [selectedIndex, setSelectedIndex] = import_react10.useState(0);
+  const [scroll, setScroll] = import_react10.useState(0);
+  const scrollDown = import_react10.useCallback(() => {
     const len = menuData.items.length.valueOf();
     setScroll((scroll2) => Math.min(len - (menuData.maxRows ?? len), scroll2 + 1));
   }, [setScroll, menuData]);
-  const scrollUp = import_react9.useCallback(() => setScroll((scroll2) => Math.max(0, scroll2 - 1)), [setScroll]);
-  import_react9.useEffect(() => {
+  const scrollUp = import_react10.useCallback(() => setScroll((scroll2) => Math.max(0, scroll2 - 1)), [setScroll]);
+  import_react10.useEffect(() => {
     if (menuData.maxRows) {
       if (selectedIndex - scroll >= menuData.maxRows) {
         scrollDown();
@@ -24805,17 +25562,17 @@ var useSelection = function({ menuData }) {
       }
     }
   }, [selectedIndex, scroll, menuData, scrollUp, scrollDown]);
-  const select = import_react9.useCallback((index) => {
+  const select = import_react10.useCallback((index) => {
     const len = menuData.items.length.valueOf();
     setSelectedIndex(Math.max(0, Math.min(index, len - 1)));
   }, [setSelectedIndex, menuData]);
-  const moveSelection = import_react9.useCallback((dy2) => {
+  const moveSelection = import_react10.useCallback((dy2) => {
     if (dy2) {
       const len = menuData.items.length.valueOf();
       setSelectedIndex((index) => Math.max(0, Math.min(index + dy2, len - 1)));
     }
   }, [setSelectedIndex, menuData]);
-  const selectedItem = import_react9.useMemo(() => menuData.items.at(selectedIndex), [menuData, selectedIndex]);
+  const selectedItem = import_react10.useMemo(() => menuData.items.at(selectedIndex), [menuData, selectedIndex]);
   return {
     select,
     moveSelection,
@@ -24825,40 +25582,48 @@ var useSelection = function({ menuData }) {
     scrollDown
   };
 };
+var getBehavior = function(behavior) {
+  if (typeof behavior === "string") {
+    return MenuBehaviorEnum[behavior] ?? MenuItemBehaviorDefault;
+  } else {
+    return behavior ?? MenuItemBehaviorDefault;
+  }
+};
 var useMenu = function({ menuData, ui, onDone }) {
   const { scroll, scrollUp, scrollDown, select, moveSelection, selectedItem } = useSelection({ menuData });
-  const { performActions } = useActions({ ui });
-  const [menuHoverEnabled, setMenuHoverEnabled] = import_react10.useState(false);
-  const [hidden, setHidden] = import_react10.useState(false);
-  const onMenuAction = import_react10.useCallback((index) => {
-    const item = index !== undefined ? menuData.items.at(index) : selectedItem;
-    if (!item || item.disabled) {
+  const [menuHoverEnabled, setMenuHoverEnabled] = import_react11.useState(false);
+  const [hidden, setHidden] = import_react11.useState(false);
+  const { closePopup } = useGameContext();
+  const onMenuAction = import_react11.useCallback((index) => {
+    const itemFlex = index !== undefined ? menuData.items.at(index) : selectedItem;
+    const item = typeof itemFlex === "string" ? { label: itemFlex } : itemFlex;
+    if (!item) {
       return;
     }
-    const behavior = item.behavior ?? MenuItemBehavior.CLOSE_ON_SELECT;
-    if (behavior === MenuItemBehavior.CLOSE_ON_SELECT) {
-      ui.closePopup(menuData.uid);
+    const behavior = getBehavior(item.behavior ?? menuData.behavior);
+    if (behavior === MenuBehaviorEnum.CLOSE_ON_SELECT) {
+      closePopup(menuData.uid);
     }
-    if (behavior === MenuItemBehavior.HIDE_ON_SELECT) {
+    if (behavior === MenuBehaviorEnum.HIDE_ON_SELECT) {
       setHidden(true);
     }
     const selectedAction = item.action;
     const actions = Array.isArray(selectedAction) ? selectedAction : [selectedAction];
-    performActions(actions, { keepMenu: behavior === MenuItemBehavior.NONE || behavior === MenuItemBehavior.HIDE_ON_SELECT }).then((state) => {
-      if (behavior === MenuItemBehavior.CLOSE_AFTER_SELECT) {
-        ui.closePopup(menuData.uid);
+    ui.performActions(actions, { keepMenu: behavior === MenuBehaviorEnum.NONE || behavior === MenuBehaviorEnum.HIDE_ON_SELECT }, (state) => {
+      if (behavior === MenuBehaviorEnum.CLOSE_AFTER_SELECT) {
+        closePopup(menuData.uid);
       }
       if (!state.keepMenu) {
         onDone();
       }
-      if (behavior === MenuItemBehavior.HIDE_ON_SELECT) {
+      if (behavior === MenuBehaviorEnum.HIDE_ON_SELECT) {
         setHidden(false);
       }
     });
-  }, [menuData, moveSelection, selectedItem, performActions, setMenuHoverEnabled, setHidden]);
+  }, [menuData, moveSelection, selectedItem, ui, setMenuHoverEnabled, setHidden, closePopup]);
   const { lockState } = useControlsLock({
     uid: menuData.uid,
-    listener: import_react10.useMemo(() => ({
+    listener: import_react11.useMemo(() => ({
       onAction: onMenuAction,
       onUp() {
         setMenuHoverEnabled(false);
@@ -24878,9 +25643,7 @@ var useMenu = function({ menuData, ui, onDone }) {
     scrollDown,
     disabled: lockState === LockStatus.LOCKED,
     menuHoverEnabled,
-    enableMenuHover: import_react10.useCallback(!menuHoverEnabled ? () => {
-      setMenuHoverEnabled(true);
-    } : () => {
+    enableMenuHover: import_react11.useCallback(!menuHoverEnabled ? () => setMenuHoverEnabled(true) : () => {
     }, [menuHoverEnabled]),
     hidden,
     onMenuAction
@@ -24889,14 +25652,17 @@ var useMenu = function({ menuData, ui, onDone }) {
 var Menu = function({ menuData, ui, onDone }) {
   const { scroll, scrollUp, scrollDown, selectedItem, select, disabled, menuHoverEnabled, enableMenuHover, hidden, onMenuAction } = useMenu({ menuData, ui, onDone });
   const layout = menuData?.layout ?? {};
-  return jsx_dev_runtime4.jsxDEV(Popup2, {
+  const { visible } = useUniquePopupOnLayout({ layout, disabled });
+  return jsx_dev_runtime5.jsxDEV(Popup2, {
     popUid: menuData.uid,
     layout,
     fontSize: menuData.style?.fontSize,
     disabled,
     hidden,
+    displayNone: !visible,
+    onDone,
     children: [
-      jsx_dev_runtime4.jsxDEV("svg", {
+      jsx_dev_runtime5.jsxDEV("svg", {
         xmlns: "http://www.w3.org/2000/svg",
         style: {
           position: "absolute",
@@ -24907,43 +25673,42 @@ var Menu = function({ menuData, ui, onDone }) {
           left: `calc(50% - 100px)`
         },
         onMouseDown: () => scrollUp(),
-        children: jsx_dev_runtime4.jsxDEV("polygon", {
+        children: jsx_dev_runtime5.jsxDEV("polygon", {
           points: "100,10 110,20 90,20",
           style: {
             fill: "white"
           }
         }, undefined, false, undefined, this)
       }, undefined, false, undefined, this),
-      jsx_dev_runtime4.jsxDEV("div", {
+      jsx_dev_runtime5.jsxDEV("div", {
         style: {
           paddingTop: 10,
           cursor: menuHoverEnabled ? "inherit" : "auto"
         },
-        children: jsx_dev_runtime4.jsxDEV("div", {
+        children: jsx_dev_runtime5.jsxDEV("div", {
           style: { height: `calc(100% - 27px)`, overflow: "hidden" },
-          children: jsx_dev_runtime4.jsxDEV("div", {
+          children: jsx_dev_runtime5.jsxDEV("div", {
             style: { marginTop: scroll * -31, transition: "margin-top .2s" },
             children: z5(menuData.items, (item, index) => {
               const style = {
-                color: selectedItem === item ? "black" : "white",
-                backgroundColor: selectedItem === item ? "white" : "black",
-                cursor: !item?.disabled ? "inherit" : "auto"
+                color: selectedItem === item ? "black" : disabled ? "whitesmoke" : "white",
+                backgroundColor: selectedItem !== item ? "black" : disabled ? "whitesmoke" : "white"
               };
-              return jsx_dev_runtime4.jsxDEV("div", {
+              return jsx_dev_runtime5.jsxDEV("div", {
                 style,
                 onMouseMove: () => {
                   enableMenuHover();
                   select(index);
                 },
                 onMouseOver: menuHoverEnabled ? () => select(index) : undefined,
-                onClick: menuHoverEnabled && !item?.disabled ? () => onMenuAction(index) : undefined,
-                children: item?.label
+                onClick: menuHoverEnabled ? () => onMenuAction(index) : undefined,
+                children: typeof item === "string" ? item : item?.label
               }, index, false, undefined, this);
             })
           }, undefined, false, undefined, this)
         }, undefined, false, undefined, this)
       }, undefined, false, undefined, this),
-      jsx_dev_runtime4.jsxDEV("svg", {
+      jsx_dev_runtime5.jsxDEV("svg", {
         xmlns: "http://www.w3.org/2000/svg",
         style: {
           position: "absolute",
@@ -24954,7 +25719,7 @@ var Menu = function({ menuData, ui, onDone }) {
           left: `calc(50% - 100px)`
         },
         onMouseDown: () => scrollDown(),
-        children: jsx_dev_runtime4.jsxDEV("polygon", {
+        children: jsx_dev_runtime5.jsxDEV("polygon", {
           points: "100,20 110,10 90,10",
           style: {
             fill: "white"
@@ -24964,151 +25729,129 @@ var Menu = function({ menuData, ui, onDone }) {
     ]
   }, undefined, true, undefined, this);
 };
-var PopupContainer = function({ popups, ui, onDone }) {
-  const [elemsMap, setElemsMap] = import_react11.useState({});
-  const registry = import_react11.useMemo(() => ({
-    dialog: (data, ui2, onDone2) => jsx_dev_runtime5.jsxDEV(Dialog, {
-      dialogData: data,
-      ui: ui2,
-      onDone: onDone2
-    }, data.uid, false, undefined, this),
-    menu: (data, ui2, onDone2) => jsx_dev_runtime5.jsxDEV(Menu, {
-      menuData: data,
-      ui: ui2,
-      onDone: onDone2
-    }, data.uid, false, undefined, this)
-  }), []);
-  const createElement = import_react11.useCallback((data) => {
-    if (!data.type) {
-      throw new Error(`Invalid data type: ${data.type}`);
+var useActions = function({ ui }) {
+  const registry = import_react12.useMemo(() => new ConversionRegistry, []);
+  const performActions = import_react12.useCallback(async (oneOrMoreActions, state, onDone) => {
+    const actions = Array.isArray(oneOrMoreActions) ? oneOrMoreActions : [oneOrMoreActions];
+    for (const action of actions) {
+      if (action) {
+        const popActionFun = typeof action === "function" ? action : registry.convert(action);
+        await popActionFun(ui, state);
+      }
     }
-    return registry[data.type](data, ui, onDone);
-  }, [ui, onDone, registry]);
-  import_react11.useEffect(() => {
-    setElemsMap((elemsMap2) => {
-      const newElemsMap = {};
-      popups.forEach((data) => {
-        if (data.uid) {
-          newElemsMap[data.uid] = elemsMap2[data.uid] ?? createElement(data);
-        }
-      });
-      return newElemsMap;
-    });
-  }, [popups, setElemsMap, createElement]);
-  const getRect = import_react11.useCallback(({ positionFromRight, positionFromBottom, position, size } = {}) => {
-    const x4 = positionFromRight ? position?.[0] ?? 0 : Number.MAX_SAFE_INTEGER - (position?.[0] ?? 0);
-    const y3 = positionFromBottom ? position?.[1] ?? 0 : Number.MAX_SAFE_INTEGER - (position?.[1] ?? 0);
-    const width = size?.[0] ?? Number.MAX_SAFE_INTEGER;
-    const height = size?.[1] ?? Number.MAX_SAFE_INTEGER;
-    return { x: x4, y: y3, width, height };
-  }, []);
-  const elements = import_react11.useMemo(() => {
-    const sortedPopups = [...popups];
-    sortedPopups.sort((p1, p2) => {
-      const r1 = getRect(p1.layout), r2 = getRect(p2.layout);
-      return r2.y - r1.y;
-    });
-    return sortedPopups.map((data) => elemsMap[data.uid ?? ""]);
-  }, [elemsMap, popups, getRect]);
-  return jsx_dev_runtime5.jsxDEV(jsx_dev_runtime5.Fragment, {
-    children: elements
-  }, undefined, false, undefined, this);
+    onDone(state);
+  }, [ui, registry]);
+  return { performActions };
 };
-var rng = function() {
-  if (!getRandomValues) {
-    getRandomValues = typeof crypto !== "undefined" && crypto.getRandomValues && crypto.getRandomValues.bind(crypto);
-    if (!getRandomValues) {
-      throw new Error("crypto.getRandomValues() not supported. See https://github.com/uuidjs/uuid#getrandomvalues-not-supported");
+var PopupOverlay = function({ popupManager, popupControl, registry = DEFAULT_REGISTRY }) {
+  const { popups, addPopup, closePopup, topPopupUid } = usePopups();
+  const [, setOnDones] = import_react13.useState([]);
+  const layoutReplacementCallbacks = import_react13.useMemo(() => ({}), []);
+  const layoutModels = import_react13.useMemo(() => ({}), []);
+  const [forcedTopPopupUid, setForcedTopPopupUid] = import_react13.useState();
+  const registerLayout = import_react13.useCallback((layout) => {
+    const layouts = Array.isArray(layout) ? layout : [layout];
+    layouts.forEach((layout2) => {
+      if (layout2.name) {
+        layoutModels[layout2.name] = layout2;
+      }
+    });
+  }, [layoutModels]);
+  const getLayout = import_react13.useCallback((layout) => {
+    if (typeof layout === "string") {
+      return layoutModels[layout];
     }
-  }
-  return getRandomValues(rnds8);
-};
-var unsafeStringify = function(arr, offset = 0) {
-  return byteToHex[arr[offset + 0]] + byteToHex[arr[offset + 1]] + byteToHex[arr[offset + 2]] + byteToHex[arr[offset + 3]] + "-" + byteToHex[arr[offset + 4]] + byteToHex[arr[offset + 5]] + "-" + byteToHex[arr[offset + 6]] + byteToHex[arr[offset + 7]] + "-" + byteToHex[arr[offset + 8]] + byteToHex[arr[offset + 9]] + "-" + byteToHex[arr[offset + 10]] + byteToHex[arr[offset + 11]] + byteToHex[arr[offset + 12]] + byteToHex[arr[offset + 13]] + byteToHex[arr[offset + 14]] + byteToHex[arr[offset + 15]];
-};
-var PopupOverlay = function({ popupManager, popupControl }) {
-  const { popups, addPopup, closePopup, topPopupUid } = usePopupManager();
-  const [selection, setSelection] = import_react12.useState(0);
-  const [, setOnDones] = import_react12.useState([]);
-  const layoutReplacementCallbacks = import_react12.useMemo(() => ({}), []);
-  const gameContext = import_react12.useMemo(() => ({
+    if (layout.name) {
+      layoutModels[layout.name] = layout;
+    }
+    return layout;
+  }, [layoutModels]);
+  const gameContext = import_react13.useMemo(() => ({
     addControlsLock: (uid) => popupManager.addControlsLock(uid),
     removeControlsLock: (uid) => popupManager.removeControlsLock(uid),
-    openMenu: (data) => {
-      const type = "menu";
-      const uid = type + "-" + v4_default();
-      addPopup({ uid, type, ...data });
-    },
-    openDialog: (data) => {
-      const type = "dialog";
-      const uid = type + "-" + v4_default();
-      addPopup({ uid, type, ...data });
-    },
     closePopup,
     popupControl,
     topPopupUid,
-    onSelection: setSelection,
-    layoutReplacementCallbacks
+    layoutReplacementCallbacks,
+    forcedTopPopupUid,
+    setForcedTopPopupUid,
+    getLayout,
+    registerLayout
   }), [
     popupManager,
     popupControl,
     addPopup,
     closePopup,
     topPopupUid,
-    setSelection,
-    layoutReplacementCallbacks
+    layoutReplacementCallbacks,
+    forcedTopPopupUid,
+    setForcedTopPopupUid,
+    getLayout,
+    registerLayout
   ]);
-  import_react12.useEffect(() => {
+  import_react13.useEffect(() => {
     popupManager.openMenu = async (data) => {
-      gameContext.openMenu(data);
+      const type = "menu";
+      addPopup({ uid: `${type}-${v4_default()}`, type, ...data });
       return new Promise((resolve) => setOnDones((onDones) => [...onDones, resolve]));
     };
+  }, [popupManager, addPopup]);
+  import_react13.useEffect(() => {
     popupManager.openDialog = async (data) => {
-      gameContext.openDialog(data);
+      const type = "dialog";
+      addPopup({ uid: `${type}-${v4_default()}`, type, ...data });
       return new Promise((resolve) => setOnDones((onDones) => [...onDones, resolve]));
     };
     popupManager.closePopup = gameContext.closePopup;
-    popupManager.selection = selection;
-  }, [popupManager, gameContext, selection]);
-  const onDone = import_react12.useCallback(() => {
+  }, [popupManager, addPopup]);
+  import_react13.useEffect(() => {
+    popupManager.registerLayout = registerLayout;
+  }, [registerLayout]);
+  const { performActions } = useActions({ ui: popupManager });
+  import_react13.useEffect(() => {
+    popupManager.performActions = performActions;
+  }, [popupManager, performActions]);
+  import_react13.useEffect(() => {
+    popupManager.popups = popups;
+  }, [popupManager, popups]);
+  const onDone = import_react13.useCallback(() => {
     setOnDones((previousOnDones) => {
       const last = previousOnDones[previousOnDones.length - 1];
       last?.();
       return previousOnDones.slice(0, previousOnDones.length - 1);
     });
   }, [setOnDones]);
-  return jsx_dev_runtime6.jsxDEV(Provider, {
+  return jsx_dev_runtime7.jsxDEV(Provider, {
     context: gameContext,
-    children: jsx_dev_runtime6.jsxDEV(PopupContainer, {
+    children: jsx_dev_runtime7.jsxDEV(PopupContainer, {
+      registry,
       popups,
       ui: popupManager,
       onDone
     }, undefined, false, undefined, this)
   }, undefined, false, undefined, this);
 };
-var attachPopup = function(root, config = {}) {
+var attachPopup = function(root, config = {}, registry) {
   const { offsetLeft: left, offsetTop: top } = root;
   const rootElem = document.createElement("div");
   const reactRoot = client.default.createRoot(rootElem);
   const popupManager = new PopupManager;
   const popupControl = new PopupControl;
-  reactRoot.render(jsx_dev_runtime6.jsxDEV("div", {
+  reactRoot.render(jsx_dev_runtime7.jsxDEV("div", {
     style: {
       ...STYLE,
       top,
       left,
       pointerEvents: config.disableTap ? "none" : undefined
     },
-    children: jsx_dev_runtime6.jsxDEV(PopupOverlay, {
+    children: jsx_dev_runtime7.jsxDEV(PopupOverlay, {
       popupManager,
-      popupControl
+      popupControl,
+      registry
     }, undefined, false, undefined, this)
   }, undefined, false, undefined, this));
   root.appendChild(rootElem);
-  const detach = () => {
-    reactRoot.unmount();
-  };
-  return { ui: popupManager, popupControl, detach };
+  return { ui: popupManager, popupControl, detach: () => reactRoot.unmount() };
 };
 var __create2 = Object.create;
 var __defProp2 = Object.defineProperty;
@@ -28226,14 +28969,14 @@ var require_scheduler = __commonJS2((exports, module) => {
   }
 });
 var require_react_dom_development = __commonJS2((exports) => {
-  var React4 = __toESM2(require_react(), 1);
+  var React3 = __toESM2(require_react(), 1);
   var Scheduler = __toESM2(require_scheduler(), 1);
   if (true) {
     (function() {
       if (typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ !== "undefined" && typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStart === "function") {
         __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStart(new Error);
       }
-      var ReactSharedInternals = React4.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;
+      var ReactSharedInternals = React3.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;
       var suppressWarning = false;
       function setSuppressWarning(newSuppressWarning) {
         {
@@ -29634,7 +30377,7 @@ var require_react_dom_development = __commonJS2((exports) => {
         {
           if (props.value == null) {
             if (typeof props.children === "object" && props.children !== null) {
-              React4.Children.forEach(props.children, function(child) {
+              React3.Children.forEach(props.children, function(child) {
                 if (child == null) {
                   return;
                 }
@@ -37760,7 +38503,7 @@ var require_react_dom_development = __commonJS2((exports) => {
         }
       }
       var fakeInternalInstance = {};
-      var emptyRefsObject = new React4.Component().refs;
+      var emptyRefsObject = new React3.Component().refs;
       var didWarnAboutStateAssignmentForComponent;
       var didWarnAboutUninitializedState;
       var didWarnAboutGetSnapshotBeforeUpdateWithoutDidUpdate;
@@ -39511,7 +40254,7 @@ var require_react_dom_development = __commonJS2((exports) => {
       function basicStateReducer(state, action) {
         return typeof action === "function" ? action(state) : action;
       }
-      function mountReducer(reducer2, initialArg, init) {
+      function mountReducer(reducer, initialArg, init) {
         var hook = mountWorkInProgressHook();
         var initialState;
         if (init !== undefined) {
@@ -39525,20 +40268,20 @@ var require_react_dom_development = __commonJS2((exports) => {
           interleaved: null,
           lanes: NoLanes,
           dispatch: null,
-          lastRenderedReducer: reducer2,
+          lastRenderedReducer: reducer,
           lastRenderedState: initialState
         };
         hook.queue = queue;
         var dispatch = queue.dispatch = dispatchReducerAction.bind(null, currentlyRenderingFiber$1, queue);
         return [hook.memoizedState, dispatch];
       }
-      function updateReducer(reducer2, initialArg, init) {
+      function updateReducer(reducer, initialArg, init) {
         var hook = updateWorkInProgressHook();
         var queue = hook.queue;
         if (queue === null) {
           throw new Error("Should have a queue. This is likely a bug in React. Please file an issue.");
         }
-        queue.lastRenderedReducer = reducer2;
+        queue.lastRenderedReducer = reducer;
         var current2 = currentHook;
         var baseQueue = current2.baseQueue;
         var pendingQueue = queue.pending;
@@ -39597,7 +40340,7 @@ var require_react_dom_development = __commonJS2((exports) => {
                 newState = update.eagerState;
               } else {
                 var action = update.action;
-                newState = reducer2(newState, action);
+                newState = reducer(newState, action);
               }
             }
             update = update.next;
@@ -39630,13 +40373,13 @@ var require_react_dom_development = __commonJS2((exports) => {
         var dispatch = queue.dispatch;
         return [hook.memoizedState, dispatch];
       }
-      function rerenderReducer(reducer2, initialArg, init) {
+      function rerenderReducer(reducer, initialArg, init) {
         var hook = updateWorkInProgressHook();
         var queue = hook.queue;
         if (queue === null) {
           throw new Error("Should have a queue. This is likely a bug in React. Please file an issue.");
         }
-        queue.lastRenderedReducer = reducer2;
+        queue.lastRenderedReducer = reducer;
         var dispatch = queue.dispatch;
         var lastRenderPhaseUpdate = queue.pending;
         var newState = hook.memoizedState;
@@ -39646,7 +40389,7 @@ var require_react_dom_development = __commonJS2((exports) => {
           var update = firstRenderPhaseUpdate;
           do {
             var action = update.action;
-            newState = reducer2(newState, action);
+            newState = reducer(newState, action);
             update = update.next;
           } while (update !== firstRenderPhaseUpdate);
           if (!objectIs(newState, hook.memoizedState)) {
@@ -40323,13 +41066,13 @@ var require_react_dom_development = __commonJS2((exports) => {
               ReactCurrentDispatcher$1.current = prevDispatcher;
             }
           },
-          useReducer: function(reducer2, initialArg, init) {
+          useReducer: function(reducer, initialArg, init) {
             currentHookNameInDev = "useReducer";
             mountHookTypesDev();
             var prevDispatcher = ReactCurrentDispatcher$1.current;
             ReactCurrentDispatcher$1.current = InvalidNestedHooksDispatcherOnMountInDEV;
             try {
-              return mountReducer(reducer2, initialArg, init);
+              return mountReducer(reducer, initialArg, init);
             } finally {
               ReactCurrentDispatcher$1.current = prevDispatcher;
             }
@@ -40427,13 +41170,13 @@ var require_react_dom_development = __commonJS2((exports) => {
               ReactCurrentDispatcher$1.current = prevDispatcher;
             }
           },
-          useReducer: function(reducer2, initialArg, init) {
+          useReducer: function(reducer, initialArg, init) {
             currentHookNameInDev = "useReducer";
             updateHookTypesDev();
             var prevDispatcher = ReactCurrentDispatcher$1.current;
             ReactCurrentDispatcher$1.current = InvalidNestedHooksDispatcherOnMountInDEV;
             try {
-              return mountReducer(reducer2, initialArg, init);
+              return mountReducer(reducer, initialArg, init);
             } finally {
               ReactCurrentDispatcher$1.current = prevDispatcher;
             }
@@ -40531,13 +41274,13 @@ var require_react_dom_development = __commonJS2((exports) => {
               ReactCurrentDispatcher$1.current = prevDispatcher;
             }
           },
-          useReducer: function(reducer2, initialArg, init) {
+          useReducer: function(reducer, initialArg, init) {
             currentHookNameInDev = "useReducer";
             updateHookTypesDev();
             var prevDispatcher = ReactCurrentDispatcher$1.current;
             ReactCurrentDispatcher$1.current = InvalidNestedHooksDispatcherOnUpdateInDEV;
             try {
-              return updateReducer(reducer2, initialArg, init);
+              return updateReducer(reducer, initialArg, init);
             } finally {
               ReactCurrentDispatcher$1.current = prevDispatcher;
             }
@@ -40635,13 +41378,13 @@ var require_react_dom_development = __commonJS2((exports) => {
               ReactCurrentDispatcher$1.current = prevDispatcher;
             }
           },
-          useReducer: function(reducer2, initialArg, init) {
+          useReducer: function(reducer, initialArg, init) {
             currentHookNameInDev = "useReducer";
             updateHookTypesDev();
             var prevDispatcher = ReactCurrentDispatcher$1.current;
             ReactCurrentDispatcher$1.current = InvalidNestedHooksDispatcherOnRerenderInDEV;
             try {
-              return rerenderReducer(reducer2, initialArg, init);
+              return rerenderReducer(reducer, initialArg, init);
             } finally {
               ReactCurrentDispatcher$1.current = prevDispatcher;
             }
@@ -40747,14 +41490,14 @@ var require_react_dom_development = __commonJS2((exports) => {
               ReactCurrentDispatcher$1.current = prevDispatcher;
             }
           },
-          useReducer: function(reducer2, initialArg, init) {
+          useReducer: function(reducer, initialArg, init) {
             currentHookNameInDev = "useReducer";
             warnInvalidHookAccess();
             mountHookTypesDev();
             var prevDispatcher = ReactCurrentDispatcher$1.current;
             ReactCurrentDispatcher$1.current = InvalidNestedHooksDispatcherOnMountInDEV;
             try {
-              return mountReducer(reducer2, initialArg, init);
+              return mountReducer(reducer, initialArg, init);
             } finally {
               ReactCurrentDispatcher$1.current = prevDispatcher;
             }
@@ -40868,14 +41611,14 @@ var require_react_dom_development = __commonJS2((exports) => {
               ReactCurrentDispatcher$1.current = prevDispatcher;
             }
           },
-          useReducer: function(reducer2, initialArg, init) {
+          useReducer: function(reducer, initialArg, init) {
             currentHookNameInDev = "useReducer";
             warnInvalidHookAccess();
             updateHookTypesDev();
             var prevDispatcher = ReactCurrentDispatcher$1.current;
             ReactCurrentDispatcher$1.current = InvalidNestedHooksDispatcherOnUpdateInDEV;
             try {
-              return updateReducer(reducer2, initialArg, init);
+              return updateReducer(reducer, initialArg, init);
             } finally {
               ReactCurrentDispatcher$1.current = prevDispatcher;
             }
@@ -40989,14 +41732,14 @@ var require_react_dom_development = __commonJS2((exports) => {
               ReactCurrentDispatcher$1.current = prevDispatcher;
             }
           },
-          useReducer: function(reducer2, initialArg, init) {
+          useReducer: function(reducer, initialArg, init) {
             currentHookNameInDev = "useReducer";
             warnInvalidHookAccess();
             updateHookTypesDev();
             var prevDispatcher = ReactCurrentDispatcher$1.current;
             ReactCurrentDispatcher$1.current = InvalidNestedHooksDispatcherOnUpdateInDEV;
             try {
-              return rerenderReducer(reducer2, initialArg, init);
+              return rerenderReducer(reducer, initialArg, init);
             } finally {
               ReactCurrentDispatcher$1.current = prevDispatcher;
             }
@@ -48564,7 +49307,7 @@ var require_client = __commonJS2((exports) => {
   }
   var i;
 });
-var import_react12 = __toESM2(require_react(), 1);
+var import_react13 = __toESM2(require_react(), 1);
 var import_react2 = __toESM2(require_react(), 1);
 var import_react = __toESM2(require_react(), 1);
 
@@ -48599,21 +49342,15 @@ var DEFAULT_GAME_CONTEXT = {
   removeControlsLock(_uid) {
     throw new Error("Function not implemented.");
   },
-  openMenu(_value) {
-    throw new Error("Function not implemented.");
-  },
-  openDialog(_value) {
-    throw new Error("Function not implemented.");
-  },
-  closePopup() {
+  closePopup(_uid) {
     throw new Error("Function not implemented.");
   },
   topPopupUid: "",
-  onSelection(_selection) {
-    throw new Error("Function not implemented");
-  },
   popupControl: new PopupControl,
-  layoutReplacementCallbacks: {}
+  layoutReplacementCallbacks: {},
+  getLayout(_layout) {
+    return {};
+  }
 };
 var Context = import_react.default.createContext(DEFAULT_GAME_CONTEXT);
 var Context_default = Context;
@@ -48633,15 +49370,15 @@ var useGameContext = () => {
 };
 
 class PopupManager {
-  #popupUids = [];
+  #lockUids = [];
   #listeners = new Set;
   addControlsLock(uid) {
-    this.#popupUids.push(uid);
-    this.#listeners.forEach((listener) => listener.onPopup(this.#popupUids.length));
+    this.#lockUids.push(uid);
+    this.#listeners.forEach((listener) => listener.onPopup(this.#lockUids.length));
   }
   removeControlsLock(uid) {
-    this.#popupUids = this.#popupUids.filter((id) => id !== uid);
-    this.#listeners.forEach((listener) => listener.onPopup(this.#popupUids.length));
+    this.#lockUids = this.#lockUids.filter((id) => id !== uid);
+    this.#listeners.forEach((listener) => listener.onPopup(this.#lockUids.length));
   }
   addDialogListener(listener) {
     this.#listeners.add(listener);
@@ -48657,24 +49394,63 @@ class PopupManager {
   }
   nextMessage() {
   }
-  async performActions(_actions, state) {
-    return {};
+  previousMessage() {
   }
-  selection = 0;
+  async performActions(_actions, _state, _onDone) {
+  }
+  popups = [];
+  getPopups() {
+    return this.popups;
+  }
+  setPopupData(index, data) {
+    this.popups[index] = data;
+  }
+  registerLayout(_layout) {
+  }
 }
 var import_react3 = __toESM2(require_react(), 1);
-var import_react11 = __toESM2(require_react(), 1);
+var import_react4 = __toESM2(require_react(), 1);
+var jsx_dev_runtime2 = __toESM2(require_jsx_dev_runtime(), 1);
+var getRandomValues;
+var rnds8 = new Uint8Array(16);
+var byteToHex = [];
+for (let i = 0;i < 256; ++i) {
+  byteToHex.push((i + 256).toString(16).slice(1));
+}
+var randomUUID = typeof crypto !== "undefined" && crypto.randomUUID && crypto.randomUUID.bind(crypto);
+var native_default = {
+  randomUUID
+};
+var v4 = function(options, buf, offset) {
+  if (native_default.randomUUID && !buf && !options) {
+    return native_default.randomUUID();
+  }
+  options = options || {};
+  const rnds = options.random || (options.rng || rng)();
+  rnds[6] = rnds[6] & 15 | 64;
+  rnds[8] = rnds[8] & 63 | 128;
+  if (buf) {
+    offset = offset || 0;
+    for (let i = 0;i < 16; ++i) {
+      buf[offset + i] = rnds[i];
+    }
+    return buf;
+  }
+  return unsafeStringify(rnds);
+};
+var v4_default = v4;
+var client = __toESM2(require_client(), 1);
 var import_react5 = __toESM2(require_react(), 1);
 var DEFAULT_HORIZONTAL_PADDING = 100;
 var DEFAULT_VERTICAL_PADDING = 50;
-var import_react4 = __toESM2(require_react(), 1);
-var jsx_dev_runtime2 = __toESM2(require_jsx_dev_runtime(), 1);
+var jsx_dev_runtime3 = __toESM2(require_jsx_dev_runtime(), 1);
 var POPUP_CSS = {
   outline: "3px solid #fff",
   backgroundColor: "black",
   borderRadius: 12,
   padding: 3,
-  boxShadow: "10px 10px 0px #000000cc"
+  boxShadow: "10px 10px 0px #000000cc",
+  transition: "outline-color .3s"
 };
 var DOUBLE_BORDER_CSS = {
   border: "3px solid white",
@@ -48682,7 +49458,8 @@ var DOUBLE_BORDER_CSS = {
   outline: "3px solid black",
   color: "white",
   padding: 10,
-  cursor: "pointer"
+  cursor: "pointer",
+  transition: "border-color .3s"
 };
 var DOUBLE_BORDER_HEIGHT_OFFSET = 27;
 var DEFAULT_FONT_SIZE = 24;
@@ -48694,74 +49471,6 @@ var LockStatus;
   LockStatus2[LockStatus2["UNLOCKED"] = 1] = "UNLOCKED";
 })(LockStatus || (LockStatus = {}));
 var import_react7 = __toESM2(require_react(), 1);
-
-class OpenDialogConvertor {
-  convert(model) {
-    return (ui) => ui.openDialog(model.dialog);
-  }
-}
-
-class OpenMenuConvertor {
-  convert(model) {
-    return (ui) => ui.openMenu(model.menu);
-  }
-}
-
-class ConversionRegistry {
-  #openDialogConvertor = new OpenDialogConvertor;
-  #openMenuConvertor = new OpenMenuConvertor;
-  convert(model) {
-    const { dialog, menu } = model;
-    if (dialog) {
-      return this.#openDialogConvertor.convert({ dialog });
-    }
-    if (menu) {
-      return this.#openMenuConvertor.convert({ menu });
-    }
-    return () => {
-    };
-  }
-}
-var reducer = function(state, action) {
-  const { conversations, indices } = state;
-  if (action.nextMessage) {
-    if (state.index >= state.conversation.messages.length.valueOf() - 1) {
-      return {
-        conversations: conversations.slice(0, conversations.length - 1),
-        indices: indices.slice(0, indices.length - 1),
-        get conversation() {
-          return this.conversations[this.conversations.length - 1];
-        },
-        get index() {
-          return this.indices[this.indices.length - 1];
-        }
-      };
-    } else {
-      return {
-        conversations,
-        indices: [...indices.slice(0, indices.length - 1), indices[indices.length - 1] + 1],
-        get conversation() {
-          return this.conversations[this.conversations.length - 1];
-        },
-        get index() {
-          return this.indices[this.indices.length - 1];
-        }
-      };
-    }
-  } else if (action.popConversation) {
-    return {
-      conversations: conversations.slice(0, conversations.length - 1),
-      indices: indices.slice(0, indices.length - 1),
-      get conversation() {
-        return this.conversations[this.conversations.length - 1];
-      },
-      get index() {
-        return this.indices[this.indices.length - 1];
-      }
-    };
-  }
-  return state;
-};
 
 class ProgressiveText extends HTMLElement {
   #observer;
@@ -48818,782 +49527,91 @@ class ProgressiveText extends HTMLElement {
   }
 }
 customElements.define("progressive-text", ProgressiveText);
-var jsx_dev_runtime3 = __toESM2(require_jsx_dev_runtime(), 1);
+var import_react9 = __toESM2(require_react(), 1);
+var jsx_dev_runtime4 = __toESM2(require_jsx_dev_runtime(), 1);
 var z5 = function(u3, j2, p2 = []) {
   const f2 = p2 ?? [], q = u3.length.valueOf();
   f2.length = q;
-  for (let v4 = 0;v4 < q; v4++) {
-    const w2 = u3.at(v4);
-    f2[v4] = j2(w2, v4);
+  for (let v5 = 0;v5 < q; v5++) {
+    const w2 = u3.at(v5);
+    f2[v5] = j2(w2, v5);
   }
   return f2;
 };
+var import_react11 = __toESM2(require_react(), 1);
 var import_react10 = __toESM2(require_react(), 1);
-var import_react9 = __toESM2(require_react(), 1);
-var MenuItemBehavior;
-(function(MenuItemBehavior2) {
-  MenuItemBehavior2[MenuItemBehavior2["NONE"] = 0] = "NONE";
-  MenuItemBehavior2[MenuItemBehavior2["CLOSE_ON_SELECT"] = 1] = "CLOSE_ON_SELECT";
-  MenuItemBehavior2[MenuItemBehavior2["CLOSE_AFTER_SELECT"] = 2] = "CLOSE_AFTER_SELECT";
-  MenuItemBehavior2[MenuItemBehavior2["HIDE_ON_SELECT"] = 3] = "HIDE_ON_SELECT";
-})(MenuItemBehavior || (MenuItemBehavior = {}));
-var jsx_dev_runtime4 = __toESM2(require_jsx_dev_runtime(), 1);
+var MenuBehaviorEnum;
+(function(MenuBehaviorEnum2) {
+  MenuBehaviorEnum2[MenuBehaviorEnum2["NONE"] = 0] = "NONE";
+  MenuBehaviorEnum2[MenuBehaviorEnum2["CLOSE_ON_SELECT"] = 1] = "CLOSE_ON_SELECT";
+  MenuBehaviorEnum2[MenuBehaviorEnum2["CLOSE_AFTER_SELECT"] = 2] = "CLOSE_AFTER_SELECT";
+  MenuBehaviorEnum2[MenuBehaviorEnum2["HIDE_ON_SELECT"] = 3] = "HIDE_ON_SELECT";
+})(MenuBehaviorEnum || (MenuBehaviorEnum = {}));
+var MenuItemBehaviorDefault = MenuBehaviorEnum.NONE;
 var jsx_dev_runtime5 = __toESM2(require_jsx_dev_runtime(), 1);
-var getRandomValues;
-var rnds8 = new Uint8Array(16);
-var byteToHex = [];
-for (let i = 0;i < 256; ++i) {
-  byteToHex.push((i + 256).toString(16).slice(1));
-}
-var randomUUID = typeof crypto !== "undefined" && crypto.randomUUID && crypto.randomUUID.bind(crypto);
-var native_default = {
-  randomUUID
-};
-var v4 = function(options, buf, offset) {
-  if (native_default.randomUUID && !buf && !options) {
-    return native_default.randomUUID();
-  }
-  options = options || {};
-  const rnds = options.random || (options.rng || rng)();
-  rnds[6] = rnds[6] & 15 | 64;
-  rnds[8] = rnds[8] & 63 | 128;
-  if (buf) {
-    offset = offset || 0;
-    for (let i = 0;i < 16; ++i) {
-      buf[offset + i] = rnds[i];
-    }
-    return buf;
-  }
-  return unsafeStringify(rnds);
-};
-var v4_default = v4;
-var client = __toESM2(require_client(), 1);
 var jsx_dev_runtime6 = __toESM2(require_jsx_dev_runtime(), 1);
+var DEFAULT_REGISTRY = {
+  dialog: (data, ui, onDone) => jsx_dev_runtime6.jsxDEV(Dialog, {
+    dialogData: data,
+    ui,
+    onDone
+  }, data.uid, false, undefined, null),
+  menu: (data, ui, onDone) => jsx_dev_runtime6.jsxDEV(Menu, {
+    menuData: data,
+    ui,
+    onDone
+  }, data.uid, false, undefined, null)
+};
+var import_react12 = __toESM2(require_react(), 1);
+
+class OpenDialogConvertor {
+  convert(model) {
+    return (ui) => ui.openDialog(model.dialog);
+  }
+}
+
+class OpenMenuConvertor {
+  convert(model) {
+    return (ui) => ui.openMenu(model.menu);
+  }
+}
+
+class LayoutRegistryConvertor {
+  convert(model) {
+    return (ui) => ui.registerLayout(model.layout);
+  }
+}
+
+class ConversionRegistry {
+  #openDialogConvertor = new OpenDialogConvertor;
+  #openMenuConvertor = new OpenMenuConvertor;
+  #layoutConvertor = new LayoutRegistryConvertor;
+  convert(model) {
+    const { dialog, menu, layout } = model;
+    const callbacks = [];
+    if (layout) {
+      callbacks.push(this.#layoutConvertor.convert({ layout }));
+    }
+    if (dialog) {
+      callbacks.push(this.#openDialogConvertor.convert({ dialog }));
+    }
+    if (menu) {
+      callbacks.push(this.#openMenuConvertor.convert({ menu }));
+    }
+    return callbacks.length <= 1 ? callbacks[0] : async (ui, state) => {
+      for (const callback of callbacks) {
+        await callback(ui, state);
+      }
+    };
+  }
+}
+var jsx_dev_runtime7 = __toESM2(require_jsx_dev_runtime(), 1);
 var STYLE = {
   position: "absolute",
   width: "100%",
   height: "100%",
   userSelect: "none"
 };
-var Assets;
-(function(Assets2) {
-  Assets2[Assets2["DOBUKI"] = 0] = "DOBUKI";
-  Assets2[Assets2["LOGO"] = 1] = "LOGO";
-  Assets2[Assets2["GROUND"] = 2] = "GROUND";
-  Assets2[Assets2["VIDEO"] = 3] = "VIDEO";
-  Assets2[Assets2["WIREFRAME"] = 4] = "WIREFRAME";
-  Assets2[Assets2["WIREFRAME_RED"] = 5] = "WIREFRAME_RED";
-  Assets2[Assets2["GRASS"] = 6] = "GRASS";
-  Assets2[Assets2["BRICK"] = 7] = "BRICK";
-  Assets2[Assets2["DODO"] = 8] = "DODO";
-  Assets2[Assets2["DODO_SHADOW"] = 9] = "DODO_SHADOW";
-  Assets2[Assets2["TREE"] = 10] = "TREE";
-  Assets2[Assets2["BUN"] = 11] = "BUN";
-  Assets2[Assets2["BUN_SHADOW"] = 12] = "BUN_SHADOW";
-  Assets2[Assets2["WOLF"] = 13] = "WOLF";
-  Assets2[Assets2["WOLF_SHADOW"] = 14] = "WOLF_SHADOW";
-  Assets2[Assets2["WATER"] = 15] = "WATER";
-  Assets2[Assets2["BUSHES"] = 16] = "BUSHES";
-  Assets2[Assets2["GRASS_GROUND"] = 17] = "GRASS_GROUND";
-})(Assets || (Assets = {}));
-var Anims;
-(function(Anims2) {
-  Anims2[Anims2["STILL"] = 0] = "STILL";
-  Anims2[Anims2["RUN"] = 1] = "RUN";
-  Anims2[Anims2["WOLF_STILL"] = 2] = "WOLF_STILL";
-  Anims2[Anims2["WOLF_JUMP"] = 3] = "WOLF_JUMP";
-})(Anims || (Anims = {}));
-var LOGO_SIZE = 512;
-var CELLSIZE = 2;
-
-class DemoGame extends AuxiliaryHolder {
-  api = {};
-  camera;
-  constructor({ engine, motor, ui, keyboard, controls }) {
-    super();
-    const mediaAccumulator = new H;
-    this.addAuxiliary(new MediaUpdater({ engine, motor, medias: mediaAccumulator }));
-    const mediaItems = new ItemsGroup([{
-      id: Assets.DOBUKI,
-      type: "image",
-      src: "dobuki.png"
-    }, {
-      id: Assets.BUN,
-      type: "image",
-      src: "bun.png"
-    }, {
-      id: Assets.BUN_SHADOW,
-      type: "image",
-      src: "bun.png",
-      postProcess: k
-    }, {
-      id: Assets.DODO,
-      type: "image",
-      src: "dodo.png",
-      spriteSheet: {
-        spriteSize: [190, 209]
-      }
-    }, {
-      id: Assets.DODO_SHADOW,
-      type: "image",
-      src: "dodo.png",
-      spriteSheet: {
-        spriteSize: [190, 209]
-      },
-      postProcess: k
-    }, {
-      id: Assets.WOLF,
-      type: "image",
-      src: "wolf.png",
-      spriteSheet: {
-        spriteSize: [200, 256]
-      }
-    }, {
-      id: Assets.WOLF_SHADOW,
-      type: "image",
-      src: "wolf.png",
-      spriteSheet: {
-        spriteSize: [200, 256]
-      },
-      postProcess: k
-    }, {
-      id: Assets.LOGO,
-      type: "draw",
-      draw: (ctx) => {
-        const { canvas } = ctx;
-        canvas.width = LOGO_SIZE;
-        canvas.height = LOGO_SIZE;
-        const centerX = canvas.width / 2, centerY = canvas.height / 2;
-        const halfSize = canvas.width / 2;
-        ctx.imageSmoothingEnabled = true;
-        ctx.lineWidth = canvas.width / 50;
-        ctx.strokeStyle = "black";
-        ctx.fillStyle = "gold";
-        ctx.beginPath();
-        ctx.arc(centerX, centerY, halfSize * 0.8, 0, 2 * Math.PI);
-        ctx.fill();
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.arc(centerX, centerY, halfSize * 0.5, 0, Math.PI);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.arc(canvas.width / 3, canvas.height / 3, halfSize * 0.1, 0, Math.PI, true);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.arc(canvas.width / 3 * 2, canvas.height / 3, halfSize * 0.1, 0, Math.PI * 2, true);
-        ctx.stroke();
-      }
-    }, {
-      id: Assets.GROUND,
-      type: "draw",
-      draw: (ctx) => {
-        const { canvas } = ctx;
-        canvas.width = LOGO_SIZE;
-        canvas.height = LOGO_SIZE;
-        ctx.fillStyle = "#ddd";
-        ctx.lineWidth = canvas.width / 50;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.strokeStyle = "black";
-        ctx.fillStyle = "silver";
-        ctx.beginPath();
-        ctx.rect(canvas.width * 0.2, canvas.height * 0.2, canvas.width * 0.6, canvas.height * 0.6);
-        ctx.fill();
-        ctx.stroke();
-      }
-    }, {
-      id: Assets.GRASS_GROUND,
-      type: "draw",
-      draw: (ctx) => {
-        const { canvas } = ctx;
-        canvas.width = LOGO_SIZE;
-        canvas.height = LOGO_SIZE;
-        ctx.fillStyle = "green";
-        ctx.lineWidth = canvas.width / 50;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.strokeStyle = "#6f6";
-        ctx.fillStyle = "lightgreen";
-        ctx.beginPath();
-        ctx.rect(canvas.width * 0.2, canvas.height * 0.2, canvas.width * 0.6, canvas.height * 0.6);
-        ctx.fill();
-        ctx.stroke();
-      }
-    }, {
-      id: Assets.BRICK,
-      type: "draw",
-      draw: (ctx) => {
-        const { canvas } = ctx;
-        canvas.width = LOGO_SIZE;
-        canvas.height = LOGO_SIZE;
-        ctx.fillStyle = "#ddd";
-        ctx.lineWidth = canvas.width / 50;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-      }
-    }, {
-      id: Assets.VIDEO,
-      type: "video",
-      src: "sample.mp4",
-      volume: 0,
-      fps: 30,
-      playSpeed: 0.5,
-      maxRefreshRate: 30
-    }, {
-      id: Assets.WIREFRAME,
-      type: "draw",
-      draw: (ctx) => {
-        const { canvas } = ctx;
-        canvas.width = LOGO_SIZE;
-        canvas.height = LOGO_SIZE;
-        ctx.lineWidth = 40;
-        ctx.setLineDash([20, 5]);
-        ctx.strokeStyle = "lightblue";
-        ctx.beginPath();
-        ctx.rect(10, 10, canvas.width - 20, canvas.height - 20);
-        ctx.stroke();
-      }
-    }, {
-      id: Assets.WIREFRAME_RED,
-      type: "draw",
-      draw: (ctx) => {
-        const { canvas } = ctx;
-        canvas.width = LOGO_SIZE;
-        canvas.height = LOGO_SIZE;
-        ctx.lineWidth = 40;
-        ctx.setLineDash([20, 5]);
-        ctx.strokeStyle = "red";
-        ctx.beginPath();
-        ctx.rect(10, 10, canvas.width - 20, canvas.height - 20);
-        ctx.stroke();
-      }
-    }, {
-      id: Assets.GRASS,
-      type: "draw",
-      draw: (ctx) => {
-        const { canvas } = ctx;
-        canvas.width = 1024;
-        canvas.height = 1024;
-        ctx.fillStyle = "green";
-        ctx.lineWidth = canvas.width / 50;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-      }
-    }, {
-      id: Assets.BUSHES,
-      type: "draw",
-      draw: (ctx) => {
-        const { canvas } = ctx;
-        canvas.width = 1024;
-        canvas.height = 1024;
-        ctx.fillStyle = "#050";
-        ctx.lineWidth = canvas.width / 50;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-      }
-    }, {
-      id: Assets.WATER,
-      type: "draw",
-      draw: (ctx) => {
-        const { canvas } = ctx;
-        canvas.width = 1024;
-        canvas.height = 1024;
-        ctx.fillStyle = "#68f";
-        ctx.lineWidth = canvas.width / 50;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-      }
-    }, {
-      id: Assets.TREE,
-      type: "draw",
-      draw: (ctx) => {
-        const { canvas } = ctx;
-        canvas.width = 200;
-        canvas.height = 200;
-        ctx.fillStyle = "#0f0";
-        ctx.beginPath();
-        ctx.moveTo(100, 0);
-        ctx.lineTo(200, 150);
-        ctx.lineTo(0, 150);
-        ctx.fill();
-        ctx.fillStyle = "#430";
-        ctx.fillRect(75, 125, 50, 50);
-      }
-    }]);
-    mediaAccumulator.add(mediaItems);
-    this.addAuxiliary({
-      activate() {
-        mediaAccumulator.updateFully();
-      }
-    });
-    const animationAccumulator = new H;
-    this.addAuxiliary(new AnimationUpdater({ engine, motor, animations: animationAccumulator }));
-    const animationItems = new ItemsGroup([{
-      id: Anims.STILL,
-      frames: [0]
-    }, {
-      id: Anims.RUN,
-      frames: [1, 5],
-      fps: 24
-    }, {
-      id: Anims.WOLF_STILL,
-      frames: [0, 4],
-      fps: 15
-    }]);
-    animationAccumulator.add(animationItems);
-    this.addAuxiliary({
-      activate() {
-        animationAccumulator.updateFully();
-      }
-    });
-    const cellTrackers = new A4;
-    const spritesAccumulator = new H({
-      onChange: (value) => engine.setMaxSpriteCount(value)
-    });
-    this.addAuxiliary({
-      deactivate() {
-        engine.setMaxSpriteCount(0);
-      }
-    });
-    this.addAuxiliary(new SpriteUpdater({ engine, motor, sprites: spritesAccumulator }));
-    const exitBlock = {
-      top: 2,
-      bottom: -1,
-      left: -0.1,
-      right: 0.1,
-      near: 0,
-      far: -0.5
-    };
-    const exitCell = N3(0, 0, 0, CELLSIZE);
-    const exitPosition = exitCell.worldPosition;
-    const worldColliders = new H;
-    const heroBox = {
-      top: 1,
-      bottom: -1,
-      left: -0.9,
-      right: 0.9,
-      near: 0.9,
-      far: -0.9
-    };
-    const blockBox = {
-      top: 2,
-      bottom: -1,
-      left: -1,
-      right: 1,
-      near: 1,
-      far: -1
-    };
-    {
-      const dobukiCell = N3(-3, 0, -1, CELLSIZE);
-      const dobukiBox = {
-        top: 1,
-        bottom: -1,
-        left: -0.1,
-        right: 0.1,
-        near: 0,
-        far: -0.5
-      };
-      const dobukiPosition = dobukiCell.worldPosition;
-      const dobukiBlockPosition = [
-        dobukiPosition[0],
-        dobukiPosition[1],
-        dobukiPosition[2] - CELLSIZE
-      ];
-      const bodyModel = new BodyModel({
-        colliders: [
-          new CollisionDetector({
-            blockerBox: blockBox,
-            blockerPosition: dobukiBlockPosition,
-            heroBox,
-            listener: {
-              onBlockChange(blocked) {
-                displayBox.setImageId(blocked ? Assets.WIREFRAME_RED : Assets.WIREFRAME);
-              }
-            }
-          }, { shouldBlock: true }),
-          new CollisionDetector({
-            blockerBox: dobukiBox,
-            blockerPosition: dobukiPosition,
-            heroBox,
-            listener: {
-              onEnter() {
-                displayBox.setImageId(Assets.WIREFRAME_RED);
-                ui.openDialog({
-                  layout: {
-                    uid: "main-dialog",
-                    position: [undefined, 200],
-                    positionFromBottom: true
-                  },
-                  conversation: {
-                    messages: [
-                      { text: "Hello there." },
-                      {
-                        text: "How are you?",
-                        action: () => ui.openMenu({
-                          layout: {
-                            position: [400, 360],
-                            size: [undefined, 150],
-                            positionFromRight: true,
-                            positionFromBottom: true
-                          },
-                          items: [
-                            {
-                              label: "I don't know",
-                              behavior: MenuItemBehavior.NONE,
-                              action: [
-                                (ui2) => ui2.openDialog({
-                                  layout: {
-                                    position: [100, 100],
-                                    size: [300, 200]
-                                  },
-                                  conversation: {
-                                    messages: [
-                                      { text: "You should know!" }
-                                    ]
-                                  }
-                                })
-                              ]
-                            },
-                            {
-                              label: "good",
-                              action: (ui2) => ui2.openDialog({
-                                layout: {
-                                  uid: "main-dialog",
-                                  position: [undefined, 200],
-                                  positionFromBottom: true
-                                },
-                                conversation: {
-                                  messages: [
-                                    { text: "That's nice to know!" }
-                                  ]
-                                }
-                              })
-                            },
-                            {
-                              label: "bad"
-                            }
-                          ]
-                        })
-                      },
-                      { text: "Bye bye." },
-                      {
-                        action: [
-                          goBackAction(heroPos)
-                        ]
-                      }
-                    ]
-                  }
-                });
-              },
-              onLeave() {
-                displayBox.setImageId(Assets.WIREFRAME);
-              }
-            }
-          }, { shouldBlock: false })
-        ]
-      });
-      const dobukiPosMatrix = new t0().movedTo(dobukiPosition[0], dobukiPosition[1], dobukiPosition[2]);
-      bodyModel.addSprites(new SpriteGroup([{
-        imageId: Assets.DOBUKI,
-        spriteType: SpriteType.SPRITE,
-        transform: d.create().translate(0, -0.3, -1)
-      }], dobukiPosMatrix));
-      bodyModel.addSprites(new SpriteGroup(new DisplayBox({ box: dobukiBox, imageId: Assets.WIREFRAME, insideImageId: Assets.WIREFRAME }), dobukiPosMatrix));
-      bodyModel.addSprites(new SpriteGroup(new DisplayBox({ box: blockBox, imageId: Assets.WIREFRAME, insideImageId: Assets.WIREFRAME }), new t0().movedTo(dobukiBlockPosition[0], dobukiBlockPosition[1], dobukiBlockPosition[2])));
-      worldColliders.add(bodyModel.colliders);
-      const factory = new FixedSpriteFactory({ cellSize: CELLSIZE }, bodyModel.sprites);
-      const creator = new SpriteCellCreator({ factory });
-      spritesAccumulator.add(creator);
-      cellTrackers.add(creator);
-      this.addAuxiliary(factory);
-    }
-    const blockPositions = [
-      [-1, 0, -1],
-      [1, 0, -1],
-      [0, 0, -1],
-      [-1, 0, 0],
-      [1, 0, 0]
-    ].map(([x4, y3, z6]) => [x4 * CELLSIZE, y3 * CELLSIZE, z6 * CELLSIZE]);
-    blockPositions.forEach((blockPosition) => {
-      const blockBoxSprites = new SpriteGroup(new DisplayBox({ box: blockBox, imageId: Assets.GROUND, insideImageId: Assets.BRICK }), new t0().movedTo(blockPosition[0], blockPosition[1], blockPosition[2]));
-      const factory = new FixedSpriteFactory({ cellSize: CELLSIZE }, blockBoxSprites);
-      this.addAuxiliary(factory);
-      const creator = new SpriteCellCreator({ factory });
-      spritesAccumulator.add(creator);
-      cellTrackers.add(creator);
-    });
-    {
-      const factory = new FixedSpriteFactory({ cellSize: CELLSIZE }, new SpriteGroup(new DisplayBox({ box: exitBlock, imageId: Assets.WIREFRAME, insideImageId: Assets.WIREFRAME }), new t0().movedTo(exitPosition[0], exitPosition[1], exitPosition[2])), [
-        d.create().translate(-3.01, 0, 0).rotateY(Math.PI / 2),
-        d.create().translate(-3.01, 0, 0).rotateY(-Math.PI / 2),
-        d.create().translate(3.01, 0, 0).rotateY(-Math.PI / 2),
-        d.create().translate(3.01, 0, 0).rotateY(Math.PI / 2)
-      ].map((transform) => ({ imageId: Assets.LOGO, transform })), [
-        d.create().translate(0, -0.9, 0).rotateX(-Math.PI / 2),
-        d.create().translate(0, -0.9, 2).rotateX(-Math.PI / 2),
-        d.create().translate(-2, -0.9, 2).rotateX(-Math.PI / 2),
-        d.create().translate(2, -0.9, 2).rotateX(-Math.PI / 2)
-      ].map((transform) => ({ imageId: Assets.GRASS_GROUND, transform })));
-      const creator = new SpriteCellCreator({ factory });
-      spritesAccumulator.add(creator);
-      cellTrackers.add(creator);
-      this.addAuxiliary(factory);
-    }
-    const camPosition = new t0;
-    const camera = this.camera = new Camera({ engine, motor, position: camPosition });
-    this.addAuxiliary(camera);
-    {
-      const arrayPool = new h2((a2) => a2 ?? [], (a2) => a2.length = 0);
-      const arrayPool2 = new h2((a2) => a2 ?? [], (a2) => a2.length = 0);
-      const spritePool = new SpritePool;
-      const spritesMap = new Map;
-      const collidersMap = new Map;
-      cellTrackers.add(P({
-        trackCell: (cell) => {
-          const rng2 = import_seedrandom.alea(cell.tag);
-          const sprites = arrayPool.create();
-          const cellPos = cell.pos;
-          const px = cell.worldPosition[0];
-          const pz = cell.worldPosition[2];
-          const distSq = cellPos[0] * cellPos[0] + cellPos[2] * cellPos[2];
-          const isWater = distSq > 1000;
-          const hasTree = distSq > 10 && rng2() < 0.1 && !isWater;
-          const ground = spritePool.create(hasTree ? Assets.BUSHES : isWater ? Assets.WATER : Assets.GRASS);
-          ground.spriteType = isWater ? SpriteType.WAVE : SpriteType.DEFAULT;
-          ground.transform.translate(px, -1 - (isWater ? 1 : 0), pz).rotateX(-Math.PI / 2);
-          sprites.push(ground);
-          const count = hasTree ? 5 + rng2() * 10 : 0;
-          for (let i = 0;i < count; i++) {
-            const tree = spritePool.create(Assets.TREE);
-            tree.spriteType = SpriteType.SPRITE;
-            const size = 1 + Math.floor(2 * rng2());
-            tree.transform.translate(px + (rng2() - 0.5) * 2.5, -1 + size / 2, pz + (rng2() - 0.5) * 2.5).scale(0.2 + rng2(), size, 0.2 + rng2());
-            sprites.push(tree);
-          }
-          if (!isWater && !count && rng2() < 0.02) {
-            const bun = spritePool.create(Assets.BUN);
-            bun.spriteType = SpriteType.SPRITE;
-            bun.transform.translate(px, -0.7, pz).scale(0.5);
-            const bunShadow = spritePool.create(Assets.BUN_SHADOW);
-            bunShadow.transform.translate(px, -1, pz).rotateX(-Math.PI / 2).scale(0.5);
-            sprites.push(bun, bunShadow);
-          }
-          if (!isWater && !count && rng2() < 0.01) {
-            const scale = 1.5;
-            const wolf = spritePool.create(Assets.WOLF);
-            wolf.spriteType = SpriteType.SPRITE;
-            wolf.transform.translate(px, 0, pz).scale(scale);
-            const shadow = spritePool.create(Assets.WOLF_SHADOW);
-            shadow.transform.translate(px, -0.99, pz - 0.5).rotateX(-Math.PI / 2).scale(scale);
-            sprites.push(wolf, shadow);
-          }
-          spritesMap.set(cell.tag, sprites);
-          spritesAccumulator.add(sprites);
-          if (hasTree || isWater) {
-            const colliders = arrayPool2.create();
-            colliders.push(new CollisionDetector({
-              blockerBox: blockBox,
-              blockerPosition: [px, 0, pz],
-              heroBox
-            }, { shouldBlock: true }));
-            collidersMap.set(cell.tag, colliders);
-            worldColliders.add(colliders);
-          }
-          return sprites.length > 0;
-        },
-        untrackCells: function(cellTags) {
-          cellTags.forEach((tag) => {
-            const sprites = spritesMap.get(tag);
-            if (sprites) {
-              spritesAccumulator.remove(sprites);
-              sprites.forEach((sprite) => spritePool.recycle(sprite));
-              spritesMap.delete(tag);
-              arrayPool.recycle(sprites);
-            }
-            const colliders = collidersMap.get(tag);
-            if (colliders) {
-              worldColliders.remove(colliders);
-              collidersMap.delete(tag);
-              arrayPool2.recycle(colliders);
-            }
-          });
-        }
-      }, new h3({ yRange: [0, 0] })));
-    }
-    worldColliders.add([
-      ...blockPositions.map((blockPosition) => new CollisionDetector({
-        blockerBox: blockBox,
-        blockerPosition: blockPosition,
-        heroBox,
-        listener: {
-          onBlockChange(blocked) {
-            displayBox.setImageId(blocked ? Assets.WIREFRAME_RED : Assets.WIREFRAME);
-          }
-        }
-      }, { shouldBlock: true })),
-      new CollisionDetector({
-        blockerBox: exitBlock,
-        blockerPosition: exitPosition,
-        heroBox,
-        listener: {
-          onEnter() {
-            displayBox.setImageId(Assets.WIREFRAME_RED);
-            ui.openDialog({
-              conversation: {
-                messages: [
-                  { text: "Going down..." },
-                  {
-                    text: "",
-                    action: () => new Promise((resolve) => {
-                      camera.fade.progressTowards(1, 0.005, {
-                        onRelease: resolve
-                      }, motor);
-                    })
-                  },
-                  {
-                    action: () => {
-                      console.log("Change scene");
-                    }
-                  }
-                ]
-              }
-            });
-          },
-          onLeave() {
-            displayBox.setImageId(Assets.WIREFRAME);
-          }
-        }
-      }, { shouldBlock: false })
-    ]);
-    const heroPos = new t0({ blockers: worldColliders }).movedTo(0, 0, 3);
-    const heroSprites = new SpriteGroup([{
-      imageId: Assets.DODO,
-      spriteType: SpriteType.SPRITE,
-      transform: d.create().translate(0, -0.3, 0),
-      animationId: Anims.STILL
-    }], heroPos);
-    spritesAccumulator.add(heroSprites);
-    this.addAuxiliary({
-      activate() {
-        spritesAccumulator.updateFully();
-      }
-    });
-    const displayBox = new SpriteGroup(new DisplayBox({ box: heroBox, imageId: Assets.WIREFRAME }), heroPos);
-    spritesAccumulator.add(displayBox);
-    const shadowPos = new t0({});
-    const shadowHeroSprites = new SpriteGroup([
-      {
-        imageId: Assets.DODO_SHADOW,
-        transform: d.create().translate(0, -0.89, 0.5).rotateX(-Math.PI / 2).scale(1, 0.3, 1),
-        animationId: Anims.STILL
-      }
-    ], shadowPos);
-    this.addAuxiliary(new FollowAuxiliary({
-      motor,
-      follower: shadowPos,
-      followee: heroPos
-    }, {
-      followY: false
-    }));
-    spritesAccumulator.add(shadowHeroSprites);
-    const videoSprites = new SpriteGroup([
-      {
-        imageId: Assets.VIDEO,
-        spriteType: SpriteType.DISTANT,
-        transform: d.create().translate(3000, 1000, -5000).scale(480, 270, 1)
-      }
-    ]);
-    spritesAccumulator.add(videoSprites);
-    const controlledMotor = new ControlledMotor(motor, { policy: Policy.INCOMING_CYCLE_PRIORITY });
-    const stepBack = new StepBackAuxiliary({ motor: controlledMotor, position: heroPos });
-    const posStep = new PositionStepAuxiliary({ motor: controlledMotor, controls, positionStep: new PositionStep({ position: heroPos }), turnGoal: camera.turn.angle }, { speed: 1.5, airBoost: 1.5 });
-    this.addAuxiliary(keyboard).addAuxiliary(new ToggleAuxiliary({ keyboard }, {
-      auxiliariesMap: [
-        {
-          key: "Tab",
-          aux: () => Auxiliaries.from(posStep, stepBack, new SmoothFollowAuxiliary({ motor, follower: camPosition, followee: heroPos }, { speed: 0.05, followY: false }), new JumpAuxiliary({ motor, controls, position: heroPos }, { gravity: -2, jump: 3 }))
-        },
-        {
-          key: "Tab",
-          aux: () => Auxiliaries.from(new TurnAuxiliary({ motor, controls, turn: camera.turn }), new TiltAuxiliary({ motor, controls, tilt: camera.tilt }), new MoveAuxiliary({ motor, controls, direction: camera.turn, position: heroPos }), new JumpAuxiliary({ motor, controls, position: heroPos }), new TiltResetAuxiliary({ motor, controls, tilt: camera.tilt }), new SmoothFollowAuxiliary({ motor, follower: camPosition, followee: heroPos }, { speed: 0.05 }))
-        }
-      ]
-    })).addAuxiliary(new DirAuxiliary({ controls }, (dx) => {
-      heroSprites.setOrientation(dx);
-      shadowHeroSprites.setOrientation(dx);
-    })).addAuxiliary(new MotionAuxiliary({ controls }, (moving) => {
-      const animId = moving ? Anims.RUN : Anims.STILL;
-      heroSprites.setAnimationId(animId);
-      shadowHeroSprites.setAnimationId(animId);
-    }));
-    const surroundingTracker = new E2({ cellTrack: cellTrackers }, {
-      cellLimit: 200,
-      range: [7, 3, 7],
-      cellSize: CELLSIZE
-    });
-    this.addAuxiliary(new M2({ positionMatrix: heroPos }, { cellSize: CELLSIZE }).addListener(surroundingTracker).addListener(stepBack));
-    camera.distance.setValue(15);
-    camera.tilt.angle.setValue(0.8);
-    camera.projection.zoom.setValue(0.25);
-    camera.projection.perspective.setValue(0.05);
-    camera.setBackgroundColor(0);
-    this.addAuxiliary(new TimeAuxiliary({ motor, engine })).addAuxiliary(new FadeApiAuxiliary({ camera, motor, api: this.api }));
-  }
-}
-
-class ResizeAux {
-  engine;
-  camera;
-  canvas;
-  constructor({ engine, camera, canvas }) {
-    this.engine = engine;
-    this.camera = camera;
-    this.canvas = canvas;
-    this.onResize = this.onResize.bind(this);
-  }
-  activate() {
-    window.addEventListener("resize", this.onResize);
-    this.checkCanvasSize();
-  }
-  deactivate() {
-    window.removeEventListener("resize", this.onResize);
-  }
-  onResize() {
-    this.checkCanvasSize();
-  }
-  checkCanvasSize() {
-    if (this.canvas) {
-      if (this.canvas instanceof HTMLCanvasElement) {
-        this.canvas.width = this.canvas.offsetWidth * 2;
-        this.canvas.height = this.canvas.offsetHeight * 2;
-      }
-      this.camera?.resizeViewport(this.canvas.width, this.canvas.height);
-      this.engine.resetViewportSize();
-    }
-  }
-}
-
-class DOMWrap extends AuxiliaryHolder {
-  elem;
-  constructor(elem) {
-    super();
-    this.elem = elem;
-  }
-}
-var DEFAULT_ATTRIBUTES = {
-  alpha: true,
-  antialias: true,
-  depth: true,
-  failIfMajorPerformanceCaveat: undefined,
-  powerPreference: "default",
-  premultipliedAlpha: true,
-  preserveDrawingBuffer: false,
-  stencil: false
-};
-
-class WebGlCanvas extends DOMWrap {
-  gl;
-  constructor(canvas, { attributes } = {}, config) {
-    super(canvas);
-    const gl = canvas.getContext("webgl2", { ...DEFAULT_ATTRIBUTES, ...attributes });
-    this.gl = config?.logGL ? logProxy(gl) : gl;
-    canvas.style.pointerEvents = "none";
-  }
-}
 
 class Hud extends AuxiliaryHolder {
   #dom;

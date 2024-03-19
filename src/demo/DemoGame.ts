@@ -45,7 +45,7 @@ import { goBackAction } from "world/aux/GoBack";
 import { BodyModel } from "world/sprite/body/BodyModel";
 import { PositionStep } from "world/aux/PositionStep";
 import { IKeyboard } from "controls/IKeyboard";
-import { MenuItemBehavior, UserInterface } from "dialog-system";
+import { UserInterface } from "dialog-system";
 
 enum Assets {
   DOBUKI = 0,
@@ -412,70 +412,64 @@ export class DemoGame extends AuxiliaryHolder {
                 displayBox.setImageId(Assets.WIREFRAME_RED);
                 ui.openDialog({
                   layout: {
-                    uid: "main-dialog",
+                    name: "main-dialog",
                     position: [undefined, 200],
                     positionFromBottom: true,
                   },
-                  conversation: {
-                    messages: [
-                      { text: "Hello there." },
-                      {
-                        text: "How are you?",
-                        action: () => ui.openMenu({
-
-                          layout: {
-                            position: [400, 360],
-                            size: [undefined, 150],
-                            positionFromRight: true,
-                            positionFromBottom: true,
-                          },
-                          items: [
-                            {
-                              label: "I don't know",
-                              behavior: MenuItemBehavior.NONE,
-                              action: [
-                                ui => ui.openDialog({
-                                  layout: {
-                                    position: [100, 100],
-                                    size: [300, 200],
-                                  },
-                                  conversation: {
-                                    messages: [
-                                      { text: "You should know!" },
-                                    ],
-                                  },
-                                }),
-                              ],
-                            },
-                            {
-                              label: "good",
-                              action: ui => ui.openDialog({
+                  messages: [
+                    { text: "Hello there." },
+                    {
+                      text: "How are you?",
+                      action: () => ui.openMenu({
+                        behavior: "CLOSE_AFTER_SELECT",
+                        layout: {
+                          position: [400, 360],
+                          size: [undefined, 150],
+                          positionFromRight: true,
+                          positionFromBottom: true,
+                        },
+                        items: [
+                          {
+                            label: "I don't know",
+                            behavior: "NONE",
+                            action: [
+                              ui => ui.openDialog({
                                 layout: {
-                                  uid: "main-dialog",
-                                  position: [undefined, 200],
-                                  positionFromBottom: true,
+                                  position: [100, 100],
+                                  size: [300, 200],
                                 },
-                                conversation: {
-                                  messages: [
-                                    { text: "That's nice to know!" },
-                                  ],
-                                },
+                                messages: [
+                                  { text: "You should know!" },
+                                ],
                               }),
-                            },
-                            {
-                              label: "bad",
-                            },
-                          ],
-                        }),
-                      },
-                      { text: "Bye bye." },
-                      {
-                        action: [
-                          goBackAction(heroPos),
+                            ],
+                          },
+                          {
+                            label: "good",
+                            action: ui => ui.openDialog({
+                              layout: {
+                                name: "main-dialog",
+                                position: [undefined, 200],
+                                positionFromBottom: true,
+                              },
+                              messages: [
+                                { text: "That's nice to know!" },
+                              ],
+                            }),
+                          },
+                          {
+                            label: "bad",
+                          },
                         ],
-                      },
-                    ]
-                  },
+                      }),
+                    },
+                    { text: "Bye bye." },
+                    {
+                      action: [
+                        goBackAction(heroPos),
+                      ],
+                    },
+                  ]
                 });
               },
               onLeave() {
@@ -676,24 +670,21 @@ export class DemoGame extends AuxiliaryHolder {
             onEnter() {
               displayBox.setImageId(Assets.WIREFRAME_RED);
               ui.openDialog({
-                conversation: {
-                  messages: [
-                    { text: "Going down..." },
-                    {
-                      text: "",
-                      action: () => new Promise(resolve => {
-                        camera.fade.progressTowards(1, .005, {
-                          onRelease: resolve,
-                        }, motor)
-                      }),
+                messages: [
+                  { text: "Going down..." },
+                  {
+                    text: "",
+                    action: () => new Promise(resolve => {
+                      camera.fade.progressTowards(1, .005, {
+                        onRelease: resolve,
+                      }, motor)
+                    }),
+                  }, {
+                    action: () => {
+                      console.log("Change scene");
                     },
-                    {
-                      action: () => {
-                        console.log("Change scene");
-                      },
-                    },
-                  ]
-                },
+                  },
+                ]
               });
             },
             onLeave() {
