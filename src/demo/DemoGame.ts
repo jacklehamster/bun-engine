@@ -420,48 +420,52 @@ export class DemoGame extends AuxiliaryHolder {
                     { text: "Hello there." },
                     {
                       text: "How are you?",
-                      action: () => ui.openMenu({
-                        behavior: "CLOSE_AFTER_SELECT",
-                        layout: {
-                          position: [400, 360],
-                          size: [undefined, 150],
-                          positionFromRight: true,
-                          positionFromBottom: true,
-                        },
-                        items: [
-                          {
-                            label: "I don't know",
-                            behavior: "NONE",
-                            action: [
-                              ui => ui.openDialog({
-                                layout: {
-                                  position: [100, 100],
-                                  size: [300, 200],
-                                },
-                                messages: [
-                                  { text: "You should know!" },
-                                ],
-                              }),
-                            ],
+                      action: {
+                        menu: {
+                          behavior: "CLOSE_AFTER_SELECT",
+                          layout: {
+                            position: [400, 360],
+                            size: [undefined, 150],
+                            positionFromRight: true,
+                            positionFromBottom: true,
                           },
-                          {
-                            label: "good",
-                            action: ui => ui.openDialog({
-                              layout: {
-                                name: "main-dialog",
-                                position: [undefined, 200],
-                                positionFromBottom: true,
+                          items: [
+                            {
+                              label: "I don't know",
+                              behavior: "NONE",
+                              action: {
+                                dialog: {
+                                  layout: {
+                                    position: [100, 100],
+                                    size: [300, 200],
+                                  },
+                                  messages: [
+                                    { text: "You should know!" },
+                                  ],
+                                }
                               },
-                              messages: [
-                                { text: "That's nice to know!" },
-                              ],
-                            }),
-                          },
-                          {
-                            label: "bad",
-                          },
-                        ],
-                      }),
+                            },
+                            {
+                              label: "good",
+                              action: {
+                                dialog: {
+                                  layout: {
+                                    name: "main-dialog",
+                                    position: [undefined, 200],
+                                    positionFromBottom: true,
+                                  },
+                                  messages: [
+                                    { text: "That's nice to know!" },
+                                  ],
+                                },
+                              },
+                            },
+                            {
+                              label: "bad",
+                            },
+                          ],
+                        },
+                      },
                     },
                     { text: "Bye bye." },
                     {
