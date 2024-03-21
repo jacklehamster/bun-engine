@@ -7,7 +7,7 @@ import { TurnAuxiliary } from "world/aux/TurnAuxiliary";
 import { PositionStepAuxiliary } from "world/aux/PositionStepAuxiliary";
 import { TiltResetAuxiliary } from "world/aux/TiltResetAuxiliary";
 import { ToggleAuxiliary } from "world/aux/ToggleAuxiliary";
-import { SpriteGroup } from "world/sprite/aux/SpritesGroup";
+import { SpriteGroup } from "world/sprite/aux/SpriteGroup";
 import { SpriteUpdater } from "world/sprite/update/SpriteUpdater";
 import { Sprite } from "world/sprite/Sprite";
 import { SpriteType } from "world/sprite/SpriteType";
@@ -30,22 +30,21 @@ import { DisplayBox } from "world/collision/DisplayBox";
 import { CollisionDetector } from "world/collision/CollisionDetector";
 import { IControls } from "controls/IControls";
 import { IFade, FadeApiAuxiliary } from "world/aux/FadeApiAuxiliary";
-import { Box } from "world/collision/Box";
+import { IBox } from "world/collision/IBox";
 import { shadowProcessor } from "canvas-processor";
 import { SpriteCellCreator } from "world/sprite/aux/SpriteCellCreator";
 import { FixedSpriteFactory } from "world/sprite/aux/FixedSpriteFactory";
-import { SurroundingTracker, CellTrackers, Cell, CellBoundary, filter, Tag, CellChangeDetector, createCell } from "cell-tracker";
-import { Vector } from "dok-types";
+import { SurroundingTracker, CellTrackers, Cell, CellBoundary, filter, Tag, CellChangeDetector, createCell, CellTriggerTracker } from "cell-tracker";
 import { alea } from "seedrandom";
 import { SpritePool } from "world/sprite/pools/SpritePool";
 import { ObjectPool } from "bun-pool";
 import { Accumulator } from "list-accumulator";
 import { StepBackAuxiliary } from "world/aux/StepBackAuxiliary";
 import { goBackAction } from "world/aux/GoBack";
-import { BodyModel } from "world/sprite/body/BodyModel";
 import { PositionStep } from "world/aux/PositionStep";
 import { IKeyboard } from "controls/IKeyboard";
 import { UserInterface } from "dialog-system";
+import { CellTrigger } from "world/aux/CellTrigger";
 
 enum Assets {
   DOBUKI = 0,
@@ -95,241 +94,245 @@ export class DemoGame extends AuxiliaryHolder {
     //  Add medias
     //  * Each media is a texture that can be shown on a sprite.
     //  * You can show videos, images, or you can have instructions to draw on a canvas.
-    const mediaAccumulator = new Accumulator<Media>();
+    const mediaAccumulator = new Accumulator<Media>({
+      elems: [
+        new ItemsGroup<Media>([{
+          id: Assets.DOBUKI,
+          type: "image",
+          src: "dobuki.png",
+        }, {
+          id: Assets.BUN,
+          type: "image", src: "bun.png",
+        }, {
+          id: Assets.BUN_SHADOW,
+          type: "image", src: "bun.png",
+          postProcess: shadowProcessor,
+        }, {
+          id: Assets.DODO,
+          type: "image", src: "dodo.png",
+          spriteSheet: {
+            spriteSize: [190, 209],
+          },
+        }, {
+          id: Assets.DODO_SHADOW,
+          type: "image", src: "dodo.png",
+          spriteSheet: {
+            spriteSize: [190, 209],
+          },
+          postProcess: shadowProcessor,
+        }, {
+          id: Assets.WOLF,
+          type: "image", src: "wolf.png",
+          spriteSheet: {
+            spriteSize: [200, 256],
+          },
+        }, {
+          id: Assets.WOLF_SHADOW,
+          type: "image", src: "wolf.png",
+          spriteSheet: {
+            spriteSize: [200, 256],
+          },
+          postProcess: shadowProcessor,
+        }, {
+          id: Assets.LOGO,
+          type: "draw",
+          draw: ctx => {
+            const { canvas } = ctx;
+            canvas.width = LOGO_SIZE;
+            canvas.height = LOGO_SIZE;
+            const centerX = canvas.width / 2, centerY = canvas.height / 2;
+            const halfSize = canvas.width / 2;
+            ctx.imageSmoothingEnabled = true;
+            // ctx.fillStyle = '#ddd';
+            ctx.lineWidth = canvas.width / 50;
+            // ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.strokeStyle = 'black';
+            ctx.fillStyle = 'gold';
+
+            //  face
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, halfSize * 0.8, 0, 2 * Math.PI);
+            ctx.fill();
+            ctx.stroke();
+
+            //  smile
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, halfSize * 0.5, 0, Math.PI);
+            ctx.stroke();
+
+            //  left eye
+            ctx.beginPath();
+            ctx.arc(canvas.width / 3, canvas.height / 3, halfSize * 0.1, 0, Math.PI, true);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.arc((canvas.width / 3) * 2, canvas.height / 3, halfSize * 0.1, 0, Math.PI * 2, true);
+            ctx.stroke();
+          },
+        }, {
+          id: Assets.GROUND,
+          type: "draw",
+          draw: ctx => {
+            const { canvas } = ctx;
+            canvas.width = LOGO_SIZE;
+            canvas.height = LOGO_SIZE;
+            ctx.fillStyle = '#ddd';
+            ctx.lineWidth = canvas.width / 50;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.strokeStyle = 'black';
+            ctx.fillStyle = 'silver';
+
+            ctx.beginPath();
+            ctx.rect(canvas.width * .2, canvas.height * .2, canvas.width * .6, canvas.height * .6);
+            ctx.fill();
+            ctx.stroke();
+          },
+        }, {
+          id: Assets.GRASS_GROUND,
+          type: "draw",
+          draw: ctx => {
+            const { canvas } = ctx;
+            canvas.width = LOGO_SIZE;
+            canvas.height = LOGO_SIZE;
+            ctx.fillStyle = 'green';
+            ctx.lineWidth = canvas.width / 50;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.strokeStyle = '#6f6';
+            ctx.fillStyle = 'lightgreen';
+
+            ctx.beginPath();
+            ctx.rect(canvas.width * .2, canvas.height * .2, canvas.width * .6, canvas.height * .6);
+            ctx.fill();
+            ctx.stroke();
+          },
+        }, {
+          id: Assets.BRICK,
+          type: "draw",
+          draw: ctx => {
+            const { canvas } = ctx;
+            canvas.width = LOGO_SIZE;
+            canvas.height = LOGO_SIZE;
+            ctx.fillStyle = '#ddd';
+            ctx.lineWidth = canvas.width / 50;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+          },
+        }, {
+          id: Assets.VIDEO,
+          type: "video",
+          src: 'sample.mp4',
+          volume: 0,
+          fps: 30,
+          playSpeed: .5,
+          maxRefreshRate: 30,
+        }, {
+          id: Assets.WIREFRAME,
+          type: "draw",
+          draw: ctx => {
+            const { canvas } = ctx;
+            canvas.width = LOGO_SIZE;
+            canvas.height = LOGO_SIZE;
+            ctx.lineWidth = 40;
+            ctx.setLineDash([20, 5]);
+            ctx.strokeStyle = 'lightblue';
+            ctx.beginPath();
+            ctx.rect(10, 10, canvas.width - 20, canvas.height - 20);
+            ctx.stroke();
+          },
+        }, {
+          id: Assets.WIREFRAME_RED,
+          type: "draw",
+          draw: ctx => {
+            const { canvas } = ctx;
+            canvas.width = LOGO_SIZE;
+            canvas.height = LOGO_SIZE;
+            ctx.lineWidth = 40;
+            ctx.setLineDash([20, 5]);
+
+            ctx.strokeStyle = 'red';
+
+            ctx.beginPath();
+            ctx.rect(10, 10, canvas.width - 20, canvas.height - 20);
+            ctx.stroke();
+          },
+        }, {
+          id: Assets.GRASS,
+          type: "draw",
+          draw: ctx => {
+            const { canvas } = ctx;
+            canvas.width = 1024;
+            canvas.height = 1024;
+            ctx.fillStyle = 'green';
+            ctx.lineWidth = canvas.width / 50;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+          },
+        }, {
+          id: Assets.BUSHES,
+          type: "draw",
+          draw: ctx => {
+            const { canvas } = ctx;
+            canvas.width = 1024;
+            canvas.height = 1024;
+            ctx.fillStyle = '#050';
+            ctx.lineWidth = canvas.width / 50;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+          },
+        }, {
+          id: Assets.WATER,
+          type: "draw",
+          draw: ctx => {
+            const { canvas } = ctx;
+            canvas.width = 1024;
+            canvas.height = 1024;
+            ctx.fillStyle = '#68f';
+            ctx.lineWidth = canvas.width / 50;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+          },
+        }, {
+          id: Assets.TREE,
+          type: "draw",
+          draw: ctx => {
+            const { canvas } = ctx;
+            canvas.width = 200;
+            canvas.height = 200;
+            ctx.fillStyle = '#0f0';
+
+            ctx.beginPath();
+            ctx.moveTo(100, 0);
+            ctx.lineTo(200, 150);
+            ctx.lineTo(0, 150);
+            ctx.fill();
+            ctx.fillStyle = '#430';
+            ctx.fillRect(75, 125, 50, 50);
+          },
+        }]),
+      ],
+    });
     this.addAuxiliary(new MediaUpdater({ engine, motor, medias: mediaAccumulator }));
-    const mediaItems = new ItemsGroup<Media>([{
-      id: Assets.DOBUKI,
-      type: "image",
-      src: "dobuki.png",
-    }, {
-      id: Assets.BUN,
-      type: "image", src: "bun.png",
-    }, {
-      id: Assets.BUN_SHADOW,
-      type: "image", src: "bun.png",
-      postProcess: shadowProcessor,
-    }, {
-      id: Assets.DODO,
-      type: "image", src: "dodo.png",
-      spriteSheet: {
-        spriteSize: [190, 209],
-      },
-    }, {
-      id: Assets.DODO_SHADOW,
-      type: "image", src: "dodo.png",
-      spriteSheet: {
-        spriteSize: [190, 209],
-      },
-      postProcess: shadowProcessor,
-    }, {
-      id: Assets.WOLF,
-      type: "image", src: "wolf.png",
-      spriteSheet: {
-        spriteSize: [200, 256],
-      },
-    }, {
-      id: Assets.WOLF_SHADOW,
-      type: "image", src: "wolf.png",
-      spriteSheet: {
-        spriteSize: [200, 256],
-      },
-      postProcess: shadowProcessor,
-    }, {
-      id: Assets.LOGO,
-      type: "draw",
-      draw: ctx => {
-        const { canvas } = ctx;
-        canvas.width = LOGO_SIZE;
-        canvas.height = LOGO_SIZE;
-        const centerX = canvas.width / 2, centerY = canvas.height / 2;
-        const halfSize = canvas.width / 2;
-        ctx.imageSmoothingEnabled = true;
-        // ctx.fillStyle = '#ddd';
-        ctx.lineWidth = canvas.width / 50;
-        // ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        ctx.strokeStyle = 'black';
-        ctx.fillStyle = 'gold';
-
-        //  face
-        ctx.beginPath();
-        ctx.arc(centerX, centerY, halfSize * 0.8, 0, 2 * Math.PI);
-        ctx.fill();
-        ctx.stroke();
-
-        //  smile
-        ctx.beginPath();
-        ctx.arc(centerX, centerY, halfSize * 0.5, 0, Math.PI);
-        ctx.stroke();
-
-        //  left eye
-        ctx.beginPath();
-        ctx.arc(canvas.width / 3, canvas.height / 3, halfSize * 0.1, 0, Math.PI, true);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.arc((canvas.width / 3) * 2, canvas.height / 3, halfSize * 0.1, 0, Math.PI * 2, true);
-        ctx.stroke();
-      },
-    }, {
-      id: Assets.GROUND,
-      type: "draw",
-      draw: ctx => {
-        const { canvas } = ctx;
-        canvas.width = LOGO_SIZE;
-        canvas.height = LOGO_SIZE;
-        ctx.fillStyle = '#ddd';
-        ctx.lineWidth = canvas.width / 50;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        ctx.strokeStyle = 'black';
-        ctx.fillStyle = 'silver';
-
-        ctx.beginPath();
-        ctx.rect(canvas.width * .2, canvas.height * .2, canvas.width * .6, canvas.height * .6);
-        ctx.fill();
-        ctx.stroke();
-      },
-    }, {
-      id: Assets.GRASS_GROUND,
-      type: "draw",
-      draw: ctx => {
-        const { canvas } = ctx;
-        canvas.width = LOGO_SIZE;
-        canvas.height = LOGO_SIZE;
-        ctx.fillStyle = 'green';
-        ctx.lineWidth = canvas.width / 50;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        ctx.strokeStyle = '#6f6';
-        ctx.fillStyle = 'lightgreen';
-
-        ctx.beginPath();
-        ctx.rect(canvas.width * .2, canvas.height * .2, canvas.width * .6, canvas.height * .6);
-        ctx.fill();
-        ctx.stroke();
-      },
-    }, {
-      id: Assets.BRICK,
-      type: "draw",
-      draw: ctx => {
-        const { canvas } = ctx;
-        canvas.width = LOGO_SIZE;
-        canvas.height = LOGO_SIZE;
-        ctx.fillStyle = '#ddd';
-        ctx.lineWidth = canvas.width / 50;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-      },
-    }, {
-      id: Assets.VIDEO,
-      type: "video",
-      src: 'sample.mp4',
-      volume: 0,
-      fps: 30,
-      playSpeed: .5,
-      maxRefreshRate: 30,
-    }, {
-      id: Assets.WIREFRAME,
-      type: "draw",
-      draw: ctx => {
-        const { canvas } = ctx;
-        canvas.width = LOGO_SIZE;
-        canvas.height = LOGO_SIZE;
-        ctx.lineWidth = 40;
-        ctx.setLineDash([20, 5]);
-        ctx.strokeStyle = 'lightblue';
-        ctx.beginPath();
-        ctx.rect(10, 10, canvas.width - 20, canvas.height - 20);
-        ctx.stroke();
-      },
-    }, {
-      id: Assets.WIREFRAME_RED,
-      type: "draw",
-      draw: ctx => {
-        const { canvas } = ctx;
-        canvas.width = LOGO_SIZE;
-        canvas.height = LOGO_SIZE;
-        ctx.lineWidth = 40;
-        ctx.setLineDash([20, 5]);
-
-        ctx.strokeStyle = 'red';
-
-        ctx.beginPath();
-        ctx.rect(10, 10, canvas.width - 20, canvas.height - 20);
-        ctx.stroke();
-      },
-    }, {
-      id: Assets.GRASS,
-      type: "draw",
-      draw: ctx => {
-        const { canvas } = ctx;
-        canvas.width = 1024;
-        canvas.height = 1024;
-        ctx.fillStyle = 'green';
-        ctx.lineWidth = canvas.width / 50;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-      },
-    }, {
-      id: Assets.BUSHES,
-      type: "draw",
-      draw: ctx => {
-        const { canvas } = ctx;
-        canvas.width = 1024;
-        canvas.height = 1024;
-        ctx.fillStyle = '#050';
-        ctx.lineWidth = canvas.width / 50;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-      },
-    }, {
-      id: Assets.WATER,
-      type: "draw",
-      draw: ctx => {
-        const { canvas } = ctx;
-        canvas.width = 1024;
-        canvas.height = 1024;
-        ctx.fillStyle = '#68f';
-        ctx.lineWidth = canvas.width / 50;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-      },
-    }, {
-      id: Assets.TREE,
-      type: "draw",
-      draw: ctx => {
-        const { canvas } = ctx;
-        canvas.width = 200;
-        canvas.height = 200;
-        ctx.fillStyle = '#0f0';
-
-        ctx.beginPath();
-        ctx.moveTo(100, 0);
-        ctx.lineTo(200, 150);
-        ctx.lineTo(0, 150);
-        ctx.fill();
-        ctx.fillStyle = '#430';
-        ctx.fillRect(75, 125, 50, 50);
-      },
-    }]);
-    mediaAccumulator.add(mediaItems);
     this.addAuxiliary({
       activate() {
         mediaAccumulator.updateFully();
       },
     });
 
-    const animationAccumulator = new Accumulator<Animation>();
+    const animationAccumulator = new Accumulator<Animation>({
+      elems: [
+        new ItemsGroup<Animation>([{
+          id: Anims.STILL,
+          frames: [0],
+        }, {
+          id: Anims.RUN,
+          frames: [1, 5],
+          fps: 24,
+        }, {
+          id: Anims.WOLF_STILL,
+          frames: [0, 4],
+          fps: 15,
+        }]),
+      ],
+    });
     this.addAuxiliary(new AnimationUpdater({ engine, motor, animations: animationAccumulator }));
-    const animationItems = new ItemsGroup<Animation>([{
-      id: Anims.STILL,
-      frames: [0],
-    }, {
-      id: Anims.RUN,
-      frames: [1, 5],
-      fps: 24,
-    }, {
-      id: Anims.WOLF_STILL,
-      frames: [0, 4],
-      fps: 15,
-    }]);
-    animationAccumulator.add(animationItems);
     this.addAuxiliary({
       activate() {
         animationAccumulator.updateFully();
@@ -348,20 +351,9 @@ export class DemoGame extends AuxiliaryHolder {
 
     this.addAuxiliary(new SpriteUpdater({ engine, motor, sprites: spritesAccumulator }));
 
-    const exitBlock = {
-      top: 2,
-      bottom: -1,
-      left: -.1,
-      right: .1,
-      near: 0,
-      far: -.5,
-    };
-    const exitCell = createCell(0, 0, 0, CELLSIZE);
-    const exitPosition = exitCell.worldPosition;
-
     const worldColliders = new Accumulator<ICollisionDetector>();
 
-    const heroBox = {
+    const heroBox: IBox = {
       top: 1,
       bottom: -1,
       left: -.9,
@@ -370,7 +362,7 @@ export class DemoGame extends AuxiliaryHolder {
       far: -.9,
     };
 
-    const blockBox: Box = {
+    const blockBox: IBox = {
       top: 2,
       bottom: -1,
       left: -1,
@@ -379,148 +371,168 @@ export class DemoGame extends AuxiliaryHolder {
       far: -1,
     };
 
-    {
-      const dobukiCell = createCell(-3, 0, -1, CELLSIZE);
-      const dobukiBox = {
-        top: 1,
-        bottom: -1,
-        left: -.1,
-        right: .1,
-        near: 0,
-        far: -.5,
-      };
-      const dobukiPosition = dobukiCell.worldPosition;
-      const dobukiBlockPosition: Vector = [
-        dobukiPosition[0],
-        dobukiPosition[1],
-        dobukiPosition[2] - CELLSIZE];
+    const dobukiBox = {
+      top: 1,
+      bottom: -1,
+      left: -.1,
+      right: .1,
+      near: 0,
+      far: -.5,
+    };
+    const exitBlock: IBox = {
+      top: 2,
+      bottom: -1,
+      left: -.1,
+      right: .1,
+      near: 0,
+      far: -.5,
+    };
 
-      const bodyModel = new BodyModel({
-        colliders: [
-          new CollisionDetector({
-            blockerBox: blockBox, blockerPosition: dobukiBlockPosition, heroBox,
-            listener: {
-              onBlockChange(blocked) {
-                displayBox.setImageId(blocked ? Assets.WIREFRAME_RED : Assets.WIREFRAME);
+    const cellTriggerTracker = new CellTriggerTracker();
+    cellTrackers.add(cellTriggerTracker);
+    cellTriggerTracker.addTrigger(new CellTrigger({
+      cells: [createCell(0, 0, 0, CELLSIZE)],
+      heroBox,
+      triggerBox: exitBlock,
+      worldColliders,
+      spritesAccumulator,
+      wireframeImageId: Assets.WIREFRAME,
+      onEnter() {
+        displayBox.setImageId(Assets.WIREFRAME_RED);
+        ui.openDialog({
+          messages: [
+            { text: "Going down..." },
+            {
+              text: "",
+              action: () => new Promise(resolve => {
+                camera.fade.progressTowards(1, .005, {
+                  onRelease: resolve,
+                }, motor)
+              }),
+            }, {
+              action: () => {
+                console.log("Change scene");
               },
-            }
-          }, { shouldBlock: true }),
-          new CollisionDetector({
-            blockerBox: dobukiBox, blockerPosition: dobukiPosition, heroBox,
-            listener: {
-              onEnter() {
-                displayBox.setImageId(Assets.WIREFRAME_RED);
-                ui.openDialog({
-                  layout: {
-                    name: "main-dialog",
-                    position: [undefined, 200],
-                    positionFromBottom: true,
-                  },
-                  messages: [
-                    { text: "Hello there." },
-                    {
-                      text: "How are you?",
-                      action: {
-                        menu: {
-                          behavior: "CLOSE_AFTER_SELECT",
-                          layout: {
-                            position: [400, 360],
-                            size: [undefined, 150],
-                            positionFromRight: true,
-                            positionFromBottom: true,
-                          },
-                          items: [
-                            {
-                              label: "I don't know",
-                              behavior: "NONE",
-                              action: {
-                                dialog: {
-                                  layout: {
-                                    position: [100, 100],
-                                    size: [300, 200],
-                                  },
-                                  messages: [
-                                    { text: "You should know!" },
-                                  ],
-                                }
-                              },
+            },
+          ]
+        });
+      },
+      onLeave() {
+        displayBox.setImageId(Assets.WIREFRAME);
+      }
+    }));
+    cellTriggerTracker.addTrigger(new CellTrigger({
+      cells: [createCell(-3, 0, -1, CELLSIZE)],
+      blockerBox: blockBox,
+      triggerBox: dobukiBox,
+      heroBox,
+      spriteImageId: Assets.DOBUKI,
+      wireframeImageId: Assets.WIREFRAME,
+      worldColliders,
+      spritesAccumulator,
+      onCollide(collided) {
+        displayBox.setImageId(collided ? Assets.WIREFRAME_RED : Assets.WIREFRAME);
+      },
+      onLeave() {
+        displayBox.setImageId(Assets.WIREFRAME);
+      },
+      onEnter() {
+        displayBox.setImageId(Assets.WIREFRAME_RED);
+        ui.performActions({
+          dialog: {
+            layout: {
+              name: "main-dialog",
+              position: [undefined, 200],
+              positionFromBottom: true,
+            },
+            messages: [
+              { text: "Hello there." },
+              {
+                text: "How are you?",
+                action: {
+                  menu: {
+                    behavior: "CLOSE_AFTER_SELECT",
+                    layout: {
+                      position: [400, 360],
+                      size: [undefined, 150],
+                      positionFromRight: true,
+                      positionFromBottom: true,
+                    },
+                    items: [
+                      {
+                        label: "I don't know",
+                        behavior: "NONE",
+                        action: {
+                          dialog: {
+                            layout: {
+                              position: [100, 100],
+                              size: [300, 200],
                             },
-                            {
-                              label: "good",
-                              action: {
-                                dialog: {
-                                  layout: {
-                                    name: "main-dialog",
-                                    position: [undefined, 200],
-                                    positionFromBottom: true,
-                                  },
-                                  messages: [
-                                    { text: "That's nice to know!" },
-                                  ],
-                                },
-                              },
-                            },
-                            {
-                              label: "bad",
-                            },
-                          ],
+                            messages: [
+                              { text: "You should know!" },
+                            ],
+                          }
                         },
                       },
-                    },
-                    { text: "Bye bye." },
-                    {
-                      action: [
-                        goBackAction(heroPos),
-                      ],
-                    },
-                  ]
-                });
+                      {
+                        label: "good",
+                        action: {
+                          dialog: {
+                            layout: {
+                              name: "main-dialog",
+                              position: [undefined, 200],
+                              positionFromBottom: true,
+                            },
+                            messages: [
+                              { text: "That's nice to know!" },
+                            ],
+                          },
+                        },
+                      },
+                      {
+                        label: "bad",
+                      },
+                    ],
+                  },
+                },
               },
-              onLeave() {
-                displayBox.setImageId(Assets.WIREFRAME);
-              }
-            }
-          }, { shouldBlock: false }),
-        ],
-      });
-      const dobukiPosMatrix = new PositionMatrix().movedTo(dobukiPosition[0], dobukiPosition[1], dobukiPosition[2]);
-      bodyModel.addSprites(new SpriteGroup(
-        [{
-          imageId: Assets.DOBUKI,
-          spriteType: SpriteType.SPRITE,
-          transform: Matrix.create().translate(0, -.3, -1),
-        }],
-        dobukiPosMatrix));
-      bodyModel.addSprites(new SpriteGroup(
-        new DisplayBox({ box: dobukiBox, imageId: Assets.WIREFRAME, insideImageId: Assets.WIREFRAME }),
-        dobukiPosMatrix,
-      ));
-      bodyModel.addSprites(new SpriteGroup(
-        new DisplayBox({ box: blockBox, imageId: Assets.WIREFRAME, insideImageId: Assets.WIREFRAME }),
-        new PositionMatrix().movedTo(dobukiBlockPosition[0], dobukiBlockPosition[1], dobukiBlockPosition[2]),
-      ));
+              { text: "Bye bye." },
+              {
+                action: [
+                  goBackAction(heroPos),
+                ],
+              },
+            ]
+          }
+        });
+      }
+    }));
 
-      worldColliders.add(bodyModel.colliders);
+    // cellTriggerTracker.addTrigger(new CellTrigger({
+    //   cells: [
+    //     [-1, 0, -1],
+    //     [1, 0, -1],
+    //     [0, 0, -1],
+    //     [-1, 0, 0],
+    //     [1, 0, 0],
+    //   ].map(([x, y, z]) => createCell(x, y, z, CELLSIZE)),
+    //   heroBox,
+    //   worldColliders,
+    //   spritesAccumulator,
+    // }));
 
-      const factory = new FixedSpriteFactory({ cellSize: CELLSIZE }, bodyModel.sprites);
-      const creator = new SpriteCellCreator({ factory });
-      spritesAccumulator.add(creator);
-      cellTrackers.add(creator);
-      this.addAuxiliary(factory);
-    }
-
-    const blockPositions: Vector[] = [
+    const blockCells: Cell[] = [
       [-1, 0, -1],
       [1, 0, -1],
       [0, 0, -1],
       [-1, 0, 0],
       [1, 0, 0],
-    ].map(([x, y, z]) => [x * CELLSIZE, y * CELLSIZE, z * CELLSIZE]);
+    ].map(([x, y, z]) => createCell(x, y, z, CELLSIZE));
 
-    blockPositions.forEach(blockPosition => {
+    blockCells.forEach(cell => {
       const blockBoxSprites = new SpriteGroup(
         new DisplayBox({ box: blockBox, imageId: Assets.GROUND, insideImageId: Assets.BRICK }),
-        new PositionMatrix().movedTo(blockPosition[0], blockPosition[1], blockPosition[2]),
+        new PositionMatrix().movedTo(cell.worldPosition[0], cell.worldPosition[1], cell.worldPosition[2]),
       );
       const factory = new FixedSpriteFactory(
         { cellSize: CELLSIZE },
@@ -534,11 +546,6 @@ export class DemoGame extends AuxiliaryHolder {
 
     {
       const factory = new FixedSpriteFactory({ cellSize: CELLSIZE },
-        new SpriteGroup(
-          new DisplayBox({ box: exitBlock, imageId: Assets.WIREFRAME, insideImageId: Assets.WIREFRAME }),
-          new PositionMatrix().movedTo(exitPosition[0], exitPosition[1], exitPosition[2]),
-        ),
-
         //  Side walls with happy face logo
         [
           Matrix.create().translate(-3.01, 0, 0).rotateY(Math.PI / 2),
@@ -562,7 +569,16 @@ export class DemoGame extends AuxiliaryHolder {
     }
 
     const camPosition: IPositionMatrix = new PositionMatrix();
-    const camera: ICamera = this.camera = new Camera({ engine, motor, position: camPosition });
+    const camera: ICamera = this.camera = new Camera({
+      engine, motor, position: camPosition,
+      config: {
+        distance: 15,
+        tilt: .8,
+        zoom: .25,
+        perspective: .05,
+        backgroundColor: 0,
+      },
+    });
     this.addAuxiliary(camera);
 
     {
@@ -657,9 +673,9 @@ export class DemoGame extends AuxiliaryHolder {
     }
 
     worldColliders.add([
-      ...blockPositions.map(blockPosition =>
+      ...blockCells.map(cell =>
         new CollisionDetector({
-          blockerBox: blockBox, blockerPosition: blockPosition, heroBox,
+          blockerBox: blockBox, blockerPosition: cell.worldPosition, heroBox,
           listener: {
             onBlockChange(blocked) {
               displayBox.setImageId(blocked ? Assets.WIREFRAME_RED : Assets.WIREFRAME);
@@ -667,35 +683,6 @@ export class DemoGame extends AuxiliaryHolder {
           }
         }, { shouldBlock: true })
       ),
-      new CollisionDetector(
-        {
-          blockerBox: exitBlock, blockerPosition: exitPosition, heroBox,
-          listener: {
-            onEnter() {
-              displayBox.setImageId(Assets.WIREFRAME_RED);
-              ui.openDialog({
-                messages: [
-                  { text: "Going down..." },
-                  {
-                    text: "",
-                    action: () => new Promise(resolve => {
-                      camera.fade.progressTowards(1, .005, {
-                        onRelease: resolve,
-                      }, motor)
-                    }),
-                  }, {
-                    action: () => {
-                      console.log("Change scene");
-                    },
-                  },
-                ]
-              });
-            },
-            onLeave() {
-              displayBox.setImageId(Assets.WIREFRAME);
-            }
-          }
-        }, { shouldBlock: false }),
     ]);
 
     const heroPos: IPositionMatrix = new PositionMatrix({ blockers: worldColliders }).movedTo(0, 0, 3);
@@ -737,7 +724,7 @@ export class DemoGame extends AuxiliaryHolder {
     //  Static Sprites
     //  * Those are just sprites, which will appear regardless of where
     //  * you are in the scene.
-    const videoSprites = new SpriteGroup([
+    spritesAccumulator.add(new SpriteGroup([
       {
         imageId: Assets.VIDEO,
         spriteType: SpriteType.DISTANT,
@@ -745,8 +732,7 @@ export class DemoGame extends AuxiliaryHolder {
           .translate(3000, 1000, -5000)
           .scale(480, 270, 1),
       },
-    ]);
-    spritesAccumulator.add(videoSprites);
+    ]));
 
     const controlledMotor = new ControlledMotor(motor, { policy: Policy.INCOMING_CYCLE_PRIORITY });
     const stepBack = new StepBackAuxiliary({ motor: controlledMotor, position: heroPos });
@@ -791,27 +777,16 @@ export class DemoGame extends AuxiliaryHolder {
         const animId = moving ? Anims.RUN : Anims.STILL;
         heroSprites.setAnimationId(animId);
         shadowHeroSprites.setAnimationId(animId);
-      }));
-
-    const surroundingTracker = new SurroundingTracker({ cellTrack: cellTrackers }, {
-      cellLimit: 200,
-      range: [7, 3, 7],
-      cellSize: CELLSIZE,
-    });
-
-    this.addAuxiliary(
-      new CellChangeDetector({ positionMatrix: heroPos }, { cellSize: CELLSIZE })
-        .addListener(surroundingTracker)
-        .addListener(stepBack)
-    );
-
-    //  Hardcode some base settings
-    camera.distance.setValue(15)
-    camera.tilt.angle.setValue(.8);
-    camera.projection.zoom.setValue(.25);
-    camera.projection.perspective.setValue(.05);
-    camera.setBackgroundColor(0x000000);
-    this.addAuxiliary(new TimeAuxiliary({ motor, engine }))
+      }))
+      .addAuxiliary(stepBack)
+      .addAuxiliary(new CellChangeDetector({ positionMatrix: heroPos }, { cellSize: CELLSIZE })
+        .addListener(new SurroundingTracker({ cellTrack: cellTrackers }, {
+          cellLimit: 200,
+          range: [7, 3, 7],
+          cellSize: CELLSIZE,
+        }))
+        .addListener(stepBack))
+      .addAuxiliary(new TimeAuxiliary({ motor, engine }))
       .addAuxiliary(new FadeApiAuxiliary({ camera, motor, api: this.api }));
   }
 }

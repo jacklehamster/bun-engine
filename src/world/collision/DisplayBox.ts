@@ -1,11 +1,11 @@
 import { MediaId } from "gl-texture-manager";
-import { Box } from "./Box";
+import { IBox } from "./IBox";
 import { Sprite } from "world/sprite/Sprite";
 import { List } from "abstract-list";
 import { Matrix } from "dok-matrix";
 
 interface Props {
-  box: Box;
+  box: IBox;
   imageId: MediaId;
   insideImageId?: MediaId;
 }

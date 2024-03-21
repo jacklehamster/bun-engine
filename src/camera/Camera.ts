@@ -1,4 +1,4 @@
-import { createTiltMatrix, createTurnMatrix, ProjectionMatrix, Matrix, IMatrix } from "dok-matrix";
+import { createTiltMatrix, createTurnMatrix, ProjectionMatrix, Matrix, IMatrix, InvertMatrix } from "dok-matrix";
 import { ICamera } from "./ICamera";
 import { IGraphicsEngine } from "graphics/IGraphicsEngine";
 import { IMotor } from "motor-loop";
@@ -13,11 +13,20 @@ import { VectorUniformHandler } from "gl/uniforms/update/VectorUniformHandler";
 import { Vector } from "dok-types";
 import { IChangeListener } from "change-listener";
 
+interface Config {
+  distance?: number;
+  tilt?: number;
+  zoom?: number;
+  perspective?: number;
+  backgroundColor?: number;
+}
+
 interface Props {
   engine: IGraphicsEngine;
   motor: IMotor;
   position?: IPositionMatrix;
   projection?: ProjectionMatrix;
+  config?: Config;
 }
 
 export class Camera extends AuxiliaryHolder implements ICamera {
@@ -30,7 +39,7 @@ export class Camera extends AuxiliaryHolder implements ICamera {
   readonly blur = new NumVal(1, () => this.#updateInformerFloat.informUpdate(FloatUniform.BG_BLUR));
   readonly fade = new NumVal(0, () => this.#updateInformerFloat.informUpdate(FloatUniform.FADE));
 
-  readonly #camMatrix = Matrix.create();
+  readonly #camMatrix;
   readonly #bgColor: Vector = [0, 0, 0];
   readonly #viewportSize: [number, number] = [0, 0];
   readonly #updateInformer;
@@ -38,20 +47,18 @@ export class Camera extends AuxiliaryHolder implements ICamera {
   readonly #updateInformerVector;
   readonly #engine;
   readonly #positionChangeListener: IChangeListener<IMatrix> = {
-    onChange: () => {
-      this.#camMatrix.invert(this.position);
-      this.#updateInformer.informUpdate(MatrixUniform.CAM_POS);
-    }
+    onChange: () => this.#updateInformer.informUpdate(MatrixUniform.CAM_POS)
   };
   readonly #projectionChangeListener: IChangeListener<IMatrix> = {
     onChange: () => this.#updateInformer.informUpdate(MatrixUniform.PROJECTION)
   };
 
-  constructor({ engine, motor, position = new PositionMatrix, projection = new ProjectionMatrix() }: Props) {
+  constructor({ engine, motor, position = new PositionMatrix, projection = new ProjectionMatrix(), config = {} }: Props) {
     super();
     this.#engine = engine;
     this.position = position;
     this.projection = projection;
+    this.#camMatrix = new InvertMatrix(this.position);
 
     const matrixUniformUpdaters: Record<MatrixUniform, MatrixUniformHandler> = {
       [MatrixUniform.PROJECTION]: engine.createMatrixUniformHandler(CAM_PROJECTION_LOC, this.projection),
@@ -86,6 +93,23 @@ export class Camera extends AuxiliaryHolder implements ICamera {
       });
       ids.clear();
     }, motor);
+
+
+    if (config.distance) {
+      this.distance.setValue(config.distance);
+    }
+    if (config.tilt) {
+      this.tilt.angle.setValue(config.tilt);
+    }
+    if (config.zoom) {
+      this.projection.zoom.setValue(config.zoom);
+    }
+    if (config.perspective) {
+      this.projection.perspective.setValue(config.perspective);
+    }
+    if (config.backgroundColor) {
+      this.setBackgroundColor(config.backgroundColor);
+    }
   }
 
   activate() {
@@ -100,9 +124,11 @@ export class Camera extends AuxiliaryHolder implements ICamera {
     this.#updateInformerVector.informUpdate(VectorUniform.BG_COLOR);
     this.position.addChangeListener(this.#positionChangeListener);
     this.projection.addChangeListener(this.#projectionChangeListener);
+    this.#camMatrix.activate();
   }
 
   deactivate(): void {
+    this.#camMatrix.deactivate();
     this.projection.removeChangeListener(this.#projectionChangeListener);
     this.position.removeChangeListener(this.#positionChangeListener);
     super.deactivate();

@@ -1,11 +1,11 @@
 import { Vector } from "dok-types";
-import { Box } from "./Box";
+import { IBox } from "./IBox";
 
-export class CollisionBox implements Box {
-  constructor(private readonly box: Box, public readonly position: Vector) {
+export class CollisionBox implements IBox {
+  constructor(private readonly box: IBox, public readonly position: Vector) {
   }
 
-  collideWith(box: Box) {
+  collideWith(box: IBox) {
     return this.right > box.left && box.right > this.left
       && this.top > box.bottom && box.top > this.bottom
       && this.near > box.far && box.near > this.far;

@@ -1,5 +1,5 @@
 import { ICollisionDetector } from "dok-matrix";
-import { Box, NULLBOX } from "./Box";
+import { IBox, NULLBOX } from "./IBox";
 import { CollisionBox } from "./CollisionBox";
 import { Vector } from "dok-types";
 
@@ -14,9 +14,9 @@ export interface Listener {
 }
 
 interface Props {
-  blockerBox: Box;
+  blockerBox: IBox;
   blockerPosition: Vector;
-  heroBox?: Box;
+  heroBox?: IBox;
   listener?: Listener;
 }
 

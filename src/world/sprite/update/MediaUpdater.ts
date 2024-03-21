@@ -8,7 +8,7 @@ import { IUpdatableList } from "list-accumulator";
 interface Props {
   engine: IGraphicsEngine;
   motor: IMotor;
-  medias: IUpdatableList<Media>;
+  medias: IUpdatableList<Media> | Media[];
 }
 
 export class MediaUpdater extends Updater {
@@ -29,7 +29,7 @@ export class MediaUpdater extends Updater {
             }
           }));
       }, motor),
-      elems: medias,
+      elems: medias as IUpdatableList<Media>,
     });
     this.#motor = motor;
   }
