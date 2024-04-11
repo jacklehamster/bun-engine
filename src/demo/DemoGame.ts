@@ -43,8 +43,8 @@ import { StepBackAuxiliary } from "world/aux/StepBackAuxiliary";
 import { goBackAction } from "world/aux/GoBack";
 import { PositionStep } from "world/aux/PositionStep";
 import { IKeyboard } from "controls/IKeyboard";
-import { UserInterface } from "dialog-system";
 import { CellTrigger } from "world/aux/CellTrigger";
+import { KeyboardControl, openMenu, PopupControl } from "dialog-system";
 
 enum Assets {
   DOBUKI = 0,
@@ -80,7 +80,6 @@ const CELLSIZE = 2;
 interface Props {
   engine: IGraphicsEngine;
   motor: IMotor;
-  ui: UserInterface;
   keyboard: IKeyboard;
   controls: IControls;
 }
@@ -88,8 +87,19 @@ interface Props {
 export class DemoGame extends AuxiliaryHolder {
   api: IFade = {};
   camera: ICamera;
-  constructor({ engine, motor, ui, keyboard, controls }: Props) {
+  constructor({ engine, motor, keyboard, controls }: Props) {
     super();
+
+    const controlActivator = (active: boolean) => {
+      if (active) {
+        controls.activate?.();
+      } else {
+        controls.deactivate?.();
+      }
+    }
+    const popupControl = new PopupControl();
+    popupControl.registerActive(controlActivator);
+    const keyboardControl = new KeyboardControl(popupControl);
 
     //  Add medias
     //  * Each media is a texture that can be shown on a sprite.
@@ -346,6 +356,7 @@ export class DemoGame extends AuxiliaryHolder {
     this.addAuxiliary({
       deactivate() {
         engine.setMaxSpriteCount(0);
+        spritesAccumulator.clear();
       }
     });
 
@@ -397,24 +408,37 @@ export class DemoGame extends AuxiliaryHolder {
       worldColliders,
       spritesAccumulator,
       wireframeImageId: Assets.WIREFRAME,
-      onEnter() {
+      onEnter: () => {
         displayBox.setImageId(Assets.WIREFRAME_RED);
-        ui.openDialog({
-          messages: [
-            { text: "Going down..." },
-            {
-              text: "",
-              action: () => new Promise(resolve => {
-                camera.fade.progressTowards(1, .005, {
-                  onRelease: resolve,
-                }, motor)
-              }),
-            }, {
-              action: () => {
-                console.log("Change scene");
-              },
+        openMenu({
+          popupControl,
+          dialog: {
+            layout: {
+              position: [200, 100],
+              size: [300, 200],
             },
-          ]
+            messages: [
+              "Going down...",
+              {
+                action: () => new Promise(resolve => {
+                  camera.fade.progressTowards(1, .005, {
+                    onRelease: resolve,
+                  }, motor);
+                }),
+                autoNext: 0,
+              },
+              {
+                action: async () => console.log("Changing scene."),
+                autoNext: 0,
+              },
+              {
+                action: async () => {
+                  this.deactivate();
+                },
+                autoNext: 0,
+              },
+            ]
+          }
         });
       },
       onLeave() {
@@ -424,6 +448,7 @@ export class DemoGame extends AuxiliaryHolder {
     cellTriggerTracker.addTrigger(new CellTrigger({
       cells: [createCell(-3, 0, -1, CELLSIZE)],
       blockerBox: blockBox,
+      blockShift: [0, 0, -CELLSIZE],
       triggerBox: dobukiBox,
       heroBox,
       spriteImageId: Assets.DOBUKI,
@@ -438,111 +463,104 @@ export class DemoGame extends AuxiliaryHolder {
       },
       onEnter() {
         displayBox.setImageId(Assets.WIREFRAME_RED);
-        ui.performActions({
-          dialog: {
-            layout: {
+
+        openMenu({
+          popupControl,
+          layouts: [
+            {
               name: "main-dialog",
-              position: [undefined, 200],
+              position: [null, 200],
               positionFromBottom: true,
-            },
+            }
+          ],
+          dialog: {
+            layout: "main-dialog",
             messages: [
               { text: "Hello there." },
               {
                 text: "How are you?",
-                action: {
-                  menu: {
-                    behavior: "CLOSE_AFTER_SELECT",
-                    layout: {
-                      position: [400, 360],
-                      size: [undefined, 150],
-                      positionFromRight: true,
-                      positionFromBottom: true,
-                    },
-                    items: [
-                      {
-                        label: "I don't know",
-                        behavior: "NONE",
-                        action: {
-                          dialog: {
-                            layout: {
-                              position: [100, 100],
-                              size: [300, 200],
-                            },
-                            messages: [
-                              { text: "You should know!" },
-                            ],
-                          }
-                        },
-                      },
-                      {
-                        label: "good",
-                        action: {
-                          dialog: {
-                            layout: {
-                              name: "main-dialog",
-                              position: [undefined, 200],
-                              positionFromBottom: true,
-                            },
-                            messages: [
-                              { text: "That's nice to know!" },
-                            ],
-                          },
-                        },
-                      },
-                      {
-                        label: "bad",
-                      },
-                    ],
+                menu: {
+                  layout: {
+                    position: [400, 360],
+                    size: [null, 150],
+                    positionFromRight: true,
+                    positionFromBottom: true,
                   },
+                  items: [
+                    {
+                      label: "I don't know",
+                      dialog: {
+                        layout: {
+                          position: [100, 100],
+                          size: [300, 200],
+                        },
+                        messages: [
+                          { text: "You should know!" },
+                        ],
+                      },
+                    },
+                    {
+                      back: true,
+                      label: "good",
+                      dialog: {
+                        layout: {
+                          name: "main-dialog",
+                          position: [null, 200],
+                          positionFromBottom: true,
+                        },
+                        messages: [
+                          { text: "That's nice to know!" },
+                        ],
+                      },
+                    },
+                    {
+                      back: true,
+                      label: "bad",
+                    },
+                  ],
                 },
               },
               { text: "Bye bye." },
               {
-                action: [
-                  goBackAction(heroPos),
-                ],
+                autoNext: 0,
+                action: async () => {
+                  goBackAction(heroPos)?.();
+                },
               },
-            ]
+            ],
           }
         });
       }
     }));
 
-    // cellTriggerTracker.addTrigger(new CellTrigger({
-    //   cells: [
-    //     [-1, 0, -1],
-    //     [1, 0, -1],
-    //     [0, 0, -1],
-    //     [-1, 0, 0],
-    //     [1, 0, 0],
-    //   ].map(([x, y, z]) => createCell(x, y, z, CELLSIZE)),
-    //   heroBox,
-    //   worldColliders,
-    //   spritesAccumulator,
-    // }));
-
-    const blockCells: Cell[] = [
-      [-1, 0, -1],
-      [1, 0, -1],
-      [0, 0, -1],
-      [-1, 0, 0],
-      [1, 0, 0],
-    ].map(([x, y, z]) => createCell(x, y, z, CELLSIZE));
-
-    blockCells.forEach(cell => {
-      const blockBoxSprites = new SpriteGroup(
-        new DisplayBox({ box: blockBox, imageId: Assets.GROUND, insideImageId: Assets.BRICK }),
-        new PositionMatrix().movedTo(cell.worldPosition[0], cell.worldPosition[1], cell.worldPosition[2]),
-      );
-      const factory = new FixedSpriteFactory(
-        { cellSize: CELLSIZE },
-        blockBoxSprites);
-      this.addAuxiliary(factory);
-
-      const creator = new SpriteCellCreator({ factory });
-      spritesAccumulator.add(creator);
-      cellTrackers.add(creator);
-    });
+    cellTriggerTracker.addTrigger(new CellTrigger({
+      cells: [
+        createCell(-1, 0, -1, CELLSIZE),
+        createCell(1, 0, -1, CELLSIZE),
+        createCell(0, 0, -1, CELLSIZE),
+        createCell(-1, 0, 0, CELLSIZE),
+        createCell(1, 0, 0, CELLSIZE),
+      ],
+      // cells: [
+      //   [-1, 0, -1],
+      //   [1, 0, -1],
+      //   [0, 0, -1],
+      //   [-1, 0, 0],
+      //   [1, 0, 0],
+      // ].map(([x, y, z]) => createCell(x, y, z, CELLSIZE)),
+      //      cells: [createCell(-3, 0, -1, CELLSIZE)],
+      heroBox,
+      blockImage: {
+        outside: Assets.GROUND,
+        inside: Assets.BRICK,
+      },
+      worldColliders,
+      spritesAccumulator,
+      blockerBox: blockBox,
+      onCollide(collided) {
+        displayBox.setImageId(collided ? Assets.WIREFRAME_RED : Assets.WIREFRAME);
+      },
+    }));
 
     {
       const factory = new FixedSpriteFactory({ cellSize: CELLSIZE },
@@ -671,19 +689,6 @@ export class DemoGame extends AuxiliaryHolder {
         }
       }, new CellBoundary({ yRange: [0, 0] })));
     }
-
-    worldColliders.add([
-      ...blockCells.map(cell =>
-        new CollisionDetector({
-          blockerBox: blockBox, blockerPosition: cell.worldPosition, heroBox,
-          listener: {
-            onBlockChange(blocked) {
-              displayBox.setImageId(blocked ? Assets.WIREFRAME_RED : Assets.WIREFRAME);
-            },
-          }
-        }, { shouldBlock: true })
-      ),
-    ]);
 
     const heroPos: IPositionMatrix = new PositionMatrix({ blockers: worldColliders }).movedTo(0, 0, 3);
     const heroSprites = new SpriteGroup([{

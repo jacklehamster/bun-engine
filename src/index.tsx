@@ -4,7 +4,6 @@ import { DemoGame } from 'demo/DemoGame';
 import { AuxiliaryHolder } from 'world/aux/AuxiliaryHolder';
 import { ResizeAux } from 'graphics/aux/ResizeAux';
 import { WebGlCanvas } from 'graphics/WebGlCanvas';
-import { Hud } from 'ui/Hud';
 import { Keyboard } from 'controls/Keyboard';
 import { KeyboardControls } from 'controls/KeyboardControls';
 
@@ -20,17 +19,8 @@ export async function testCanvas(canvas: HTMLCanvasElement) {
   const motor = new Motor({}, { frameRate: 120 });
   const keyboard = new Keyboard({ motor });
   const gameControls = new KeyboardControls(keyboard);
-  const menuControls = new KeyboardControls(keyboard);
 
   const webGlCanvas = new WebGlCanvas(canvas);
-  const hud: Hud = new Hud({ controls: menuControls, dom: webGlCanvas });
-  hud.ui.addDialogListener({
-    onPopup(count) {
-      gameControls.enabled = count === 0;
-      menuControls.enabled = count !== 0;
-    },
-  });
-
   const pixelListener = {
     x: 0,
     y: 0,
@@ -53,20 +43,19 @@ export async function testCanvas(canvas: HTMLCanvasElement) {
   const world = new DemoGame({
     engine,
     motor,
-    ui: hud.ui,
+    // ui: hud.ui,
     keyboard,
     controls: gameControls,
   });
   core.addAuxiliary(motor);
   core.addAuxiliary(world);
   core.addAuxiliary(webGlCanvas);
-  core.addAuxiliary(hud);
   core.addAuxiliary(gameControls);
   core.addAuxiliary(
     new ResizeAux({
       engine,
       camera: world.camera,
-      canvas: webGlCanvas.elem,
+      canvas: webGlCanvas.canvas,
     }),
   );
   core.addAuxiliary(engine);
@@ -74,7 +63,7 @@ export async function testCanvas(canvas: HTMLCanvasElement) {
   core.activate();
   motor.loop(engine, undefined);
   onStop = () => core.deactivate();
-  return { engine, motor, world, hud, core };
+  return { engine, motor, world, core };
 }
 
 export function stop(): void {

@@ -1,7 +1,6 @@
 import { IGraphicsEngine } from "graphics/IGraphicsEngine";
 import { ICamera } from "camera/ICamera";
 import { Auxiliary } from "world/aux/Auxiliary";
-import { DOMWrap } from "ui/DOMWrap";
 
 interface Props {
   engine: IGraphicsEngine;
