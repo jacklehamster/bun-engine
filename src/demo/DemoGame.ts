@@ -535,20 +535,12 @@ export class DemoGame extends AuxiliaryHolder {
 
     cellTriggerTracker.addTrigger(new CellTrigger({
       cells: [
-        createCell(-1, 0, -1, CELLSIZE),
-        createCell(1, 0, -1, CELLSIZE),
-        createCell(0, 0, -1, CELLSIZE),
-        createCell(-1, 0, 0, CELLSIZE),
-        createCell(1, 0, 0, CELLSIZE),
-      ],
-      // cells: [
-      //   [-1, 0, -1],
-      //   [1, 0, -1],
-      //   [0, 0, -1],
-      //   [-1, 0, 0],
-      //   [1, 0, 0],
-      // ].map(([x, y, z]) => createCell(x, y, z, CELLSIZE)),
-      //      cells: [createCell(-3, 0, -1, CELLSIZE)],
+        [-1, 0, -1],
+        [1, 0, -1],
+        [0, 0, -1],
+        [-1, 0, 0],
+        [1, 0, 0],
+      ].map(([x, y, z]) => createCell(x, y, z, CELLSIZE)),
       heroBox,
       blockImage: {
         outside: Assets.GROUND,
@@ -568,8 +560,8 @@ export class DemoGame extends AuxiliaryHolder {
         [
           Matrix.create().translate(-3.01, 0, 0).rotateY(Math.PI / 2),
           Matrix.create().translate(-3.01, 0, 0).rotateY(-Math.PI / 2),
-          Matrix.create().translate(3.01, 0, 0).rotateY(-Math.PI / 2),
           Matrix.create().translate(3.01, 0, 0).rotateY(Math.PI / 2),
+          Matrix.create().translate(3.01, 0, 0).rotateY(-Math.PI / 2),
         ].map(transform => ({ imageId: Assets.LOGO, transform })),
         //  floor
         [
@@ -585,6 +577,19 @@ export class DemoGame extends AuxiliaryHolder {
       cellTrackers.add(creator);
       this.addAuxiliary(factory);
     }
+
+    // cellTriggerTracker.addTrigger(new CellTrigger({
+    //   cells: [
+    //     [0, 0, 0],
+    //     [0, 0, 2],
+    //     [-2, 0, 2],
+    //     [2, 0, 2],
+    //   ].map(([x, y, z]) => createCell(x, y, z, CELLSIZE)),
+    //   heroBox,
+    //   spriteImageId: Assets.GRASS_GROUND,
+    //   worldColliders,
+    //   spritesAccumulator,
+    // }));
 
     const camPosition: IPositionMatrix = new PositionMatrix();
     const camera: ICamera = this.camera = new Camera({

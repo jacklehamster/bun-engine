@@ -52813,12 +52813,12 @@ class DemoGame extends AuxiliaryHolder {
     }));
     cellTriggerTracker.addTrigger(new CellTrigger({
       cells: [
-        B5(-1, 0, -1, CELLSIZE),
-        B5(1, 0, -1, CELLSIZE),
-        B5(0, 0, -1, CELLSIZE),
-        B5(-1, 0, 0, CELLSIZE),
-        B5(1, 0, 0, CELLSIZE)
-      ],
+        [-1, 0, -1],
+        [1, 0, -1],
+        [0, 0, -1],
+        [-1, 0, 0],
+        [1, 0, 0]
+      ].map(([x4, y4, z4]) => B5(x4, y4, z4, CELLSIZE)),
       heroBox,
       blockImage: {
         outside: Assets.GROUND,
@@ -52835,8 +52835,8 @@ class DemoGame extends AuxiliaryHolder {
       const factory = new FixedSpriteFactory({ cellSize: CELLSIZE }, [
         f2.create().translate(-3.01, 0, 0).rotateY(Math.PI / 2),
         f2.create().translate(-3.01, 0, 0).rotateY(-Math.PI / 2),
-        f2.create().translate(3.01, 0, 0).rotateY(-Math.PI / 2),
-        f2.create().translate(3.01, 0, 0).rotateY(Math.PI / 2)
+        f2.create().translate(3.01, 0, 0).rotateY(Math.PI / 2),
+        f2.create().translate(3.01, 0, 0).rotateY(-Math.PI / 2)
       ].map((transform) => ({ imageId: Assets.LOGO, transform })), [
         f2.create().translate(0, -0.9, 0).rotateX(-Math.PI / 2),
         f2.create().translate(0, -0.9, 2).rotateX(-Math.PI / 2),

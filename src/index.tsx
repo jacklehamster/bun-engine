@@ -43,7 +43,6 @@ export async function testCanvas(canvas: HTMLCanvasElement) {
   const world = new DemoGame({
     engine,
     motor,
-    // ui: hud.ui,
     keyboard,
     controls: gameControls,
   });
