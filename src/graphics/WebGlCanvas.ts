@@ -1,6 +1,5 @@
+import { logProxy } from "@dobuki/log-proxy";
 import { GL } from "gl/attributes/Constants";
-import { logProxy } from "utils/LogProxy";
-import { AuxiliaryHolder } from "world/aux/AuxiliaryHolder";
 
 const DEFAULT_ATTRIBUTES: WebGLContextAttributes = {
   alpha: true,
@@ -21,12 +20,11 @@ interface Config {
   logGL: boolean;
 }
 
-export class WebGlCanvas extends AuxiliaryHolder {
+export class WebGlCanvas {
   readonly gl: GL;
   constructor(public canvas: HTMLCanvasElement, { attributes }: Partial<Props> = {}, config?: Partial<Config>) {
-    super();
     const gl: WebGL2RenderingContext = canvas.getContext('webgl2', { ...DEFAULT_ATTRIBUTES, ...attributes })! as WebGL2RenderingContext;
-    this.gl = config?.logGL ? logProxy(gl) : gl;
+    this.gl = config?.logGL ? logProxy(gl, "gl") : gl;
     canvas.style.pointerEvents = 'none';
   }
 }

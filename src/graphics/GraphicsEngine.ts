@@ -40,6 +40,7 @@ const VERTICES_PER_SPRITE = 6;
 
 const TEX_BUFFER_ELEMS = 4;
 const EMPTY_TEX = new Float32Array(TEX_BUFFER_ELEMS).fill(0);
+const CLEARBIT = GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT;
 
 export class GraphicsEngine extends Disposable implements IGraphicsEngine {
   priority = Priority.LAST;
@@ -66,7 +67,7 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
     this.textureUpdateHandler = new TextureUpdateHandler({
       imageManager: new ImageManager(),
       textureManager,
-    })
+    });
     this.addOnDestroy(() => textureManager.dispose());
 
     const PROGRAM_NAME = 'main';
@@ -321,18 +322,9 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
     return r * (256 * 256) + g * (256) + b;
   }
 
-  private static clearBit = GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT;
   refresh(updatePayload: UpdatePayload): void {
     if (updatePayload.renderFrame) {
       this.#redraw();
-    }
-  }
-
-  #redraw() {
-    this.gl.clear(GraphicsEngine.clearBit);
-    if (this.visibleSprites.length) {
-      this.#drawElementsInstanced(VERTICES_PER_SPRITE, this.visibleSprites.length);
-      this.pixelListener?.setPixel(this.getPixel(this.pixelListener.x, this.pixelListener.y));
     }
   }
 
@@ -355,6 +347,14 @@ export class GraphicsEngine extends Disposable implements IGraphicsEngine {
       gl: this.gl,
       program: this.programs.getProgram(this.programs.activeProgramId)!,
     }, { name }, vector);
+  }
+
+  #redraw() {
+    this.gl.clear(CLEARBIT);
+    if (this.visibleSprites.length) {
+      this.#drawElementsInstanced(VERTICES_PER_SPRITE, this.visibleSprites.length);
+      this.pixelListener?.setPixel(this.getPixel(this.pixelListener.x, this.pixelListener.y));
+    }
   }
 
   #drawElementsInstanced(vertexCount: GLsizei, instances: GLsizei) {

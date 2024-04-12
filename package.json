@@ -2,7 +2,7 @@
   "name": "bun-engine",
   "version": "1.0.23",
   "license": "MIT",
-  "module": "src/index.tsx",
+  "module": "src/index.ts",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -17,7 +17,7 @@
     "javascript"
   ],
   "scripts": {
-    "start": "bun run src/index.tsx",
+    "start": "bun run src/index.ts",
     "test": "bun test",
     "build": "bun i && bun run fix-package-name && rm -rf *.tsbuildinfo && rm -rf dist && bun run build:shaders && bun run bundler/bundler.ts && bun run test && bun run build:declaration",
     "build:shaders": "bun run scripts/bundle-shaders.ts",
@@ -54,6 +54,7 @@
     "typescript": "^5.4.5"
   },
   "dependencies": {
+    "@dobuki/log-proxy": "^1.0.3",
     "cell-tracker": "^1.0.30",
     "dialog-system": "^1.0.21",
     "dok-matrix": "^1.0.26",

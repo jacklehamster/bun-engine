@@ -4,22 +4,14 @@ import { IKeyboard, KeyListener } from "./IKeyboard";
 import { Time } from "motor-loop";
 
 export class KeyboardControls implements IControls, KeyListener {
-  private readonly listeners = new Set<ControlsListener>();
+  readonly #listeners = new Set<ControlsListener>();
   private keys: Record<string, Time> = {}
   #enabled = false;
 
   constructor(private readonly keyboard: IKeyboard) {
   }
 
-  activate(): void {
-    this.enabled = true;
-  }
-
-  deactivate(): void {
-    this.enabled = false;
-  }
-
-  set enabled(enabled: boolean) {
+  setEnabled(enabled: boolean) {
     if (this.#enabled === enabled) {
       return;
     }
@@ -36,10 +28,10 @@ export class KeyboardControls implements IControls, KeyListener {
   onQuickTap(keyCode: string): void {
     switch (keyCode) {
       case 'Space':
-        this.listeners.forEach(listener => listener.onQuickAction?.());
+        this.#listeners.forEach(listener => listener.onQuickAction?.());
         break;
       case 'ShiftRight':
-        this.listeners.forEach(listener => listener.onQuickTiltReset?.());
+        this.#listeners.forEach(listener => listener.onQuickTiltReset?.());
         break;
     }
   }
@@ -53,19 +45,19 @@ export class KeyboardControls implements IControls, KeyListener {
   }
 
   onAction() {
-    this.listeners.forEach(listener => listener.onAction?.(this));
+    this.#listeners.forEach(listener => listener.onAction?.(this));
   }
 
   onActionUp() {
-    this.listeners.forEach(listener => listener.onAction?.(this));
+    this.#listeners.forEach(listener => listener.onAction?.(this));
   }
 
   addListener(listener: ControlsListener): void {
-    this.listeners.add(listener);
+    this.#listeners.add(listener);
   }
 
   removeListener(listener: ControlsListener): void {
-    this.listeners.delete(listener);
+    this.#listeners.delete(listener);
   }
 
   get forward(): boolean {

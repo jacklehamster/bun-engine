@@ -6,7 +6,7 @@ import { ICollisionDetector, Matrix, PositionMatrix } from "dok-matrix";
 import { SpriteGroup } from "world/sprite/aux/SpriteGroup";
 import { SpriteType } from "world/sprite/SpriteType";
 import { MediaId } from "gl-texture-manager";
-import { DisplayBox } from "world/collision/DisplayBox";
+import { DisplayBox, Face } from "world/collision/DisplayBox";
 import { Accumulator } from "list-accumulator";
 import { Sprite } from "world/sprite/Sprite";
 import { List, forEach } from "abstract-list";
@@ -14,7 +14,9 @@ import { List, forEach } from "abstract-list";
 interface Props {
   cells: List<Cell> | Cell[];
   blockerBox?: IBox;
+  displayBox?: IBox;
   blockShift?: Vector;
+  displayShift?: Vector;
   triggerBox?: IBox;
   heroBox: IBox;
   onCollide?(collided: boolean): void;
@@ -22,9 +24,10 @@ interface Props {
   onLeave?(): void;
   spriteImageId?: MediaId;
   wireframeImageId?: MediaId;
-  blockImage?: {
-    outside: MediaId;
+  boxImage?: {
+    outside?: MediaId;
     inside?: MediaId;
+    faces?: Face[];
   };
   worldColliders: Accumulator<ICollisionDetector>;
   spritesAccumulator: Accumulator<Sprite>;
@@ -36,11 +39,13 @@ export class CellTrigger implements ICellTrigger {
   readonly deactivate: () => void;
 
   constructor({
-    cells, triggerBox, blockerBox, heroBox,
+    cells, triggerBox, blockerBox, displayBox, heroBox,
     onCollide, onEnter, onLeave,
     spriteImageId, wireframeImageId,
     worldColliders, spritesAccumulator,
-    blockImage, blockShift = [0, 0, 0]
+    boxImage,
+    blockShift = [0, 0, 0],
+    displayShift = [0, 0, 0],
   }: Props) {
     this.cells = cells;
     const colliders: ICollisionDetector[] = [];
@@ -50,12 +55,14 @@ export class CellTrigger implements ICellTrigger {
       if (!cell) {
         return;
       }
-      const cellSize = cell.pos[3];
       const position = cell.worldPosition;
       const blockerPosition: Vector = [
         position[0] + blockShift[0], position[1] + blockShift[1], position[2] + blockShift[2],
       ];
-      const posMatrix = new PositionMatrix().movedTo(position[0], position[1], position[2]);
+      const posMatrix = new PositionMatrix().movedTo(
+        position[0] + displayShift[0],
+        position[1] + displayShift[1],
+        position[2] + displayShift[2]);
       if (blockerBox) {
         colliders.push(new CollisionDetector({
           blockerBox, blockerPosition, heroBox,
@@ -77,18 +84,22 @@ export class CellTrigger implements ICellTrigger {
           transform: Matrix.create().translate(0, -.3, -1),
         }], posMatrix));
       }
-      if (blockImage && blockerBox) {
+
+      const boxToDisplay = displayBox ?? blockerBox;
+      if (boxImage && boxToDisplay) {
         sprites.add(new SpriteGroup(new DisplayBox({
-          box: blockerBox,
-          imageId: blockImage.outside, insideImageId: blockImage.inside,
+          box: boxToDisplay,
+          imageId: boxImage.outside, insideImageId: boxImage.inside,
+          faces: boxImage.faces,
         }), posMatrix));
       }
-      if (triggerBox && wireframeImageId !== undefined) {
-        sprites.add(new SpriteGroup(
-          new DisplayBox({ box: triggerBox, imageId: wireframeImageId, insideImageId: wireframeImageId }),
-          posMatrix,
-        ));
-      }
+      if (triggerBox)
+        if (triggerBox && wireframeImageId !== undefined) {
+          sprites.add(new SpriteGroup(
+            new DisplayBox({ box: triggerBox, imageId: wireframeImageId, insideImageId: wireframeImageId }),
+            posMatrix,
+          ));
+        }
       if (blockerBox && wireframeImageId !== undefined) {
         sprites.add(new SpriteGroup(
           new DisplayBox({ box: blockerBox, imageId: wireframeImageId, insideImageId: wireframeImageId }),

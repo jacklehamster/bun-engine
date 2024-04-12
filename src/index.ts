@@ -17,8 +17,6 @@ let onStop: () => void;
 
 export async function testCanvas(canvas: HTMLCanvasElement) {
   const motor = new Motor({}, { frameRate: 120 });
-  const keyboard = new Keyboard({ motor });
-  const gameControls = new KeyboardControls(keyboard);
 
   const webGlCanvas = new WebGlCanvas(canvas);
   const pixelListener = {
@@ -43,13 +41,8 @@ export async function testCanvas(canvas: HTMLCanvasElement) {
   const world = new DemoGame({
     engine,
     motor,
-    keyboard,
-    controls: gameControls,
   });
   core.addAuxiliary(motor);
-  core.addAuxiliary(world);
-  core.addAuxiliary(webGlCanvas);
-  core.addAuxiliary(gameControls);
   core.addAuxiliary(
     new ResizeAux({
       engine,
@@ -58,6 +51,8 @@ export async function testCanvas(canvas: HTMLCanvasElement) {
     }),
   );
   core.addAuxiliary(engine);
+
+  core.addAuxiliary(world);
 
   core.activate();
   motor.loop(engine, undefined);

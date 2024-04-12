@@ -4,25 +4,6 @@ var replaceTilda = function(inputString, replacementMap) {
     return replacementMap?.[variable] || match;
   });
 };
-var copySprite = function(sprite, dest) {
-  if (!dest) {
-    return {
-      transform: f2.create().copy(sprite.transform),
-      imageId: sprite.imageId,
-      spriteType: sprite.spriteType,
-      orientation: sprite.orientation,
-      animationId: sprite.animationId,
-      hidden: sprite.hidden
-    };
-  }
-  dest.imageId = sprite.imageId;
-  dest.spriteType = sprite.spriteType;
-  dest.transform.copy(sprite.transform);
-  dest.orientation = sprite.orientation;
-  dest.animationId = sprite.animationId;
-  dest.hidden = sprite.hidden;
-  return dest;
-};
 var goBackAction = function(elem) {
   return () => elem.goBack?.();
 };
@@ -49,26 +30,6 @@ async function promptText({
     });
   });
 }
-var logProxy = function(gl) {
-  const proxy = new Proxy(gl, {
-    get(target, prop) {
-      const t3 = target;
-      const result = t3[prop];
-      if (typeof result === "function") {
-        const f4 = (...params) => {
-          const returnValue = result.apply(t3, params);
-          console.log(`gl.${String(prop)}(`, params, ") = ", returnValue);
-          return returnValue;
-        };
-        return f4;
-      } else {
-        console.log(`gl.${String(prop)} = `, result);
-        return result;
-      }
-    }
-  });
-  return proxy;
-};
 async function hello() {
   console.info(`Welcome!
 You are using Dok engine.
@@ -76,8 +37,6 @@ https://github.com/jacklehamster/bun-engine`);
 }
 async function testCanvas(canvas) {
   const motor = new Motor({}, { frameRate: 120 });
-  const keyboard = new Keyboard({ motor });
-  const gameControls = new KeyboardControls(keyboard);
   const webGlCanvas = new WebGlCanvas(canvas);
   const pixelListener = {
     x: 0,
@@ -97,20 +56,16 @@ async function testCanvas(canvas) {
   const core = new AuxiliaryHolder;
   const world = new DemoGame({
     engine,
-    motor,
-    keyboard,
-    controls: gameControls
+    motor
   });
   core.addAuxiliary(motor);
-  core.addAuxiliary(world);
-  core.addAuxiliary(webGlCanvas);
-  core.addAuxiliary(gameControls);
   core.addAuxiliary(new ResizeAux({
     engine,
     camera: world.camera,
     canvas: webGlCanvas.canvas
   }));
   core.addAuxiliary(engine);
+  core.addAuxiliary(world);
   core.activate();
   motor.loop(engine, undefined);
   onStop = () => core.deactivate();
@@ -224,13 +179,13 @@ var require_alea = __commonJS((exports, module) => {
         data = String(data);
         for (var i = 0;i < data.length; i++) {
           n3 += data.charCodeAt(i);
-          var h5 = 0.02519603282416938 * n3;
-          n3 = h5 >>> 0;
-          h5 -= n3;
-          h5 *= n3;
-          n3 = h5 >>> 0;
-          h5 -= n3;
-          n3 += h5 * 4294967296;
+          var h4 = 0.02519603282416938 * n3;
+          n3 = h4 >>> 0;
+          h4 -= n3;
+          h4 *= n3;
+          n3 = h4 >>> 0;
+          h4 -= n3;
+          n3 += h4 * 4294967296;
         }
         return (n3 >>> 0) * 0.00000000023283064365386964;
       };
@@ -3571,13 +3526,13 @@ Use Chrome, Firefox or Internet Explorer 11`);
     sp.exports = Ci;
   });
   Ao = T3((gI, up) => {
-    var o4 = Ie(), hp = bh(), s4 = Te().Buffer, h42 = new Array(16);
+    var o4 = Ie(), hp = bh(), s4 = Te().Buffer, h4 = new Array(16);
     function So() {
       hp.call(this, 64), this._a = 1732584193, this._b = 4023233417, this._c = 2562383102, this._d = 271733878;
     }
     o4(So, hp);
     So.prototype._update = function() {
-      for (var t22 = h42, e2 = 0;e2 < 16; ++e2)
+      for (var t22 = h4, e2 = 0;e2 < 16; ++e2)
         t22[e2] = this._block.readInt32LE(e2 * 4);
       var r2 = this._a, o2 = this._b, f3 = this._c, p2 = this._d;
       r2 = jt(r2, o2, f3, p2, t22[0], 3614090360, 7), p2 = jt(p2, r2, o2, f3, t22[1], 3905402710, 12), f3 = jt(f3, p2, r2, o2, t22[2], 606105819, 17), o2 = jt(o2, f3, p2, r2, t22[3], 3250441966, 22), r2 = jt(r2, o2, f3, p2, t22[4], 4118548399, 7), p2 = jt(p2, r2, o2, f3, t22[5], 1200080426, 12), f3 = jt(f3, p2, r2, o2, t22[6], 2821735955, 17), o2 = jt(o2, f3, p2, r2, t22[7], 4249261313, 22), r2 = jt(r2, o2, f3, p2, t22[8], 1770035416, 7), p2 = jt(p2, r2, o2, f3, t22[9], 2336552879, 12), f3 = jt(f3, p2, r2, o2, t22[10], 4294925233, 17), o2 = jt(o2, f3, p2, r2, t22[11], 2304563134, 22), r2 = jt(r2, o2, f3, p2, t22[12], 1804603682, 7), p2 = jt(p2, r2, o2, f3, t22[13], 4254626195, 12), f3 = jt(f3, p2, r2, o2, t22[14], 2792965006, 17), o2 = jt(o2, f3, p2, r2, t22[15], 1236535329, 22), r2 = Zt(r2, o2, f3, p2, t22[1], 4129170786, 5), p2 = Zt(p2, r2, o2, f3, t22[6], 3225465664, 9), f3 = Zt(f3, p2, r2, o2, t22[11], 643717713, 14), o2 = Zt(o2, f3, p2, r2, t22[0], 3921069994, 20), r2 = Zt(r2, o2, f3, p2, t22[5], 3593408605, 5), p2 = Zt(p2, r2, o2, f3, t22[10], 38016083, 9), f3 = Zt(f3, p2, r2, o2, t22[15], 3634488961, 14), o2 = Zt(o2, f3, p2, r2, t22[4], 3889429448, 20), r2 = Zt(r2, o2, f3, p2, t22[9], 568446438, 5), p2 = Zt(p2, r2, o2, f3, t22[14], 3275163606, 9), f3 = Zt(f3, p2, r2, o2, t22[3], 4107603335, 14), o2 = Zt(o2, f3, p2, r2, t22[8], 1163531501, 20), r2 = Zt(r2, o2, f3, p2, t22[13], 2850285829, 5), p2 = Zt(p2, r2, o2, f3, t22[2], 4243563512, 9), f3 = Zt(f3, p2, r2, o2, t22[7], 1735328473, 14), o2 = Zt(o2, f3, p2, r2, t22[12], 2368359562, 20), r2 = Vt(r2, o2, f3, p2, t22[5], 4294588738, 4), p2 = Vt(p2, r2, o2, f3, t22[8], 2272392833, 11), f3 = Vt(f3, p2, r2, o2, t22[11], 1839030562, 16), o2 = Vt(o2, f3, p2, r2, t22[14], 4259657740, 23), r2 = Vt(r2, o2, f3, p2, t22[1], 2763975236, 4), p2 = Vt(p2, r2, o2, f3, t22[4], 1272893353, 11), f3 = Vt(f3, p2, r2, o2, t22[7], 4139469664, 16), o2 = Vt(o2, f3, p2, r2, t22[10], 3200236656, 23), r2 = Vt(r2, o2, f3, p2, t22[13], 681279174, 4), p2 = Vt(p2, r2, o2, f3, t22[0], 3936430074, 11), f3 = Vt(f3, p2, r2, o2, t22[3], 3572445317, 16), o2 = Vt(o2, f3, p2, r2, t22[6], 76029189, 23), r2 = Vt(r2, o2, f3, p2, t22[9], 3654602809, 4), p2 = Vt(p2, r2, o2, f3, t22[12], 3873151461, 11), f3 = Vt(f3, p2, r2, o2, t22[15], 530742520, 16), o2 = Vt(o2, f3, p2, r2, t22[2], 3299628645, 23), r2 = $t(r2, o2, f3, p2, t22[0], 4096336452, 6), p2 = $t(p2, r2, o2, f3, t22[7], 1126891415, 10), f3 = $t(f3, p2, r2, o2, t22[14], 2878612391, 15), o2 = $t(o2, f3, p2, r2, t22[5], 4237533241, 21), r2 = $t(r2, o2, f3, p2, t22[12], 1700485571, 6), p2 = $t(p2, r2, o2, f3, t22[3], 2399980690, 10), f3 = $t(f3, p2, r2, o2, t22[10], 4293915773, 15), o2 = $t(o2, f3, p2, r2, t22[1], 2240044497, 21), r2 = $t(r2, o2, f3, p2, t22[8], 1873313359, 6), p2 = $t(p2, r2, o2, f3, t22[15], 4264355552, 10), f3 = $t(f3, p2, r2, o2, t22[6], 2734768916, 15), o2 = $t(o2, f3, p2, r2, t22[13], 1309151649, 21), r2 = $t(r2, o2, f3, p2, t22[4], 4149444226, 6), p2 = $t(p2, r2, o2, f3, t22[11], 3174756917, 10), f3 = $t(f3, p2, r2, o2, t22[2], 718787259, 15), o2 = $t(o2, f3, p2, r2, t22[9], 3951481745, 21), this._a = this._a + r2 | 0, this._b = this._b + o2 | 0, this._c = this._c + f3 | 0, this._d = this._d + p2 | 0;
@@ -3852,13 +3807,13 @@ Use Chrome, Firefox or Internet Explorer 11`);
       for (;we < 160; we += 2) {
         var ye = e2[we - 30], xe = e2[we - 15 * 2 + 1], Re = j4(ye, xe), Ee = Z4(xe, ye);
         ye = e2[we - 2 * 2], xe = e2[we - 2 * 2 + 1];
-        var Ae = V42(ye, xe), P2 = $4(xe, ye), Se = e2[we - 7 * 2], v32 = e2[we - 7 * 2 + 1], i = e2[we - 16 * 2], a2 = e2[we - 16 * 2 + 1], h5 = Ee + v32 | 0, s22 = Re + Se + Pt(h5, Ee) | 0;
-        h5 = h5 + P2 | 0, s22 = s22 + Ae + Pt(h5, P2) | 0, h5 = h5 + a2 | 0, s22 = s22 + i + Pt(h5, a2) | 0, e2[we] = s22, e2[we + 1] = h5;
+        var Ae = V42(ye, xe), P2 = $4(xe, ye), Se = e2[we - 7 * 2], v32 = e2[we - 7 * 2 + 1], i = e2[we - 16 * 2], a2 = e2[we - 16 * 2 + 1], h4 = Ee + v32 | 0, s22 = Re + Se + Pt(h4, Ee) | 0;
+        h4 = h4 + P2 | 0, s22 = s22 + Ae + Pt(h4, P2) | 0, h4 = h4 + a2 | 0, s22 = s22 + i + Pt(h4, a2) | 0, e2[we] = s22, e2[we + 1] = h4;
       }
       for (var u3 = 0;u3 < 160; u3 += 2) {
-        s22 = e2[u3], h5 = e2[u3 + 1];
+        s22 = e2[u3], h4 = e2[u3 + 1];
         var c = kp(r2, o2, f3), b3 = kp(S3, E3, B6), l3 = Lp(r2, S3), n32 = Lp(S3, r2), d = Np(m32, L3), w2 = Np(L3, m32), g2 = Ip[u3], _4 = Ip[u3 + 1], A6 = Tp(m32, y22, M3), R3 = Tp(L3, ge, _e), I2 = N32 + w2 | 0, Me = x3 + d + Pt(I2, N32) | 0;
-        I2 = I2 + R3 | 0, Me = Me + A6 + Pt(I2, R3) | 0, I2 = I2 + _4 | 0, Me = Me + g2 + Pt(I2, _4) | 0, I2 = I2 + h5 | 0, Me = Me + s22 + Pt(I2, h5) | 0;
+        I2 = I2 + R3 | 0, Me = Me + A6 + Pt(I2, R3) | 0, I2 = I2 + _4 | 0, Me = Me + g2 + Pt(I2, _4) | 0, I2 = I2 + h4 | 0, Me = Me + s22 + Pt(I2, h4) | 0;
         var k2 = n32 + b3 | 0, D2 = l3 + c + Pt(k2, n32) | 0;
         x3 = M3, N32 = _e, M3 = y22, _e = ge, y22 = m32, ge = L3, L3 = q2 + I2 | 0, m32 = p2 + Me + Pt(L3, q2) | 0, p2 = f3, q2 = B6, f3 = o2, B6 = E3, o2 = r2, E3 = S3, S3 = I2 + k2 | 0, r2 = Me + D2 + Pt(S3, I2) | 0;
       }
@@ -7440,27 +7395,27 @@ Use Chrome, Firefox or Internet Explorer 11`);
         return i.cmp(a2) > 0 ? i : a2;
       }, f3.min = function(i, a2) {
         return i.cmp(a2) < 0 ? i : a2;
-      }, f3.prototype._init = function(i, a2, h5) {
+      }, f3.prototype._init = function(i, a2, h4) {
         if (typeof i == "number")
-          return this._initNumber(i, a2, h5);
+          return this._initNumber(i, a2, h4);
         if (typeof i == "object")
-          return this._initArray(i, a2, h5);
+          return this._initArray(i, a2, h4);
         a2 === "hex" && (a2 = 16), r2(a2 === (a2 | 0) && a2 >= 2 && a2 <= 36), i = i.toString().replace(/\s+/g, "");
         var s22 = 0;
-        i[0] === "-" && (s22++, this.negative = 1), s22 < i.length && (a2 === 16 ? this._parseHex(i, s22, h5) : (this._parseBase(i, a2, s22), h5 === "le" && this._initArray(this.toArray(), a2, h5)));
-      }, f3.prototype._initNumber = function(i, a2, h5) {
-        i < 0 && (this.negative = 1, i = -i), i < 67108864 ? (this.words = [i & 67108863], this.length = 1) : i < 4503599627370496 ? (this.words = [i & 67108863, i / 67108864 & 67108863], this.length = 2) : (r2(i < 9007199254740992), this.words = [i & 67108863, i / 67108864 & 67108863, 1], this.length = 3), h5 === "le" && this._initArray(this.toArray(), a2, h5);
-      }, f3.prototype._initArray = function(i, a2, h5) {
+        i[0] === "-" && (s22++, this.negative = 1), s22 < i.length && (a2 === 16 ? this._parseHex(i, s22, h4) : (this._parseBase(i, a2, s22), h4 === "le" && this._initArray(this.toArray(), a2, h4)));
+      }, f3.prototype._initNumber = function(i, a2, h4) {
+        i < 0 && (this.negative = 1, i = -i), i < 67108864 ? (this.words = [i & 67108863], this.length = 1) : i < 4503599627370496 ? (this.words = [i & 67108863, i / 67108864 & 67108863], this.length = 2) : (r2(i < 9007199254740992), this.words = [i & 67108863, i / 67108864 & 67108863, 1], this.length = 3), h4 === "le" && this._initArray(this.toArray(), a2, h4);
+      }, f3.prototype._initArray = function(i, a2, h4) {
         if (r2(typeof i.length == "number"), i.length <= 0)
           return this.words = [0], this.length = 1, this;
         this.length = Math.ceil(i.length / 3), this.words = new Array(this.length);
         for (var s22 = 0;s22 < this.length; s22++)
           this.words[s22] = 0;
         var u3, c, b3 = 0;
-        if (h5 === "be")
+        if (h4 === "be")
           for (s22 = i.length - 1, u3 = 0;s22 >= 0; s22 -= 3)
             c = i[s22] | i[s22 - 1] << 8 | i[s22 - 2] << 16, this.words[u3] |= c << b3 & 67108863, this.words[u3 + 1] = c >>> 26 - b3 & 67108863, b3 += 24, b3 >= 26 && (b3 -= 26, u3++);
-        else if (h5 === "le")
+        else if (h4 === "le")
           for (s22 = 0, u3 = 0;s22 < i.length; s22 += 3)
             c = i[s22] | i[s22 + 1] << 8 | i[s22 + 2] << 16, this.words[u3] |= c << b3 & 67108863, this.words[u3 + 1] = c >>> 26 - b3 & 67108863, b3 += 24, b3 >= 26 && (b3 -= 26, u3++);
         return this.strip();
@@ -7470,15 +7425,15 @@ Use Chrome, Firefox or Internet Explorer 11`);
         return a2 >= 65 && a2 <= 70 ? a2 - 55 : a2 >= 97 && a2 <= 102 ? a2 - 87 : a2 - 48 & 15;
       }
       function y22(v32, i, a2) {
-        var h5 = m32(v32, a2);
-        return a2 - 1 >= i && (h5 |= m32(v32, a2 - 1) << 4), h5;
+        var h4 = m32(v32, a2);
+        return a2 - 1 >= i && (h4 |= m32(v32, a2 - 1) << 4), h4;
       }
-      f3.prototype._parseHex = function(i, a2, h5) {
+      f3.prototype._parseHex = function(i, a2, h4) {
         this.length = Math.ceil((i.length - a2) / 6), this.words = new Array(this.length);
         for (var s22 = 0;s22 < this.length; s22++)
           this.words[s22] = 0;
         var u3 = 0, c = 0, b3;
-        if (h5 === "be")
+        if (h4 === "be")
           for (s22 = i.length - 1;s22 >= a2; s22 -= 2)
             b3 = y22(i, a2, s22) << u3, this.words[c] |= b3 & 67108863, u3 >= 18 ? (u3 -= 18, c += 1, this.words[c] |= b3 >>> 26) : u3 += 8;
         else {
@@ -7488,19 +7443,19 @@ Use Chrome, Firefox or Internet Explorer 11`);
         }
         this.strip();
       };
-      function M3(v32, i, a2, h5) {
+      function M3(v32, i, a2, h4) {
         for (var s22 = 0, u3 = Math.min(v32.length, a2), c = i;c < u3; c++) {
           var b3 = v32.charCodeAt(c) - 48;
-          s22 *= h5, b3 >= 49 ? s22 += b3 - 49 + 10 : b3 >= 17 ? s22 += b3 - 17 + 10 : s22 += b3;
+          s22 *= h4, b3 >= 49 ? s22 += b3 - 49 + 10 : b3 >= 17 ? s22 += b3 - 17 + 10 : s22 += b3;
         }
         return s22;
       }
-      f3.prototype._parseBase = function(i, a2, h5) {
+      f3.prototype._parseBase = function(i, a2, h4) {
         this.words = [0], this.length = 1;
         for (var s22 = 0, u3 = 1;u3 <= 67108863; u3 *= a2)
           s22++;
         s22--, u3 = u3 / a2 | 0;
-        for (var c = i.length - h5, b3 = c % s22, l3 = Math.min(c, c - b3) + h5, n32 = 0, d = h5;d < l3; d += s22)
+        for (var c = i.length - h4, b3 = c % s22, l3 = Math.min(c, c - b3) + h4, n32 = 0, d = h4;d < l3; d += s22)
           n32 = M3(i, d, d + s22, a2), this.imuln(u3), this.words[0] + n32 < 67108864 ? this.words[0] += n32 : this._iaddn(n32);
         if (b3 !== 0) {
           var w2 = 1;
@@ -7533,28 +7488,28 @@ Use Chrome, Firefox or Internet Explorer 11`);
       var x3 = ["", "0", "00", "000", "0000", "00000", "000000", "0000000", "00000000", "000000000", "0000000000", "00000000000", "000000000000", "0000000000000", "00000000000000", "000000000000000", "0000000000000000", "00000000000000000", "000000000000000000", "0000000000000000000", "00000000000000000000", "000000000000000000000", "0000000000000000000000", "00000000000000000000000", "000000000000000000000000", "0000000000000000000000000"], S3 = [0, 0, 25, 16, 12, 11, 10, 9, 8, 8, 7, 7, 7, 7, 6, 6, 6, 6, 6, 6, 6, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5], E3 = [0, 0, 33554432, 43046721, 16777216, 48828125, 60466176, 40353607, 16777216, 43046721, 1e7, 19487171, 35831808, 62748517, 7529536, 11390625, 16777216, 24137569, 34012224, 47045881, 64000000, 4084101, 5153632, 6436343, 7962624, 9765625, 11881376, 14348907, 17210368, 20511149, 24300000, 28629151, 33554432, 39135393, 45435424, 52521875, 60466176];
       f3.prototype.toString = function(i, a2) {
         i = i || 10, a2 = a2 | 0 || 1;
-        var h5;
+        var h4;
         if (i === 16 || i === "hex") {
-          h5 = "";
+          h4 = "";
           for (var s22 = 0, u3 = 0, c = 0;c < this.length; c++) {
             var b3 = this.words[c], l3 = ((b3 << s22 | u3) & 16777215).toString(16);
-            u3 = b3 >>> 24 - s22 & 16777215, u3 !== 0 || c !== this.length - 1 ? h5 = x3[6 - l3.length] + l3 + h5 : h5 = l3 + h5, s22 += 2, s22 >= 26 && (s22 -= 26, c--);
+            u3 = b3 >>> 24 - s22 & 16777215, u3 !== 0 || c !== this.length - 1 ? h4 = x3[6 - l3.length] + l3 + h4 : h4 = l3 + h4, s22 += 2, s22 >= 26 && (s22 -= 26, c--);
           }
-          for (u3 !== 0 && (h5 = u3.toString(16) + h5);h5.length % a2 !== 0; )
-            h5 = "0" + h5;
-          return this.negative !== 0 && (h5 = "-" + h5), h5;
+          for (u3 !== 0 && (h4 = u3.toString(16) + h4);h4.length % a2 !== 0; )
+            h4 = "0" + h4;
+          return this.negative !== 0 && (h4 = "-" + h4), h4;
         }
         if (i === (i | 0) && i >= 2 && i <= 36) {
           var n32 = S3[i], d = E3[i];
-          h5 = "";
+          h4 = "";
           var w2 = this.clone();
           for (w2.negative = 0;!w2.isZero(); ) {
             var g2 = w2.modn(d).toString(i);
-            w2 = w2.idivn(d), w2.isZero() ? h5 = g2 + h5 : h5 = x3[n32 - g2.length] + g2 + h5;
+            w2 = w2.idivn(d), w2.isZero() ? h4 = g2 + h4 : h4 = x3[n32 - g2.length] + g2 + h4;
           }
-          for (this.isZero() && (h5 = "0" + h5);h5.length % a2 !== 0; )
-            h5 = "0" + h5;
-          return this.negative !== 0 && (h5 = "-" + h5), h5;
+          for (this.isZero() && (h4 = "0" + h4);h4.length % a2 !== 0; )
+            h4 = "0" + h4;
+          return this.negative !== 0 && (h4 = "-" + h4), h4;
         }
         r2(false, "Base should be between 2 and 36");
       }, f3.prototype.toNumber = function() {
@@ -7566,8 +7521,8 @@ Use Chrome, Firefox or Internet Explorer 11`);
         return r2(typeof p2 < "u"), this.toArrayLike(p2, i, a2);
       }, f3.prototype.toArray = function(i, a2) {
         return this.toArrayLike(Array, i, a2);
-      }, f3.prototype.toArrayLike = function(i, a2, h5) {
-        var s22 = this.byteLength(), u3 = h5 || Math.max(1, s22);
+      }, f3.prototype.toArrayLike = function(i, a2, h4) {
+        var s22 = this.byteLength(), u3 = h4 || Math.max(1, s22);
         r2(s22 <= u3, "byte array longer than desired length"), r2(u3 > 0, "Requested array length <= 0"), this.strip();
         var c = a2 === "le", b3 = new i(u3), l3, n32, d = this.clone();
         if (c) {
@@ -7585,21 +7540,21 @@ Use Chrome, Firefox or Internet Explorer 11`);
       }, Math.clz32 ? f3.prototype._countBits = function(i) {
         return 32 - Math.clz32(i);
       } : f3.prototype._countBits = function(i) {
-        var a2 = i, h5 = 0;
-        return a2 >= 4096 && (h5 += 13, a2 >>>= 13), a2 >= 64 && (h5 += 7, a2 >>>= 7), a2 >= 8 && (h5 += 4, a2 >>>= 4), a2 >= 2 && (h5 += 2, a2 >>>= 2), h5 + a2;
+        var a2 = i, h4 = 0;
+        return a2 >= 4096 && (h4 += 13, a2 >>>= 13), a2 >= 64 && (h4 += 7, a2 >>>= 7), a2 >= 8 && (h4 += 4, a2 >>>= 4), a2 >= 2 && (h4 += 2, a2 >>>= 2), h4 + a2;
       }, f3.prototype._zeroBits = function(i) {
         if (i === 0)
           return 26;
-        var a2 = i, h5 = 0;
-        return (a2 & 8191) === 0 && (h5 += 13, a2 >>>= 13), (a2 & 127) === 0 && (h5 += 7, a2 >>>= 7), (a2 & 15) === 0 && (h5 += 4, a2 >>>= 4), (a2 & 3) === 0 && (h5 += 2, a2 >>>= 2), (a2 & 1) === 0 && h5++, h5;
+        var a2 = i, h4 = 0;
+        return (a2 & 8191) === 0 && (h4 += 13, a2 >>>= 13), (a2 & 127) === 0 && (h4 += 7, a2 >>>= 7), (a2 & 15) === 0 && (h4 += 4, a2 >>>= 4), (a2 & 3) === 0 && (h4 += 2, a2 >>>= 2), (a2 & 1) === 0 && h4++, h4;
       }, f3.prototype.bitLength = function() {
         var i = this.words[this.length - 1], a2 = this._countBits(i);
         return (this.length - 1) * 26 + a2;
       };
       function B6(v32) {
         for (var i = new Array(v32.bitLength()), a2 = 0;a2 < i.length; a2++) {
-          var h5 = a2 / 26 | 0, s22 = a2 % 26;
-          i[a2] = (v32.words[h5] & 1 << s22) >>> s22;
+          var h4 = a2 / 26 | 0, s22 = a2 % 26;
+          i[a2] = (v32.words[h4] & 1 << s22) >>> s22;
         }
         return i;
       }
@@ -7607,8 +7562,8 @@ Use Chrome, Firefox or Internet Explorer 11`);
         if (this.isZero())
           return 0;
         for (var i = 0, a2 = 0;a2 < this.length; a2++) {
-          var h5 = this._zeroBits(this.words[a2]);
-          if (i += h5, h5 !== 26)
+          var h4 = this._zeroBits(this.words[a2]);
+          if (i += h4, h4 !== 26)
             break;
         }
         return i;
@@ -7639,8 +7594,8 @@ Use Chrome, Firefox or Internet Explorer 11`);
       }, f3.prototype.iuand = function(i) {
         var a2;
         this.length > i.length ? a2 = i : a2 = this;
-        for (var h5 = 0;h5 < a2.length; h5++)
-          this.words[h5] = this.words[h5] & i.words[h5];
+        for (var h4 = 0;h4 < a2.length; h4++)
+          this.words[h4] = this.words[h4] & i.words[h4];
         return this.length = a2.length, this.strip();
       }, f3.prototype.iand = function(i) {
         return r2((this.negative | i.negative) === 0), this.iuand(i);
@@ -7649,10 +7604,10 @@ Use Chrome, Firefox or Internet Explorer 11`);
       }, f3.prototype.uand = function(i) {
         return this.length > i.length ? this.clone().iuand(i) : i.clone().iuand(this);
       }, f3.prototype.iuxor = function(i) {
-        var a2, h5;
-        this.length > i.length ? (a2 = this, h5 = i) : (a2 = i, h5 = this);
-        for (var s22 = 0;s22 < h5.length; s22++)
-          this.words[s22] = a2.words[s22] ^ h5.words[s22];
+        var a2, h4;
+        this.length > i.length ? (a2 = this, h4 = i) : (a2 = i, h4 = this);
+        for (var s22 = 0;s22 < h4.length; s22++)
+          this.words[s22] = a2.words[s22] ^ h4.words[s22];
         if (this !== a2)
           for (;s22 < a2.length; s22++)
             this.words[s22] = a2.words[s22];
@@ -7665,34 +7620,34 @@ Use Chrome, Firefox or Internet Explorer 11`);
         return this.length > i.length ? this.clone().iuxor(i) : i.clone().iuxor(this);
       }, f3.prototype.inotn = function(i) {
         r2(typeof i == "number" && i >= 0);
-        var a2 = Math.ceil(i / 26) | 0, h5 = i % 26;
-        this._expand(a2), h5 > 0 && a2--;
+        var a2 = Math.ceil(i / 26) | 0, h4 = i % 26;
+        this._expand(a2), h4 > 0 && a2--;
         for (var s22 = 0;s22 < a2; s22++)
           this.words[s22] = ~this.words[s22] & 67108863;
-        return h5 > 0 && (this.words[s22] = ~this.words[s22] & 67108863 >> 26 - h5), this.strip();
+        return h4 > 0 && (this.words[s22] = ~this.words[s22] & 67108863 >> 26 - h4), this.strip();
       }, f3.prototype.notn = function(i) {
         return this.clone().inotn(i);
       }, f3.prototype.setn = function(i, a2) {
         r2(typeof i == "number" && i >= 0);
-        var h5 = i / 26 | 0, s22 = i % 26;
-        return this._expand(h5 + 1), a2 ? this.words[h5] = this.words[h5] | 1 << s22 : this.words[h5] = this.words[h5] & ~(1 << s22), this.strip();
+        var h4 = i / 26 | 0, s22 = i % 26;
+        return this._expand(h4 + 1), a2 ? this.words[h4] = this.words[h4] | 1 << s22 : this.words[h4] = this.words[h4] & ~(1 << s22), this.strip();
       }, f3.prototype.iadd = function(i) {
         var a2;
         if (this.negative !== 0 && i.negative === 0)
           return this.negative = 0, a2 = this.isub(i), this.negative ^= 1, this._normSign();
         if (this.negative === 0 && i.negative !== 0)
           return i.negative = 0, a2 = this.isub(i), i.negative = 1, a2._normSign();
-        var h5, s22;
-        this.length > i.length ? (h5 = this, s22 = i) : (h5 = i, s22 = this);
+        var h4, s22;
+        this.length > i.length ? (h4 = this, s22 = i) : (h4 = i, s22 = this);
         for (var u3 = 0, c = 0;c < s22.length; c++)
-          a2 = (h5.words[c] | 0) + (s22.words[c] | 0) + u3, this.words[c] = a2 & 67108863, u3 = a2 >>> 26;
-        for (;u3 !== 0 && c < h5.length; c++)
-          a2 = (h5.words[c] | 0) + u3, this.words[c] = a2 & 67108863, u3 = a2 >>> 26;
-        if (this.length = h5.length, u3 !== 0)
+          a2 = (h4.words[c] | 0) + (s22.words[c] | 0) + u3, this.words[c] = a2 & 67108863, u3 = a2 >>> 26;
+        for (;u3 !== 0 && c < h4.length; c++)
+          a2 = (h4.words[c] | 0) + u3, this.words[c] = a2 & 67108863, u3 = a2 >>> 26;
+        if (this.length = h4.length, u3 !== 0)
           this.words[this.length] = u3, this.length++;
-        else if (h5 !== this)
-          for (;c < h5.length; c++)
-            this.words[c] = h5.words[c];
+        else if (h4 !== this)
+          for (;c < h4.length; c++)
+            this.words[c] = h4.words[c];
         return this;
       }, f3.prototype.add = function(i) {
         var a2;
@@ -7704,11 +7659,11 @@ Use Chrome, Firefox or Internet Explorer 11`);
           return i.negative = 1, a2._normSign();
         } else if (this.negative !== 0)
           return this.negative = 0, this.iadd(i), this.negative = 1, this._normSign();
-        var h5 = this.cmp(i);
-        if (h5 === 0)
+        var h4 = this.cmp(i);
+        if (h4 === 0)
           return this.negative = 0, this.length = 1, this.words[0] = 0, this;
         var s22, u3;
-        h5 > 0 ? (s22 = this, u3 = i) : (s22 = i, u3 = this);
+        h4 > 0 ? (s22 = this, u3 = i) : (s22 = i, u3 = this);
         for (var c = 0, b3 = 0;b3 < u3.length; b3++)
           a2 = (s22.words[b3] | 0) - (u3.words[b3] | 0) + c, c = a2 >> 26, this.words[b3] = a2 & 67108863;
         for (;c !== 0 && b3 < s22.length; b3++)
@@ -7722,11 +7677,11 @@ Use Chrome, Firefox or Internet Explorer 11`);
       };
       function q2(v32, i, a2) {
         a2.negative = i.negative ^ v32.negative;
-        var h5 = v32.length + i.length | 0;
-        a2.length = h5, h5 = h5 - 1 | 0;
+        var h4 = v32.length + i.length | 0;
+        a2.length = h4, h4 = h4 - 1 | 0;
         var s22 = v32.words[0] | 0, u3 = i.words[0] | 0, c = s22 * u3, b3 = c & 67108863, l3 = c / 67108864 | 0;
         a2.words[0] = b3;
-        for (var n32 = 1;n32 < h5; n32++) {
+        for (var n32 = 1;n32 < h4; n32++) {
           for (var d = l3 >>> 26, w2 = l3 & 67108863, g2 = Math.min(n32, i.length - 1), _4 = Math.max(0, n32 - v32.length + 1);_4 <= g2; _4++) {
             var A6 = n32 - _4 | 0;
             s22 = v32.words[A6] | 0, u3 = i.words[_4] | 0, c = s22 * u3 + w2, d += c / 67108864 | 0, w2 = c & 67108863;
@@ -7735,9 +7690,9 @@ Use Chrome, Firefox or Internet Explorer 11`);
         }
         return l3 !== 0 ? a2.words[n32] = l3 | 0 : a2.length--, a2.strip();
       }
-      var L3 = function(i, a2, h5) {
-        var s22 = i.words, u3 = a2.words, c = h5.words, b3 = 0, l3, n32, d, w2 = s22[0] | 0, g2 = w2 & 8191, _4 = w2 >>> 13, A6 = s22[1] | 0, R3 = A6 & 8191, I2 = A6 >>> 13, Me = s22[2] | 0, k2 = Me & 8191, D2 = Me >>> 13, nt = s22[3] | 0, C3 = nt & 8191, O3 = nt >>> 13, vt = s22[4] | 0, F = vt & 8191, U2 = vt >>> 13, bt = s22[5] | 0, z3 = bt & 8191, H4 = bt >>> 13, mt = s22[6] | 0, W3 = mt & 8191, K = mt >>> 13, gt = s22[7] | 0, j2 = gt & 8191, Z4 = gt >>> 13, yt = s22[8] | 0, V5 = yt & 8191, $4 = yt >>> 13, wt = s22[9] | 0, G5 = wt & 8191, Y2 = wt >>> 13, Mt = u3[0] | 0, X4 = Mt & 8191, J = Mt >>> 13, _t = u3[1] | 0, Q3 = _t & 8191, ee = _t >>> 13, xt = u3[2] | 0, te = xt & 8191, re = xt >>> 13, St = u3[3] | 0, ie = St & 8191, ne = St >>> 13, Et = u3[4] | 0, fe = Et & 8191, ae = Et >>> 13, At = u3[5] | 0, oe = At & 8191, se = At >>> 13, Rt = u3[6] | 0, he = Rt & 8191, ue = Rt >>> 13, Bt = u3[7] | 0, le = Bt & 8191, de = Bt >>> 13, qt = u3[8] | 0, ce = qt & 8191, pe = qt >>> 13, It = u3[9] | 0, ve = It & 8191, be = It >>> 13;
-        h5.negative = i.negative ^ a2.negative, h5.length = 19, l3 = Math.imul(g2, X4), n32 = Math.imul(g2, J), n32 = n32 + Math.imul(_4, X4) | 0, d = Math.imul(_4, J);
+      var L3 = function(i, a2, h4) {
+        var s22 = i.words, u3 = a2.words, c = h4.words, b3 = 0, l3, n32, d, w2 = s22[0] | 0, g2 = w2 & 8191, _4 = w2 >>> 13, A6 = s22[1] | 0, R3 = A6 & 8191, I2 = A6 >>> 13, Me = s22[2] | 0, k2 = Me & 8191, D2 = Me >>> 13, nt = s22[3] | 0, C3 = nt & 8191, O3 = nt >>> 13, vt = s22[4] | 0, F = vt & 8191, U2 = vt >>> 13, bt = s22[5] | 0, z3 = bt & 8191, H4 = bt >>> 13, mt = s22[6] | 0, W3 = mt & 8191, K = mt >>> 13, gt = s22[7] | 0, j2 = gt & 8191, Z4 = gt >>> 13, yt = s22[8] | 0, V5 = yt & 8191, $4 = yt >>> 13, wt = s22[9] | 0, G5 = wt & 8191, Y2 = wt >>> 13, Mt = u3[0] | 0, X4 = Mt & 8191, J = Mt >>> 13, _t = u3[1] | 0, Q3 = _t & 8191, ee = _t >>> 13, xt = u3[2] | 0, te = xt & 8191, re = xt >>> 13, St = u3[3] | 0, ie = St & 8191, ne = St >>> 13, Et = u3[4] | 0, fe = Et & 8191, ae = Et >>> 13, At = u3[5] | 0, oe = At & 8191, se = At >>> 13, Rt = u3[6] | 0, he = Rt & 8191, ue = Rt >>> 13, Bt = u3[7] | 0, le = Bt & 8191, de = Bt >>> 13, qt = u3[8] | 0, ce = qt & 8191, pe = qt >>> 13, It = u3[9] | 0, ve = It & 8191, be = It >>> 13;
+        h4.negative = i.negative ^ a2.negative, h4.length = 19, l3 = Math.imul(g2, X4), n32 = Math.imul(g2, J), n32 = n32 + Math.imul(_4, X4) | 0, d = Math.imul(_4, J);
         var ft = (b3 + l3 | 0) + ((n32 & 8191) << 13) | 0;
         b3 = (d + (n32 >>> 13) | 0) + (ft >>> 26) | 0, ft &= 67108863, l3 = Math.imul(R3, X4), n32 = Math.imul(R3, J), n32 = n32 + Math.imul(I2, X4) | 0, d = Math.imul(I2, J), l3 = l3 + Math.imul(g2, Q3) | 0, n32 = n32 + Math.imul(g2, ee) | 0, n32 = n32 + Math.imul(_4, Q3) | 0, d = d + Math.imul(_4, ee) | 0;
         var Be = (b3 + l3 | 0) + ((n32 & 8191) << 13) | 0;
@@ -7775,89 +7730,89 @@ Use Chrome, Firefox or Internet Explorer 11`);
         var tt = (b3 + l3 | 0) + ((n32 & 8191) << 13) | 0;
         b3 = (d + (n32 >>> 13) | 0) + (tt >>> 26) | 0, tt &= 67108863, l3 = Math.imul(G5, ve), n32 = Math.imul(G5, be), n32 = n32 + Math.imul(Y2, ve) | 0, d = Math.imul(Y2, be);
         var rt = (b3 + l3 | 0) + ((n32 & 8191) << 13) | 0;
-        return b3 = (d + (n32 >>> 13) | 0) + (rt >>> 26) | 0, rt &= 67108863, c[0] = ft, c[1] = Be, c[2] = qe, c[3] = ze, c[4] = He, c[5] = We, c[6] = Ke, c[7] = je, c[8] = Ze, c[9] = Ve, c[10] = $e, c[11] = Ge, c[12] = Ye, c[13] = Xe, c[14] = Je, c[15] = Qe, c[16] = et, c[17] = tt, c[18] = rt, b3 !== 0 && (c[19] = b3, h5.length++), h5;
+        return b3 = (d + (n32 >>> 13) | 0) + (rt >>> 26) | 0, rt &= 67108863, c[0] = ft, c[1] = Be, c[2] = qe, c[3] = ze, c[4] = He, c[5] = We, c[6] = Ke, c[7] = je, c[8] = Ze, c[9] = Ve, c[10] = $e, c[11] = Ge, c[12] = Ye, c[13] = Xe, c[14] = Je, c[15] = Qe, c[16] = et, c[17] = tt, c[18] = rt, b3 !== 0 && (c[19] = b3, h4.length++), h4;
       };
       Math.imul || (L3 = q2);
       function ge(v32, i, a2) {
         a2.negative = i.negative ^ v32.negative, a2.length = v32.length + i.length;
-        for (var h5 = 0, s22 = 0, u3 = 0;u3 < a2.length - 1; u3++) {
+        for (var h4 = 0, s22 = 0, u3 = 0;u3 < a2.length - 1; u3++) {
           var c = s22;
           s22 = 0;
-          for (var b3 = h5 & 67108863, l3 = Math.min(u3, i.length - 1), n32 = Math.max(0, u3 - v32.length + 1);n32 <= l3; n32++) {
+          for (var b3 = h4 & 67108863, l3 = Math.min(u3, i.length - 1), n32 = Math.max(0, u3 - v32.length + 1);n32 <= l3; n32++) {
             var d = u3 - n32, w2 = v32.words[d] | 0, g2 = i.words[n32] | 0, _4 = w2 * g2, A6 = _4 & 67108863;
             c = c + (_4 / 67108864 | 0) | 0, A6 = A6 + b3 | 0, b3 = A6 & 67108863, c = c + (A6 >>> 26) | 0, s22 += c >>> 26, c &= 67108863;
           }
-          a2.words[u3] = b3, h5 = c, c = s22;
+          a2.words[u3] = b3, h4 = c, c = s22;
         }
-        return h5 !== 0 ? a2.words[u3] = h5 : a2.length--, a2.strip();
+        return h4 !== 0 ? a2.words[u3] = h4 : a2.length--, a2.strip();
       }
       function _e(v32, i, a2) {
-        var h5 = new N32;
-        return h5.mulp(v32, i, a2);
+        var h4 = new N32;
+        return h4.mulp(v32, i, a2);
       }
       f3.prototype.mulTo = function(i, a2) {
-        var h5, s22 = this.length + i.length;
-        return this.length === 10 && i.length === 10 ? h5 = L3(this, i, a2) : s22 < 63 ? h5 = q2(this, i, a2) : s22 < 1024 ? h5 = ge(this, i, a2) : h5 = _e(this, i, a2), h5;
+        var h4, s22 = this.length + i.length;
+        return this.length === 10 && i.length === 10 ? h4 = L3(this, i, a2) : s22 < 63 ? h4 = q2(this, i, a2) : s22 < 1024 ? h4 = ge(this, i, a2) : h4 = _e(this, i, a2), h4;
       };
       function N32(v32, i) {
         this.x = v32, this.y = i;
       }
       N32.prototype.makeRBT = function(i) {
-        for (var a2 = new Array(i), h5 = f3.prototype._countBits(i) - 1, s22 = 0;s22 < i; s22++)
-          a2[s22] = this.revBin(s22, h5, i);
+        for (var a2 = new Array(i), h4 = f3.prototype._countBits(i) - 1, s22 = 0;s22 < i; s22++)
+          a2[s22] = this.revBin(s22, h4, i);
         return a2;
-      }, N32.prototype.revBin = function(i, a2, h5) {
-        if (i === 0 || i === h5 - 1)
+      }, N32.prototype.revBin = function(i, a2, h4) {
+        if (i === 0 || i === h4 - 1)
           return i;
         for (var s22 = 0, u3 = 0;u3 < a2; u3++)
           s22 |= (i & 1) << a2 - u3 - 1, i >>= 1;
         return s22;
-      }, N32.prototype.permute = function(i, a2, h5, s22, u3, c) {
+      }, N32.prototype.permute = function(i, a2, h4, s22, u3, c) {
         for (var b3 = 0;b3 < c; b3++)
-          s22[b3] = a2[i[b3]], u3[b3] = h5[i[b3]];
-      }, N32.prototype.transform = function(i, a2, h5, s22, u3, c) {
-        this.permute(c, i, a2, h5, s22, u3);
+          s22[b3] = a2[i[b3]], u3[b3] = h4[i[b3]];
+      }, N32.prototype.transform = function(i, a2, h4, s22, u3, c) {
+        this.permute(c, i, a2, h4, s22, u3);
         for (var b3 = 1;b3 < u3; b3 <<= 1)
           for (var l3 = b3 << 1, n32 = Math.cos(2 * Math.PI / l3), d = Math.sin(2 * Math.PI / l3), w2 = 0;w2 < u3; w2 += l3)
             for (var g2 = n32, _4 = d, A6 = 0;A6 < b3; A6++) {
-              var R3 = h5[w2 + A6], I2 = s22[w2 + A6], Me = h5[w2 + A6 + b3], k2 = s22[w2 + A6 + b3], D2 = g2 * Me - _4 * k2;
-              k2 = g2 * k2 + _4 * Me, Me = D2, h5[w2 + A6] = R3 + Me, s22[w2 + A6] = I2 + k2, h5[w2 + A6 + b3] = R3 - Me, s22[w2 + A6 + b3] = I2 - k2, A6 !== l3 && (D2 = n32 * g2 - d * _4, _4 = n32 * _4 + d * g2, g2 = D2);
+              var R3 = h4[w2 + A6], I2 = s22[w2 + A6], Me = h4[w2 + A6 + b3], k2 = s22[w2 + A6 + b3], D2 = g2 * Me - _4 * k2;
+              k2 = g2 * k2 + _4 * Me, Me = D2, h4[w2 + A6] = R3 + Me, s22[w2 + A6] = I2 + k2, h4[w2 + A6 + b3] = R3 - Me, s22[w2 + A6 + b3] = I2 - k2, A6 !== l3 && (D2 = n32 * g2 - d * _4, _4 = n32 * _4 + d * g2, g2 = D2);
             }
       }, N32.prototype.guessLen13b = function(i, a2) {
-        var h5 = Math.max(a2, i) | 1, s22 = h5 & 1, u3 = 0;
-        for (h5 = h5 / 2 | 0;h5; h5 = h5 >>> 1)
+        var h4 = Math.max(a2, i) | 1, s22 = h4 & 1, u3 = 0;
+        for (h4 = h4 / 2 | 0;h4; h4 = h4 >>> 1)
           u3++;
         return 1 << u3 + 1 + s22;
-      }, N32.prototype.conjugate = function(i, a2, h5) {
-        if (!(h5 <= 1))
-          for (var s22 = 0;s22 < h5 / 2; s22++) {
+      }, N32.prototype.conjugate = function(i, a2, h4) {
+        if (!(h4 <= 1))
+          for (var s22 = 0;s22 < h4 / 2; s22++) {
             var u3 = i[s22];
-            i[s22] = i[h5 - s22 - 1], i[h5 - s22 - 1] = u3, u3 = a2[s22], a2[s22] = -a2[h5 - s22 - 1], a2[h5 - s22 - 1] = -u3;
+            i[s22] = i[h4 - s22 - 1], i[h4 - s22 - 1] = u3, u3 = a2[s22], a2[s22] = -a2[h4 - s22 - 1], a2[h4 - s22 - 1] = -u3;
           }
       }, N32.prototype.normalize13b = function(i, a2) {
-        for (var h5 = 0, s22 = 0;s22 < a2 / 2; s22++) {
-          var u3 = Math.round(i[2 * s22 + 1] / a2) * 8192 + Math.round(i[2 * s22] / a2) + h5;
-          i[s22] = u3 & 67108863, u3 < 67108864 ? h5 = 0 : h5 = u3 / 67108864 | 0;
+        for (var h4 = 0, s22 = 0;s22 < a2 / 2; s22++) {
+          var u3 = Math.round(i[2 * s22 + 1] / a2) * 8192 + Math.round(i[2 * s22] / a2) + h4;
+          i[s22] = u3 & 67108863, u3 < 67108864 ? h4 = 0 : h4 = u3 / 67108864 | 0;
         }
         return i;
-      }, N32.prototype.convert13b = function(i, a2, h5, s22) {
+      }, N32.prototype.convert13b = function(i, a2, h4, s22) {
         for (var u3 = 0, c = 0;c < a2; c++)
-          u3 = u3 + (i[c] | 0), h5[2 * c] = u3 & 8191, u3 = u3 >>> 13, h5[2 * c + 1] = u3 & 8191, u3 = u3 >>> 13;
+          u3 = u3 + (i[c] | 0), h4[2 * c] = u3 & 8191, u3 = u3 >>> 13, h4[2 * c + 1] = u3 & 8191, u3 = u3 >>> 13;
         for (c = 2 * a2;c < s22; ++c)
-          h5[c] = 0;
+          h4[c] = 0;
         r2(u3 === 0), r2((u3 & -8192) === 0);
       }, N32.prototype.stub = function(i) {
-        for (var a2 = new Array(i), h5 = 0;h5 < i; h5++)
-          a2[h5] = 0;
+        for (var a2 = new Array(i), h4 = 0;h4 < i; h4++)
+          a2[h4] = 0;
         return a2;
-      }, N32.prototype.mulp = function(i, a2, h5) {
-        var s22 = 2 * this.guessLen13b(i.length, a2.length), u3 = this.makeRBT(s22), c = this.stub(s22), b3 = new Array(s22), l3 = new Array(s22), n32 = new Array(s22), d = new Array(s22), w2 = new Array(s22), g2 = new Array(s22), _4 = h5.words;
+      }, N32.prototype.mulp = function(i, a2, h4) {
+        var s22 = 2 * this.guessLen13b(i.length, a2.length), u3 = this.makeRBT(s22), c = this.stub(s22), b3 = new Array(s22), l3 = new Array(s22), n32 = new Array(s22), d = new Array(s22), w2 = new Array(s22), g2 = new Array(s22), _4 = h4.words;
         _4.length = s22, this.convert13b(i.words, i.length, b3, s22), this.convert13b(a2.words, a2.length, d, s22), this.transform(b3, c, l3, n32, s22, u3), this.transform(d, c, w2, g2, s22, u3);
         for (var A6 = 0;A6 < s22; A6++) {
           var R3 = l3[A6] * w2[A6] - n32[A6] * g2[A6];
           n32[A6] = l3[A6] * g2[A6] + n32[A6] * w2[A6], l3[A6] = R3;
         }
-        return this.conjugate(l3, n32, s22), this.transform(l3, n32, _4, c, s22, u3), this.conjugate(_4, c, s22), this.normalize13b(_4, s22), h5.negative = i.negative ^ a2.negative, h5.length = i.length + a2.length, h5.strip();
+        return this.conjugate(l3, n32, s22), this.transform(l3, n32, _4, c, s22, u3), this.conjugate(_4, c, s22), this.normalize13b(_4, s22), h4.negative = i.negative ^ a2.negative, h4.length = i.length + a2.length, h4.strip();
       }, f3.prototype.mul = function(i) {
         var a2 = new f3(null);
         return a2.words = new Array(this.length + i.length), this.mulTo(i, a2);
@@ -7868,11 +7823,11 @@ Use Chrome, Firefox or Internet Explorer 11`);
         return this.clone().mulTo(i, this);
       }, f3.prototype.imuln = function(i) {
         r2(typeof i == "number"), r2(i < 67108864);
-        for (var a2 = 0, h5 = 0;h5 < this.length; h5++) {
-          var s22 = (this.words[h5] | 0) * i, u3 = (s22 & 67108863) + (a2 & 67108863);
-          a2 >>= 26, a2 += s22 / 67108864 | 0, a2 += u3 >>> 26, this.words[h5] = u3 & 67108863;
+        for (var a2 = 0, h4 = 0;h4 < this.length; h4++) {
+          var s22 = (this.words[h4] | 0) * i, u3 = (s22 & 67108863) + (a2 & 67108863);
+          a2 >>= 26, a2 += s22 / 67108864 | 0, a2 += u3 >>> 26, this.words[h4] = u3 & 67108863;
         }
-        return a2 !== 0 && (this.words[h5] = a2, this.length++), this;
+        return a2 !== 0 && (this.words[h4] = a2, this.length++), this;
       }, f3.prototype.muln = function(i) {
         return this.clone().imuln(i);
       }, f3.prototype.sqr = function() {
@@ -7883,15 +7838,15 @@ Use Chrome, Firefox or Internet Explorer 11`);
         var a2 = B6(i);
         if (a2.length === 0)
           return new f3(1);
-        for (var h5 = this, s22 = 0;s22 < a2.length && a2[s22] === 0; s22++, h5 = h5.sqr())
+        for (var h4 = this, s22 = 0;s22 < a2.length && a2[s22] === 0; s22++, h4 = h4.sqr())
           ;
         if (++s22 < a2.length)
-          for (var u3 = h5.sqr();s22 < a2.length; s22++, u3 = u3.sqr())
-            a2[s22] !== 0 && (h5 = h5.mul(u3));
-        return h5;
+          for (var u3 = h4.sqr();s22 < a2.length; s22++, u3 = u3.sqr())
+            a2[s22] !== 0 && (h4 = h4.mul(u3));
+        return h4;
       }, f3.prototype.iushln = function(i) {
         r2(typeof i == "number" && i >= 0);
-        var a2 = i % 26, h5 = (i - a2) / 26, s22 = 67108863 >>> 26 - a2 << 26 - a2, u3;
+        var a2 = i % 26, h4 = (i - a2) / 26, s22 = 67108863 >>> 26 - a2 << 26 - a2, u3;
         if (a2 !== 0) {
           var c = 0;
           for (u3 = 0;u3 < this.length; u3++) {
@@ -7900,21 +7855,21 @@ Use Chrome, Firefox or Internet Explorer 11`);
           }
           c && (this.words[u3] = c, this.length++);
         }
-        if (h5 !== 0) {
+        if (h4 !== 0) {
           for (u3 = this.length - 1;u3 >= 0; u3--)
-            this.words[u3 + h5] = this.words[u3];
-          for (u3 = 0;u3 < h5; u3++)
+            this.words[u3 + h4] = this.words[u3];
+          for (u3 = 0;u3 < h4; u3++)
             this.words[u3] = 0;
-          this.length += h5;
+          this.length += h4;
         }
         return this.strip();
       }, f3.prototype.ishln = function(i) {
         return r2(this.negative === 0), this.iushln(i);
-      }, f3.prototype.iushrn = function(i, a2, h5) {
+      }, f3.prototype.iushrn = function(i, a2, h4) {
         r2(typeof i == "number" && i >= 0);
         var s22;
         a2 ? s22 = (a2 - a2 % 26) / 26 : s22 = 0;
-        var u3 = i % 26, c = Math.min((i - u3) / 26, this.length), b3 = 67108863 ^ 67108863 >>> u3 << u3, l3 = h5;
+        var u3 = i % 26, c = Math.min((i - u3) / 26, this.length), b3 = 67108863 ^ 67108863 >>> u3 << u3, l3 = h4;
         if (s22 -= c, s22 = Math.max(0, s22), l3) {
           for (var n32 = 0;n32 < c; n32++)
             l3.words[n32] = this.words[n32];
@@ -7932,8 +7887,8 @@ Use Chrome, Firefox or Internet Explorer 11`);
           this.words[n32] = d << 26 - u3 | w2 >>> u3, d = w2 & b3;
         }
         return l3 && d !== 0 && (l3.words[l3.length++] = d), this.length === 0 && (this.words[0] = 0, this.length = 1), this.strip();
-      }, f3.prototype.ishrn = function(i, a2, h5) {
-        return r2(this.negative === 0), this.iushrn(i, a2, h5);
+      }, f3.prototype.ishrn = function(i, a2, h4) {
+        return r2(this.negative === 0), this.iushrn(i, a2, h4);
       }, f3.prototype.shln = function(i) {
         return this.clone().ishln(i);
       }, f3.prototype.ushln = function(i) {
@@ -7944,17 +7899,17 @@ Use Chrome, Firefox or Internet Explorer 11`);
         return this.clone().iushrn(i);
       }, f3.prototype.testn = function(i) {
         r2(typeof i == "number" && i >= 0);
-        var a2 = i % 26, h5 = (i - a2) / 26, s22 = 1 << a2;
-        if (this.length <= h5)
+        var a2 = i % 26, h4 = (i - a2) / 26, s22 = 1 << a2;
+        if (this.length <= h4)
           return false;
-        var u3 = this.words[h5];
+        var u3 = this.words[h4];
         return !!(u3 & s22);
       }, f3.prototype.imaskn = function(i) {
         r2(typeof i == "number" && i >= 0);
-        var a2 = i % 26, h5 = (i - a2) / 26;
-        if (r2(this.negative === 0, "imaskn works only with positive numbers"), this.length <= h5)
+        var a2 = i % 26, h4 = (i - a2) / 26;
+        if (r2(this.negative === 0, "imaskn works only with positive numbers"), this.length <= h4)
           return this;
-        if (a2 !== 0 && h5++, this.length = Math.min(h5, this.length), a2 !== 0) {
+        if (a2 !== 0 && h4++, this.length = Math.min(h4, this.length), a2 !== 0) {
           var s22 = 67108863 ^ 67108863 >>> a2 << a2;
           this.words[this.length - 1] &= s22;
         }
@@ -7987,25 +7942,25 @@ Use Chrome, Firefox or Internet Explorer 11`);
         return this.negative = 0, this;
       }, f3.prototype.abs = function() {
         return this.clone().iabs();
-      }, f3.prototype._ishlnsubmul = function(i, a2, h5) {
-        var s22 = i.length + h5, u3;
+      }, f3.prototype._ishlnsubmul = function(i, a2, h4) {
+        var s22 = i.length + h4, u3;
         this._expand(s22);
         var c, b3 = 0;
         for (u3 = 0;u3 < i.length; u3++) {
-          c = (this.words[u3 + h5] | 0) + b3;
+          c = (this.words[u3 + h4] | 0) + b3;
           var l3 = (i.words[u3] | 0) * a2;
-          c -= l3 & 67108863, b3 = (c >> 26) - (l3 / 67108864 | 0), this.words[u3 + h5] = c & 67108863;
+          c -= l3 & 67108863, b3 = (c >> 26) - (l3 / 67108864 | 0), this.words[u3 + h4] = c & 67108863;
         }
-        for (;u3 < this.length - h5; u3++)
-          c = (this.words[u3 + h5] | 0) + b3, b3 = c >> 26, this.words[u3 + h5] = c & 67108863;
+        for (;u3 < this.length - h4; u3++)
+          c = (this.words[u3 + h4] | 0) + b3, b3 = c >> 26, this.words[u3 + h4] = c & 67108863;
         if (b3 === 0)
           return this.strip();
         for (r2(b3 === -1), b3 = 0, u3 = 0;u3 < this.length; u3++)
           c = -(this.words[u3] | 0) + b3, b3 = c >> 26, this.words[u3] = c & 67108863;
         return this.negative = 1, this.strip();
       }, f3.prototype._wordDiv = function(i, a2) {
-        var h5 = this.length - i.length, s22 = this.clone(), u3 = i, c = u3.words[u3.length - 1] | 0, b3 = this._countBits(c);
-        h5 = 26 - b3, h5 !== 0 && (u3 = u3.ushln(h5), s22.iushln(h5), c = u3.words[u3.length - 1] | 0);
+        var h4 = this.length - i.length, s22 = this.clone(), u3 = i, c = u3.words[u3.length - 1] | 0, b3 = this._countBits(c);
+        h4 = 26 - b3, h4 !== 0 && (u3 = u3.ushln(h4), s22.iushln(h4), c = u3.words[u3.length - 1] | 0);
         var l3 = s22.length - u3.length, n32;
         if (a2 !== "mod") {
           n32 = new f3(null), n32.length = l3 + 1, n32.words = new Array(n32.length);
@@ -8020,12 +7975,12 @@ Use Chrome, Firefox or Internet Explorer 11`);
             _4--, s22.negative = 0, s22._ishlnsubmul(u3, 1, g2), s22.isZero() || (s22.negative ^= 1);
           n32 && (n32.words[g2] = _4);
         }
-        return n32 && n32.strip(), s22.strip(), a2 !== "div" && h5 !== 0 && s22.iushrn(h5), { div: n32 || null, mod: s22 };
-      }, f3.prototype.divmod = function(i, a2, h5) {
+        return n32 && n32.strip(), s22.strip(), a2 !== "div" && h4 !== 0 && s22.iushrn(h4), { div: n32 || null, mod: s22 };
+      }, f3.prototype.divmod = function(i, a2, h4) {
         if (r2(!i.isZero()), this.isZero())
           return { div: new f3(0), mod: new f3(0) };
         var s22, u3, c;
-        return this.negative !== 0 && i.negative === 0 ? (c = this.neg().divmod(i, a2), a2 !== "mod" && (s22 = c.div.neg()), a2 !== "div" && (u3 = c.mod.neg(), h5 && u3.negative !== 0 && u3.iadd(i)), { div: s22, mod: u3 }) : this.negative === 0 && i.negative !== 0 ? (c = this.divmod(i.neg(), a2), a2 !== "mod" && (s22 = c.div.neg()), { div: s22, mod: c.mod }) : (this.negative & i.negative) !== 0 ? (c = this.neg().divmod(i.neg(), a2), a2 !== "div" && (u3 = c.mod.neg(), h5 && u3.negative !== 0 && u3.isub(i)), { div: c.div, mod: u3 }) : i.length > this.length || this.cmp(i) < 0 ? { div: new f3(0), mod: this } : i.length === 1 ? a2 === "div" ? { div: this.divn(i.words[0]), mod: null } : a2 === "mod" ? { div: null, mod: new f3(this.modn(i.words[0])) } : { div: this.divn(i.words[0]), mod: new f3(this.modn(i.words[0])) } : this._wordDiv(i, a2);
+        return this.negative !== 0 && i.negative === 0 ? (c = this.neg().divmod(i, a2), a2 !== "mod" && (s22 = c.div.neg()), a2 !== "div" && (u3 = c.mod.neg(), h4 && u3.negative !== 0 && u3.iadd(i)), { div: s22, mod: u3 }) : this.negative === 0 && i.negative !== 0 ? (c = this.divmod(i.neg(), a2), a2 !== "mod" && (s22 = c.div.neg()), { div: s22, mod: c.mod }) : (this.negative & i.negative) !== 0 ? (c = this.neg().divmod(i.neg(), a2), a2 !== "div" && (u3 = c.mod.neg(), h4 && u3.negative !== 0 && u3.isub(i)), { div: c.div, mod: u3 }) : i.length > this.length || this.cmp(i) < 0 ? { div: new f3(0), mod: this } : i.length === 1 ? a2 === "div" ? { div: this.divn(i.words[0]), mod: null } : a2 === "mod" ? { div: null, mod: new f3(this.modn(i.words[0])) } : { div: this.divn(i.words[0]), mod: new f3(this.modn(i.words[0])) } : this._wordDiv(i, a2);
       }, f3.prototype.div = function(i) {
         return this.divmod(i, "div", false).div;
       }, f3.prototype.mod = function(i) {
@@ -8036,58 +7991,58 @@ Use Chrome, Firefox or Internet Explorer 11`);
         var a2 = this.divmod(i);
         if (a2.mod.isZero())
           return a2.div;
-        var h5 = a2.div.negative !== 0 ? a2.mod.isub(i) : a2.mod, s22 = i.ushrn(1), u3 = i.andln(1), c = h5.cmp(s22);
+        var h4 = a2.div.negative !== 0 ? a2.mod.isub(i) : a2.mod, s22 = i.ushrn(1), u3 = i.andln(1), c = h4.cmp(s22);
         return c < 0 || u3 === 1 && c === 0 ? a2.div : a2.div.negative !== 0 ? a2.div.isubn(1) : a2.div.iaddn(1);
       }, f3.prototype.modn = function(i) {
         r2(i <= 67108863);
-        for (var a2 = (1 << 26) % i, h5 = 0, s22 = this.length - 1;s22 >= 0; s22--)
-          h5 = (a2 * h5 + (this.words[s22] | 0)) % i;
-        return h5;
+        for (var a2 = (1 << 26) % i, h4 = 0, s22 = this.length - 1;s22 >= 0; s22--)
+          h4 = (a2 * h4 + (this.words[s22] | 0)) % i;
+        return h4;
       }, f3.prototype.idivn = function(i) {
         r2(i <= 67108863);
-        for (var a2 = 0, h5 = this.length - 1;h5 >= 0; h5--) {
-          var s22 = (this.words[h5] | 0) + a2 * 67108864;
-          this.words[h5] = s22 / i | 0, a2 = s22 % i;
+        for (var a2 = 0, h4 = this.length - 1;h4 >= 0; h4--) {
+          var s22 = (this.words[h4] | 0) + a2 * 67108864;
+          this.words[h4] = s22 / i | 0, a2 = s22 % i;
         }
         return this.strip();
       }, f3.prototype.divn = function(i) {
         return this.clone().idivn(i);
       }, f3.prototype.egcd = function(i) {
         r2(i.negative === 0), r2(!i.isZero());
-        var a2 = this, h5 = i.clone();
+        var a2 = this, h4 = i.clone();
         a2.negative !== 0 ? a2 = a2.umod(i) : a2 = a2.clone();
-        for (var s22 = new f3(1), u3 = new f3(0), c = new f3(0), b3 = new f3(1), l3 = 0;a2.isEven() && h5.isEven(); )
-          a2.iushrn(1), h5.iushrn(1), ++l3;
-        for (var n32 = h5.clone(), d = a2.clone();!a2.isZero(); ) {
+        for (var s22 = new f3(1), u3 = new f3(0), c = new f3(0), b3 = new f3(1), l3 = 0;a2.isEven() && h4.isEven(); )
+          a2.iushrn(1), h4.iushrn(1), ++l3;
+        for (var n32 = h4.clone(), d = a2.clone();!a2.isZero(); ) {
           for (var w2 = 0, g2 = 1;(a2.words[0] & g2) === 0 && w2 < 26; ++w2, g2 <<= 1)
             ;
           if (w2 > 0)
             for (a2.iushrn(w2);w2-- > 0; )
               (s22.isOdd() || u3.isOdd()) && (s22.iadd(n32), u3.isub(d)), s22.iushrn(1), u3.iushrn(1);
-          for (var _4 = 0, A6 = 1;(h5.words[0] & A6) === 0 && _4 < 26; ++_4, A6 <<= 1)
+          for (var _4 = 0, A6 = 1;(h4.words[0] & A6) === 0 && _4 < 26; ++_4, A6 <<= 1)
             ;
           if (_4 > 0)
-            for (h5.iushrn(_4);_4-- > 0; )
+            for (h4.iushrn(_4);_4-- > 0; )
               (c.isOdd() || b3.isOdd()) && (c.iadd(n32), b3.isub(d)), c.iushrn(1), b3.iushrn(1);
-          a2.cmp(h5) >= 0 ? (a2.isub(h5), s22.isub(c), u3.isub(b3)) : (h5.isub(a2), c.isub(s22), b3.isub(u3));
+          a2.cmp(h4) >= 0 ? (a2.isub(h4), s22.isub(c), u3.isub(b3)) : (h4.isub(a2), c.isub(s22), b3.isub(u3));
         }
-        return { a: c, b: b3, gcd: h5.iushln(l3) };
+        return { a: c, b: b3, gcd: h4.iushln(l3) };
       }, f3.prototype._invmp = function(i) {
         r2(i.negative === 0), r2(!i.isZero());
-        var a2 = this, h5 = i.clone();
+        var a2 = this, h4 = i.clone();
         a2.negative !== 0 ? a2 = a2.umod(i) : a2 = a2.clone();
-        for (var s22 = new f3(1), u3 = new f3(0), c = h5.clone();a2.cmpn(1) > 0 && h5.cmpn(1) > 0; ) {
+        for (var s22 = new f3(1), u3 = new f3(0), c = h4.clone();a2.cmpn(1) > 0 && h4.cmpn(1) > 0; ) {
           for (var b3 = 0, l3 = 1;(a2.words[0] & l3) === 0 && b3 < 26; ++b3, l3 <<= 1)
             ;
           if (b3 > 0)
             for (a2.iushrn(b3);b3-- > 0; )
               s22.isOdd() && s22.iadd(c), s22.iushrn(1);
-          for (var n32 = 0, d = 1;(h5.words[0] & d) === 0 && n32 < 26; ++n32, d <<= 1)
+          for (var n32 = 0, d = 1;(h4.words[0] & d) === 0 && n32 < 26; ++n32, d <<= 1)
             ;
           if (n32 > 0)
-            for (h5.iushrn(n32);n32-- > 0; )
+            for (h4.iushrn(n32);n32-- > 0; )
               u3.isOdd() && u3.iadd(c), u3.iushrn(1);
-          a2.cmp(h5) >= 0 ? (a2.isub(h5), s22.isub(u3)) : (h5.isub(a2), u3.isub(s22));
+          a2.cmp(h4) >= 0 ? (a2.isub(h4), s22.isub(u3)) : (h4.isub(a2), u3.isub(s22));
         }
         var w2;
         return a2.cmpn(1) === 0 ? w2 = s22 : w2 = u3, w2.cmpn(0) < 0 && w2.iadd(i), w2;
@@ -8096,24 +8051,24 @@ Use Chrome, Firefox or Internet Explorer 11`);
           return i.abs();
         if (i.isZero())
           return this.abs();
-        var a2 = this.clone(), h5 = i.clone();
-        a2.negative = 0, h5.negative = 0;
-        for (var s22 = 0;a2.isEven() && h5.isEven(); s22++)
-          a2.iushrn(1), h5.iushrn(1);
+        var a2 = this.clone(), h4 = i.clone();
+        a2.negative = 0, h4.negative = 0;
+        for (var s22 = 0;a2.isEven() && h4.isEven(); s22++)
+          a2.iushrn(1), h4.iushrn(1);
         do {
           for (;a2.isEven(); )
             a2.iushrn(1);
-          for (;h5.isEven(); )
-            h5.iushrn(1);
-          var u3 = a2.cmp(h5);
+          for (;h4.isEven(); )
+            h4.iushrn(1);
+          var u3 = a2.cmp(h4);
           if (u3 < 0) {
             var c = a2;
-            a2 = h5, h5 = c;
-          } else if (u3 === 0 || h5.cmpn(1) === 0)
+            a2 = h4, h4 = c;
+          } else if (u3 === 0 || h4.cmpn(1) === 0)
             break;
-          a2.isub(h5);
+          a2.isub(h4);
         } while (true);
-        return h5.iushln(s22);
+        return h4.iushln(s22);
       }, f3.prototype.invm = function(i) {
         return this.egcd(i).a.umod(i);
       }, f3.prototype.isEven = function() {
@@ -8124,10 +8079,10 @@ Use Chrome, Firefox or Internet Explorer 11`);
         return this.words[0] & i;
       }, f3.prototype.bincn = function(i) {
         r2(typeof i == "number");
-        var a2 = i % 26, h5 = (i - a2) / 26, s22 = 1 << a2;
-        if (this.length <= h5)
-          return this._expand(h5 + 1), this.words[h5] |= s22, this;
-        for (var u3 = s22, c = h5;u3 !== 0 && c < this.length; c++) {
+        var a2 = i % 26, h4 = (i - a2) / 26, s22 = 1 << a2;
+        if (this.length <= h4)
+          return this._expand(h4 + 1), this.words[h4] |= s22, this;
+        for (var u3 = s22, c = h4;u3 !== 0 && c < this.length; c++) {
           var b3 = this.words[c] | 0;
           b3 += u3, u3 = b3 >>> 26, b3 &= 67108863, this.words[c] = b3;
         }
@@ -8141,15 +8096,15 @@ Use Chrome, Firefox or Internet Explorer 11`);
         if (this.negative === 0 && a2)
           return 1;
         this.strip();
-        var h5;
+        var h4;
         if (this.length > 1)
-          h5 = 1;
+          h4 = 1;
         else {
           a2 && (i = -i), r2(i <= 67108863, "Number is too big");
           var s22 = this.words[0] | 0;
-          h5 = s22 === i ? 0 : s22 < i ? -1 : 1;
+          h4 = s22 === i ? 0 : s22 < i ? -1 : 1;
         }
-        return this.negative !== 0 ? -h5 | 0 : h5;
+        return this.negative !== 0 ? -h4 | 0 : h4;
       }, f3.prototype.cmp = function(i) {
         if (this.negative !== 0 && i.negative === 0)
           return -1;
@@ -8162,8 +8117,8 @@ Use Chrome, Firefox or Internet Explorer 11`);
           return 1;
         if (this.length < i.length)
           return -1;
-        for (var a2 = 0, h5 = this.length - 1;h5 >= 0; h5--) {
-          var s22 = this.words[h5] | 0, u3 = i.words[h5] | 0;
+        for (var a2 = 0, h4 = this.length - 1;h4 >= 0; h4--) {
+          var s22 = this.words[h4] | 0, u3 = i.words[h4] | 0;
           if (s22 !== u3) {
             s22 < u3 ? a2 = -1 : s22 > u3 && (a2 = 1);
             break;
@@ -8235,11 +8190,11 @@ Use Chrome, Firefox or Internet Explorer 11`);
         var i = new f3(null);
         return i.words = new Array(Math.ceil(this.n / 13)), i;
       }, ye.prototype.ireduce = function(i) {
-        var a2 = i, h5;
+        var a2 = i, h4;
         do
-          this.split(a2, this.tmp), a2 = this.imulK(a2), a2 = a2.iadd(this.tmp), h5 = a2.bitLength();
-        while (h5 > this.n);
-        var s22 = h5 < this.n ? -1 : a2.ucmp(this.p);
+          this.split(a2, this.tmp), a2 = this.imulK(a2), a2 = a2.iadd(this.tmp), h4 = a2.bitLength();
+        while (h4 > this.n);
+        var s22 = h4 < this.n ? -1 : a2.ucmp(this.p);
         return s22 === 0 ? (a2.words[0] = 0, a2.length = 1) : s22 > 0 ? a2.isub(this.p) : a2.strip !== undefined ? a2.strip() : a2._strip(), a2;
       }, ye.prototype.split = function(i, a2) {
         i.iushrn(this.n, 0, a2);
@@ -8250,23 +8205,23 @@ Use Chrome, Firefox or Internet Explorer 11`);
         ye.call(this, "k256", "ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff fffffffe fffffc2f");
       }
       o2(xe, ye), xe.prototype.split = function(i, a2) {
-        for (var h5 = 4194303, s22 = Math.min(i.length, 9), u3 = 0;u3 < s22; u3++)
+        for (var h4 = 4194303, s22 = Math.min(i.length, 9), u3 = 0;u3 < s22; u3++)
           a2.words[u3] = i.words[u3];
         if (a2.length = s22, i.length <= 9) {
           i.words[0] = 0, i.length = 1;
           return;
         }
         var c = i.words[9];
-        for (a2.words[a2.length++] = c & h5, u3 = 10;u3 < i.length; u3++) {
+        for (a2.words[a2.length++] = c & h4, u3 = 10;u3 < i.length; u3++) {
           var b3 = i.words[u3] | 0;
-          i.words[u3 - 10] = (b3 & h5) << 4 | c >>> 22, c = b3;
+          i.words[u3 - 10] = (b3 & h4) << 4 | c >>> 22, c = b3;
         }
         c >>>= 22, i.words[u3 - 10] = c, c === 0 && i.length > 10 ? i.length -= 10 : i.length -= 9;
       }, xe.prototype.imulK = function(i) {
         i.words[i.length] = 0, i.words[i.length + 1] = 0, i.length += 2;
-        for (var a2 = 0, h5 = 0;h5 < i.length; h5++) {
-          var s22 = i.words[h5] | 0;
-          a2 += s22 * 977, i.words[h5] = a2 & 67108863, a2 = s22 * 64 + (a2 / 67108864 | 0);
+        for (var a2 = 0, h4 = 0;h4 < i.length; h4++) {
+          var s22 = i.words[h4] | 0;
+          a2 += s22 * 977, i.words[h4] = a2 & 67108863, a2 = s22 * 64 + (a2 / 67108864 | 0);
         }
         return i.words[i.length - 1] === 0 && (i.length--, i.words[i.length - 1] === 0 && i.length--), i;
       };
@@ -8282,9 +8237,9 @@ Use Chrome, Firefox or Internet Explorer 11`);
         ye.call(this, "25519", "7fffffffffffffff ffffffffffffffff ffffffffffffffff ffffffffffffffed");
       }
       o2(Ae, ye), Ae.prototype.imulK = function(i) {
-        for (var a2 = 0, h5 = 0;h5 < i.length; h5++) {
-          var s22 = (i.words[h5] | 0) * 19 + a2, u3 = s22 & 67108863;
-          s22 >>>= 26, i.words[h5] = u3, a2 = s22;
+        for (var a2 = 0, h4 = 0;h4 < i.length; h4++) {
+          var s22 = (i.words[h4] | 0) * 19 + a2, u3 = s22 & 67108863;
+          s22 >>>= 26, i.words[h4] = u3, a2 = s22;
         }
         return a2 !== 0 && (i.words[i.length++] = a2), i;
       }, f3._prime = function(i) {
@@ -8320,20 +8275,20 @@ Use Chrome, Firefox or Internet Explorer 11`);
         return i.isZero() ? i.clone() : this.m.sub(i)._forceRed(this);
       }, P2.prototype.add = function(i, a2) {
         this._verify2(i, a2);
-        var h5 = i.add(a2);
-        return h5.cmp(this.m) >= 0 && h5.isub(this.m), h5._forceRed(this);
+        var h4 = i.add(a2);
+        return h4.cmp(this.m) >= 0 && h4.isub(this.m), h4._forceRed(this);
       }, P2.prototype.iadd = function(i, a2) {
         this._verify2(i, a2);
-        var h5 = i.iadd(a2);
-        return h5.cmp(this.m) >= 0 && h5.isub(this.m), h5;
+        var h4 = i.iadd(a2);
+        return h4.cmp(this.m) >= 0 && h4.isub(this.m), h4;
       }, P2.prototype.sub = function(i, a2) {
         this._verify2(i, a2);
-        var h5 = i.sub(a2);
-        return h5.cmpn(0) < 0 && h5.iadd(this.m), h5._forceRed(this);
+        var h4 = i.sub(a2);
+        return h4.cmpn(0) < 0 && h4.iadd(this.m), h4._forceRed(this);
       }, P2.prototype.isub = function(i, a2) {
         this._verify2(i, a2);
-        var h5 = i.isub(a2);
-        return h5.cmpn(0) < 0 && h5.iadd(this.m), h5;
+        var h4 = i.isub(a2);
+        return h4.cmpn(0) < 0 && h4.iadd(this.m), h4;
       }, P2.prototype.shl = function(i, a2) {
         return this._verify1(i), this.imod(i.ushln(a2));
       }, P2.prototype.imul = function(i, a2) {
@@ -8349,8 +8304,8 @@ Use Chrome, Firefox or Internet Explorer 11`);
           return i.clone();
         var a2 = this.m.andln(3);
         if (r2(a2 % 2 === 1), a2 === 3) {
-          var h5 = this.m.add(new f3(1)).iushrn(2);
-          return this.pow(i, h5);
+          var h4 = this.m.add(new f3(1)).iushrn(2);
+          return this.pow(i, h4);
         }
         for (var s22 = this.m.subn(1), u3 = 0;!s22.isZero() && s22.andln(1) === 0; )
           u3++, s22.iushrn(1);
@@ -8374,7 +8329,7 @@ Use Chrome, Firefox or Internet Explorer 11`);
           return new f3(1).toRed(this);
         if (a2.cmpn(1) === 0)
           return i.clone();
-        var h5 = 4, s22 = new Array(1 << h5);
+        var h4 = 4, s22 = new Array(1 << h4);
         s22[0] = new f3(1).toRed(this), s22[1] = i;
         for (var u3 = 2;u3 < s22.length; u3++)
           s22[u3] = this.mul(s22[u3 - 1], i);
@@ -8386,7 +8341,7 @@ Use Chrome, Firefox or Internet Explorer 11`);
               l3 = 0;
               continue;
             }
-            b3 <<= 1, b3 |= g2, l3++, !(l3 !== h5 && (u3 !== 0 || w2 !== 0)) && (c = this.mul(c, s22[b3]), l3 = 0, b3 = 0);
+            b3 <<= 1, b3 |= g2, l3++, !(l3 !== h4 && (u3 !== 0 || w2 !== 0)) && (c = this.mul(c, s22[b3]), l3 = 0, b3 = 0);
           }
           n32 = 26;
         }
@@ -8411,12 +8366,12 @@ Use Chrome, Firefox or Internet Explorer 11`);
       }, Se.prototype.imul = function(i, a2) {
         if (i.isZero() || a2.isZero())
           return i.words[0] = 0, i.length = 1, i;
-        var h5 = i.imul(a2), s22 = h5.maskn(this.shift).mul(this.minv).imaskn(this.shift).mul(this.m), u3 = h5.isub(s22).iushrn(this.shift), c = u3;
+        var h4 = i.imul(a2), s22 = h4.maskn(this.shift).mul(this.minv).imaskn(this.shift).mul(this.m), u3 = h4.isub(s22).iushrn(this.shift), c = u3;
         return u3.cmp(this.m) >= 0 ? c = u3.isub(this.m) : u3.cmpn(0) < 0 && (c = u3.iadd(this.m)), c._forceRed(this);
       }, Se.prototype.mul = function(i, a2) {
         if (i.isZero() || a2.isZero())
           return new f3(0)._forceRed(this);
-        var h5 = i.mul(a2), s22 = h5.maskn(this.shift).mul(this.minv).imaskn(this.shift).mul(this.m), u3 = h5.isub(s22).iushrn(this.shift), c = u3;
+        var h4 = i.mul(a2), s22 = h4.maskn(this.shift).mul(this.minv).imaskn(this.shift).mul(this.m), u3 = h4.isub(s22).iushrn(this.shift), c = u3;
         return u3.cmp(this.m) >= 0 ? c = u3.isub(this.m) : u3.cmpn(0) < 0 && (c = u3.iadd(this.m)), c._forceRed(this);
       }, Se.prototype.invm = function(i) {
         var a2 = this.imod(i._invmp(this.m).mul(this.r2));
@@ -8453,27 +8408,27 @@ Use Chrome, Firefox or Internet Explorer 11`);
         return i.cmp(a2) > 0 ? i : a2;
       }, f3.min = function(i, a2) {
         return i.cmp(a2) < 0 ? i : a2;
-      }, f3.prototype._init = function(i, a2, h5) {
+      }, f3.prototype._init = function(i, a2, h4) {
         if (typeof i == "number")
-          return this._initNumber(i, a2, h5);
+          return this._initNumber(i, a2, h4);
         if (typeof i == "object")
-          return this._initArray(i, a2, h5);
+          return this._initArray(i, a2, h4);
         a2 === "hex" && (a2 = 16), r2(a2 === (a2 | 0) && a2 >= 2 && a2 <= 36), i = i.toString().replace(/\s+/g, "");
         var s22 = 0;
-        i[0] === "-" && (s22++, this.negative = 1), s22 < i.length && (a2 === 16 ? this._parseHex(i, s22, h5) : (this._parseBase(i, a2, s22), h5 === "le" && this._initArray(this.toArray(), a2, h5)));
-      }, f3.prototype._initNumber = function(i, a2, h5) {
-        i < 0 && (this.negative = 1, i = -i), i < 67108864 ? (this.words = [i & 67108863], this.length = 1) : i < 4503599627370496 ? (this.words = [i & 67108863, i / 67108864 & 67108863], this.length = 2) : (r2(i < 9007199254740992), this.words = [i & 67108863, i / 67108864 & 67108863, 1], this.length = 3), h5 === "le" && this._initArray(this.toArray(), a2, h5);
-      }, f3.prototype._initArray = function(i, a2, h5) {
+        i[0] === "-" && (s22++, this.negative = 1), s22 < i.length && (a2 === 16 ? this._parseHex(i, s22, h4) : (this._parseBase(i, a2, s22), h4 === "le" && this._initArray(this.toArray(), a2, h4)));
+      }, f3.prototype._initNumber = function(i, a2, h4) {
+        i < 0 && (this.negative = 1, i = -i), i < 67108864 ? (this.words = [i & 67108863], this.length = 1) : i < 4503599627370496 ? (this.words = [i & 67108863, i / 67108864 & 67108863], this.length = 2) : (r2(i < 9007199254740992), this.words = [i & 67108863, i / 67108864 & 67108863, 1], this.length = 3), h4 === "le" && this._initArray(this.toArray(), a2, h4);
+      }, f3.prototype._initArray = function(i, a2, h4) {
         if (r2(typeof i.length == "number"), i.length <= 0)
           return this.words = [0], this.length = 1, this;
         this.length = Math.ceil(i.length / 3), this.words = new Array(this.length);
         for (var s22 = 0;s22 < this.length; s22++)
           this.words[s22] = 0;
         var u3, c, b3 = 0;
-        if (h5 === "be")
+        if (h4 === "be")
           for (s22 = i.length - 1, u3 = 0;s22 >= 0; s22 -= 3)
             c = i[s22] | i[s22 - 1] << 8 | i[s22 - 2] << 16, this.words[u3] |= c << b3 & 67108863, this.words[u3 + 1] = c >>> 26 - b3 & 67108863, b3 += 24, b3 >= 26 && (b3 -= 26, u3++);
-        else if (h5 === "le")
+        else if (h4 === "le")
           for (s22 = 0, u3 = 0;s22 < i.length; s22 += 3)
             c = i[s22] | i[s22 + 1] << 8 | i[s22 + 2] << 16, this.words[u3] |= c << b3 & 67108863, this.words[u3 + 1] = c >>> 26 - b3 & 67108863, b3 += 24, b3 >= 26 && (b3 -= 26, u3++);
         return this.strip();
@@ -8483,15 +8438,15 @@ Use Chrome, Firefox or Internet Explorer 11`);
         return a2 >= 65 && a2 <= 70 ? a2 - 55 : a2 >= 97 && a2 <= 102 ? a2 - 87 : a2 - 48 & 15;
       }
       function y22(v32, i, a2) {
-        var h5 = m32(v32, a2);
-        return a2 - 1 >= i && (h5 |= m32(v32, a2 - 1) << 4), h5;
+        var h4 = m32(v32, a2);
+        return a2 - 1 >= i && (h4 |= m32(v32, a2 - 1) << 4), h4;
       }
-      f3.prototype._parseHex = function(i, a2, h5) {
+      f3.prototype._parseHex = function(i, a2, h4) {
         this.length = Math.ceil((i.length - a2) / 6), this.words = new Array(this.length);
         for (var s22 = 0;s22 < this.length; s22++)
           this.words[s22] = 0;
         var u3 = 0, c = 0, b3;
-        if (h5 === "be")
+        if (h4 === "be")
           for (s22 = i.length - 1;s22 >= a2; s22 -= 2)
             b3 = y22(i, a2, s22) << u3, this.words[c] |= b3 & 67108863, u3 >= 18 ? (u3 -= 18, c += 1, this.words[c] |= b3 >>> 26) : u3 += 8;
         else {
@@ -8501,19 +8456,19 @@ Use Chrome, Firefox or Internet Explorer 11`);
         }
         this.strip();
       };
-      function M3(v32, i, a2, h5) {
+      function M3(v32, i, a2, h4) {
         for (var s22 = 0, u3 = Math.min(v32.length, a2), c = i;c < u3; c++) {
           var b3 = v32.charCodeAt(c) - 48;
-          s22 *= h5, b3 >= 49 ? s22 += b3 - 49 + 10 : b3 >= 17 ? s22 += b3 - 17 + 10 : s22 += b3;
+          s22 *= h4, b3 >= 49 ? s22 += b3 - 49 + 10 : b3 >= 17 ? s22 += b3 - 17 + 10 : s22 += b3;
         }
         return s22;
       }
-      f3.prototype._parseBase = function(i, a2, h5) {
+      f3.prototype._parseBase = function(i, a2, h4) {
         this.words = [0], this.length = 1;
         for (var s22 = 0, u3 = 1;u3 <= 67108863; u3 *= a2)
           s22++;
         s22--, u3 = u3 / a2 | 0;
-        for (var c = i.length - h5, b3 = c % s22, l3 = Math.min(c, c - b3) + h5, n32 = 0, d = h5;d < l3; d += s22)
+        for (var c = i.length - h4, b3 = c % s22, l3 = Math.min(c, c - b3) + h4, n32 = 0, d = h4;d < l3; d += s22)
           n32 = M3(i, d, d + s22, a2), this.imuln(u3), this.words[0] + n32 < 67108864 ? this.words[0] += n32 : this._iaddn(n32);
         if (b3 !== 0) {
           var w2 = 1;
@@ -8546,28 +8501,28 @@ Use Chrome, Firefox or Internet Explorer 11`);
       var x3 = ["", "0", "00", "000", "0000", "00000", "000000", "0000000", "00000000", "000000000", "0000000000", "00000000000", "000000000000", "0000000000000", "00000000000000", "000000000000000", "0000000000000000", "00000000000000000", "000000000000000000", "0000000000000000000", "00000000000000000000", "000000000000000000000", "0000000000000000000000", "00000000000000000000000", "000000000000000000000000", "0000000000000000000000000"], S3 = [0, 0, 25, 16, 12, 11, 10, 9, 8, 8, 7, 7, 7, 7, 6, 6, 6, 6, 6, 6, 6, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5], E3 = [0, 0, 33554432, 43046721, 16777216, 48828125, 60466176, 40353607, 16777216, 43046721, 1e7, 19487171, 35831808, 62748517, 7529536, 11390625, 16777216, 24137569, 34012224, 47045881, 64000000, 4084101, 5153632, 6436343, 7962624, 9765625, 11881376, 14348907, 17210368, 20511149, 24300000, 28629151, 33554432, 39135393, 45435424, 52521875, 60466176];
       f3.prototype.toString = function(i, a2) {
         i = i || 10, a2 = a2 | 0 || 1;
-        var h5;
+        var h4;
         if (i === 16 || i === "hex") {
-          h5 = "";
+          h4 = "";
           for (var s22 = 0, u3 = 0, c = 0;c < this.length; c++) {
             var b3 = this.words[c], l3 = ((b3 << s22 | u3) & 16777215).toString(16);
-            u3 = b3 >>> 24 - s22 & 16777215, u3 !== 0 || c !== this.length - 1 ? h5 = x3[6 - l3.length] + l3 + h5 : h5 = l3 + h5, s22 += 2, s22 >= 26 && (s22 -= 26, c--);
+            u3 = b3 >>> 24 - s22 & 16777215, u3 !== 0 || c !== this.length - 1 ? h4 = x3[6 - l3.length] + l3 + h4 : h4 = l3 + h4, s22 += 2, s22 >= 26 && (s22 -= 26, c--);
           }
-          for (u3 !== 0 && (h5 = u3.toString(16) + h5);h5.length % a2 !== 0; )
-            h5 = "0" + h5;
-          return this.negative !== 0 && (h5 = "-" + h5), h5;
+          for (u3 !== 0 && (h4 = u3.toString(16) + h4);h4.length % a2 !== 0; )
+            h4 = "0" + h4;
+          return this.negative !== 0 && (h4 = "-" + h4), h4;
         }
         if (i === (i | 0) && i >= 2 && i <= 36) {
           var n32 = S3[i], d = E3[i];
-          h5 = "";
+          h4 = "";
           var w2 = this.clone();
           for (w2.negative = 0;!w2.isZero(); ) {
             var g2 = w2.modn(d).toString(i);
-            w2 = w2.idivn(d), w2.isZero() ? h5 = g2 + h5 : h5 = x3[n32 - g2.length] + g2 + h5;
+            w2 = w2.idivn(d), w2.isZero() ? h4 = g2 + h4 : h4 = x3[n32 - g2.length] + g2 + h4;
           }
-          for (this.isZero() && (h5 = "0" + h5);h5.length % a2 !== 0; )
-            h5 = "0" + h5;
-          return this.negative !== 0 && (h5 = "-" + h5), h5;
+          for (this.isZero() && (h4 = "0" + h4);h4.length % a2 !== 0; )
+            h4 = "0" + h4;
+          return this.negative !== 0 && (h4 = "-" + h4), h4;
         }
         r2(false, "Base should be between 2 and 36");
       }, f3.prototype.toNumber = function() {
@@ -8579,8 +8534,8 @@ Use Chrome, Firefox or Internet Explorer 11`);
         return r2(typeof p2 < "u"), this.toArrayLike(p2, i, a2);
       }, f3.prototype.toArray = function(i, a2) {
         return this.toArrayLike(Array, i, a2);
-      }, f3.prototype.toArrayLike = function(i, a2, h5) {
-        var s22 = this.byteLength(), u3 = h5 || Math.max(1, s22);
+      }, f3.prototype.toArrayLike = function(i, a2, h4) {
+        var s22 = this.byteLength(), u3 = h4 || Math.max(1, s22);
         r2(s22 <= u3, "byte array longer than desired length"), r2(u3 > 0, "Requested array length <= 0"), this.strip();
         var c = a2 === "le", b3 = new i(u3), l3, n32, d = this.clone();
         if (c) {
@@ -8598,21 +8553,21 @@ Use Chrome, Firefox or Internet Explorer 11`);
       }, Math.clz32 ? f3.prototype._countBits = function(i) {
         return 32 - Math.clz32(i);
       } : f3.prototype._countBits = function(i) {
-        var a2 = i, h5 = 0;
-        return a2 >= 4096 && (h5 += 13, a2 >>>= 13), a2 >= 64 && (h5 += 7, a2 >>>= 7), a2 >= 8 && (h5 += 4, a2 >>>= 4), a2 >= 2 && (h5 += 2, a2 >>>= 2), h5 + a2;
+        var a2 = i, h4 = 0;
+        return a2 >= 4096 && (h4 += 13, a2 >>>= 13), a2 >= 64 && (h4 += 7, a2 >>>= 7), a2 >= 8 && (h4 += 4, a2 >>>= 4), a2 >= 2 && (h4 += 2, a2 >>>= 2), h4 + a2;
       }, f3.prototype._zeroBits = function(i) {
         if (i === 0)
           return 26;
-        var a2 = i, h5 = 0;
-        return (a2 & 8191) === 0 && (h5 += 13, a2 >>>= 13), (a2 & 127) === 0 && (h5 += 7, a2 >>>= 7), (a2 & 15) === 0 && (h5 += 4, a2 >>>= 4), (a2 & 3) === 0 && (h5 += 2, a2 >>>= 2), (a2 & 1) === 0 && h5++, h5;
+        var a2 = i, h4 = 0;
+        return (a2 & 8191) === 0 && (h4 += 13, a2 >>>= 13), (a2 & 127) === 0 && (h4 += 7, a2 >>>= 7), (a2 & 15) === 0 && (h4 += 4, a2 >>>= 4), (a2 & 3) === 0 && (h4 += 2, a2 >>>= 2), (a2 & 1) === 0 && h4++, h4;
       }, f3.prototype.bitLength = function() {
         var i = this.words[this.length - 1], a2 = this._countBits(i);
         return (this.length - 1) * 26 + a2;
       };
       function B6(v32) {
         for (var i = new Array(v32.bitLength()), a2 = 0;a2 < i.length; a2++) {
-          var h5 = a2 / 26 | 0, s22 = a2 % 26;
-          i[a2] = (v32.words[h5] & 1 << s22) >>> s22;
+          var h4 = a2 / 26 | 0, s22 = a2 % 26;
+          i[a2] = (v32.words[h4] & 1 << s22) >>> s22;
         }
         return i;
       }
@@ -8620,8 +8575,8 @@ Use Chrome, Firefox or Internet Explorer 11`);
         if (this.isZero())
           return 0;
         for (var i = 0, a2 = 0;a2 < this.length; a2++) {
-          var h5 = this._zeroBits(this.words[a2]);
-          if (i += h5, h5 !== 26)
+          var h4 = this._zeroBits(this.words[a2]);
+          if (i += h4, h4 !== 26)
             break;
         }
         return i;
@@ -8652,8 +8607,8 @@ Use Chrome, Firefox or Internet Explorer 11`);
       }, f3.prototype.iuand = function(i) {
         var a2;
         this.length > i.length ? a2 = i : a2 = this;
-        for (var h5 = 0;h5 < a2.length; h5++)
-          this.words[h5] = this.words[h5] & i.words[h5];
+        for (var h4 = 0;h4 < a2.length; h4++)
+          this.words[h4] = this.words[h4] & i.words[h4];
         return this.length = a2.length, this.strip();
       }, f3.prototype.iand = function(i) {
         return r2((this.negative | i.negative) === 0), this.iuand(i);
@@ -8662,10 +8617,10 @@ Use Chrome, Firefox or Internet Explorer 11`);
       }, f3.prototype.uand = function(i) {
         return this.length > i.length ? this.clone().iuand(i) : i.clone().iuand(this);
       }, f3.prototype.iuxor = function(i) {
-        var a2, h5;
-        this.length > i.length ? (a2 = this, h5 = i) : (a2 = i, h5 = this);
-        for (var s22 = 0;s22 < h5.length; s22++)
-          this.words[s22] = a2.words[s22] ^ h5.words[s22];
+        var a2, h4;
+        this.length > i.length ? (a2 = this, h4 = i) : (a2 = i, h4 = this);
+        for (var s22 = 0;s22 < h4.length; s22++)
+          this.words[s22] = a2.words[s22] ^ h4.words[s22];
         if (this !== a2)
           for (;s22 < a2.length; s22++)
             this.words[s22] = a2.words[s22];
@@ -8678,34 +8633,34 @@ Use Chrome, Firefox or Internet Explorer 11`);
         return this.length > i.length ? this.clone().iuxor(i) : i.clone().iuxor(this);
       }, f3.prototype.inotn = function(i) {
         r2(typeof i == "number" && i >= 0);
-        var a2 = Math.ceil(i / 26) | 0, h5 = i % 26;
-        this._expand(a2), h5 > 0 && a2--;
+        var a2 = Math.ceil(i / 26) | 0, h4 = i % 26;
+        this._expand(a2), h4 > 0 && a2--;
         for (var s22 = 0;s22 < a2; s22++)
           this.words[s22] = ~this.words[s22] & 67108863;
-        return h5 > 0 && (this.words[s22] = ~this.words[s22] & 67108863 >> 26 - h5), this.strip();
+        return h4 > 0 && (this.words[s22] = ~this.words[s22] & 67108863 >> 26 - h4), this.strip();
       }, f3.prototype.notn = function(i) {
         return this.clone().inotn(i);
       }, f3.prototype.setn = function(i, a2) {
         r2(typeof i == "number" && i >= 0);
-        var h5 = i / 26 | 0, s22 = i % 26;
-        return this._expand(h5 + 1), a2 ? this.words[h5] = this.words[h5] | 1 << s22 : this.words[h5] = this.words[h5] & ~(1 << s22), this.strip();
+        var h4 = i / 26 | 0, s22 = i % 26;
+        return this._expand(h4 + 1), a2 ? this.words[h4] = this.words[h4] | 1 << s22 : this.words[h4] = this.words[h4] & ~(1 << s22), this.strip();
       }, f3.prototype.iadd = function(i) {
         var a2;
         if (this.negative !== 0 && i.negative === 0)
           return this.negative = 0, a2 = this.isub(i), this.negative ^= 1, this._normSign();
         if (this.negative === 0 && i.negative !== 0)
           return i.negative = 0, a2 = this.isub(i), i.negative = 1, a2._normSign();
-        var h5, s22;
-        this.length > i.length ? (h5 = this, s22 = i) : (h5 = i, s22 = this);
+        var h4, s22;
+        this.length > i.length ? (h4 = this, s22 = i) : (h4 = i, s22 = this);
         for (var u3 = 0, c = 0;c < s22.length; c++)
-          a2 = (h5.words[c] | 0) + (s22.words[c] | 0) + u3, this.words[c] = a2 & 67108863, u3 = a2 >>> 26;
-        for (;u3 !== 0 && c < h5.length; c++)
-          a2 = (h5.words[c] | 0) + u3, this.words[c] = a2 & 67108863, u3 = a2 >>> 26;
-        if (this.length = h5.length, u3 !== 0)
+          a2 = (h4.words[c] | 0) + (s22.words[c] | 0) + u3, this.words[c] = a2 & 67108863, u3 = a2 >>> 26;
+        for (;u3 !== 0 && c < h4.length; c++)
+          a2 = (h4.words[c] | 0) + u3, this.words[c] = a2 & 67108863, u3 = a2 >>> 26;
+        if (this.length = h4.length, u3 !== 0)
           this.words[this.length] = u3, this.length++;
-        else if (h5 !== this)
-          for (;c < h5.length; c++)
-            this.words[c] = h5.words[c];
+        else if (h4 !== this)
+          for (;c < h4.length; c++)
+            this.words[c] = h4.words[c];
         return this;
       }, f3.prototype.add = function(i) {
         var a2;
@@ -8717,11 +8672,11 @@ Use Chrome, Firefox or Internet Explorer 11`);
           return i.negative = 1, a2._normSign();
         } else if (this.negative !== 0)
           return this.negative = 0, this.iadd(i), this.negative = 1, this._normSign();
-        var h5 = this.cmp(i);
-        if (h5 === 0)
+        var h4 = this.cmp(i);
+        if (h4 === 0)
           return this.negative = 0, this.length = 1, this.words[0] = 0, this;
         var s22, u3;
-        h5 > 0 ? (s22 = this, u3 = i) : (s22 = i, u3 = this);
+        h4 > 0 ? (s22 = this, u3 = i) : (s22 = i, u3 = this);
         for (var c = 0, b3 = 0;b3 < u3.length; b3++)
           a2 = (s22.words[b3] | 0) - (u3.words[b3] | 0) + c, c = a2 >> 26, this.words[b3] = a2 & 67108863;
         for (;c !== 0 && b3 < s22.length; b3++)
@@ -8735,11 +8690,11 @@ Use Chrome, Firefox or Internet Explorer 11`);
       };
       function q2(v32, i, a2) {
         a2.negative = i.negative ^ v32.negative;
-        var h5 = v32.length + i.length | 0;
-        a2.length = h5, h5 = h5 - 1 | 0;
+        var h4 = v32.length + i.length | 0;
+        a2.length = h4, h4 = h4 - 1 | 0;
         var s22 = v32.words[0] | 0, u3 = i.words[0] | 0, c = s22 * u3, b3 = c & 67108863, l3 = c / 67108864 | 0;
         a2.words[0] = b3;
-        for (var n32 = 1;n32 < h5; n32++) {
+        for (var n32 = 1;n32 < h4; n32++) {
           for (var d = l3 >>> 26, w2 = l3 & 67108863, g2 = Math.min(n32, i.length - 1), _4 = Math.max(0, n32 - v32.length + 1);_4 <= g2; _4++) {
             var A6 = n32 - _4 | 0;
             s22 = v32.words[A6] | 0, u3 = i.words[_4] | 0, c = s22 * u3 + w2, d += c / 67108864 | 0, w2 = c & 67108863;
@@ -8748,9 +8703,9 @@ Use Chrome, Firefox or Internet Explorer 11`);
         }
         return l3 !== 0 ? a2.words[n32] = l3 | 0 : a2.length--, a2.strip();
       }
-      var L3 = function(i, a2, h5) {
-        var s22 = i.words, u3 = a2.words, c = h5.words, b3 = 0, l3, n32, d, w2 = s22[0] | 0, g2 = w2 & 8191, _4 = w2 >>> 13, A6 = s22[1] | 0, R3 = A6 & 8191, I2 = A6 >>> 13, Me = s22[2] | 0, k2 = Me & 8191, D2 = Me >>> 13, nt = s22[3] | 0, C3 = nt & 8191, O3 = nt >>> 13, vt = s22[4] | 0, F = vt & 8191, U2 = vt >>> 13, bt = s22[5] | 0, z3 = bt & 8191, H4 = bt >>> 13, mt = s22[6] | 0, W3 = mt & 8191, K = mt >>> 13, gt = s22[7] | 0, j2 = gt & 8191, Z4 = gt >>> 13, yt = s22[8] | 0, V5 = yt & 8191, $4 = yt >>> 13, wt = s22[9] | 0, G5 = wt & 8191, Y2 = wt >>> 13, Mt = u3[0] | 0, X4 = Mt & 8191, J = Mt >>> 13, _t = u3[1] | 0, Q3 = _t & 8191, ee = _t >>> 13, xt = u3[2] | 0, te = xt & 8191, re = xt >>> 13, St = u3[3] | 0, ie = St & 8191, ne = St >>> 13, Et = u3[4] | 0, fe = Et & 8191, ae = Et >>> 13, At = u3[5] | 0, oe = At & 8191, se = At >>> 13, Rt = u3[6] | 0, he = Rt & 8191, ue = Rt >>> 13, Bt = u3[7] | 0, le = Bt & 8191, de = Bt >>> 13, qt = u3[8] | 0, ce = qt & 8191, pe = qt >>> 13, It = u3[9] | 0, ve = It & 8191, be = It >>> 13;
-        h5.negative = i.negative ^ a2.negative, h5.length = 19, l3 = Math.imul(g2, X4), n32 = Math.imul(g2, J), n32 = n32 + Math.imul(_4, X4) | 0, d = Math.imul(_4, J);
+      var L3 = function(i, a2, h4) {
+        var s22 = i.words, u3 = a2.words, c = h4.words, b3 = 0, l3, n32, d, w2 = s22[0] | 0, g2 = w2 & 8191, _4 = w2 >>> 13, A6 = s22[1] | 0, R3 = A6 & 8191, I2 = A6 >>> 13, Me = s22[2] | 0, k2 = Me & 8191, D2 = Me >>> 13, nt = s22[3] | 0, C3 = nt & 8191, O3 = nt >>> 13, vt = s22[4] | 0, F = vt & 8191, U2 = vt >>> 13, bt = s22[5] | 0, z3 = bt & 8191, H4 = bt >>> 13, mt = s22[6] | 0, W3 = mt & 8191, K = mt >>> 13, gt = s22[7] | 0, j2 = gt & 8191, Z4 = gt >>> 13, yt = s22[8] | 0, V5 = yt & 8191, $4 = yt >>> 13, wt = s22[9] | 0, G5 = wt & 8191, Y2 = wt >>> 13, Mt = u3[0] | 0, X4 = Mt & 8191, J = Mt >>> 13, _t = u3[1] | 0, Q3 = _t & 8191, ee = _t >>> 13, xt = u3[2] | 0, te = xt & 8191, re = xt >>> 13, St = u3[3] | 0, ie = St & 8191, ne = St >>> 13, Et = u3[4] | 0, fe = Et & 8191, ae = Et >>> 13, At = u3[5] | 0, oe = At & 8191, se = At >>> 13, Rt = u3[6] | 0, he = Rt & 8191, ue = Rt >>> 13, Bt = u3[7] | 0, le = Bt & 8191, de = Bt >>> 13, qt = u3[8] | 0, ce = qt & 8191, pe = qt >>> 13, It = u3[9] | 0, ve = It & 8191, be = It >>> 13;
+        h4.negative = i.negative ^ a2.negative, h4.length = 19, l3 = Math.imul(g2, X4), n32 = Math.imul(g2, J), n32 = n32 + Math.imul(_4, X4) | 0, d = Math.imul(_4, J);
         var ft = (b3 + l3 | 0) + ((n32 & 8191) << 13) | 0;
         b3 = (d + (n32 >>> 13) | 0) + (ft >>> 26) | 0, ft &= 67108863, l3 = Math.imul(R3, X4), n32 = Math.imul(R3, J), n32 = n32 + Math.imul(I2, X4) | 0, d = Math.imul(I2, J), l3 = l3 + Math.imul(g2, Q3) | 0, n32 = n32 + Math.imul(g2, ee) | 0, n32 = n32 + Math.imul(_4, Q3) | 0, d = d + Math.imul(_4, ee) | 0;
         var Be = (b3 + l3 | 0) + ((n32 & 8191) << 13) | 0;
@@ -8788,89 +8743,89 @@ Use Chrome, Firefox or Internet Explorer 11`);
         var tt = (b3 + l3 | 0) + ((n32 & 8191) << 13) | 0;
         b3 = (d + (n32 >>> 13) | 0) + (tt >>> 26) | 0, tt &= 67108863, l3 = Math.imul(G5, ve), n32 = Math.imul(G5, be), n32 = n32 + Math.imul(Y2, ve) | 0, d = Math.imul(Y2, be);
         var rt = (b3 + l3 | 0) + ((n32 & 8191) << 13) | 0;
-        return b3 = (d + (n32 >>> 13) | 0) + (rt >>> 26) | 0, rt &= 67108863, c[0] = ft, c[1] = Be, c[2] = qe, c[3] = ze, c[4] = He, c[5] = We, c[6] = Ke, c[7] = je, c[8] = Ze, c[9] = Ve, c[10] = $e, c[11] = Ge, c[12] = Ye, c[13] = Xe, c[14] = Je, c[15] = Qe, c[16] = et, c[17] = tt, c[18] = rt, b3 !== 0 && (c[19] = b3, h5.length++), h5;
+        return b3 = (d + (n32 >>> 13) | 0) + (rt >>> 26) | 0, rt &= 67108863, c[0] = ft, c[1] = Be, c[2] = qe, c[3] = ze, c[4] = He, c[5] = We, c[6] = Ke, c[7] = je, c[8] = Ze, c[9] = Ve, c[10] = $e, c[11] = Ge, c[12] = Ye, c[13] = Xe, c[14] = Je, c[15] = Qe, c[16] = et, c[17] = tt, c[18] = rt, b3 !== 0 && (c[19] = b3, h4.length++), h4;
       };
       Math.imul || (L3 = q2);
       function ge(v32, i, a2) {
         a2.negative = i.negative ^ v32.negative, a2.length = v32.length + i.length;
-        for (var h5 = 0, s22 = 0, u3 = 0;u3 < a2.length - 1; u3++) {
+        for (var h4 = 0, s22 = 0, u3 = 0;u3 < a2.length - 1; u3++) {
           var c = s22;
           s22 = 0;
-          for (var b3 = h5 & 67108863, l3 = Math.min(u3, i.length - 1), n32 = Math.max(0, u3 - v32.length + 1);n32 <= l3; n32++) {
+          for (var b3 = h4 & 67108863, l3 = Math.min(u3, i.length - 1), n32 = Math.max(0, u3 - v32.length + 1);n32 <= l3; n32++) {
             var d = u3 - n32, w2 = v32.words[d] | 0, g2 = i.words[n32] | 0, _4 = w2 * g2, A6 = _4 & 67108863;
             c = c + (_4 / 67108864 | 0) | 0, A6 = A6 + b3 | 0, b3 = A6 & 67108863, c = c + (A6 >>> 26) | 0, s22 += c >>> 26, c &= 67108863;
           }
-          a2.words[u3] = b3, h5 = c, c = s22;
+          a2.words[u3] = b3, h4 = c, c = s22;
         }
-        return h5 !== 0 ? a2.words[u3] = h5 : a2.length--, a2.strip();
+        return h4 !== 0 ? a2.words[u3] = h4 : a2.length--, a2.strip();
       }
       function _e(v32, i, a2) {
-        var h5 = new N32;
-        return h5.mulp(v32, i, a2);
+        var h4 = new N32;
+        return h4.mulp(v32, i, a2);
       }
       f3.prototype.mulTo = function(i, a2) {
-        var h5, s22 = this.length + i.length;
-        return this.length === 10 && i.length === 10 ? h5 = L3(this, i, a2) : s22 < 63 ? h5 = q2(this, i, a2) : s22 < 1024 ? h5 = ge(this, i, a2) : h5 = _e(this, i, a2), h5;
+        var h4, s22 = this.length + i.length;
+        return this.length === 10 && i.length === 10 ? h4 = L3(this, i, a2) : s22 < 63 ? h4 = q2(this, i, a2) : s22 < 1024 ? h4 = ge(this, i, a2) : h4 = _e(this, i, a2), h4;
       };
       function N32(v32, i) {
         this.x = v32, this.y = i;
       }
       N32.prototype.makeRBT = function(i) {
-        for (var a2 = new Array(i), h5 = f3.prototype._countBits(i) - 1, s22 = 0;s22 < i; s22++)
-          a2[s22] = this.revBin(s22, h5, i);
+        for (var a2 = new Array(i), h4 = f3.prototype._countBits(i) - 1, s22 = 0;s22 < i; s22++)
+          a2[s22] = this.revBin(s22, h4, i);
         return a2;
-      }, N32.prototype.revBin = function(i, a2, h5) {
-        if (i === 0 || i === h5 - 1)
+      }, N32.prototype.revBin = function(i, a2, h4) {
+        if (i === 0 || i === h4 - 1)
           return i;
         for (var s22 = 0, u3 = 0;u3 < a2; u3++)
           s22 |= (i & 1) << a2 - u3 - 1, i >>= 1;
         return s22;
-      }, N32.prototype.permute = function(i, a2, h5, s22, u3, c) {
+      }, N32.prototype.permute = function(i, a2, h4, s22, u3, c) {
         for (var b3 = 0;b3 < c; b3++)
-          s22[b3] = a2[i[b3]], u3[b3] = h5[i[b3]];
-      }, N32.prototype.transform = function(i, a2, h5, s22, u3, c) {
-        this.permute(c, i, a2, h5, s22, u3);
+          s22[b3] = a2[i[b3]], u3[b3] = h4[i[b3]];
+      }, N32.prototype.transform = function(i, a2, h4, s22, u3, c) {
+        this.permute(c, i, a2, h4, s22, u3);
         for (var b3 = 1;b3 < u3; b3 <<= 1)
           for (var l3 = b3 << 1, n32 = Math.cos(2 * Math.PI / l3), d = Math.sin(2 * Math.PI / l3), w2 = 0;w2 < u3; w2 += l3)
             for (var g2 = n32, _4 = d, A6 = 0;A6 < b3; A6++) {
-              var R3 = h5[w2 + A6], I2 = s22[w2 + A6], Me = h5[w2 + A6 + b3], k2 = s22[w2 + A6 + b3], D2 = g2 * Me - _4 * k2;
-              k2 = g2 * k2 + _4 * Me, Me = D2, h5[w2 + A6] = R3 + Me, s22[w2 + A6] = I2 + k2, h5[w2 + A6 + b3] = R3 - Me, s22[w2 + A6 + b3] = I2 - k2, A6 !== l3 && (D2 = n32 * g2 - d * _4, _4 = n32 * _4 + d * g2, g2 = D2);
+              var R3 = h4[w2 + A6], I2 = s22[w2 + A6], Me = h4[w2 + A6 + b3], k2 = s22[w2 + A6 + b3], D2 = g2 * Me - _4 * k2;
+              k2 = g2 * k2 + _4 * Me, Me = D2, h4[w2 + A6] = R3 + Me, s22[w2 + A6] = I2 + k2, h4[w2 + A6 + b3] = R3 - Me, s22[w2 + A6 + b3] = I2 - k2, A6 !== l3 && (D2 = n32 * g2 - d * _4, _4 = n32 * _4 + d * g2, g2 = D2);
             }
       }, N32.prototype.guessLen13b = function(i, a2) {
-        var h5 = Math.max(a2, i) | 1, s22 = h5 & 1, u3 = 0;
-        for (h5 = h5 / 2 | 0;h5; h5 = h5 >>> 1)
+        var h4 = Math.max(a2, i) | 1, s22 = h4 & 1, u3 = 0;
+        for (h4 = h4 / 2 | 0;h4; h4 = h4 >>> 1)
           u3++;
         return 1 << u3 + 1 + s22;
-      }, N32.prototype.conjugate = function(i, a2, h5) {
-        if (!(h5 <= 1))
-          for (var s22 = 0;s22 < h5 / 2; s22++) {
+      }, N32.prototype.conjugate = function(i, a2, h4) {
+        if (!(h4 <= 1))
+          for (var s22 = 0;s22 < h4 / 2; s22++) {
             var u3 = i[s22];
-            i[s22] = i[h5 - s22 - 1], i[h5 - s22 - 1] = u3, u3 = a2[s22], a2[s22] = -a2[h5 - s22 - 1], a2[h5 - s22 - 1] = -u3;
+            i[s22] = i[h4 - s22 - 1], i[h4 - s22 - 1] = u3, u3 = a2[s22], a2[s22] = -a2[h4 - s22 - 1], a2[h4 - s22 - 1] = -u3;
           }
       }, N32.prototype.normalize13b = function(i, a2) {
-        for (var h5 = 0, s22 = 0;s22 < a2 / 2; s22++) {
-          var u3 = Math.round(i[2 * s22 + 1] / a2) * 8192 + Math.round(i[2 * s22] / a2) + h5;
-          i[s22] = u3 & 67108863, u3 < 67108864 ? h5 = 0 : h5 = u3 / 67108864 | 0;
+        for (var h4 = 0, s22 = 0;s22 < a2 / 2; s22++) {
+          var u3 = Math.round(i[2 * s22 + 1] / a2) * 8192 + Math.round(i[2 * s22] / a2) + h4;
+          i[s22] = u3 & 67108863, u3 < 67108864 ? h4 = 0 : h4 = u3 / 67108864 | 0;
         }
         return i;
-      }, N32.prototype.convert13b = function(i, a2, h5, s22) {
+      }, N32.prototype.convert13b = function(i, a2, h4, s22) {
         for (var u3 = 0, c = 0;c < a2; c++)
-          u3 = u3 + (i[c] | 0), h5[2 * c] = u3 & 8191, u3 = u3 >>> 13, h5[2 * c + 1] = u3 & 8191, u3 = u3 >>> 13;
+          u3 = u3 + (i[c] | 0), h4[2 * c] = u3 & 8191, u3 = u3 >>> 13, h4[2 * c + 1] = u3 & 8191, u3 = u3 >>> 13;
         for (c = 2 * a2;c < s22; ++c)
-          h5[c] = 0;
+          h4[c] = 0;
         r2(u3 === 0), r2((u3 & -8192) === 0);
       }, N32.prototype.stub = function(i) {
-        for (var a2 = new Array(i), h5 = 0;h5 < i; h5++)
-          a2[h5] = 0;
+        for (var a2 = new Array(i), h4 = 0;h4 < i; h4++)
+          a2[h4] = 0;
         return a2;
-      }, N32.prototype.mulp = function(i, a2, h5) {
-        var s22 = 2 * this.guessLen13b(i.length, a2.length), u3 = this.makeRBT(s22), c = this.stub(s22), b3 = new Array(s22), l3 = new Array(s22), n32 = new Array(s22), d = new Array(s22), w2 = new Array(s22), g2 = new Array(s22), _4 = h5.words;
+      }, N32.prototype.mulp = function(i, a2, h4) {
+        var s22 = 2 * this.guessLen13b(i.length, a2.length), u3 = this.makeRBT(s22), c = this.stub(s22), b3 = new Array(s22), l3 = new Array(s22), n32 = new Array(s22), d = new Array(s22), w2 = new Array(s22), g2 = new Array(s22), _4 = h4.words;
         _4.length = s22, this.convert13b(i.words, i.length, b3, s22), this.convert13b(a2.words, a2.length, d, s22), this.transform(b3, c, l3, n32, s22, u3), this.transform(d, c, w2, g2, s22, u3);
         for (var A6 = 0;A6 < s22; A6++) {
           var R3 = l3[A6] * w2[A6] - n32[A6] * g2[A6];
           n32[A6] = l3[A6] * g2[A6] + n32[A6] * w2[A6], l3[A6] = R3;
         }
-        return this.conjugate(l3, n32, s22), this.transform(l3, n32, _4, c, s22, u3), this.conjugate(_4, c, s22), this.normalize13b(_4, s22), h5.negative = i.negative ^ a2.negative, h5.length = i.length + a2.length, h5.strip();
+        return this.conjugate(l3, n32, s22), this.transform(l3, n32, _4, c, s22, u3), this.conjugate(_4, c, s22), this.normalize13b(_4, s22), h4.negative = i.negative ^ a2.negative, h4.length = i.length + a2.length, h4.strip();
       }, f3.prototype.mul = function(i) {
         var a2 = new f3(null);
         return a2.words = new Array(this.length + i.length), this.mulTo(i, a2);
@@ -8881,11 +8836,11 @@ Use Chrome, Firefox or Internet Explorer 11`);
         return this.clone().mulTo(i, this);
       }, f3.prototype.imuln = function(i) {
         r2(typeof i == "number"), r2(i < 67108864);
-        for (var a2 = 0, h5 = 0;h5 < this.length; h5++) {
-          var s22 = (this.words[h5] | 0) * i, u3 = (s22 & 67108863) + (a2 & 67108863);
-          a2 >>= 26, a2 += s22 / 67108864 | 0, a2 += u3 >>> 26, this.words[h5] = u3 & 67108863;
+        for (var a2 = 0, h4 = 0;h4 < this.length; h4++) {
+          var s22 = (this.words[h4] | 0) * i, u3 = (s22 & 67108863) + (a2 & 67108863);
+          a2 >>= 26, a2 += s22 / 67108864 | 0, a2 += u3 >>> 26, this.words[h4] = u3 & 67108863;
         }
-        return a2 !== 0 && (this.words[h5] = a2, this.length++), this;
+        return a2 !== 0 && (this.words[h4] = a2, this.length++), this;
       }, f3.prototype.muln = function(i) {
         return this.clone().imuln(i);
       }, f3.prototype.sqr = function() {
@@ -8896,15 +8851,15 @@ Use Chrome, Firefox or Internet Explorer 11`);
         var a2 = B6(i);
         if (a2.length === 0)
           return new f3(1);
-        for (var h5 = this, s22 = 0;s22 < a2.length && a2[s22] === 0; s22++, h5 = h5.sqr())
+        for (var h4 = this, s22 = 0;s22 < a2.length && a2[s22] === 0; s22++, h4 = h4.sqr())
           ;
         if (++s22 < a2.length)
-          for (var u3 = h5.sqr();s22 < a2.length; s22++, u3 = u3.sqr())
-            a2[s22] !== 0 && (h5 = h5.mul(u3));
-        return h5;
+          for (var u3 = h4.sqr();s22 < a2.length; s22++, u3 = u3.sqr())
+            a2[s22] !== 0 && (h4 = h4.mul(u3));
+        return h4;
       }, f3.prototype.iushln = function(i) {
         r2(typeof i == "number" && i >= 0);
-        var a2 = i % 26, h5 = (i - a2) / 26, s22 = 67108863 >>> 26 - a2 << 26 - a2, u3;
+        var a2 = i % 26, h4 = (i - a2) / 26, s22 = 67108863 >>> 26 - a2 << 26 - a2, u3;
         if (a2 !== 0) {
           var c = 0;
           for (u3 = 0;u3 < this.length; u3++) {
@@ -8913,21 +8868,21 @@ Use Chrome, Firefox or Internet Explorer 11`);
           }
           c && (this.words[u3] = c, this.length++);
         }
-        if (h5 !== 0) {
+        if (h4 !== 0) {
           for (u3 = this.length - 1;u3 >= 0; u3--)
-            this.words[u3 + h5] = this.words[u3];
-          for (u3 = 0;u3 < h5; u3++)
+            this.words[u3 + h4] = this.words[u3];
+          for (u3 = 0;u3 < h4; u3++)
             this.words[u3] = 0;
-          this.length += h5;
+          this.length += h4;
         }
         return this.strip();
       }, f3.prototype.ishln = function(i) {
         return r2(this.negative === 0), this.iushln(i);
-      }, f3.prototype.iushrn = function(i, a2, h5) {
+      }, f3.prototype.iushrn = function(i, a2, h4) {
         r2(typeof i == "number" && i >= 0);
         var s22;
         a2 ? s22 = (a2 - a2 % 26) / 26 : s22 = 0;
-        var u3 = i % 26, c = Math.min((i - u3) / 26, this.length), b3 = 67108863 ^ 67108863 >>> u3 << u3, l3 = h5;
+        var u3 = i % 26, c = Math.min((i - u3) / 26, this.length), b3 = 67108863 ^ 67108863 >>> u3 << u3, l3 = h4;
         if (s22 -= c, s22 = Math.max(0, s22), l3) {
           for (var n32 = 0;n32 < c; n32++)
             l3.words[n32] = this.words[n32];
@@ -8945,8 +8900,8 @@ Use Chrome, Firefox or Internet Explorer 11`);
           this.words[n32] = d << 26 - u3 | w2 >>> u3, d = w2 & b3;
         }
         return l3 && d !== 0 && (l3.words[l3.length++] = d), this.length === 0 && (this.words[0] = 0, this.length = 1), this.strip();
-      }, f3.prototype.ishrn = function(i, a2, h5) {
-        return r2(this.negative === 0), this.iushrn(i, a2, h5);
+      }, f3.prototype.ishrn = function(i, a2, h4) {
+        return r2(this.negative === 0), this.iushrn(i, a2, h4);
       }, f3.prototype.shln = function(i) {
         return this.clone().ishln(i);
       }, f3.prototype.ushln = function(i) {
@@ -8957,17 +8912,17 @@ Use Chrome, Firefox or Internet Explorer 11`);
         return this.clone().iushrn(i);
       }, f3.prototype.testn = function(i) {
         r2(typeof i == "number" && i >= 0);
-        var a2 = i % 26, h5 = (i - a2) / 26, s22 = 1 << a2;
-        if (this.length <= h5)
+        var a2 = i % 26, h4 = (i - a2) / 26, s22 = 1 << a2;
+        if (this.length <= h4)
           return false;
-        var u3 = this.words[h5];
+        var u3 = this.words[h4];
         return !!(u3 & s22);
       }, f3.prototype.imaskn = function(i) {
         r2(typeof i == "number" && i >= 0);
-        var a2 = i % 26, h5 = (i - a2) / 26;
-        if (r2(this.negative === 0, "imaskn works only with positive numbers"), this.length <= h5)
+        var a2 = i % 26, h4 = (i - a2) / 26;
+        if (r2(this.negative === 0, "imaskn works only with positive numbers"), this.length <= h4)
           return this;
-        if (a2 !== 0 && h5++, this.length = Math.min(h5, this.length), a2 !== 0) {
+        if (a2 !== 0 && h4++, this.length = Math.min(h4, this.length), a2 !== 0) {
           var s22 = 67108863 ^ 67108863 >>> a2 << a2;
           this.words[this.length - 1] &= s22;
         }
@@ -9000,25 +8955,25 @@ Use Chrome, Firefox or Internet Explorer 11`);
         return this.negative = 0, this;
       }, f3.prototype.abs = function() {
         return this.clone().iabs();
-      }, f3.prototype._ishlnsubmul = function(i, a2, h5) {
-        var s22 = i.length + h5, u3;
+      }, f3.prototype._ishlnsubmul = function(i, a2, h4) {
+        var s22 = i.length + h4, u3;
         this._expand(s22);
         var c, b3 = 0;
         for (u3 = 0;u3 < i.length; u3++) {
-          c = (this.words[u3 + h5] | 0) + b3;
+          c = (this.words[u3 + h4] | 0) + b3;
           var l3 = (i.words[u3] | 0) * a2;
-          c -= l3 & 67108863, b3 = (c >> 26) - (l3 / 67108864 | 0), this.words[u3 + h5] = c & 67108863;
+          c -= l3 & 67108863, b3 = (c >> 26) - (l3 / 67108864 | 0), this.words[u3 + h4] = c & 67108863;
         }
-        for (;u3 < this.length - h5; u3++)
-          c = (this.words[u3 + h5] | 0) + b3, b3 = c >> 26, this.words[u3 + h5] = c & 67108863;
+        for (;u3 < this.length - h4; u3++)
+          c = (this.words[u3 + h4] | 0) + b3, b3 = c >> 26, this.words[u3 + h4] = c & 67108863;
         if (b3 === 0)
           return this.strip();
         for (r2(b3 === -1), b3 = 0, u3 = 0;u3 < this.length; u3++)
           c = -(this.words[u3] | 0) + b3, b3 = c >> 26, this.words[u3] = c & 67108863;
         return this.negative = 1, this.strip();
       }, f3.prototype._wordDiv = function(i, a2) {
-        var h5 = this.length - i.length, s22 = this.clone(), u3 = i, c = u3.words[u3.length - 1] | 0, b3 = this._countBits(c);
-        h5 = 26 - b3, h5 !== 0 && (u3 = u3.ushln(h5), s22.iushln(h5), c = u3.words[u3.length - 1] | 0);
+        var h4 = this.length - i.length, s22 = this.clone(), u3 = i, c = u3.words[u3.length - 1] | 0, b3 = this._countBits(c);
+        h4 = 26 - b3, h4 !== 0 && (u3 = u3.ushln(h4), s22.iushln(h4), c = u3.words[u3.length - 1] | 0);
         var l3 = s22.length - u3.length, n32;
         if (a2 !== "mod") {
           n32 = new f3(null), n32.length = l3 + 1, n32.words = new Array(n32.length);
@@ -9033,12 +8988,12 @@ Use Chrome, Firefox or Internet Explorer 11`);
             _4--, s22.negative = 0, s22._ishlnsubmul(u3, 1, g2), s22.isZero() || (s22.negative ^= 1);
           n32 && (n32.words[g2] = _4);
         }
-        return n32 && n32.strip(), s22.strip(), a2 !== "div" && h5 !== 0 && s22.iushrn(h5), { div: n32 || null, mod: s22 };
-      }, f3.prototype.divmod = function(i, a2, h5) {
+        return n32 && n32.strip(), s22.strip(), a2 !== "div" && h4 !== 0 && s22.iushrn(h4), { div: n32 || null, mod: s22 };
+      }, f3.prototype.divmod = function(i, a2, h4) {
         if (r2(!i.isZero()), this.isZero())
           return { div: new f3(0), mod: new f3(0) };
         var s22, u3, c;
-        return this.negative !== 0 && i.negative === 0 ? (c = this.neg().divmod(i, a2), a2 !== "mod" && (s22 = c.div.neg()), a2 !== "div" && (u3 = c.mod.neg(), h5 && u3.negative !== 0 && u3.iadd(i)), { div: s22, mod: u3 }) : this.negative === 0 && i.negative !== 0 ? (c = this.divmod(i.neg(), a2), a2 !== "mod" && (s22 = c.div.neg()), { div: s22, mod: c.mod }) : (this.negative & i.negative) !== 0 ? (c = this.neg().divmod(i.neg(), a2), a2 !== "div" && (u3 = c.mod.neg(), h5 && u3.negative !== 0 && u3.isub(i)), { div: c.div, mod: u3 }) : i.length > this.length || this.cmp(i) < 0 ? { div: new f3(0), mod: this } : i.length === 1 ? a2 === "div" ? { div: this.divn(i.words[0]), mod: null } : a2 === "mod" ? { div: null, mod: new f3(this.modn(i.words[0])) } : { div: this.divn(i.words[0]), mod: new f3(this.modn(i.words[0])) } : this._wordDiv(i, a2);
+        return this.negative !== 0 && i.negative === 0 ? (c = this.neg().divmod(i, a2), a2 !== "mod" && (s22 = c.div.neg()), a2 !== "div" && (u3 = c.mod.neg(), h4 && u3.negative !== 0 && u3.iadd(i)), { div: s22, mod: u3 }) : this.negative === 0 && i.negative !== 0 ? (c = this.divmod(i.neg(), a2), a2 !== "mod" && (s22 = c.div.neg()), { div: s22, mod: c.mod }) : (this.negative & i.negative) !== 0 ? (c = this.neg().divmod(i.neg(), a2), a2 !== "div" && (u3 = c.mod.neg(), h4 && u3.negative !== 0 && u3.isub(i)), { div: c.div, mod: u3 }) : i.length > this.length || this.cmp(i) < 0 ? { div: new f3(0), mod: this } : i.length === 1 ? a2 === "div" ? { div: this.divn(i.words[0]), mod: null } : a2 === "mod" ? { div: null, mod: new f3(this.modn(i.words[0])) } : { div: this.divn(i.words[0]), mod: new f3(this.modn(i.words[0])) } : this._wordDiv(i, a2);
       }, f3.prototype.div = function(i) {
         return this.divmod(i, "div", false).div;
       }, f3.prototype.mod = function(i) {
@@ -9049,58 +9004,58 @@ Use Chrome, Firefox or Internet Explorer 11`);
         var a2 = this.divmod(i);
         if (a2.mod.isZero())
           return a2.div;
-        var h5 = a2.div.negative !== 0 ? a2.mod.isub(i) : a2.mod, s22 = i.ushrn(1), u3 = i.andln(1), c = h5.cmp(s22);
+        var h4 = a2.div.negative !== 0 ? a2.mod.isub(i) : a2.mod, s22 = i.ushrn(1), u3 = i.andln(1), c = h4.cmp(s22);
         return c < 0 || u3 === 1 && c === 0 ? a2.div : a2.div.negative !== 0 ? a2.div.isubn(1) : a2.div.iaddn(1);
       }, f3.prototype.modn = function(i) {
         r2(i <= 67108863);
-        for (var a2 = (1 << 26) % i, h5 = 0, s22 = this.length - 1;s22 >= 0; s22--)
-          h5 = (a2 * h5 + (this.words[s22] | 0)) % i;
-        return h5;
+        for (var a2 = (1 << 26) % i, h4 = 0, s22 = this.length - 1;s22 >= 0; s22--)
+          h4 = (a2 * h4 + (this.words[s22] | 0)) % i;
+        return h4;
       }, f3.prototype.idivn = function(i) {
         r2(i <= 67108863);
-        for (var a2 = 0, h5 = this.length - 1;h5 >= 0; h5--) {
-          var s22 = (this.words[h5] | 0) + a2 * 67108864;
-          this.words[h5] = s22 / i | 0, a2 = s22 % i;
+        for (var a2 = 0, h4 = this.length - 1;h4 >= 0; h4--) {
+          var s22 = (this.words[h4] | 0) + a2 * 67108864;
+          this.words[h4] = s22 / i | 0, a2 = s22 % i;
         }
         return this.strip();
       }, f3.prototype.divn = function(i) {
         return this.clone().idivn(i);
       }, f3.prototype.egcd = function(i) {
         r2(i.negative === 0), r2(!i.isZero());
-        var a2 = this, h5 = i.clone();
+        var a2 = this, h4 = i.clone();
         a2.negative !== 0 ? a2 = a2.umod(i) : a2 = a2.clone();
-        for (var s22 = new f3(1), u3 = new f3(0), c = new f3(0), b3 = new f3(1), l3 = 0;a2.isEven() && h5.isEven(); )
-          a2.iushrn(1), h5.iushrn(1), ++l3;
-        for (var n32 = h5.clone(), d = a2.clone();!a2.isZero(); ) {
+        for (var s22 = new f3(1), u3 = new f3(0), c = new f3(0), b3 = new f3(1), l3 = 0;a2.isEven() && h4.isEven(); )
+          a2.iushrn(1), h4.iushrn(1), ++l3;
+        for (var n32 = h4.clone(), d = a2.clone();!a2.isZero(); ) {
           for (var w2 = 0, g2 = 1;(a2.words[0] & g2) === 0 && w2 < 26; ++w2, g2 <<= 1)
             ;
           if (w2 > 0)
             for (a2.iushrn(w2);w2-- > 0; )
               (s22.isOdd() || u3.isOdd()) && (s22.iadd(n32), u3.isub(d)), s22.iushrn(1), u3.iushrn(1);
-          for (var _4 = 0, A6 = 1;(h5.words[0] & A6) === 0 && _4 < 26; ++_4, A6 <<= 1)
+          for (var _4 = 0, A6 = 1;(h4.words[0] & A6) === 0 && _4 < 26; ++_4, A6 <<= 1)
             ;
           if (_4 > 0)
-            for (h5.iushrn(_4);_4-- > 0; )
+            for (h4.iushrn(_4);_4-- > 0; )
               (c.isOdd() || b3.isOdd()) && (c.iadd(n32), b3.isub(d)), c.iushrn(1), b3.iushrn(1);
-          a2.cmp(h5) >= 0 ? (a2.isub(h5), s22.isub(c), u3.isub(b3)) : (h5.isub(a2), c.isub(s22), b3.isub(u3));
+          a2.cmp(h4) >= 0 ? (a2.isub(h4), s22.isub(c), u3.isub(b3)) : (h4.isub(a2), c.isub(s22), b3.isub(u3));
         }
-        return { a: c, b: b3, gcd: h5.iushln(l3) };
+        return { a: c, b: b3, gcd: h4.iushln(l3) };
       }, f3.prototype._invmp = function(i) {
         r2(i.negative === 0), r2(!i.isZero());
-        var a2 = this, h5 = i.clone();
+        var a2 = this, h4 = i.clone();
         a2.negative !== 0 ? a2 = a2.umod(i) : a2 = a2.clone();
-        for (var s22 = new f3(1), u3 = new f3(0), c = h5.clone();a2.cmpn(1) > 0 && h5.cmpn(1) > 0; ) {
+        for (var s22 = new f3(1), u3 = new f3(0), c = h4.clone();a2.cmpn(1) > 0 && h4.cmpn(1) > 0; ) {
           for (var b3 = 0, l3 = 1;(a2.words[0] & l3) === 0 && b3 < 26; ++b3, l3 <<= 1)
             ;
           if (b3 > 0)
             for (a2.iushrn(b3);b3-- > 0; )
               s22.isOdd() && s22.iadd(c), s22.iushrn(1);
-          for (var n32 = 0, d = 1;(h5.words[0] & d) === 0 && n32 < 26; ++n32, d <<= 1)
+          for (var n32 = 0, d = 1;(h4.words[0] & d) === 0 && n32 < 26; ++n32, d <<= 1)
             ;
           if (n32 > 0)
-            for (h5.iushrn(n32);n32-- > 0; )
+            for (h4.iushrn(n32);n32-- > 0; )
               u3.isOdd() && u3.iadd(c), u3.iushrn(1);
-          a2.cmp(h5) >= 0 ? (a2.isub(h5), s22.isub(u3)) : (h5.isub(a2), u3.isub(s22));
+          a2.cmp(h4) >= 0 ? (a2.isub(h4), s22.isub(u3)) : (h4.isub(a2), u3.isub(s22));
         }
         var w2;
         return a2.cmpn(1) === 0 ? w2 = s22 : w2 = u3, w2.cmpn(0) < 0 && w2.iadd(i), w2;
@@ -9109,24 +9064,24 @@ Use Chrome, Firefox or Internet Explorer 11`);
           return i.abs();
         if (i.isZero())
           return this.abs();
-        var a2 = this.clone(), h5 = i.clone();
-        a2.negative = 0, h5.negative = 0;
-        for (var s22 = 0;a2.isEven() && h5.isEven(); s22++)
-          a2.iushrn(1), h5.iushrn(1);
+        var a2 = this.clone(), h4 = i.clone();
+        a2.negative = 0, h4.negative = 0;
+        for (var s22 = 0;a2.isEven() && h4.isEven(); s22++)
+          a2.iushrn(1), h4.iushrn(1);
         do {
           for (;a2.isEven(); )
             a2.iushrn(1);
-          for (;h5.isEven(); )
-            h5.iushrn(1);
-          var u3 = a2.cmp(h5);
+          for (;h4.isEven(); )
+            h4.iushrn(1);
+          var u3 = a2.cmp(h4);
           if (u3 < 0) {
             var c = a2;
-            a2 = h5, h5 = c;
-          } else if (u3 === 0 || h5.cmpn(1) === 0)
+            a2 = h4, h4 = c;
+          } else if (u3 === 0 || h4.cmpn(1) === 0)
             break;
-          a2.isub(h5);
+          a2.isub(h4);
         } while (true);
-        return h5.iushln(s22);
+        return h4.iushln(s22);
       }, f3.prototype.invm = function(i) {
         return this.egcd(i).a.umod(i);
       }, f3.prototype.isEven = function() {
@@ -9137,10 +9092,10 @@ Use Chrome, Firefox or Internet Explorer 11`);
         return this.words[0] & i;
       }, f3.prototype.bincn = function(i) {
         r2(typeof i == "number");
-        var a2 = i % 26, h5 = (i - a2) / 26, s22 = 1 << a2;
-        if (this.length <= h5)
-          return this._expand(h5 + 1), this.words[h5] |= s22, this;
-        for (var u3 = s22, c = h5;u3 !== 0 && c < this.length; c++) {
+        var a2 = i % 26, h4 = (i - a2) / 26, s22 = 1 << a2;
+        if (this.length <= h4)
+          return this._expand(h4 + 1), this.words[h4] |= s22, this;
+        for (var u3 = s22, c = h4;u3 !== 0 && c < this.length; c++) {
           var b3 = this.words[c] | 0;
           b3 += u3, u3 = b3 >>> 26, b3 &= 67108863, this.words[c] = b3;
         }
@@ -9154,15 +9109,15 @@ Use Chrome, Firefox or Internet Explorer 11`);
         if (this.negative === 0 && a2)
           return 1;
         this.strip();
-        var h5;
+        var h4;
         if (this.length > 1)
-          h5 = 1;
+          h4 = 1;
         else {
           a2 && (i = -i), r2(i <= 67108863, "Number is too big");
           var s22 = this.words[0] | 0;
-          h5 = s22 === i ? 0 : s22 < i ? -1 : 1;
+          h4 = s22 === i ? 0 : s22 < i ? -1 : 1;
         }
-        return this.negative !== 0 ? -h5 | 0 : h5;
+        return this.negative !== 0 ? -h4 | 0 : h4;
       }, f3.prototype.cmp = function(i) {
         if (this.negative !== 0 && i.negative === 0)
           return -1;
@@ -9175,8 +9130,8 @@ Use Chrome, Firefox or Internet Explorer 11`);
           return 1;
         if (this.length < i.length)
           return -1;
-        for (var a2 = 0, h5 = this.length - 1;h5 >= 0; h5--) {
-          var s22 = this.words[h5] | 0, u3 = i.words[h5] | 0;
+        for (var a2 = 0, h4 = this.length - 1;h4 >= 0; h4--) {
+          var s22 = this.words[h4] | 0, u3 = i.words[h4] | 0;
           if (s22 !== u3) {
             s22 < u3 ? a2 = -1 : s22 > u3 && (a2 = 1);
             break;
@@ -9248,11 +9203,11 @@ Use Chrome, Firefox or Internet Explorer 11`);
         var i = new f3(null);
         return i.words = new Array(Math.ceil(this.n / 13)), i;
       }, ye.prototype.ireduce = function(i) {
-        var a2 = i, h5;
+        var a2 = i, h4;
         do
-          this.split(a2, this.tmp), a2 = this.imulK(a2), a2 = a2.iadd(this.tmp), h5 = a2.bitLength();
-        while (h5 > this.n);
-        var s22 = h5 < this.n ? -1 : a2.ucmp(this.p);
+          this.split(a2, this.tmp), a2 = this.imulK(a2), a2 = a2.iadd(this.tmp), h4 = a2.bitLength();
+        while (h4 > this.n);
+        var s22 = h4 < this.n ? -1 : a2.ucmp(this.p);
         return s22 === 0 ? (a2.words[0] = 0, a2.length = 1) : s22 > 0 ? a2.isub(this.p) : a2.strip !== undefined ? a2.strip() : a2._strip(), a2;
       }, ye.prototype.split = function(i, a2) {
         i.iushrn(this.n, 0, a2);
@@ -9263,23 +9218,23 @@ Use Chrome, Firefox or Internet Explorer 11`);
         ye.call(this, "k256", "ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff fffffffe fffffc2f");
       }
       o2(xe, ye), xe.prototype.split = function(i, a2) {
-        for (var h5 = 4194303, s22 = Math.min(i.length, 9), u3 = 0;u3 < s22; u3++)
+        for (var h4 = 4194303, s22 = Math.min(i.length, 9), u3 = 0;u3 < s22; u3++)
           a2.words[u3] = i.words[u3];
         if (a2.length = s22, i.length <= 9) {
           i.words[0] = 0, i.length = 1;
           return;
         }
         var c = i.words[9];
-        for (a2.words[a2.length++] = c & h5, u3 = 10;u3 < i.length; u3++) {
+        for (a2.words[a2.length++] = c & h4, u3 = 10;u3 < i.length; u3++) {
           var b3 = i.words[u3] | 0;
-          i.words[u3 - 10] = (b3 & h5) << 4 | c >>> 22, c = b3;
+          i.words[u3 - 10] = (b3 & h4) << 4 | c >>> 22, c = b3;
         }
         c >>>= 22, i.words[u3 - 10] = c, c === 0 && i.length > 10 ? i.length -= 10 : i.length -= 9;
       }, xe.prototype.imulK = function(i) {
         i.words[i.length] = 0, i.words[i.length + 1] = 0, i.length += 2;
-        for (var a2 = 0, h5 = 0;h5 < i.length; h5++) {
-          var s22 = i.words[h5] | 0;
-          a2 += s22 * 977, i.words[h5] = a2 & 67108863, a2 = s22 * 64 + (a2 / 67108864 | 0);
+        for (var a2 = 0, h4 = 0;h4 < i.length; h4++) {
+          var s22 = i.words[h4] | 0;
+          a2 += s22 * 977, i.words[h4] = a2 & 67108863, a2 = s22 * 64 + (a2 / 67108864 | 0);
         }
         return i.words[i.length - 1] === 0 && (i.length--, i.words[i.length - 1] === 0 && i.length--), i;
       };
@@ -9295,9 +9250,9 @@ Use Chrome, Firefox or Internet Explorer 11`);
         ye.call(this, "25519", "7fffffffffffffff ffffffffffffffff ffffffffffffffff ffffffffffffffed");
       }
       o2(Ae, ye), Ae.prototype.imulK = function(i) {
-        for (var a2 = 0, h5 = 0;h5 < i.length; h5++) {
-          var s22 = (i.words[h5] | 0) * 19 + a2, u3 = s22 & 67108863;
-          s22 >>>= 26, i.words[h5] = u3, a2 = s22;
+        for (var a2 = 0, h4 = 0;h4 < i.length; h4++) {
+          var s22 = (i.words[h4] | 0) * 19 + a2, u3 = s22 & 67108863;
+          s22 >>>= 26, i.words[h4] = u3, a2 = s22;
         }
         return a2 !== 0 && (i.words[i.length++] = a2), i;
       }, f3._prime = function(i) {
@@ -9333,20 +9288,20 @@ Use Chrome, Firefox or Internet Explorer 11`);
         return i.isZero() ? i.clone() : this.m.sub(i)._forceRed(this);
       }, P2.prototype.add = function(i, a2) {
         this._verify2(i, a2);
-        var h5 = i.add(a2);
-        return h5.cmp(this.m) >= 0 && h5.isub(this.m), h5._forceRed(this);
+        var h4 = i.add(a2);
+        return h4.cmp(this.m) >= 0 && h4.isub(this.m), h4._forceRed(this);
       }, P2.prototype.iadd = function(i, a2) {
         this._verify2(i, a2);
-        var h5 = i.iadd(a2);
-        return h5.cmp(this.m) >= 0 && h5.isub(this.m), h5;
+        var h4 = i.iadd(a2);
+        return h4.cmp(this.m) >= 0 && h4.isub(this.m), h4;
       }, P2.prototype.sub = function(i, a2) {
         this._verify2(i, a2);
-        var h5 = i.sub(a2);
-        return h5.cmpn(0) < 0 && h5.iadd(this.m), h5._forceRed(this);
+        var h4 = i.sub(a2);
+        return h4.cmpn(0) < 0 && h4.iadd(this.m), h4._forceRed(this);
       }, P2.prototype.isub = function(i, a2) {
         this._verify2(i, a2);
-        var h5 = i.isub(a2);
-        return h5.cmpn(0) < 0 && h5.iadd(this.m), h5;
+        var h4 = i.isub(a2);
+        return h4.cmpn(0) < 0 && h4.iadd(this.m), h4;
       }, P2.prototype.shl = function(i, a2) {
         return this._verify1(i), this.imod(i.ushln(a2));
       }, P2.prototype.imul = function(i, a2) {
@@ -9362,8 +9317,8 @@ Use Chrome, Firefox or Internet Explorer 11`);
           return i.clone();
         var a2 = this.m.andln(3);
         if (r2(a2 % 2 === 1), a2 === 3) {
-          var h5 = this.m.add(new f3(1)).iushrn(2);
-          return this.pow(i, h5);
+          var h4 = this.m.add(new f3(1)).iushrn(2);
+          return this.pow(i, h4);
         }
         for (var s22 = this.m.subn(1), u3 = 0;!s22.isZero() && s22.andln(1) === 0; )
           u3++, s22.iushrn(1);
@@ -9387,7 +9342,7 @@ Use Chrome, Firefox or Internet Explorer 11`);
           return new f3(1).toRed(this);
         if (a2.cmpn(1) === 0)
           return i.clone();
-        var h5 = 4, s22 = new Array(1 << h5);
+        var h4 = 4, s22 = new Array(1 << h4);
         s22[0] = new f3(1).toRed(this), s22[1] = i;
         for (var u3 = 2;u3 < s22.length; u3++)
           s22[u3] = this.mul(s22[u3 - 1], i);
@@ -9399,7 +9354,7 @@ Use Chrome, Firefox or Internet Explorer 11`);
               l3 = 0;
               continue;
             }
-            b3 <<= 1, b3 |= g2, l3++, !(l3 !== h5 && (u3 !== 0 || w2 !== 0)) && (c = this.mul(c, s22[b3]), l3 = 0, b3 = 0);
+            b3 <<= 1, b3 |= g2, l3++, !(l3 !== h4 && (u3 !== 0 || w2 !== 0)) && (c = this.mul(c, s22[b3]), l3 = 0, b3 = 0);
           }
           n32 = 26;
         }
@@ -9424,12 +9379,12 @@ Use Chrome, Firefox or Internet Explorer 11`);
       }, Se.prototype.imul = function(i, a2) {
         if (i.isZero() || a2.isZero())
           return i.words[0] = 0, i.length = 1, i;
-        var h5 = i.imul(a2), s22 = h5.maskn(this.shift).mul(this.minv).imaskn(this.shift).mul(this.m), u3 = h5.isub(s22).iushrn(this.shift), c = u3;
+        var h4 = i.imul(a2), s22 = h4.maskn(this.shift).mul(this.minv).imaskn(this.shift).mul(this.m), u3 = h4.isub(s22).iushrn(this.shift), c = u3;
         return u3.cmp(this.m) >= 0 ? c = u3.isub(this.m) : u3.cmpn(0) < 0 && (c = u3.iadd(this.m)), c._forceRed(this);
       }, Se.prototype.mul = function(i, a2) {
         if (i.isZero() || a2.isZero())
           return new f3(0)._forceRed(this);
-        var h5 = i.mul(a2), s22 = h5.maskn(this.shift).mul(this.minv).imaskn(this.shift).mul(this.m), u3 = h5.isub(s22).iushrn(this.shift), c = u3;
+        var h4 = i.mul(a2), s22 = h4.maskn(this.shift).mul(this.minv).imaskn(this.shift).mul(this.m), u3 = h4.isub(s22).iushrn(this.shift), c = u3;
         return u3.cmp(this.m) >= 0 ? c = u3.isub(this.m) : u3.cmpn(0) < 0 && (c = u3.iadd(this.m)), c._forceRed(this);
       }, Se.prototype.invm = function(i) {
         var a2 = this.imod(i._invmp(this.m).mul(this.r2));
@@ -10742,20 +10697,20 @@ Use Chrome, Firefox or Internet Explorer 11`);
   });
   Ws = T3((n22, kl) => {
     (function(t3, e2) {
-      function r2(h5, s22) {
-        if (!h5)
+      function r2(h4, s22) {
+        if (!h4)
           throw new Error(s22 || "Assertion failed");
       }
-      function o2(h5, s22) {
-        h5.super_ = s22;
+      function o2(h4, s22) {
+        h4.super_ = s22;
         var u3 = function() {
         };
-        u3.prototype = s22.prototype, h5.prototype = new u3, h5.prototype.constructor = h5;
+        u3.prototype = s22.prototype, h4.prototype = new u3, h4.prototype.constructor = h4;
       }
-      function f3(h5, s22, u3) {
-        if (f3.isBN(h5))
-          return h5;
-        this.negative = 0, this.words = null, this.length = 0, this.red = null, h5 !== null && ((s22 === "le" || s22 === "be") && (u3 = s22, s22 = 10), this._init(h5 || 0, s22 || 10, u3 || "be"));
+      function f3(h4, s22, u3) {
+        if (f3.isBN(h4))
+          return h4;
+        this.negative = 0, this.words = null, this.length = 0, this.red = null, h4 !== null && ((s22 === "le" || s22 === "be") && (u3 = s22, s22 = 10), this._init(h4 || 0, s22 || 10, u3 || "be"));
       }
       typeof t3 == "object" ? t3.exports = f3 : e2.BN = f3, f3.BN = f3, f3.wordSize = 26;
       var p2;
@@ -10794,19 +10749,19 @@ Use Chrome, Firefox or Internet Explorer 11`);
             n32 = s22[b3] | s22[b3 + 1] << 8 | s22[b3 + 2] << 16, this.words[l3] |= n32 << d & 67108863, this.words[l3 + 1] = n32 >>> 26 - d & 67108863, d += 24, d >= 26 && (d -= 26, l3++);
         return this._strip();
       };
-      function m32(h5, s22) {
-        var u3 = h5.charCodeAt(s22);
+      function m32(h4, s22) {
+        var u3 = h4.charCodeAt(s22);
         if (u3 >= 48 && u3 <= 57)
           return u3 - 48;
         if (u3 >= 65 && u3 <= 70)
           return u3 - 55;
         if (u3 >= 97 && u3 <= 102)
           return u3 - 87;
-        r2(false, "Invalid character in " + h5);
+        r2(false, "Invalid character in " + h4);
       }
-      function y22(h5, s22, u3) {
-        var c = m32(h5, u3);
-        return u3 - 1 >= s22 && (c |= m32(h5, u3 - 1) << 4), c;
+      function y22(h4, s22, u3) {
+        var c = m32(h4, u3);
+        return u3 - 1 >= s22 && (c |= m32(h4, u3 - 1) << 4), c;
       }
       f3.prototype._parseHex = function(s22, u3, c) {
         this.length = Math.ceil((s22.length - u3) / 6), this.words = new Array(this.length);
@@ -10823,9 +10778,9 @@ Use Chrome, Firefox or Internet Explorer 11`);
         }
         this._strip();
       };
-      function M3(h5, s22, u3, c) {
-        for (var b3 = 0, l3 = 0, n32 = Math.min(h5.length, u3), d = s22;d < n32; d++) {
-          var w2 = h5.charCodeAt(d) - 48;
+      function M3(h4, s22, u3, c) {
+        for (var b3 = 0, l3 = 0, n32 = Math.min(h4.length, u3), d = s22;d < n32; d++) {
+          var w2 = h4.charCodeAt(d) - 48;
           b3 *= c, w2 >= 49 ? l3 = w2 - 49 + 10 : w2 >= 17 ? l3 = w2 - 17 + 10 : l3 = w2, r2(w2 >= 0 && l3 < c, "Invalid character"), b3 += l3;
         }
         return b3;
@@ -10850,8 +10805,8 @@ Use Chrome, Firefox or Internet Explorer 11`);
           s22.words[u3] = this.words[u3];
         s22.length = this.length, s22.negative = this.negative, s22.red = this.red;
       };
-      function x3(h5, s22) {
-        h5.words = s22.words, h5.length = s22.length, h5.negative = s22.negative, h5.red = s22.red;
+      function x3(h4, s22) {
+        h4.words = s22.words, h4.length = s22.length, h4.negative = s22.negative, h4.red = s22.red;
       }
       if (f3.prototype._move = function(s22) {
         x3(s22, this);
@@ -10955,10 +10910,10 @@ Use Chrome, Firefox or Internet Explorer 11`);
         var s22 = this.words[this.length - 1], u3 = this._countBits(s22);
         return (this.length - 1) * 26 + u3;
       };
-      function ge(h5) {
-        for (var s22 = new Array(h5.bitLength()), u3 = 0;u3 < s22.length; u3++) {
+      function ge(h4) {
+        for (var s22 = new Array(h4.bitLength()), u3 = 0;u3 < s22.length; u3++) {
           var c = u3 / 26 | 0, b3 = u3 % 26;
-          s22[u3] = h5.words[c] >>> b3 & 1;
+          s22[u3] = h4.words[c] >>> b3 & 1;
         }
         return s22;
       }
@@ -11079,16 +11034,16 @@ Use Chrome, Firefox or Internet Explorer 11`);
       }, f3.prototype.sub = function(s22) {
         return this.clone().isub(s22);
       };
-      function _e(h5, s22, u3) {
-        u3.negative = s22.negative ^ h5.negative;
-        var c = h5.length + s22.length | 0;
+      function _e(h4, s22, u3) {
+        u3.negative = s22.negative ^ h4.negative;
+        var c = h4.length + s22.length | 0;
         u3.length = c, c = c - 1 | 0;
-        var b3 = h5.words[0] | 0, l3 = s22.words[0] | 0, n32 = b3 * l3, d = n32 & 67108863, w2 = n32 / 67108864 | 0;
+        var b3 = h4.words[0] | 0, l3 = s22.words[0] | 0, n32 = b3 * l3, d = n32 & 67108863, w2 = n32 / 67108864 | 0;
         u3.words[0] = d;
         for (var g2 = 1;g2 < c; g2++) {
-          for (var _4 = w2 >>> 26, A6 = w2 & 67108863, R3 = Math.min(g2, s22.length - 1), I2 = Math.max(0, g2 - h5.length + 1);I2 <= R3; I2++) {
+          for (var _4 = w2 >>> 26, A6 = w2 & 67108863, R3 = Math.min(g2, s22.length - 1), I2 = Math.max(0, g2 - h4.length + 1);I2 <= R3; I2++) {
             var Me = g2 - I2 | 0;
-            b3 = h5.words[Me] | 0, l3 = s22.words[I2] | 0, n32 = b3 * l3 + A6, _4 += n32 / 67108864 | 0, A6 = n32 & 67108863;
+            b3 = h4.words[Me] | 0, l3 = s22.words[I2] | 0, n32 = b3 * l3 + A6, _4 += n32 / 67108864 | 0, A6 = n32 & 67108863;
           }
           u3.words[g2] = A6 | 0, w2 = _4 | 0;
         }
@@ -11137,28 +11092,28 @@ Use Chrome, Firefox or Internet Explorer 11`);
         return d = (_4 + (g2 >>> 13) | 0) + (A02 >>> 26) | 0, A02 &= 67108863, n32[0] = ze, n32[1] = He, n32[2] = We, n32[3] = Ke, n32[4] = je, n32[5] = Ze, n32[6] = Ve, n32[7] = $e, n32[8] = Ge, n32[9] = Ye, n32[10] = Xe, n32[11] = Je, n32[12] = Qe, n32[13] = et, n32[14] = tt, n32[15] = rt, n32[16] = S02, n32[17] = E02, n32[18] = A02, d !== 0 && (n32[19] = d, c.length++), c;
       };
       Math.imul || (N32 = _e);
-      function we(h5, s22, u3) {
-        u3.negative = s22.negative ^ h5.negative, u3.length = h5.length + s22.length;
+      function we(h4, s22, u3) {
+        u3.negative = s22.negative ^ h4.negative, u3.length = h4.length + s22.length;
         for (var c = 0, b3 = 0, l3 = 0;l3 < u3.length - 1; l3++) {
           var n32 = b3;
           b3 = 0;
-          for (var d = c & 67108863, w2 = Math.min(l3, s22.length - 1), g2 = Math.max(0, l3 - h5.length + 1);g2 <= w2; g2++) {
-            var _4 = l3 - g2, A6 = h5.words[_4] | 0, R3 = s22.words[g2] | 0, I2 = A6 * R3, Me = I2 & 67108863;
+          for (var d = c & 67108863, w2 = Math.min(l3, s22.length - 1), g2 = Math.max(0, l3 - h4.length + 1);g2 <= w2; g2++) {
+            var _4 = l3 - g2, A6 = h4.words[_4] | 0, R3 = s22.words[g2] | 0, I2 = A6 * R3, Me = I2 & 67108863;
             n32 = n32 + (I2 / 67108864 | 0) | 0, Me = Me + d | 0, d = Me & 67108863, n32 = n32 + (Me >>> 26) | 0, b3 += n32 >>> 26, n32 &= 67108863;
           }
           u3.words[l3] = d, c = n32, n32 = b3;
         }
         return c !== 0 ? u3.words[l3] = c : u3.length--, u3._strip();
       }
-      function ye(h5, s22, u3) {
-        return we(h5, s22, u3);
+      function ye(h4, s22, u3) {
+        return we(h4, s22, u3);
       }
       f3.prototype.mulTo = function(s22, u3) {
         var c, b3 = this.length + s22.length;
         return this.length === 10 && s22.length === 10 ? c = N32(this, s22, u3) : b3 < 63 ? c = _e(this, s22, u3) : b3 < 1024 ? c = we(this, s22, u3) : c = ye(this, s22, u3), c;
       };
-      function xe(h5, s22) {
-        this.x = h5, this.y = s22;
+      function xe(h4, s22) {
+        this.x = h4, this.y = s22;
       }
       xe.prototype.makeRBT = function(s22) {
         for (var u3 = new Array(s22), c = f3.prototype._countBits(s22) - 1, b3 = 0;b3 < s22; b3++)
@@ -11591,8 +11546,8 @@ Use Chrome, Firefox or Internet Explorer 11`);
         return r2(this.red && !s22.red, "redPow(normalNum)"), this.red._verify1(this), this.red.pow(this, s22);
       };
       var Re = { k256: null, p224: null, p192: null, p25519: null };
-      function Ee(h5, s22) {
-        this.name = h5, this.p = new f3(s22, 16), this.n = this.p.bitLength(), this.k = new f3(1).iushln(this.n).isub(this.p), this.tmp = this._tmp();
+      function Ee(h4, s22) {
+        this.name = h4, this.p = new f3(s22, 16), this.n = this.p.bitLength(), this.k = new f3(1).iushln(this.n).isub(this.p), this.tmp = this._tmp();
       }
       Ee.prototype._tmp = function() {
         var s22 = new f3(null);
@@ -11666,12 +11621,12 @@ Use Chrome, Firefox or Internet Explorer 11`);
           throw new Error("Unknown prime " + s22);
         return Re[s22] = u3, u3;
       };
-      function i(h5) {
-        if (typeof h5 == "string") {
-          var s22 = f3._prime(h5);
+      function i(h4) {
+        if (typeof h4 == "string") {
+          var s22 = f3._prime(h4);
           this.m = s22.p, this.prime = s22;
         } else
-          r2(h5.gtn(1), "modulus must be greater than 1"), this.m = h5, this.prime = null;
+          r2(h4.gtn(1), "modulus must be greater than 1"), this.m = h4, this.prime = null;
       }
       i.prototype._verify1 = function(s22) {
         r2(s22.negative === 0, "red works only with positives"), r2(s22.red, "red works only with red numbers");
@@ -11763,8 +11718,8 @@ Use Chrome, Firefox or Internet Explorer 11`);
       }, f3.mont = function(s22) {
         return new a2(s22);
       };
-      function a2(h5) {
-        i.call(this, h5), this.shift = this.m.bitLength(), this.shift % 26 !== 0 && (this.shift += 26 - this.shift % 26), this.r = new f3(1).iushln(this.shift), this.r2 = this.imod(this.r.sqr()), this.rinv = this.r._invmp(this.m), this.minv = this.rinv.mul(this.r).isubn(1).div(this.m), this.minv = this.minv.umod(this.r), this.minv = this.r.sub(this.minv);
+      function a2(h4) {
+        i.call(this, h4), this.shift = this.m.bitLength(), this.shift % 26 !== 0 && (this.shift += 26 - this.shift % 26), this.r = new f3(1).iushln(this.shift), this.r2 = this.imod(this.r.sqr()), this.rinv = this.r._invmp(this.m), this.minv = this.rinv.mul(this.r).isubn(1).div(this.m), this.minv = this.minv.umod(this.r), this.minv = this.r.sub(this.minv);
       }
       o2(a2, i), a2.prototype.convertTo = function(s22) {
         return this.imod(s22.ushln(this.shift));
@@ -11839,27 +11794,27 @@ Use Chrome, Firefox or Internet Explorer 11`);
         return i.cmp(a2) > 0 ? i : a2;
       }, f3.min = function(i, a2) {
         return i.cmp(a2) < 0 ? i : a2;
-      }, f3.prototype._init = function(i, a2, h5) {
+      }, f3.prototype._init = function(i, a2, h4) {
         if (typeof i == "number")
-          return this._initNumber(i, a2, h5);
+          return this._initNumber(i, a2, h4);
         if (typeof i == "object")
-          return this._initArray(i, a2, h5);
+          return this._initArray(i, a2, h4);
         a2 === "hex" && (a2 = 16), r2(a2 === (a2 | 0) && a2 >= 2 && a2 <= 36), i = i.toString().replace(/\s+/g, "");
         var s3 = 0;
-        i[0] === "-" && (s3++, this.negative = 1), s3 < i.length && (a2 === 16 ? this._parseHex(i, s3, h5) : (this._parseBase(i, a2, s3), h5 === "le" && this._initArray(this.toArray(), a2, h5)));
-      }, f3.prototype._initNumber = function(i, a2, h5) {
-        i < 0 && (this.negative = 1, i = -i), i < 67108864 ? (this.words = [i & 67108863], this.length = 1) : i < 4503599627370496 ? (this.words = [i & 67108863, i / 67108864 & 67108863], this.length = 2) : (r2(i < 9007199254740992), this.words = [i & 67108863, i / 67108864 & 67108863, 1], this.length = 3), h5 === "le" && this._initArray(this.toArray(), a2, h5);
-      }, f3.prototype._initArray = function(i, a2, h5) {
+        i[0] === "-" && (s3++, this.negative = 1), s3 < i.length && (a2 === 16 ? this._parseHex(i, s3, h4) : (this._parseBase(i, a2, s3), h4 === "le" && this._initArray(this.toArray(), a2, h4)));
+      }, f3.prototype._initNumber = function(i, a2, h4) {
+        i < 0 && (this.negative = 1, i = -i), i < 67108864 ? (this.words = [i & 67108863], this.length = 1) : i < 4503599627370496 ? (this.words = [i & 67108863, i / 67108864 & 67108863], this.length = 2) : (r2(i < 9007199254740992), this.words = [i & 67108863, i / 67108864 & 67108863, 1], this.length = 3), h4 === "le" && this._initArray(this.toArray(), a2, h4);
+      }, f3.prototype._initArray = function(i, a2, h4) {
         if (r2(typeof i.length == "number"), i.length <= 0)
           return this.words = [0], this.length = 1, this;
         this.length = Math.ceil(i.length / 3), this.words = new Array(this.length);
         for (var s3 = 0;s3 < this.length; s3++)
           this.words[s3] = 0;
         var u3, c, b3 = 0;
-        if (h5 === "be")
+        if (h4 === "be")
           for (s3 = i.length - 1, u3 = 0;s3 >= 0; s3 -= 3)
             c = i[s3] | i[s3 - 1] << 8 | i[s3 - 2] << 16, this.words[u3] |= c << b3 & 67108863, this.words[u3 + 1] = c >>> 26 - b3 & 67108863, b3 += 24, b3 >= 26 && (b3 -= 26, u3++);
-        else if (h5 === "le")
+        else if (h4 === "le")
           for (s3 = 0, u3 = 0;s3 < i.length; s3 += 3)
             c = i[s3] | i[s3 + 1] << 8 | i[s3 + 2] << 16, this.words[u3] |= c << b3 & 67108863, this.words[u3 + 1] = c >>> 26 - b3 & 67108863, b3 += 24, b3 >= 26 && (b3 -= 26, u3++);
         return this.strip();
@@ -11869,15 +11824,15 @@ Use Chrome, Firefox or Internet Explorer 11`);
         return a2 >= 65 && a2 <= 70 ? a2 - 55 : a2 >= 97 && a2 <= 102 ? a2 - 87 : a2 - 48 & 15;
       }
       function y22(v32, i, a2) {
-        var h5 = m32(v32, a2);
-        return a2 - 1 >= i && (h5 |= m32(v32, a2 - 1) << 4), h5;
+        var h4 = m32(v32, a2);
+        return a2 - 1 >= i && (h4 |= m32(v32, a2 - 1) << 4), h4;
       }
-      f3.prototype._parseHex = function(i, a2, h5) {
+      f3.prototype._parseHex = function(i, a2, h4) {
         this.length = Math.ceil((i.length - a2) / 6), this.words = new Array(this.length);
         for (var s3 = 0;s3 < this.length; s3++)
           this.words[s3] = 0;
         var u3 = 0, c = 0, b3;
-        if (h5 === "be")
+        if (h4 === "be")
           for (s3 = i.length - 1;s3 >= a2; s3 -= 2)
             b3 = y22(i, a2, s3) << u3, this.words[c] |= b3 & 67108863, u3 >= 18 ? (u3 -= 18, c += 1, this.words[c] |= b3 >>> 26) : u3 += 8;
         else {
@@ -11887,19 +11842,19 @@ Use Chrome, Firefox or Internet Explorer 11`);
         }
         this.strip();
       };
-      function M3(v32, i, a2, h5) {
+      function M3(v32, i, a2, h4) {
         for (var s3 = 0, u3 = Math.min(v32.length, a2), c = i;c < u3; c++) {
           var b3 = v32.charCodeAt(c) - 48;
-          s3 *= h5, b3 >= 49 ? s3 += b3 - 49 + 10 : b3 >= 17 ? s3 += b3 - 17 + 10 : s3 += b3;
+          s3 *= h4, b3 >= 49 ? s3 += b3 - 49 + 10 : b3 >= 17 ? s3 += b3 - 17 + 10 : s3 += b3;
         }
         return s3;
       }
-      f3.prototype._parseBase = function(i, a2, h5) {
+      f3.prototype._parseBase = function(i, a2, h4) {
         this.words = [0], this.length = 1;
         for (var s3 = 0, u3 = 1;u3 <= 67108863; u3 *= a2)
           s3++;
         s3--, u3 = u3 / a2 | 0;
-        for (var c = i.length - h5, b3 = c % s3, l3 = Math.min(c, c - b3) + h5, n32 = 0, d = h5;d < l3; d += s3)
+        for (var c = i.length - h4, b3 = c % s3, l3 = Math.min(c, c - b3) + h4, n32 = 0, d = h4;d < l3; d += s3)
           n32 = M3(i, d, d + s3, a2), this.imuln(u3), this.words[0] + n32 < 67108864 ? this.words[0] += n32 : this._iaddn(n32);
         if (b3 !== 0) {
           var w2 = 1;
@@ -11932,28 +11887,28 @@ Use Chrome, Firefox or Internet Explorer 11`);
       var x3 = ["", "0", "00", "000", "0000", "00000", "000000", "0000000", "00000000", "000000000", "0000000000", "00000000000", "000000000000", "0000000000000", "00000000000000", "000000000000000", "0000000000000000", "00000000000000000", "000000000000000000", "0000000000000000000", "00000000000000000000", "000000000000000000000", "0000000000000000000000", "00000000000000000000000", "000000000000000000000000", "0000000000000000000000000"], S3 = [0, 0, 25, 16, 12, 11, 10, 9, 8, 8, 7, 7, 7, 7, 6, 6, 6, 6, 6, 6, 6, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5], E3 = [0, 0, 33554432, 43046721, 16777216, 48828125, 60466176, 40353607, 16777216, 43046721, 1e7, 19487171, 35831808, 62748517, 7529536, 11390625, 16777216, 24137569, 34012224, 47045881, 64000000, 4084101, 5153632, 6436343, 7962624, 9765625, 11881376, 14348907, 17210368, 20511149, 24300000, 28629151, 33554432, 39135393, 45435424, 52521875, 60466176];
       f3.prototype.toString = function(i, a2) {
         i = i || 10, a2 = a2 | 0 || 1;
-        var h5;
+        var h4;
         if (i === 16 || i === "hex") {
-          h5 = "";
+          h4 = "";
           for (var s3 = 0, u3 = 0, c = 0;c < this.length; c++) {
             var b3 = this.words[c], l3 = ((b3 << s3 | u3) & 16777215).toString(16);
-            u3 = b3 >>> 24 - s3 & 16777215, u3 !== 0 || c !== this.length - 1 ? h5 = x3[6 - l3.length] + l3 + h5 : h5 = l3 + h5, s3 += 2, s3 >= 26 && (s3 -= 26, c--);
+            u3 = b3 >>> 24 - s3 & 16777215, u3 !== 0 || c !== this.length - 1 ? h4 = x3[6 - l3.length] + l3 + h4 : h4 = l3 + h4, s3 += 2, s3 >= 26 && (s3 -= 26, c--);
           }
-          for (u3 !== 0 && (h5 = u3.toString(16) + h5);h5.length % a2 !== 0; )
-            h5 = "0" + h5;
-          return this.negative !== 0 && (h5 = "-" + h5), h5;
+          for (u3 !== 0 && (h4 = u3.toString(16) + h4);h4.length % a2 !== 0; )
+            h4 = "0" + h4;
+          return this.negative !== 0 && (h4 = "-" + h4), h4;
         }
         if (i === (i | 0) && i >= 2 && i <= 36) {
           var n32 = S3[i], d = E3[i];
-          h5 = "";
+          h4 = "";
           var w2 = this.clone();
           for (w2.negative = 0;!w2.isZero(); ) {
             var g2 = w2.modn(d).toString(i);
-            w2 = w2.idivn(d), w2.isZero() ? h5 = g2 + h5 : h5 = x3[n32 - g2.length] + g2 + h5;
+            w2 = w2.idivn(d), w2.isZero() ? h4 = g2 + h4 : h4 = x3[n32 - g2.length] + g2 + h4;
           }
-          for (this.isZero() && (h5 = "0" + h5);h5.length % a2 !== 0; )
-            h5 = "0" + h5;
-          return this.negative !== 0 && (h5 = "-" + h5), h5;
+          for (this.isZero() && (h4 = "0" + h4);h4.length % a2 !== 0; )
+            h4 = "0" + h4;
+          return this.negative !== 0 && (h4 = "-" + h4), h4;
         }
         r2(false, "Base should be between 2 and 36");
       }, f3.prototype.toNumber = function() {
@@ -11965,8 +11920,8 @@ Use Chrome, Firefox or Internet Explorer 11`);
         return r2(typeof p2 < "u"), this.toArrayLike(p2, i, a2);
       }, f3.prototype.toArray = function(i, a2) {
         return this.toArrayLike(Array, i, a2);
-      }, f3.prototype.toArrayLike = function(i, a2, h5) {
-        var s3 = this.byteLength(), u3 = h5 || Math.max(1, s3);
+      }, f3.prototype.toArrayLike = function(i, a2, h4) {
+        var s3 = this.byteLength(), u3 = h4 || Math.max(1, s3);
         r2(s3 <= u3, "byte array longer than desired length"), r2(u3 > 0, "Requested array length <= 0"), this.strip();
         var c = a2 === "le", b3 = new i(u3), l3, n32, d = this.clone();
         if (c) {
@@ -11984,21 +11939,21 @@ Use Chrome, Firefox or Internet Explorer 11`);
       }, Math.clz32 ? f3.prototype._countBits = function(i) {
         return 32 - Math.clz32(i);
       } : f3.prototype._countBits = function(i) {
-        var a2 = i, h5 = 0;
-        return a2 >= 4096 && (h5 += 13, a2 >>>= 13), a2 >= 64 && (h5 += 7, a2 >>>= 7), a2 >= 8 && (h5 += 4, a2 >>>= 4), a2 >= 2 && (h5 += 2, a2 >>>= 2), h5 + a2;
+        var a2 = i, h4 = 0;
+        return a2 >= 4096 && (h4 += 13, a2 >>>= 13), a2 >= 64 && (h4 += 7, a2 >>>= 7), a2 >= 8 && (h4 += 4, a2 >>>= 4), a2 >= 2 && (h4 += 2, a2 >>>= 2), h4 + a2;
       }, f3.prototype._zeroBits = function(i) {
         if (i === 0)
           return 26;
-        var a2 = i, h5 = 0;
-        return (a2 & 8191) === 0 && (h5 += 13, a2 >>>= 13), (a2 & 127) === 0 && (h5 += 7, a2 >>>= 7), (a2 & 15) === 0 && (h5 += 4, a2 >>>= 4), (a2 & 3) === 0 && (h5 += 2, a2 >>>= 2), (a2 & 1) === 0 && h5++, h5;
+        var a2 = i, h4 = 0;
+        return (a2 & 8191) === 0 && (h4 += 13, a2 >>>= 13), (a2 & 127) === 0 && (h4 += 7, a2 >>>= 7), (a2 & 15) === 0 && (h4 += 4, a2 >>>= 4), (a2 & 3) === 0 && (h4 += 2, a2 >>>= 2), (a2 & 1) === 0 && h4++, h4;
       }, f3.prototype.bitLength = function() {
         var i = this.words[this.length - 1], a2 = this._countBits(i);
         return (this.length - 1) * 26 + a2;
       };
       function B6(v32) {
         for (var i = new Array(v32.bitLength()), a2 = 0;a2 < i.length; a2++) {
-          var h5 = a2 / 26 | 0, s3 = a2 % 26;
-          i[a2] = (v32.words[h5] & 1 << s3) >>> s3;
+          var h4 = a2 / 26 | 0, s3 = a2 % 26;
+          i[a2] = (v32.words[h4] & 1 << s3) >>> s3;
         }
         return i;
       }
@@ -12006,8 +11961,8 @@ Use Chrome, Firefox or Internet Explorer 11`);
         if (this.isZero())
           return 0;
         for (var i = 0, a2 = 0;a2 < this.length; a2++) {
-          var h5 = this._zeroBits(this.words[a2]);
-          if (i += h5, h5 !== 26)
+          var h4 = this._zeroBits(this.words[a2]);
+          if (i += h4, h4 !== 26)
             break;
         }
         return i;
@@ -12038,8 +11993,8 @@ Use Chrome, Firefox or Internet Explorer 11`);
       }, f3.prototype.iuand = function(i) {
         var a2;
         this.length > i.length ? a2 = i : a2 = this;
-        for (var h5 = 0;h5 < a2.length; h5++)
-          this.words[h5] = this.words[h5] & i.words[h5];
+        for (var h4 = 0;h4 < a2.length; h4++)
+          this.words[h4] = this.words[h4] & i.words[h4];
         return this.length = a2.length, this.strip();
       }, f3.prototype.iand = function(i) {
         return r2((this.negative | i.negative) === 0), this.iuand(i);
@@ -12048,10 +12003,10 @@ Use Chrome, Firefox or Internet Explorer 11`);
       }, f3.prototype.uand = function(i) {
         return this.length > i.length ? this.clone().iuand(i) : i.clone().iuand(this);
       }, f3.prototype.iuxor = function(i) {
-        var a2, h5;
-        this.length > i.length ? (a2 = this, h5 = i) : (a2 = i, h5 = this);
-        for (var s3 = 0;s3 < h5.length; s3++)
-          this.words[s3] = a2.words[s3] ^ h5.words[s3];
+        var a2, h4;
+        this.length > i.length ? (a2 = this, h4 = i) : (a2 = i, h4 = this);
+        for (var s3 = 0;s3 < h4.length; s3++)
+          this.words[s3] = a2.words[s3] ^ h4.words[s3];
         if (this !== a2)
           for (;s3 < a2.length; s3++)
             this.words[s3] = a2.words[s3];
@@ -12064,34 +12019,34 @@ Use Chrome, Firefox or Internet Explorer 11`);
         return this.length > i.length ? this.clone().iuxor(i) : i.clone().iuxor(this);
       }, f3.prototype.inotn = function(i) {
         r2(typeof i == "number" && i >= 0);
-        var a2 = Math.ceil(i / 26) | 0, h5 = i % 26;
-        this._expand(a2), h5 > 0 && a2--;
+        var a2 = Math.ceil(i / 26) | 0, h4 = i % 26;
+        this._expand(a2), h4 > 0 && a2--;
         for (var s3 = 0;s3 < a2; s3++)
           this.words[s3] = ~this.words[s3] & 67108863;
-        return h5 > 0 && (this.words[s3] = ~this.words[s3] & 67108863 >> 26 - h5), this.strip();
+        return h4 > 0 && (this.words[s3] = ~this.words[s3] & 67108863 >> 26 - h4), this.strip();
       }, f3.prototype.notn = function(i) {
         return this.clone().inotn(i);
       }, f3.prototype.setn = function(i, a2) {
         r2(typeof i == "number" && i >= 0);
-        var h5 = i / 26 | 0, s3 = i % 26;
-        return this._expand(h5 + 1), a2 ? this.words[h5] = this.words[h5] | 1 << s3 : this.words[h5] = this.words[h5] & ~(1 << s3), this.strip();
+        var h4 = i / 26 | 0, s3 = i % 26;
+        return this._expand(h4 + 1), a2 ? this.words[h4] = this.words[h4] | 1 << s3 : this.words[h4] = this.words[h4] & ~(1 << s3), this.strip();
       }, f3.prototype.iadd = function(i) {
         var a2;
         if (this.negative !== 0 && i.negative === 0)
           return this.negative = 0, a2 = this.isub(i), this.negative ^= 1, this._normSign();
         if (this.negative === 0 && i.negative !== 0)
           return i.negative = 0, a2 = this.isub(i), i.negative = 1, a2._normSign();
-        var h5, s3;
-        this.length > i.length ? (h5 = this, s3 = i) : (h5 = i, s3 = this);
+        var h4, s3;
+        this.length > i.length ? (h4 = this, s3 = i) : (h4 = i, s3 = this);
         for (var u3 = 0, c = 0;c < s3.length; c++)
-          a2 = (h5.words[c] | 0) + (s3.words[c] | 0) + u3, this.words[c] = a2 & 67108863, u3 = a2 >>> 26;
-        for (;u3 !== 0 && c < h5.length; c++)
-          a2 = (h5.words[c] | 0) + u3, this.words[c] = a2 & 67108863, u3 = a2 >>> 26;
-        if (this.length = h5.length, u3 !== 0)
+          a2 = (h4.words[c] | 0) + (s3.words[c] | 0) + u3, this.words[c] = a2 & 67108863, u3 = a2 >>> 26;
+        for (;u3 !== 0 && c < h4.length; c++)
+          a2 = (h4.words[c] | 0) + u3, this.words[c] = a2 & 67108863, u3 = a2 >>> 26;
+        if (this.length = h4.length, u3 !== 0)
           this.words[this.length] = u3, this.length++;
-        else if (h5 !== this)
-          for (;c < h5.length; c++)
-            this.words[c] = h5.words[c];
+        else if (h4 !== this)
+          for (;c < h4.length; c++)
+            this.words[c] = h4.words[c];
         return this;
       }, f3.prototype.add = function(i) {
         var a2;
@@ -12103,11 +12058,11 @@ Use Chrome, Firefox or Internet Explorer 11`);
           return i.negative = 1, a2._normSign();
         } else if (this.negative !== 0)
           return this.negative = 0, this.iadd(i), this.negative = 1, this._normSign();
-        var h5 = this.cmp(i);
-        if (h5 === 0)
+        var h4 = this.cmp(i);
+        if (h4 === 0)
           return this.negative = 0, this.length = 1, this.words[0] = 0, this;
         var s3, u3;
-        h5 > 0 ? (s3 = this, u3 = i) : (s3 = i, u3 = this);
+        h4 > 0 ? (s3 = this, u3 = i) : (s3 = i, u3 = this);
         for (var c = 0, b3 = 0;b3 < u3.length; b3++)
           a2 = (s3.words[b3] | 0) - (u3.words[b3] | 0) + c, c = a2 >> 26, this.words[b3] = a2 & 67108863;
         for (;c !== 0 && b3 < s3.length; b3++)
@@ -12121,11 +12076,11 @@ Use Chrome, Firefox or Internet Explorer 11`);
       };
       function q2(v32, i, a2) {
         a2.negative = i.negative ^ v32.negative;
-        var h5 = v32.length + i.length | 0;
-        a2.length = h5, h5 = h5 - 1 | 0;
+        var h4 = v32.length + i.length | 0;
+        a2.length = h4, h4 = h4 - 1 | 0;
         var s3 = v32.words[0] | 0, u3 = i.words[0] | 0, c = s3 * u3, b3 = c & 67108863, l3 = c / 67108864 | 0;
         a2.words[0] = b3;
-        for (var n32 = 1;n32 < h5; n32++) {
+        for (var n32 = 1;n32 < h4; n32++) {
           for (var d = l3 >>> 26, w2 = l3 & 67108863, g2 = Math.min(n32, i.length - 1), _4 = Math.max(0, n32 - v32.length + 1);_4 <= g2; _4++) {
             var A6 = n32 - _4 | 0;
             s3 = v32.words[A6] | 0, u3 = i.words[_4] | 0, c = s3 * u3 + w2, d += c / 67108864 | 0, w2 = c & 67108863;
@@ -12134,9 +12089,9 @@ Use Chrome, Firefox or Internet Explorer 11`);
         }
         return l3 !== 0 ? a2.words[n32] = l3 | 0 : a2.length--, a2.strip();
       }
-      var L3 = function(i, a2, h5) {
-        var s3 = i.words, u3 = a2.words, c = h5.words, b3 = 0, l3, n32, d, w2 = s3[0] | 0, g2 = w2 & 8191, _4 = w2 >>> 13, A6 = s3[1] | 0, R3 = A6 & 8191, I2 = A6 >>> 13, Me = s3[2] | 0, k2 = Me & 8191, D2 = Me >>> 13, nt = s3[3] | 0, C3 = nt & 8191, O3 = nt >>> 13, vt = s3[4] | 0, F = vt & 8191, U2 = vt >>> 13, bt = s3[5] | 0, z3 = bt & 8191, H4 = bt >>> 13, mt = s3[6] | 0, W3 = mt & 8191, K = mt >>> 13, gt = s3[7] | 0, j2 = gt & 8191, Z4 = gt >>> 13, yt = s3[8] | 0, V5 = yt & 8191, $4 = yt >>> 13, wt = s3[9] | 0, G5 = wt & 8191, Y2 = wt >>> 13, Mt = u3[0] | 0, X4 = Mt & 8191, J = Mt >>> 13, _t = u3[1] | 0, Q3 = _t & 8191, ee = _t >>> 13, xt = u3[2] | 0, te = xt & 8191, re = xt >>> 13, St = u3[3] | 0, ie = St & 8191, ne = St >>> 13, Et = u3[4] | 0, fe = Et & 8191, ae = Et >>> 13, At = u3[5] | 0, oe = At & 8191, se = At >>> 13, Rt = u3[6] | 0, he = Rt & 8191, ue = Rt >>> 13, Bt = u3[7] | 0, le = Bt & 8191, de = Bt >>> 13, qt = u3[8] | 0, ce = qt & 8191, pe = qt >>> 13, It = u3[9] | 0, ve = It & 8191, be = It >>> 13;
-        h5.negative = i.negative ^ a2.negative, h5.length = 19, l3 = Math.imul(g2, X4), n32 = Math.imul(g2, J), n32 = n32 + Math.imul(_4, X4) | 0, d = Math.imul(_4, J);
+      var L3 = function(i, a2, h4) {
+        var s3 = i.words, u3 = a2.words, c = h4.words, b3 = 0, l3, n32, d, w2 = s3[0] | 0, g2 = w2 & 8191, _4 = w2 >>> 13, A6 = s3[1] | 0, R3 = A6 & 8191, I2 = A6 >>> 13, Me = s3[2] | 0, k2 = Me & 8191, D2 = Me >>> 13, nt = s3[3] | 0, C3 = nt & 8191, O3 = nt >>> 13, vt = s3[4] | 0, F = vt & 8191, U2 = vt >>> 13, bt = s3[5] | 0, z3 = bt & 8191, H4 = bt >>> 13, mt = s3[6] | 0, W3 = mt & 8191, K = mt >>> 13, gt = s3[7] | 0, j2 = gt & 8191, Z4 = gt >>> 13, yt = s3[8] | 0, V5 = yt & 8191, $4 = yt >>> 13, wt = s3[9] | 0, G5 = wt & 8191, Y2 = wt >>> 13, Mt = u3[0] | 0, X4 = Mt & 8191, J = Mt >>> 13, _t = u3[1] | 0, Q3 = _t & 8191, ee = _t >>> 13, xt = u3[2] | 0, te = xt & 8191, re = xt >>> 13, St = u3[3] | 0, ie = St & 8191, ne = St >>> 13, Et = u3[4] | 0, fe = Et & 8191, ae = Et >>> 13, At = u3[5] | 0, oe = At & 8191, se = At >>> 13, Rt = u3[6] | 0, he = Rt & 8191, ue = Rt >>> 13, Bt = u3[7] | 0, le = Bt & 8191, de = Bt >>> 13, qt = u3[8] | 0, ce = qt & 8191, pe = qt >>> 13, It = u3[9] | 0, ve = It & 8191, be = It >>> 13;
+        h4.negative = i.negative ^ a2.negative, h4.length = 19, l3 = Math.imul(g2, X4), n32 = Math.imul(g2, J), n32 = n32 + Math.imul(_4, X4) | 0, d = Math.imul(_4, J);
         var ft = (b3 + l3 | 0) + ((n32 & 8191) << 13) | 0;
         b3 = (d + (n32 >>> 13) | 0) + (ft >>> 26) | 0, ft &= 67108863, l3 = Math.imul(R3, X4), n32 = Math.imul(R3, J), n32 = n32 + Math.imul(I2, X4) | 0, d = Math.imul(I2, J), l3 = l3 + Math.imul(g2, Q3) | 0, n32 = n32 + Math.imul(g2, ee) | 0, n32 = n32 + Math.imul(_4, Q3) | 0, d = d + Math.imul(_4, ee) | 0;
         var Be = (b3 + l3 | 0) + ((n32 & 8191) << 13) | 0;
@@ -12174,89 +12129,89 @@ Use Chrome, Firefox or Internet Explorer 11`);
         var tt = (b3 + l3 | 0) + ((n32 & 8191) << 13) | 0;
         b3 = (d + (n32 >>> 13) | 0) + (tt >>> 26) | 0, tt &= 67108863, l3 = Math.imul(G5, ve), n32 = Math.imul(G5, be), n32 = n32 + Math.imul(Y2, ve) | 0, d = Math.imul(Y2, be);
         var rt = (b3 + l3 | 0) + ((n32 & 8191) << 13) | 0;
-        return b3 = (d + (n32 >>> 13) | 0) + (rt >>> 26) | 0, rt &= 67108863, c[0] = ft, c[1] = Be, c[2] = qe, c[3] = ze, c[4] = He, c[5] = We, c[6] = Ke, c[7] = je, c[8] = Ze, c[9] = Ve, c[10] = $e, c[11] = Ge, c[12] = Ye, c[13] = Xe, c[14] = Je, c[15] = Qe, c[16] = et, c[17] = tt, c[18] = rt, b3 !== 0 && (c[19] = b3, h5.length++), h5;
+        return b3 = (d + (n32 >>> 13) | 0) + (rt >>> 26) | 0, rt &= 67108863, c[0] = ft, c[1] = Be, c[2] = qe, c[3] = ze, c[4] = He, c[5] = We, c[6] = Ke, c[7] = je, c[8] = Ze, c[9] = Ve, c[10] = $e, c[11] = Ge, c[12] = Ye, c[13] = Xe, c[14] = Je, c[15] = Qe, c[16] = et, c[17] = tt, c[18] = rt, b3 !== 0 && (c[19] = b3, h4.length++), h4;
       };
       Math.imul || (L3 = q2);
       function ge(v32, i, a2) {
         a2.negative = i.negative ^ v32.negative, a2.length = v32.length + i.length;
-        for (var h5 = 0, s3 = 0, u3 = 0;u3 < a2.length - 1; u3++) {
+        for (var h4 = 0, s3 = 0, u3 = 0;u3 < a2.length - 1; u3++) {
           var c = s3;
           s3 = 0;
-          for (var b3 = h5 & 67108863, l3 = Math.min(u3, i.length - 1), n32 = Math.max(0, u3 - v32.length + 1);n32 <= l3; n32++) {
+          for (var b3 = h4 & 67108863, l3 = Math.min(u3, i.length - 1), n32 = Math.max(0, u3 - v32.length + 1);n32 <= l3; n32++) {
             var d = u3 - n32, w2 = v32.words[d] | 0, g2 = i.words[n32] | 0, _4 = w2 * g2, A6 = _4 & 67108863;
             c = c + (_4 / 67108864 | 0) | 0, A6 = A6 + b3 | 0, b3 = A6 & 67108863, c = c + (A6 >>> 26) | 0, s3 += c >>> 26, c &= 67108863;
           }
-          a2.words[u3] = b3, h5 = c, c = s3;
+          a2.words[u3] = b3, h4 = c, c = s3;
         }
-        return h5 !== 0 ? a2.words[u3] = h5 : a2.length--, a2.strip();
+        return h4 !== 0 ? a2.words[u3] = h4 : a2.length--, a2.strip();
       }
       function _e(v32, i, a2) {
-        var h5 = new N32;
-        return h5.mulp(v32, i, a2);
+        var h4 = new N32;
+        return h4.mulp(v32, i, a2);
       }
       f3.prototype.mulTo = function(i, a2) {
-        var h5, s3 = this.length + i.length;
-        return this.length === 10 && i.length === 10 ? h5 = L3(this, i, a2) : s3 < 63 ? h5 = q2(this, i, a2) : s3 < 1024 ? h5 = ge(this, i, a2) : h5 = _e(this, i, a2), h5;
+        var h4, s3 = this.length + i.length;
+        return this.length === 10 && i.length === 10 ? h4 = L3(this, i, a2) : s3 < 63 ? h4 = q2(this, i, a2) : s3 < 1024 ? h4 = ge(this, i, a2) : h4 = _e(this, i, a2), h4;
       };
       function N32(v32, i) {
         this.x = v32, this.y = i;
       }
       N32.prototype.makeRBT = function(i) {
-        for (var a2 = new Array(i), h5 = f3.prototype._countBits(i) - 1, s3 = 0;s3 < i; s3++)
-          a2[s3] = this.revBin(s3, h5, i);
+        for (var a2 = new Array(i), h4 = f3.prototype._countBits(i) - 1, s3 = 0;s3 < i; s3++)
+          a2[s3] = this.revBin(s3, h4, i);
         return a2;
-      }, N32.prototype.revBin = function(i, a2, h5) {
-        if (i === 0 || i === h5 - 1)
+      }, N32.prototype.revBin = function(i, a2, h4) {
+        if (i === 0 || i === h4 - 1)
           return i;
         for (var s3 = 0, u3 = 0;u3 < a2; u3++)
           s3 |= (i & 1) << a2 - u3 - 1, i >>= 1;
         return s3;
-      }, N32.prototype.permute = function(i, a2, h5, s3, u3, c) {
+      }, N32.prototype.permute = function(i, a2, h4, s3, u3, c) {
         for (var b3 = 0;b3 < c; b3++)
-          s3[b3] = a2[i[b3]], u3[b3] = h5[i[b3]];
-      }, N32.prototype.transform = function(i, a2, h5, s3, u3, c) {
-        this.permute(c, i, a2, h5, s3, u3);
+          s3[b3] = a2[i[b3]], u3[b3] = h4[i[b3]];
+      }, N32.prototype.transform = function(i, a2, h4, s3, u3, c) {
+        this.permute(c, i, a2, h4, s3, u3);
         for (var b3 = 1;b3 < u3; b3 <<= 1)
           for (var l3 = b3 << 1, n32 = Math.cos(2 * Math.PI / l3), d = Math.sin(2 * Math.PI / l3), w2 = 0;w2 < u3; w2 += l3)
             for (var g2 = n32, _4 = d, A6 = 0;A6 < b3; A6++) {
-              var R3 = h5[w2 + A6], I2 = s3[w2 + A6], Me = h5[w2 + A6 + b3], k2 = s3[w2 + A6 + b3], D2 = g2 * Me - _4 * k2;
-              k2 = g2 * k2 + _4 * Me, Me = D2, h5[w2 + A6] = R3 + Me, s3[w2 + A6] = I2 + k2, h5[w2 + A6 + b3] = R3 - Me, s3[w2 + A6 + b3] = I2 - k2, A6 !== l3 && (D2 = n32 * g2 - d * _4, _4 = n32 * _4 + d * g2, g2 = D2);
+              var R3 = h4[w2 + A6], I2 = s3[w2 + A6], Me = h4[w2 + A6 + b3], k2 = s3[w2 + A6 + b3], D2 = g2 * Me - _4 * k2;
+              k2 = g2 * k2 + _4 * Me, Me = D2, h4[w2 + A6] = R3 + Me, s3[w2 + A6] = I2 + k2, h4[w2 + A6 + b3] = R3 - Me, s3[w2 + A6 + b3] = I2 - k2, A6 !== l3 && (D2 = n32 * g2 - d * _4, _4 = n32 * _4 + d * g2, g2 = D2);
             }
       }, N32.prototype.guessLen13b = function(i, a2) {
-        var h5 = Math.max(a2, i) | 1, s3 = h5 & 1, u3 = 0;
-        for (h5 = h5 / 2 | 0;h5; h5 = h5 >>> 1)
+        var h4 = Math.max(a2, i) | 1, s3 = h4 & 1, u3 = 0;
+        for (h4 = h4 / 2 | 0;h4; h4 = h4 >>> 1)
           u3++;
         return 1 << u3 + 1 + s3;
-      }, N32.prototype.conjugate = function(i, a2, h5) {
-        if (!(h5 <= 1))
-          for (var s3 = 0;s3 < h5 / 2; s3++) {
+      }, N32.prototype.conjugate = function(i, a2, h4) {
+        if (!(h4 <= 1))
+          for (var s3 = 0;s3 < h4 / 2; s3++) {
             var u3 = i[s3];
-            i[s3] = i[h5 - s3 - 1], i[h5 - s3 - 1] = u3, u3 = a2[s3], a2[s3] = -a2[h5 - s3 - 1], a2[h5 - s3 - 1] = -u3;
+            i[s3] = i[h4 - s3 - 1], i[h4 - s3 - 1] = u3, u3 = a2[s3], a2[s3] = -a2[h4 - s3 - 1], a2[h4 - s3 - 1] = -u3;
           }
       }, N32.prototype.normalize13b = function(i, a2) {
-        for (var h5 = 0, s3 = 0;s3 < a2 / 2; s3++) {
-          var u3 = Math.round(i[2 * s3 + 1] / a2) * 8192 + Math.round(i[2 * s3] / a2) + h5;
-          i[s3] = u3 & 67108863, u3 < 67108864 ? h5 = 0 : h5 = u3 / 67108864 | 0;
+        for (var h4 = 0, s3 = 0;s3 < a2 / 2; s3++) {
+          var u3 = Math.round(i[2 * s3 + 1] / a2) * 8192 + Math.round(i[2 * s3] / a2) + h4;
+          i[s3] = u3 & 67108863, u3 < 67108864 ? h4 = 0 : h4 = u3 / 67108864 | 0;
         }
         return i;
-      }, N32.prototype.convert13b = function(i, a2, h5, s3) {
+      }, N32.prototype.convert13b = function(i, a2, h4, s3) {
         for (var u3 = 0, c = 0;c < a2; c++)
-          u3 = u3 + (i[c] | 0), h5[2 * c] = u3 & 8191, u3 = u3 >>> 13, h5[2 * c + 1] = u3 & 8191, u3 = u3 >>> 13;
+          u3 = u3 + (i[c] | 0), h4[2 * c] = u3 & 8191, u3 = u3 >>> 13, h4[2 * c + 1] = u3 & 8191, u3 = u3 >>> 13;
         for (c = 2 * a2;c < s3; ++c)
-          h5[c] = 0;
+          h4[c] = 0;
         r2(u3 === 0), r2((u3 & -8192) === 0);
       }, N32.prototype.stub = function(i) {
-        for (var a2 = new Array(i), h5 = 0;h5 < i; h5++)
-          a2[h5] = 0;
+        for (var a2 = new Array(i), h4 = 0;h4 < i; h4++)
+          a2[h4] = 0;
         return a2;
-      }, N32.prototype.mulp = function(i, a2, h5) {
-        var s3 = 2 * this.guessLen13b(i.length, a2.length), u3 = this.makeRBT(s3), c = this.stub(s3), b3 = new Array(s3), l3 = new Array(s3), n32 = new Array(s3), d = new Array(s3), w2 = new Array(s3), g2 = new Array(s3), _4 = h5.words;
+      }, N32.prototype.mulp = function(i, a2, h4) {
+        var s3 = 2 * this.guessLen13b(i.length, a2.length), u3 = this.makeRBT(s3), c = this.stub(s3), b3 = new Array(s3), l3 = new Array(s3), n32 = new Array(s3), d = new Array(s3), w2 = new Array(s3), g2 = new Array(s3), _4 = h4.words;
         _4.length = s3, this.convert13b(i.words, i.length, b3, s3), this.convert13b(a2.words, a2.length, d, s3), this.transform(b3, c, l3, n32, s3, u3), this.transform(d, c, w2, g2, s3, u3);
         for (var A6 = 0;A6 < s3; A6++) {
           var R3 = l3[A6] * w2[A6] - n32[A6] * g2[A6];
           n32[A6] = l3[A6] * g2[A6] + n32[A6] * w2[A6], l3[A6] = R3;
         }
-        return this.conjugate(l3, n32, s3), this.transform(l3, n32, _4, c, s3, u3), this.conjugate(_4, c, s3), this.normalize13b(_4, s3), h5.negative = i.negative ^ a2.negative, h5.length = i.length + a2.length, h5.strip();
+        return this.conjugate(l3, n32, s3), this.transform(l3, n32, _4, c, s3, u3), this.conjugate(_4, c, s3), this.normalize13b(_4, s3), h4.negative = i.negative ^ a2.negative, h4.length = i.length + a2.length, h4.strip();
       }, f3.prototype.mul = function(i) {
         var a2 = new f3(null);
         return a2.words = new Array(this.length + i.length), this.mulTo(i, a2);
@@ -12267,11 +12222,11 @@ Use Chrome, Firefox or Internet Explorer 11`);
         return this.clone().mulTo(i, this);
       }, f3.prototype.imuln = function(i) {
         r2(typeof i == "number"), r2(i < 67108864);
-        for (var a2 = 0, h5 = 0;h5 < this.length; h5++) {
-          var s3 = (this.words[h5] | 0) * i, u3 = (s3 & 67108863) + (a2 & 67108863);
-          a2 >>= 26, a2 += s3 / 67108864 | 0, a2 += u3 >>> 26, this.words[h5] = u3 & 67108863;
+        for (var a2 = 0, h4 = 0;h4 < this.length; h4++) {
+          var s3 = (this.words[h4] | 0) * i, u3 = (s3 & 67108863) + (a2 & 67108863);
+          a2 >>= 26, a2 += s3 / 67108864 | 0, a2 += u3 >>> 26, this.words[h4] = u3 & 67108863;
         }
-        return a2 !== 0 && (this.words[h5] = a2, this.length++), this;
+        return a2 !== 0 && (this.words[h4] = a2, this.length++), this;
       }, f3.prototype.muln = function(i) {
         return this.clone().imuln(i);
       }, f3.prototype.sqr = function() {
@@ -12282,15 +12237,15 @@ Use Chrome, Firefox or Internet Explorer 11`);
         var a2 = B6(i);
         if (a2.length === 0)
           return new f3(1);
-        for (var h5 = this, s3 = 0;s3 < a2.length && a2[s3] === 0; s3++, h5 = h5.sqr())
+        for (var h4 = this, s3 = 0;s3 < a2.length && a2[s3] === 0; s3++, h4 = h4.sqr())
           ;
         if (++s3 < a2.length)
-          for (var u3 = h5.sqr();s3 < a2.length; s3++, u3 = u3.sqr())
-            a2[s3] !== 0 && (h5 = h5.mul(u3));
-        return h5;
+          for (var u3 = h4.sqr();s3 < a2.length; s3++, u3 = u3.sqr())
+            a2[s3] !== 0 && (h4 = h4.mul(u3));
+        return h4;
       }, f3.prototype.iushln = function(i) {
         r2(typeof i == "number" && i >= 0);
-        var a2 = i % 26, h5 = (i - a2) / 26, s3 = 67108863 >>> 26 - a2 << 26 - a2, u3;
+        var a2 = i % 26, h4 = (i - a2) / 26, s3 = 67108863 >>> 26 - a2 << 26 - a2, u3;
         if (a2 !== 0) {
           var c = 0;
           for (u3 = 0;u3 < this.length; u3++) {
@@ -12299,21 +12254,21 @@ Use Chrome, Firefox or Internet Explorer 11`);
           }
           c && (this.words[u3] = c, this.length++);
         }
-        if (h5 !== 0) {
+        if (h4 !== 0) {
           for (u3 = this.length - 1;u3 >= 0; u3--)
-            this.words[u3 + h5] = this.words[u3];
-          for (u3 = 0;u3 < h5; u3++)
+            this.words[u3 + h4] = this.words[u3];
+          for (u3 = 0;u3 < h4; u3++)
             this.words[u3] = 0;
-          this.length += h5;
+          this.length += h4;
         }
         return this.strip();
       }, f3.prototype.ishln = function(i) {
         return r2(this.negative === 0), this.iushln(i);
-      }, f3.prototype.iushrn = function(i, a2, h5) {
+      }, f3.prototype.iushrn = function(i, a2, h4) {
         r2(typeof i == "number" && i >= 0);
         var s3;
         a2 ? s3 = (a2 - a2 % 26) / 26 : s3 = 0;
-        var u3 = i % 26, c = Math.min((i - u3) / 26, this.length), b3 = 67108863 ^ 67108863 >>> u3 << u3, l3 = h5;
+        var u3 = i % 26, c = Math.min((i - u3) / 26, this.length), b3 = 67108863 ^ 67108863 >>> u3 << u3, l3 = h4;
         if (s3 -= c, s3 = Math.max(0, s3), l3) {
           for (var n32 = 0;n32 < c; n32++)
             l3.words[n32] = this.words[n32];
@@ -12331,8 +12286,8 @@ Use Chrome, Firefox or Internet Explorer 11`);
           this.words[n32] = d << 26 - u3 | w2 >>> u3, d = w2 & b3;
         }
         return l3 && d !== 0 && (l3.words[l3.length++] = d), this.length === 0 && (this.words[0] = 0, this.length = 1), this.strip();
-      }, f3.prototype.ishrn = function(i, a2, h5) {
-        return r2(this.negative === 0), this.iushrn(i, a2, h5);
+      }, f3.prototype.ishrn = function(i, a2, h4) {
+        return r2(this.negative === 0), this.iushrn(i, a2, h4);
       }, f3.prototype.shln = function(i) {
         return this.clone().ishln(i);
       }, f3.prototype.ushln = function(i) {
@@ -12343,17 +12298,17 @@ Use Chrome, Firefox or Internet Explorer 11`);
         return this.clone().iushrn(i);
       }, f3.prototype.testn = function(i) {
         r2(typeof i == "number" && i >= 0);
-        var a2 = i % 26, h5 = (i - a2) / 26, s3 = 1 << a2;
-        if (this.length <= h5)
+        var a2 = i % 26, h4 = (i - a2) / 26, s3 = 1 << a2;
+        if (this.length <= h4)
           return false;
-        var u3 = this.words[h5];
+        var u3 = this.words[h4];
         return !!(u3 & s3);
       }, f3.prototype.imaskn = function(i) {
         r2(typeof i == "number" && i >= 0);
-        var a2 = i % 26, h5 = (i - a2) / 26;
-        if (r2(this.negative === 0, "imaskn works only with positive numbers"), this.length <= h5)
+        var a2 = i % 26, h4 = (i - a2) / 26;
+        if (r2(this.negative === 0, "imaskn works only with positive numbers"), this.length <= h4)
           return this;
-        if (a2 !== 0 && h5++, this.length = Math.min(h5, this.length), a2 !== 0) {
+        if (a2 !== 0 && h4++, this.length = Math.min(h4, this.length), a2 !== 0) {
           var s3 = 67108863 ^ 67108863 >>> a2 << a2;
           this.words[this.length - 1] &= s3;
         }
@@ -12386,25 +12341,25 @@ Use Chrome, Firefox or Internet Explorer 11`);
         return this.negative = 0, this;
       }, f3.prototype.abs = function() {
         return this.clone().iabs();
-      }, f3.prototype._ishlnsubmul = function(i, a2, h5) {
-        var s3 = i.length + h5, u3;
+      }, f3.prototype._ishlnsubmul = function(i, a2, h4) {
+        var s3 = i.length + h4, u3;
         this._expand(s3);
         var c, b3 = 0;
         for (u3 = 0;u3 < i.length; u3++) {
-          c = (this.words[u3 + h5] | 0) + b3;
+          c = (this.words[u3 + h4] | 0) + b3;
           var l3 = (i.words[u3] | 0) * a2;
-          c -= l3 & 67108863, b3 = (c >> 26) - (l3 / 67108864 | 0), this.words[u3 + h5] = c & 67108863;
+          c -= l3 & 67108863, b3 = (c >> 26) - (l3 / 67108864 | 0), this.words[u3 + h4] = c & 67108863;
         }
-        for (;u3 < this.length - h5; u3++)
-          c = (this.words[u3 + h5] | 0) + b3, b3 = c >> 26, this.words[u3 + h5] = c & 67108863;
+        for (;u3 < this.length - h4; u3++)
+          c = (this.words[u3 + h4] | 0) + b3, b3 = c >> 26, this.words[u3 + h4] = c & 67108863;
         if (b3 === 0)
           return this.strip();
         for (r2(b3 === -1), b3 = 0, u3 = 0;u3 < this.length; u3++)
           c = -(this.words[u3] | 0) + b3, b3 = c >> 26, this.words[u3] = c & 67108863;
         return this.negative = 1, this.strip();
       }, f3.prototype._wordDiv = function(i, a2) {
-        var h5 = this.length - i.length, s3 = this.clone(), u3 = i, c = u3.words[u3.length - 1] | 0, b3 = this._countBits(c);
-        h5 = 26 - b3, h5 !== 0 && (u3 = u3.ushln(h5), s3.iushln(h5), c = u3.words[u3.length - 1] | 0);
+        var h4 = this.length - i.length, s3 = this.clone(), u3 = i, c = u3.words[u3.length - 1] | 0, b3 = this._countBits(c);
+        h4 = 26 - b3, h4 !== 0 && (u3 = u3.ushln(h4), s3.iushln(h4), c = u3.words[u3.length - 1] | 0);
         var l3 = s3.length - u3.length, n32;
         if (a2 !== "mod") {
           n32 = new f3(null), n32.length = l3 + 1, n32.words = new Array(n32.length);
@@ -12419,12 +12374,12 @@ Use Chrome, Firefox or Internet Explorer 11`);
             _4--, s3.negative = 0, s3._ishlnsubmul(u3, 1, g2), s3.isZero() || (s3.negative ^= 1);
           n32 && (n32.words[g2] = _4);
         }
-        return n32 && n32.strip(), s3.strip(), a2 !== "div" && h5 !== 0 && s3.iushrn(h5), { div: n32 || null, mod: s3 };
-      }, f3.prototype.divmod = function(i, a2, h5) {
+        return n32 && n32.strip(), s3.strip(), a2 !== "div" && h4 !== 0 && s3.iushrn(h4), { div: n32 || null, mod: s3 };
+      }, f3.prototype.divmod = function(i, a2, h4) {
         if (r2(!i.isZero()), this.isZero())
           return { div: new f3(0), mod: new f3(0) };
         var s3, u3, c;
-        return this.negative !== 0 && i.negative === 0 ? (c = this.neg().divmod(i, a2), a2 !== "mod" && (s3 = c.div.neg()), a2 !== "div" && (u3 = c.mod.neg(), h5 && u3.negative !== 0 && u3.iadd(i)), { div: s3, mod: u3 }) : this.negative === 0 && i.negative !== 0 ? (c = this.divmod(i.neg(), a2), a2 !== "mod" && (s3 = c.div.neg()), { div: s3, mod: c.mod }) : (this.negative & i.negative) !== 0 ? (c = this.neg().divmod(i.neg(), a2), a2 !== "div" && (u3 = c.mod.neg(), h5 && u3.negative !== 0 && u3.isub(i)), { div: c.div, mod: u3 }) : i.length > this.length || this.cmp(i) < 0 ? { div: new f3(0), mod: this } : i.length === 1 ? a2 === "div" ? { div: this.divn(i.words[0]), mod: null } : a2 === "mod" ? { div: null, mod: new f3(this.modn(i.words[0])) } : { div: this.divn(i.words[0]), mod: new f3(this.modn(i.words[0])) } : this._wordDiv(i, a2);
+        return this.negative !== 0 && i.negative === 0 ? (c = this.neg().divmod(i, a2), a2 !== "mod" && (s3 = c.div.neg()), a2 !== "div" && (u3 = c.mod.neg(), h4 && u3.negative !== 0 && u3.iadd(i)), { div: s3, mod: u3 }) : this.negative === 0 && i.negative !== 0 ? (c = this.divmod(i.neg(), a2), a2 !== "mod" && (s3 = c.div.neg()), { div: s3, mod: c.mod }) : (this.negative & i.negative) !== 0 ? (c = this.neg().divmod(i.neg(), a2), a2 !== "div" && (u3 = c.mod.neg(), h4 && u3.negative !== 0 && u3.isub(i)), { div: c.div, mod: u3 }) : i.length > this.length || this.cmp(i) < 0 ? { div: new f3(0), mod: this } : i.length === 1 ? a2 === "div" ? { div: this.divn(i.words[0]), mod: null } : a2 === "mod" ? { div: null, mod: new f3(this.modn(i.words[0])) } : { div: this.divn(i.words[0]), mod: new f3(this.modn(i.words[0])) } : this._wordDiv(i, a2);
       }, f3.prototype.div = function(i) {
         return this.divmod(i, "div", false).div;
       }, f3.prototype.mod = function(i) {
@@ -12435,58 +12390,58 @@ Use Chrome, Firefox or Internet Explorer 11`);
         var a2 = this.divmod(i);
         if (a2.mod.isZero())
           return a2.div;
-        var h5 = a2.div.negative !== 0 ? a2.mod.isub(i) : a2.mod, s3 = i.ushrn(1), u3 = i.andln(1), c = h5.cmp(s3);
+        var h4 = a2.div.negative !== 0 ? a2.mod.isub(i) : a2.mod, s3 = i.ushrn(1), u3 = i.andln(1), c = h4.cmp(s3);
         return c < 0 || u3 === 1 && c === 0 ? a2.div : a2.div.negative !== 0 ? a2.div.isubn(1) : a2.div.iaddn(1);
       }, f3.prototype.modn = function(i) {
         r2(i <= 67108863);
-        for (var a2 = (1 << 26) % i, h5 = 0, s3 = this.length - 1;s3 >= 0; s3--)
-          h5 = (a2 * h5 + (this.words[s3] | 0)) % i;
-        return h5;
+        for (var a2 = (1 << 26) % i, h4 = 0, s3 = this.length - 1;s3 >= 0; s3--)
+          h4 = (a2 * h4 + (this.words[s3] | 0)) % i;
+        return h4;
       }, f3.prototype.idivn = function(i) {
         r2(i <= 67108863);
-        for (var a2 = 0, h5 = this.length - 1;h5 >= 0; h5--) {
-          var s3 = (this.words[h5] | 0) + a2 * 67108864;
-          this.words[h5] = s3 / i | 0, a2 = s3 % i;
+        for (var a2 = 0, h4 = this.length - 1;h4 >= 0; h4--) {
+          var s3 = (this.words[h4] | 0) + a2 * 67108864;
+          this.words[h4] = s3 / i | 0, a2 = s3 % i;
         }
         return this.strip();
       }, f3.prototype.divn = function(i) {
         return this.clone().idivn(i);
       }, f3.prototype.egcd = function(i) {
         r2(i.negative === 0), r2(!i.isZero());
-        var a2 = this, h5 = i.clone();
+        var a2 = this, h4 = i.clone();
         a2.negative !== 0 ? a2 = a2.umod(i) : a2 = a2.clone();
-        for (var s3 = new f3(1), u3 = new f3(0), c = new f3(0), b3 = new f3(1), l3 = 0;a2.isEven() && h5.isEven(); )
-          a2.iushrn(1), h5.iushrn(1), ++l3;
-        for (var n32 = h5.clone(), d = a2.clone();!a2.isZero(); ) {
+        for (var s3 = new f3(1), u3 = new f3(0), c = new f3(0), b3 = new f3(1), l3 = 0;a2.isEven() && h4.isEven(); )
+          a2.iushrn(1), h4.iushrn(1), ++l3;
+        for (var n32 = h4.clone(), d = a2.clone();!a2.isZero(); ) {
           for (var w2 = 0, g2 = 1;(a2.words[0] & g2) === 0 && w2 < 26; ++w2, g2 <<= 1)
             ;
           if (w2 > 0)
             for (a2.iushrn(w2);w2-- > 0; )
               (s3.isOdd() || u3.isOdd()) && (s3.iadd(n32), u3.isub(d)), s3.iushrn(1), u3.iushrn(1);
-          for (var _4 = 0, A6 = 1;(h5.words[0] & A6) === 0 && _4 < 26; ++_4, A6 <<= 1)
+          for (var _4 = 0, A6 = 1;(h4.words[0] & A6) === 0 && _4 < 26; ++_4, A6 <<= 1)
             ;
           if (_4 > 0)
-            for (h5.iushrn(_4);_4-- > 0; )
+            for (h4.iushrn(_4);_4-- > 0; )
               (c.isOdd() || b3.isOdd()) && (c.iadd(n32), b3.isub(d)), c.iushrn(1), b3.iushrn(1);
-          a2.cmp(h5) >= 0 ? (a2.isub(h5), s3.isub(c), u3.isub(b3)) : (h5.isub(a2), c.isub(s3), b3.isub(u3));
+          a2.cmp(h4) >= 0 ? (a2.isub(h4), s3.isub(c), u3.isub(b3)) : (h4.isub(a2), c.isub(s3), b3.isub(u3));
         }
-        return { a: c, b: b3, gcd: h5.iushln(l3) };
+        return { a: c, b: b3, gcd: h4.iushln(l3) };
       }, f3.prototype._invmp = function(i) {
         r2(i.negative === 0), r2(!i.isZero());
-        var a2 = this, h5 = i.clone();
+        var a2 = this, h4 = i.clone();
         a2.negative !== 0 ? a2 = a2.umod(i) : a2 = a2.clone();
-        for (var s3 = new f3(1), u3 = new f3(0), c = h5.clone();a2.cmpn(1) > 0 && h5.cmpn(1) > 0; ) {
+        for (var s3 = new f3(1), u3 = new f3(0), c = h4.clone();a2.cmpn(1) > 0 && h4.cmpn(1) > 0; ) {
           for (var b3 = 0, l3 = 1;(a2.words[0] & l3) === 0 && b3 < 26; ++b3, l3 <<= 1)
             ;
           if (b3 > 0)
             for (a2.iushrn(b3);b3-- > 0; )
               s3.isOdd() && s3.iadd(c), s3.iushrn(1);
-          for (var n32 = 0, d = 1;(h5.words[0] & d) === 0 && n32 < 26; ++n32, d <<= 1)
+          for (var n32 = 0, d = 1;(h4.words[0] & d) === 0 && n32 < 26; ++n32, d <<= 1)
             ;
           if (n32 > 0)
-            for (h5.iushrn(n32);n32-- > 0; )
+            for (h4.iushrn(n32);n32-- > 0; )
               u3.isOdd() && u3.iadd(c), u3.iushrn(1);
-          a2.cmp(h5) >= 0 ? (a2.isub(h5), s3.isub(u3)) : (h5.isub(a2), u3.isub(s3));
+          a2.cmp(h4) >= 0 ? (a2.isub(h4), s3.isub(u3)) : (h4.isub(a2), u3.isub(s3));
         }
         var w2;
         return a2.cmpn(1) === 0 ? w2 = s3 : w2 = u3, w2.cmpn(0) < 0 && w2.iadd(i), w2;
@@ -12495,24 +12450,24 @@ Use Chrome, Firefox or Internet Explorer 11`);
           return i.abs();
         if (i.isZero())
           return this.abs();
-        var a2 = this.clone(), h5 = i.clone();
-        a2.negative = 0, h5.negative = 0;
-        for (var s3 = 0;a2.isEven() && h5.isEven(); s3++)
-          a2.iushrn(1), h5.iushrn(1);
+        var a2 = this.clone(), h4 = i.clone();
+        a2.negative = 0, h4.negative = 0;
+        for (var s3 = 0;a2.isEven() && h4.isEven(); s3++)
+          a2.iushrn(1), h4.iushrn(1);
         do {
           for (;a2.isEven(); )
             a2.iushrn(1);
-          for (;h5.isEven(); )
-            h5.iushrn(1);
-          var u3 = a2.cmp(h5);
+          for (;h4.isEven(); )
+            h4.iushrn(1);
+          var u3 = a2.cmp(h4);
           if (u3 < 0) {
             var c = a2;
-            a2 = h5, h5 = c;
-          } else if (u3 === 0 || h5.cmpn(1) === 0)
+            a2 = h4, h4 = c;
+          } else if (u3 === 0 || h4.cmpn(1) === 0)
             break;
-          a2.isub(h5);
+          a2.isub(h4);
         } while (true);
-        return h5.iushln(s3);
+        return h4.iushln(s3);
       }, f3.prototype.invm = function(i) {
         return this.egcd(i).a.umod(i);
       }, f3.prototype.isEven = function() {
@@ -12523,10 +12478,10 @@ Use Chrome, Firefox or Internet Explorer 11`);
         return this.words[0] & i;
       }, f3.prototype.bincn = function(i) {
         r2(typeof i == "number");
-        var a2 = i % 26, h5 = (i - a2) / 26, s3 = 1 << a2;
-        if (this.length <= h5)
-          return this._expand(h5 + 1), this.words[h5] |= s3, this;
-        for (var u3 = s3, c = h5;u3 !== 0 && c < this.length; c++) {
+        var a2 = i % 26, h4 = (i - a2) / 26, s3 = 1 << a2;
+        if (this.length <= h4)
+          return this._expand(h4 + 1), this.words[h4] |= s3, this;
+        for (var u3 = s3, c = h4;u3 !== 0 && c < this.length; c++) {
           var b3 = this.words[c] | 0;
           b3 += u3, u3 = b3 >>> 26, b3 &= 67108863, this.words[c] = b3;
         }
@@ -12540,15 +12495,15 @@ Use Chrome, Firefox or Internet Explorer 11`);
         if (this.negative === 0 && a2)
           return 1;
         this.strip();
-        var h5;
+        var h4;
         if (this.length > 1)
-          h5 = 1;
+          h4 = 1;
         else {
           a2 && (i = -i), r2(i <= 67108863, "Number is too big");
           var s3 = this.words[0] | 0;
-          h5 = s3 === i ? 0 : s3 < i ? -1 : 1;
+          h4 = s3 === i ? 0 : s3 < i ? -1 : 1;
         }
-        return this.negative !== 0 ? -h5 | 0 : h5;
+        return this.negative !== 0 ? -h4 | 0 : h4;
       }, f3.prototype.cmp = function(i) {
         if (this.negative !== 0 && i.negative === 0)
           return -1;
@@ -12561,8 +12516,8 @@ Use Chrome, Firefox or Internet Explorer 11`);
           return 1;
         if (this.length < i.length)
           return -1;
-        for (var a2 = 0, h5 = this.length - 1;h5 >= 0; h5--) {
-          var s3 = this.words[h5] | 0, u3 = i.words[h5] | 0;
+        for (var a2 = 0, h4 = this.length - 1;h4 >= 0; h4--) {
+          var s3 = this.words[h4] | 0, u3 = i.words[h4] | 0;
           if (s3 !== u3) {
             s3 < u3 ? a2 = -1 : s3 > u3 && (a2 = 1);
             break;
@@ -12634,11 +12589,11 @@ Use Chrome, Firefox or Internet Explorer 11`);
         var i = new f3(null);
         return i.words = new Array(Math.ceil(this.n / 13)), i;
       }, ye.prototype.ireduce = function(i) {
-        var a2 = i, h5;
+        var a2 = i, h4;
         do
-          this.split(a2, this.tmp), a2 = this.imulK(a2), a2 = a2.iadd(this.tmp), h5 = a2.bitLength();
-        while (h5 > this.n);
-        var s3 = h5 < this.n ? -1 : a2.ucmp(this.p);
+          this.split(a2, this.tmp), a2 = this.imulK(a2), a2 = a2.iadd(this.tmp), h4 = a2.bitLength();
+        while (h4 > this.n);
+        var s3 = h4 < this.n ? -1 : a2.ucmp(this.p);
         return s3 === 0 ? (a2.words[0] = 0, a2.length = 1) : s3 > 0 ? a2.isub(this.p) : a2.strip !== undefined ? a2.strip() : a2._strip(), a2;
       }, ye.prototype.split = function(i, a2) {
         i.iushrn(this.n, 0, a2);
@@ -12649,23 +12604,23 @@ Use Chrome, Firefox or Internet Explorer 11`);
         ye.call(this, "k256", "ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff fffffffe fffffc2f");
       }
       o2(xe, ye), xe.prototype.split = function(i, a2) {
-        for (var h5 = 4194303, s3 = Math.min(i.length, 9), u3 = 0;u3 < s3; u3++)
+        for (var h4 = 4194303, s3 = Math.min(i.length, 9), u3 = 0;u3 < s3; u3++)
           a2.words[u3] = i.words[u3];
         if (a2.length = s3, i.length <= 9) {
           i.words[0] = 0, i.length = 1;
           return;
         }
         var c = i.words[9];
-        for (a2.words[a2.length++] = c & h5, u3 = 10;u3 < i.length; u3++) {
+        for (a2.words[a2.length++] = c & h4, u3 = 10;u3 < i.length; u3++) {
           var b3 = i.words[u3] | 0;
-          i.words[u3 - 10] = (b3 & h5) << 4 | c >>> 22, c = b3;
+          i.words[u3 - 10] = (b3 & h4) << 4 | c >>> 22, c = b3;
         }
         c >>>= 22, i.words[u3 - 10] = c, c === 0 && i.length > 10 ? i.length -= 10 : i.length -= 9;
       }, xe.prototype.imulK = function(i) {
         i.words[i.length] = 0, i.words[i.length + 1] = 0, i.length += 2;
-        for (var a2 = 0, h5 = 0;h5 < i.length; h5++) {
-          var s3 = i.words[h5] | 0;
-          a2 += s3 * 977, i.words[h5] = a2 & 67108863, a2 = s3 * 64 + (a2 / 67108864 | 0);
+        for (var a2 = 0, h4 = 0;h4 < i.length; h4++) {
+          var s3 = i.words[h4] | 0;
+          a2 += s3 * 977, i.words[h4] = a2 & 67108863, a2 = s3 * 64 + (a2 / 67108864 | 0);
         }
         return i.words[i.length - 1] === 0 && (i.length--, i.words[i.length - 1] === 0 && i.length--), i;
       };
@@ -12681,9 +12636,9 @@ Use Chrome, Firefox or Internet Explorer 11`);
         ye.call(this, "25519", "7fffffffffffffff ffffffffffffffff ffffffffffffffff ffffffffffffffed");
       }
       o2(Ae, ye), Ae.prototype.imulK = function(i) {
-        for (var a2 = 0, h5 = 0;h5 < i.length; h5++) {
-          var s3 = (i.words[h5] | 0) * 19 + a2, u3 = s3 & 67108863;
-          s3 >>>= 26, i.words[h5] = u3, a2 = s3;
+        for (var a2 = 0, h4 = 0;h4 < i.length; h4++) {
+          var s3 = (i.words[h4] | 0) * 19 + a2, u3 = s3 & 67108863;
+          s3 >>>= 26, i.words[h4] = u3, a2 = s3;
         }
         return a2 !== 0 && (i.words[i.length++] = a2), i;
       }, f3._prime = function(i) {
@@ -12719,20 +12674,20 @@ Use Chrome, Firefox or Internet Explorer 11`);
         return i.isZero() ? i.clone() : this.m.sub(i)._forceRed(this);
       }, P2.prototype.add = function(i, a2) {
         this._verify2(i, a2);
-        var h5 = i.add(a2);
-        return h5.cmp(this.m) >= 0 && h5.isub(this.m), h5._forceRed(this);
+        var h4 = i.add(a2);
+        return h4.cmp(this.m) >= 0 && h4.isub(this.m), h4._forceRed(this);
       }, P2.prototype.iadd = function(i, a2) {
         this._verify2(i, a2);
-        var h5 = i.iadd(a2);
-        return h5.cmp(this.m) >= 0 && h5.isub(this.m), h5;
+        var h4 = i.iadd(a2);
+        return h4.cmp(this.m) >= 0 && h4.isub(this.m), h4;
       }, P2.prototype.sub = function(i, a2) {
         this._verify2(i, a2);
-        var h5 = i.sub(a2);
-        return h5.cmpn(0) < 0 && h5.iadd(this.m), h5._forceRed(this);
+        var h4 = i.sub(a2);
+        return h4.cmpn(0) < 0 && h4.iadd(this.m), h4._forceRed(this);
       }, P2.prototype.isub = function(i, a2) {
         this._verify2(i, a2);
-        var h5 = i.isub(a2);
-        return h5.cmpn(0) < 0 && h5.iadd(this.m), h5;
+        var h4 = i.isub(a2);
+        return h4.cmpn(0) < 0 && h4.iadd(this.m), h4;
       }, P2.prototype.shl = function(i, a2) {
         return this._verify1(i), this.imod(i.ushln(a2));
       }, P2.prototype.imul = function(i, a2) {
@@ -12748,8 +12703,8 @@ Use Chrome, Firefox or Internet Explorer 11`);
           return i.clone();
         var a2 = this.m.andln(3);
         if (r2(a2 % 2 === 1), a2 === 3) {
-          var h5 = this.m.add(new f3(1)).iushrn(2);
-          return this.pow(i, h5);
+          var h4 = this.m.add(new f3(1)).iushrn(2);
+          return this.pow(i, h4);
         }
         for (var s3 = this.m.subn(1), u3 = 0;!s3.isZero() && s3.andln(1) === 0; )
           u3++, s3.iushrn(1);
@@ -12773,7 +12728,7 @@ Use Chrome, Firefox or Internet Explorer 11`);
           return new f3(1).toRed(this);
         if (a2.cmpn(1) === 0)
           return i.clone();
-        var h5 = 4, s3 = new Array(1 << h5);
+        var h4 = 4, s3 = new Array(1 << h4);
         s3[0] = new f3(1).toRed(this), s3[1] = i;
         for (var u3 = 2;u3 < s3.length; u3++)
           s3[u3] = this.mul(s3[u3 - 1], i);
@@ -12785,7 +12740,7 @@ Use Chrome, Firefox or Internet Explorer 11`);
               l3 = 0;
               continue;
             }
-            b3 <<= 1, b3 |= g2, l3++, !(l3 !== h5 && (u3 !== 0 || w2 !== 0)) && (c = this.mul(c, s3[b3]), l3 = 0, b3 = 0);
+            b3 <<= 1, b3 |= g2, l3++, !(l3 !== h4 && (u3 !== 0 || w2 !== 0)) && (c = this.mul(c, s3[b3]), l3 = 0, b3 = 0);
           }
           n32 = 26;
         }
@@ -12810,12 +12765,12 @@ Use Chrome, Firefox or Internet Explorer 11`);
       }, Se.prototype.imul = function(i, a2) {
         if (i.isZero() || a2.isZero())
           return i.words[0] = 0, i.length = 1, i;
-        var h5 = i.imul(a2), s3 = h5.maskn(this.shift).mul(this.minv).imaskn(this.shift).mul(this.m), u3 = h5.isub(s3).iushrn(this.shift), c = u3;
+        var h4 = i.imul(a2), s3 = h4.maskn(this.shift).mul(this.minv).imaskn(this.shift).mul(this.m), u3 = h4.isub(s3).iushrn(this.shift), c = u3;
         return u3.cmp(this.m) >= 0 ? c = u3.isub(this.m) : u3.cmpn(0) < 0 && (c = u3.iadd(this.m)), c._forceRed(this);
       }, Se.prototype.mul = function(i, a2) {
         if (i.isZero() || a2.isZero())
           return new f3(0)._forceRed(this);
-        var h5 = i.mul(a2), s3 = h5.maskn(this.shift).mul(this.minv).imaskn(this.shift).mul(this.m), u3 = h5.isub(s3).iushrn(this.shift), c = u3;
+        var h4 = i.mul(a2), s3 = h4.maskn(this.shift).mul(this.minv).imaskn(this.shift).mul(this.m), u3 = h4.isub(s3).iushrn(this.shift), c = u3;
         return u3.cmp(this.m) >= 0 ? c = u3.isub(this.m) : u3.cmpn(0) < 0 && (c = u3.iadd(this.m)), c._forceRed(this);
       }, Se.prototype.invm = function(i) {
         var a2 = this.imod(i._invmp(this.m).mul(this.r2));
@@ -13947,7 +13902,7 @@ Use Chrome, Firefox or Internet Explorer 11`);
       var o2 = this.W, f3 = this.h[0], p2 = this.h[1], m32 = this.h[2], y3 = this.h[3], M3 = this.h[4], x3 = this.h[5], S3 = this.h[6], E3 = this.h[7], B6 = this.h[8], q2 = this.h[9], L3 = this.h[10], ge = this.h[11], _e = this.h[12], N32 = this.h[13], we = this.h[14], ye = this.h[15];
       yR(this.k.length === o2.length);
       for (var xe = 0;xe < o2.length; xe += 2) {
-        var Re = we, Ee = ye, Ae = TR(B6, q2), P2 = kR(B6, q2), Se = ER(B6, q2, L3, ge, _e, N32), v32 = AR(B6, q2, L3, ge, _e, N32), i = this.k[xe], a2 = this.k[xe + 1], h5 = o2[xe], s3 = o2[xe + 1], u3 = _R(Re, Ee, Ae, P2, Se, v32, i, a2, h5, s3), c = xR(Re, Ee, Ae, P2, Se, v32, i, a2, h5, s3);
+        var Re = we, Ee = ye, Ae = TR(B6, q2), P2 = kR(B6, q2), Se = ER(B6, q2, L3, ge, _e, N32), v32 = AR(B6, q2, L3, ge, _e, N32), i = this.k[xe], a2 = this.k[xe + 1], h4 = o2[xe], s3 = o2[xe + 1], u3 = _R(Re, Ee, Ae, P2, Se, v32, i, a2, h4, s3), c = xR(Re, Ee, Ae, P2, Se, v32, i, a2, h4, s3);
         Re = qR(f3, p2), Ee = IR(f3, p2), Ae = RR(f3, p2, m32, y3, M3, x3), P2 = BR(f3, p2, m32, y3, M3, x3);
         var b3 = zl(Re, Ee, Ae, P2), l3 = Hl(Re, Ee, Ae, P2);
         we = _e, ye = N32, _e = L3, N32 = ge, L3 = B6, ge = q2, B6 = zl(S3, E3, u3, c), q2 = Hl(E3, E3, u3, c), S3 = M3, E3 = x3, M3 = m32, x3 = y3, m32 = f3, y3 = p2, f3 = zl(u3, c, b3, l3), p2 = Hl(u3, c, b3, l3);
@@ -14535,27 +14490,27 @@ Use Chrome, Firefox or Internet Explorer 11`);
         return i.cmp(a2) > 0 ? i : a2;
       }, f3.min = function(i, a2) {
         return i.cmp(a2) < 0 ? i : a2;
-      }, f3.prototype._init = function(i, a2, h5) {
+      }, f3.prototype._init = function(i, a2, h4) {
         if (typeof i == "number")
-          return this._initNumber(i, a2, h5);
+          return this._initNumber(i, a2, h4);
         if (typeof i == "object")
-          return this._initArray(i, a2, h5);
+          return this._initArray(i, a2, h4);
         a2 === "hex" && (a2 = 16), r2(a2 === (a2 | 0) && a2 >= 2 && a2 <= 36), i = i.toString().replace(/\s+/g, "");
         var s3 = 0;
-        i[0] === "-" && (s3++, this.negative = 1), s3 < i.length && (a2 === 16 ? this._parseHex(i, s3, h5) : (this._parseBase(i, a2, s3), h5 === "le" && this._initArray(this.toArray(), a2, h5)));
-      }, f3.prototype._initNumber = function(i, a2, h5) {
-        i < 0 && (this.negative = 1, i = -i), i < 67108864 ? (this.words = [i & 67108863], this.length = 1) : i < 4503599627370496 ? (this.words = [i & 67108863, i / 67108864 & 67108863], this.length = 2) : (r2(i < 9007199254740992), this.words = [i & 67108863, i / 67108864 & 67108863, 1], this.length = 3), h5 === "le" && this._initArray(this.toArray(), a2, h5);
-      }, f3.prototype._initArray = function(i, a2, h5) {
+        i[0] === "-" && (s3++, this.negative = 1), s3 < i.length && (a2 === 16 ? this._parseHex(i, s3, h4) : (this._parseBase(i, a2, s3), h4 === "le" && this._initArray(this.toArray(), a2, h4)));
+      }, f3.prototype._initNumber = function(i, a2, h4) {
+        i < 0 && (this.negative = 1, i = -i), i < 67108864 ? (this.words = [i & 67108863], this.length = 1) : i < 4503599627370496 ? (this.words = [i & 67108863, i / 67108864 & 67108863], this.length = 2) : (r2(i < 9007199254740992), this.words = [i & 67108863, i / 67108864 & 67108863, 1], this.length = 3), h4 === "le" && this._initArray(this.toArray(), a2, h4);
+      }, f3.prototype._initArray = function(i, a2, h4) {
         if (r2(typeof i.length == "number"), i.length <= 0)
           return this.words = [0], this.length = 1, this;
         this.length = Math.ceil(i.length / 3), this.words = new Array(this.length);
         for (var s3 = 0;s3 < this.length; s3++)
           this.words[s3] = 0;
         var u3, c, b3 = 0;
-        if (h5 === "be")
+        if (h4 === "be")
           for (s3 = i.length - 1, u3 = 0;s3 >= 0; s3 -= 3)
             c = i[s3] | i[s3 - 1] << 8 | i[s3 - 2] << 16, this.words[u3] |= c << b3 & 67108863, this.words[u3 + 1] = c >>> 26 - b3 & 67108863, b3 += 24, b3 >= 26 && (b3 -= 26, u3++);
-        else if (h5 === "le")
+        else if (h4 === "le")
           for (s3 = 0, u3 = 0;s3 < i.length; s3 += 3)
             c = i[s3] | i[s3 + 1] << 8 | i[s3 + 2] << 16, this.words[u3] |= c << b3 & 67108863, this.words[u3 + 1] = c >>> 26 - b3 & 67108863, b3 += 24, b3 >= 26 && (b3 -= 26, u3++);
         return this.strip();
@@ -14565,15 +14520,15 @@ Use Chrome, Firefox or Internet Explorer 11`);
         return a2 >= 65 && a2 <= 70 ? a2 - 55 : a2 >= 97 && a2 <= 102 ? a2 - 87 : a2 - 48 & 15;
       }
       function y3(v32, i, a2) {
-        var h5 = m32(v32, a2);
-        return a2 - 1 >= i && (h5 |= m32(v32, a2 - 1) << 4), h5;
+        var h4 = m32(v32, a2);
+        return a2 - 1 >= i && (h4 |= m32(v32, a2 - 1) << 4), h4;
       }
-      f3.prototype._parseHex = function(i, a2, h5) {
+      f3.prototype._parseHex = function(i, a2, h4) {
         this.length = Math.ceil((i.length - a2) / 6), this.words = new Array(this.length);
         for (var s3 = 0;s3 < this.length; s3++)
           this.words[s3] = 0;
         var u3 = 0, c = 0, b3;
-        if (h5 === "be")
+        if (h4 === "be")
           for (s3 = i.length - 1;s3 >= a2; s3 -= 2)
             b3 = y3(i, a2, s3) << u3, this.words[c] |= b3 & 67108863, u3 >= 18 ? (u3 -= 18, c += 1, this.words[c] |= b3 >>> 26) : u3 += 8;
         else {
@@ -14583,19 +14538,19 @@ Use Chrome, Firefox or Internet Explorer 11`);
         }
         this.strip();
       };
-      function M3(v32, i, a2, h5) {
+      function M3(v32, i, a2, h4) {
         for (var s3 = 0, u3 = Math.min(v32.length, a2), c = i;c < u3; c++) {
           var b3 = v32.charCodeAt(c) - 48;
-          s3 *= h5, b3 >= 49 ? s3 += b3 - 49 + 10 : b3 >= 17 ? s3 += b3 - 17 + 10 : s3 += b3;
+          s3 *= h4, b3 >= 49 ? s3 += b3 - 49 + 10 : b3 >= 17 ? s3 += b3 - 17 + 10 : s3 += b3;
         }
         return s3;
       }
-      f3.prototype._parseBase = function(i, a2, h5) {
+      f3.prototype._parseBase = function(i, a2, h4) {
         this.words = [0], this.length = 1;
         for (var s3 = 0, u3 = 1;u3 <= 67108863; u3 *= a2)
           s3++;
         s3--, u3 = u3 / a2 | 0;
-        for (var c = i.length - h5, b3 = c % s3, l3 = Math.min(c, c - b3) + h5, n32 = 0, d = h5;d < l3; d += s3)
+        for (var c = i.length - h4, b3 = c % s3, l3 = Math.min(c, c - b3) + h4, n32 = 0, d = h4;d < l3; d += s3)
           n32 = M3(i, d, d + s3, a2), this.imuln(u3), this.words[0] + n32 < 67108864 ? this.words[0] += n32 : this._iaddn(n32);
         if (b3 !== 0) {
           var w2 = 1;
@@ -14628,28 +14583,28 @@ Use Chrome, Firefox or Internet Explorer 11`);
       var x3 = ["", "0", "00", "000", "0000", "00000", "000000", "0000000", "00000000", "000000000", "0000000000", "00000000000", "000000000000", "0000000000000", "00000000000000", "000000000000000", "0000000000000000", "00000000000000000", "000000000000000000", "0000000000000000000", "00000000000000000000", "000000000000000000000", "0000000000000000000000", "00000000000000000000000", "000000000000000000000000", "0000000000000000000000000"], S3 = [0, 0, 25, 16, 12, 11, 10, 9, 8, 8, 7, 7, 7, 7, 6, 6, 6, 6, 6, 6, 6, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5], E3 = [0, 0, 33554432, 43046721, 16777216, 48828125, 60466176, 40353607, 16777216, 43046721, 1e7, 19487171, 35831808, 62748517, 7529536, 11390625, 16777216, 24137569, 34012224, 47045881, 64000000, 4084101, 5153632, 6436343, 7962624, 9765625, 11881376, 14348907, 17210368, 20511149, 24300000, 28629151, 33554432, 39135393, 45435424, 52521875, 60466176];
       f3.prototype.toString = function(i, a2) {
         i = i || 10, a2 = a2 | 0 || 1;
-        var h5;
+        var h4;
         if (i === 16 || i === "hex") {
-          h5 = "";
+          h4 = "";
           for (var s3 = 0, u3 = 0, c = 0;c < this.length; c++) {
             var b3 = this.words[c], l3 = ((b3 << s3 | u3) & 16777215).toString(16);
-            u3 = b3 >>> 24 - s3 & 16777215, u3 !== 0 || c !== this.length - 1 ? h5 = x3[6 - l3.length] + l3 + h5 : h5 = l3 + h5, s3 += 2, s3 >= 26 && (s3 -= 26, c--);
+            u3 = b3 >>> 24 - s3 & 16777215, u3 !== 0 || c !== this.length - 1 ? h4 = x3[6 - l3.length] + l3 + h4 : h4 = l3 + h4, s3 += 2, s3 >= 26 && (s3 -= 26, c--);
           }
-          for (u3 !== 0 && (h5 = u3.toString(16) + h5);h5.length % a2 !== 0; )
-            h5 = "0" + h5;
-          return this.negative !== 0 && (h5 = "-" + h5), h5;
+          for (u3 !== 0 && (h4 = u3.toString(16) + h4);h4.length % a2 !== 0; )
+            h4 = "0" + h4;
+          return this.negative !== 0 && (h4 = "-" + h4), h4;
         }
         if (i === (i | 0) && i >= 2 && i <= 36) {
           var n32 = S3[i], d = E3[i];
-          h5 = "";
+          h4 = "";
           var w2 = this.clone();
           for (w2.negative = 0;!w2.isZero(); ) {
             var g2 = w2.modn(d).toString(i);
-            w2 = w2.idivn(d), w2.isZero() ? h5 = g2 + h5 : h5 = x3[n32 - g2.length] + g2 + h5;
+            w2 = w2.idivn(d), w2.isZero() ? h4 = g2 + h4 : h4 = x3[n32 - g2.length] + g2 + h4;
           }
-          for (this.isZero() && (h5 = "0" + h5);h5.length % a2 !== 0; )
-            h5 = "0" + h5;
-          return this.negative !== 0 && (h5 = "-" + h5), h5;
+          for (this.isZero() && (h4 = "0" + h4);h4.length % a2 !== 0; )
+            h4 = "0" + h4;
+          return this.negative !== 0 && (h4 = "-" + h4), h4;
         }
         r2(false, "Base should be between 2 and 36");
       }, f3.prototype.toNumber = function() {
@@ -14661,8 +14616,8 @@ Use Chrome, Firefox or Internet Explorer 11`);
         return r2(typeof p2 < "u"), this.toArrayLike(p2, i, a2);
       }, f3.prototype.toArray = function(i, a2) {
         return this.toArrayLike(Array, i, a2);
-      }, f3.prototype.toArrayLike = function(i, a2, h5) {
-        var s3 = this.byteLength(), u3 = h5 || Math.max(1, s3);
+      }, f3.prototype.toArrayLike = function(i, a2, h4) {
+        var s3 = this.byteLength(), u3 = h4 || Math.max(1, s3);
         r2(s3 <= u3, "byte array longer than desired length"), r2(u3 > 0, "Requested array length <= 0"), this.strip();
         var c = a2 === "le", b3 = new i(u3), l3, n32, d = this.clone();
         if (c) {
@@ -14680,21 +14635,21 @@ Use Chrome, Firefox or Internet Explorer 11`);
       }, Math.clz32 ? f3.prototype._countBits = function(i) {
         return 32 - Math.clz32(i);
       } : f3.prototype._countBits = function(i) {
-        var a2 = i, h5 = 0;
-        return a2 >= 4096 && (h5 += 13, a2 >>>= 13), a2 >= 64 && (h5 += 7, a2 >>>= 7), a2 >= 8 && (h5 += 4, a2 >>>= 4), a2 >= 2 && (h5 += 2, a2 >>>= 2), h5 + a2;
+        var a2 = i, h4 = 0;
+        return a2 >= 4096 && (h4 += 13, a2 >>>= 13), a2 >= 64 && (h4 += 7, a2 >>>= 7), a2 >= 8 && (h4 += 4, a2 >>>= 4), a2 >= 2 && (h4 += 2, a2 >>>= 2), h4 + a2;
       }, f3.prototype._zeroBits = function(i) {
         if (i === 0)
           return 26;
-        var a2 = i, h5 = 0;
-        return (a2 & 8191) === 0 && (h5 += 13, a2 >>>= 13), (a2 & 127) === 0 && (h5 += 7, a2 >>>= 7), (a2 & 15) === 0 && (h5 += 4, a2 >>>= 4), (a2 & 3) === 0 && (h5 += 2, a2 >>>= 2), (a2 & 1) === 0 && h5++, h5;
+        var a2 = i, h4 = 0;
+        return (a2 & 8191) === 0 && (h4 += 13, a2 >>>= 13), (a2 & 127) === 0 && (h4 += 7, a2 >>>= 7), (a2 & 15) === 0 && (h4 += 4, a2 >>>= 4), (a2 & 3) === 0 && (h4 += 2, a2 >>>= 2), (a2 & 1) === 0 && h4++, h4;
       }, f3.prototype.bitLength = function() {
         var i = this.words[this.length - 1], a2 = this._countBits(i);
         return (this.length - 1) * 26 + a2;
       };
       function B6(v32) {
         for (var i = new Array(v32.bitLength()), a2 = 0;a2 < i.length; a2++) {
-          var h5 = a2 / 26 | 0, s3 = a2 % 26;
-          i[a2] = (v32.words[h5] & 1 << s3) >>> s3;
+          var h4 = a2 / 26 | 0, s3 = a2 % 26;
+          i[a2] = (v32.words[h4] & 1 << s3) >>> s3;
         }
         return i;
       }
@@ -14702,8 +14657,8 @@ Use Chrome, Firefox or Internet Explorer 11`);
         if (this.isZero())
           return 0;
         for (var i = 0, a2 = 0;a2 < this.length; a2++) {
-          var h5 = this._zeroBits(this.words[a2]);
-          if (i += h5, h5 !== 26)
+          var h4 = this._zeroBits(this.words[a2]);
+          if (i += h4, h4 !== 26)
             break;
         }
         return i;
@@ -14734,8 +14689,8 @@ Use Chrome, Firefox or Internet Explorer 11`);
       }, f3.prototype.iuand = function(i) {
         var a2;
         this.length > i.length ? a2 = i : a2 = this;
-        for (var h5 = 0;h5 < a2.length; h5++)
-          this.words[h5] = this.words[h5] & i.words[h5];
+        for (var h4 = 0;h4 < a2.length; h4++)
+          this.words[h4] = this.words[h4] & i.words[h4];
         return this.length = a2.length, this.strip();
       }, f3.prototype.iand = function(i) {
         return r2((this.negative | i.negative) === 0), this.iuand(i);
@@ -14744,10 +14699,10 @@ Use Chrome, Firefox or Internet Explorer 11`);
       }, f3.prototype.uand = function(i) {
         return this.length > i.length ? this.clone().iuand(i) : i.clone().iuand(this);
       }, f3.prototype.iuxor = function(i) {
-        var a2, h5;
-        this.length > i.length ? (a2 = this, h5 = i) : (a2 = i, h5 = this);
-        for (var s3 = 0;s3 < h5.length; s3++)
-          this.words[s3] = a2.words[s3] ^ h5.words[s3];
+        var a2, h4;
+        this.length > i.length ? (a2 = this, h4 = i) : (a2 = i, h4 = this);
+        for (var s3 = 0;s3 < h4.length; s3++)
+          this.words[s3] = a2.words[s3] ^ h4.words[s3];
         if (this !== a2)
           for (;s3 < a2.length; s3++)
             this.words[s3] = a2.words[s3];
@@ -14760,34 +14715,34 @@ Use Chrome, Firefox or Internet Explorer 11`);
         return this.length > i.length ? this.clone().iuxor(i) : i.clone().iuxor(this);
       }, f3.prototype.inotn = function(i) {
         r2(typeof i == "number" && i >= 0);
-        var a2 = Math.ceil(i / 26) | 0, h5 = i % 26;
-        this._expand(a2), h5 > 0 && a2--;
+        var a2 = Math.ceil(i / 26) | 0, h4 = i % 26;
+        this._expand(a2), h4 > 0 && a2--;
         for (var s3 = 0;s3 < a2; s3++)
           this.words[s3] = ~this.words[s3] & 67108863;
-        return h5 > 0 && (this.words[s3] = ~this.words[s3] & 67108863 >> 26 - h5), this.strip();
+        return h4 > 0 && (this.words[s3] = ~this.words[s3] & 67108863 >> 26 - h4), this.strip();
       }, f3.prototype.notn = function(i) {
         return this.clone().inotn(i);
       }, f3.prototype.setn = function(i, a2) {
         r2(typeof i == "number" && i >= 0);
-        var h5 = i / 26 | 0, s3 = i % 26;
-        return this._expand(h5 + 1), a2 ? this.words[h5] = this.words[h5] | 1 << s3 : this.words[h5] = this.words[h5] & ~(1 << s3), this.strip();
+        var h4 = i / 26 | 0, s3 = i % 26;
+        return this._expand(h4 + 1), a2 ? this.words[h4] = this.words[h4] | 1 << s3 : this.words[h4] = this.words[h4] & ~(1 << s3), this.strip();
       }, f3.prototype.iadd = function(i) {
         var a2;
         if (this.negative !== 0 && i.negative === 0)
           return this.negative = 0, a2 = this.isub(i), this.negative ^= 1, this._normSign();
         if (this.negative === 0 && i.negative !== 0)
           return i.negative = 0, a2 = this.isub(i), i.negative = 1, a2._normSign();
-        var h5, s3;
-        this.length > i.length ? (h5 = this, s3 = i) : (h5 = i, s3 = this);
+        var h4, s3;
+        this.length > i.length ? (h4 = this, s3 = i) : (h4 = i, s3 = this);
         for (var u3 = 0, c = 0;c < s3.length; c++)
-          a2 = (h5.words[c] | 0) + (s3.words[c] | 0) + u3, this.words[c] = a2 & 67108863, u3 = a2 >>> 26;
-        for (;u3 !== 0 && c < h5.length; c++)
-          a2 = (h5.words[c] | 0) + u3, this.words[c] = a2 & 67108863, u3 = a2 >>> 26;
-        if (this.length = h5.length, u3 !== 0)
+          a2 = (h4.words[c] | 0) + (s3.words[c] | 0) + u3, this.words[c] = a2 & 67108863, u3 = a2 >>> 26;
+        for (;u3 !== 0 && c < h4.length; c++)
+          a2 = (h4.words[c] | 0) + u3, this.words[c] = a2 & 67108863, u3 = a2 >>> 26;
+        if (this.length = h4.length, u3 !== 0)
           this.words[this.length] = u3, this.length++;
-        else if (h5 !== this)
-          for (;c < h5.length; c++)
-            this.words[c] = h5.words[c];
+        else if (h4 !== this)
+          for (;c < h4.length; c++)
+            this.words[c] = h4.words[c];
         return this;
       }, f3.prototype.add = function(i) {
         var a2;
@@ -14799,11 +14754,11 @@ Use Chrome, Firefox or Internet Explorer 11`);
           return i.negative = 1, a2._normSign();
         } else if (this.negative !== 0)
           return this.negative = 0, this.iadd(i), this.negative = 1, this._normSign();
-        var h5 = this.cmp(i);
-        if (h5 === 0)
+        var h4 = this.cmp(i);
+        if (h4 === 0)
           return this.negative = 0, this.length = 1, this.words[0] = 0, this;
         var s3, u3;
-        h5 > 0 ? (s3 = this, u3 = i) : (s3 = i, u3 = this);
+        h4 > 0 ? (s3 = this, u3 = i) : (s3 = i, u3 = this);
         for (var c = 0, b3 = 0;b3 < u3.length; b3++)
           a2 = (s3.words[b3] | 0) - (u3.words[b3] | 0) + c, c = a2 >> 26, this.words[b3] = a2 & 67108863;
         for (;c !== 0 && b3 < s3.length; b3++)
@@ -14817,11 +14772,11 @@ Use Chrome, Firefox or Internet Explorer 11`);
       };
       function q2(v32, i, a2) {
         a2.negative = i.negative ^ v32.negative;
-        var h5 = v32.length + i.length | 0;
-        a2.length = h5, h5 = h5 - 1 | 0;
+        var h4 = v32.length + i.length | 0;
+        a2.length = h4, h4 = h4 - 1 | 0;
         var s3 = v32.words[0] | 0, u3 = i.words[0] | 0, c = s3 * u3, b3 = c & 67108863, l3 = c / 67108864 | 0;
         a2.words[0] = b3;
-        for (var n32 = 1;n32 < h5; n32++) {
+        for (var n32 = 1;n32 < h4; n32++) {
           for (var d = l3 >>> 26, w2 = l3 & 67108863, g2 = Math.min(n32, i.length - 1), _4 = Math.max(0, n32 - v32.length + 1);_4 <= g2; _4++) {
             var A6 = n32 - _4 | 0;
             s3 = v32.words[A6] | 0, u3 = i.words[_4] | 0, c = s3 * u3 + w2, d += c / 67108864 | 0, w2 = c & 67108863;
@@ -14830,9 +14785,9 @@ Use Chrome, Firefox or Internet Explorer 11`);
         }
         return l3 !== 0 ? a2.words[n32] = l3 | 0 : a2.length--, a2.strip();
       }
-      var L3 = function(i, a2, h5) {
-        var s3 = i.words, u3 = a2.words, c = h5.words, b3 = 0, l3, n32, d, w2 = s3[0] | 0, g2 = w2 & 8191, _4 = w2 >>> 13, A6 = s3[1] | 0, R3 = A6 & 8191, I2 = A6 >>> 13, Me = s3[2] | 0, k2 = Me & 8191, D2 = Me >>> 13, nt = s3[3] | 0, C3 = nt & 8191, O3 = nt >>> 13, vt = s3[4] | 0, F = vt & 8191, U2 = vt >>> 13, bt = s3[5] | 0, z3 = bt & 8191, H4 = bt >>> 13, mt = s3[6] | 0, W3 = mt & 8191, K = mt >>> 13, gt = s3[7] | 0, j2 = gt & 8191, Z4 = gt >>> 13, yt = s3[8] | 0, V5 = yt & 8191, $4 = yt >>> 13, wt = s3[9] | 0, G5 = wt & 8191, Y2 = wt >>> 13, Mt = u3[0] | 0, X4 = Mt & 8191, J = Mt >>> 13, _t = u3[1] | 0, Q3 = _t & 8191, ee = _t >>> 13, xt = u3[2] | 0, te = xt & 8191, re = xt >>> 13, St = u3[3] | 0, ie = St & 8191, ne = St >>> 13, Et = u3[4] | 0, fe = Et & 8191, ae = Et >>> 13, At = u3[5] | 0, oe = At & 8191, se = At >>> 13, Rt = u3[6] | 0, he = Rt & 8191, ue = Rt >>> 13, Bt = u3[7] | 0, le = Bt & 8191, de = Bt >>> 13, qt = u3[8] | 0, ce = qt & 8191, pe = qt >>> 13, It = u3[9] | 0, ve = It & 8191, be = It >>> 13;
-        h5.negative = i.negative ^ a2.negative, h5.length = 19, l3 = Math.imul(g2, X4), n32 = Math.imul(g2, J), n32 = n32 + Math.imul(_4, X4) | 0, d = Math.imul(_4, J);
+      var L3 = function(i, a2, h4) {
+        var s3 = i.words, u3 = a2.words, c = h4.words, b3 = 0, l3, n32, d, w2 = s3[0] | 0, g2 = w2 & 8191, _4 = w2 >>> 13, A6 = s3[1] | 0, R3 = A6 & 8191, I2 = A6 >>> 13, Me = s3[2] | 0, k2 = Me & 8191, D2 = Me >>> 13, nt = s3[3] | 0, C3 = nt & 8191, O3 = nt >>> 13, vt = s3[4] | 0, F = vt & 8191, U2 = vt >>> 13, bt = s3[5] | 0, z3 = bt & 8191, H4 = bt >>> 13, mt = s3[6] | 0, W3 = mt & 8191, K = mt >>> 13, gt = s3[7] | 0, j2 = gt & 8191, Z4 = gt >>> 13, yt = s3[8] | 0, V5 = yt & 8191, $4 = yt >>> 13, wt = s3[9] | 0, G5 = wt & 8191, Y2 = wt >>> 13, Mt = u3[0] | 0, X4 = Mt & 8191, J = Mt >>> 13, _t = u3[1] | 0, Q3 = _t & 8191, ee = _t >>> 13, xt = u3[2] | 0, te = xt & 8191, re = xt >>> 13, St = u3[3] | 0, ie = St & 8191, ne = St >>> 13, Et = u3[4] | 0, fe = Et & 8191, ae = Et >>> 13, At = u3[5] | 0, oe = At & 8191, se = At >>> 13, Rt = u3[6] | 0, he = Rt & 8191, ue = Rt >>> 13, Bt = u3[7] | 0, le = Bt & 8191, de = Bt >>> 13, qt = u3[8] | 0, ce = qt & 8191, pe = qt >>> 13, It = u3[9] | 0, ve = It & 8191, be = It >>> 13;
+        h4.negative = i.negative ^ a2.negative, h4.length = 19, l3 = Math.imul(g2, X4), n32 = Math.imul(g2, J), n32 = n32 + Math.imul(_4, X4) | 0, d = Math.imul(_4, J);
         var ft = (b3 + l3 | 0) + ((n32 & 8191) << 13) | 0;
         b3 = (d + (n32 >>> 13) | 0) + (ft >>> 26) | 0, ft &= 67108863, l3 = Math.imul(R3, X4), n32 = Math.imul(R3, J), n32 = n32 + Math.imul(I2, X4) | 0, d = Math.imul(I2, J), l3 = l3 + Math.imul(g2, Q3) | 0, n32 = n32 + Math.imul(g2, ee) | 0, n32 = n32 + Math.imul(_4, Q3) | 0, d = d + Math.imul(_4, ee) | 0;
         var Be = (b3 + l3 | 0) + ((n32 & 8191) << 13) | 0;
@@ -14870,89 +14825,89 @@ Use Chrome, Firefox or Internet Explorer 11`);
         var tt = (b3 + l3 | 0) + ((n32 & 8191) << 13) | 0;
         b3 = (d + (n32 >>> 13) | 0) + (tt >>> 26) | 0, tt &= 67108863, l3 = Math.imul(G5, ve), n32 = Math.imul(G5, be), n32 = n32 + Math.imul(Y2, ve) | 0, d = Math.imul(Y2, be);
         var rt = (b3 + l3 | 0) + ((n32 & 8191) << 13) | 0;
-        return b3 = (d + (n32 >>> 13) | 0) + (rt >>> 26) | 0, rt &= 67108863, c[0] = ft, c[1] = Be, c[2] = qe, c[3] = ze, c[4] = He, c[5] = We, c[6] = Ke, c[7] = je, c[8] = Ze, c[9] = Ve, c[10] = $e, c[11] = Ge, c[12] = Ye, c[13] = Xe, c[14] = Je, c[15] = Qe, c[16] = et, c[17] = tt, c[18] = rt, b3 !== 0 && (c[19] = b3, h5.length++), h5;
+        return b3 = (d + (n32 >>> 13) | 0) + (rt >>> 26) | 0, rt &= 67108863, c[0] = ft, c[1] = Be, c[2] = qe, c[3] = ze, c[4] = He, c[5] = We, c[6] = Ke, c[7] = je, c[8] = Ze, c[9] = Ve, c[10] = $e, c[11] = Ge, c[12] = Ye, c[13] = Xe, c[14] = Je, c[15] = Qe, c[16] = et, c[17] = tt, c[18] = rt, b3 !== 0 && (c[19] = b3, h4.length++), h4;
       };
       Math.imul || (L3 = q2);
       function ge(v32, i, a2) {
         a2.negative = i.negative ^ v32.negative, a2.length = v32.length + i.length;
-        for (var h5 = 0, s3 = 0, u3 = 0;u3 < a2.length - 1; u3++) {
+        for (var h4 = 0, s3 = 0, u3 = 0;u3 < a2.length - 1; u3++) {
           var c = s3;
           s3 = 0;
-          for (var b3 = h5 & 67108863, l3 = Math.min(u3, i.length - 1), n32 = Math.max(0, u3 - v32.length + 1);n32 <= l3; n32++) {
+          for (var b3 = h4 & 67108863, l3 = Math.min(u3, i.length - 1), n32 = Math.max(0, u3 - v32.length + 1);n32 <= l3; n32++) {
             var d = u3 - n32, w2 = v32.words[d] | 0, g2 = i.words[n32] | 0, _4 = w2 * g2, A6 = _4 & 67108863;
             c = c + (_4 / 67108864 | 0) | 0, A6 = A6 + b3 | 0, b3 = A6 & 67108863, c = c + (A6 >>> 26) | 0, s3 += c >>> 26, c &= 67108863;
           }
-          a2.words[u3] = b3, h5 = c, c = s3;
+          a2.words[u3] = b3, h4 = c, c = s3;
         }
-        return h5 !== 0 ? a2.words[u3] = h5 : a2.length--, a2.strip();
+        return h4 !== 0 ? a2.words[u3] = h4 : a2.length--, a2.strip();
       }
       function _e(v32, i, a2) {
-        var h5 = new N32;
-        return h5.mulp(v32, i, a2);
+        var h4 = new N32;
+        return h4.mulp(v32, i, a2);
       }
       f3.prototype.mulTo = function(i, a2) {
-        var h5, s3 = this.length + i.length;
-        return this.length === 10 && i.length === 10 ? h5 = L3(this, i, a2) : s3 < 63 ? h5 = q2(this, i, a2) : s3 < 1024 ? h5 = ge(this, i, a2) : h5 = _e(this, i, a2), h5;
+        var h4, s3 = this.length + i.length;
+        return this.length === 10 && i.length === 10 ? h4 = L3(this, i, a2) : s3 < 63 ? h4 = q2(this, i, a2) : s3 < 1024 ? h4 = ge(this, i, a2) : h4 = _e(this, i, a2), h4;
       };
       function N32(v32, i) {
         this.x = v32, this.y = i;
       }
       N32.prototype.makeRBT = function(i) {
-        for (var a2 = new Array(i), h5 = f3.prototype._countBits(i) - 1, s3 = 0;s3 < i; s3++)
-          a2[s3] = this.revBin(s3, h5, i);
+        for (var a2 = new Array(i), h4 = f3.prototype._countBits(i) - 1, s3 = 0;s3 < i; s3++)
+          a2[s3] = this.revBin(s3, h4, i);
         return a2;
-      }, N32.prototype.revBin = function(i, a2, h5) {
-        if (i === 0 || i === h5 - 1)
+      }, N32.prototype.revBin = function(i, a2, h4) {
+        if (i === 0 || i === h4 - 1)
           return i;
         for (var s3 = 0, u3 = 0;u3 < a2; u3++)
           s3 |= (i & 1) << a2 - u3 - 1, i >>= 1;
         return s3;
-      }, N32.prototype.permute = function(i, a2, h5, s3, u3, c) {
+      }, N32.prototype.permute = function(i, a2, h4, s3, u3, c) {
         for (var b3 = 0;b3 < c; b3++)
-          s3[b3] = a2[i[b3]], u3[b3] = h5[i[b3]];
-      }, N32.prototype.transform = function(i, a2, h5, s3, u3, c) {
-        this.permute(c, i, a2, h5, s3, u3);
+          s3[b3] = a2[i[b3]], u3[b3] = h4[i[b3]];
+      }, N32.prototype.transform = function(i, a2, h4, s3, u3, c) {
+        this.permute(c, i, a2, h4, s3, u3);
         for (var b3 = 1;b3 < u3; b3 <<= 1)
           for (var l3 = b3 << 1, n32 = Math.cos(2 * Math.PI / l3), d = Math.sin(2 * Math.PI / l3), w2 = 0;w2 < u3; w2 += l3)
             for (var g2 = n32, _4 = d, A6 = 0;A6 < b3; A6++) {
-              var R3 = h5[w2 + A6], I2 = s3[w2 + A6], Me = h5[w2 + A6 + b3], k2 = s3[w2 + A6 + b3], D2 = g2 * Me - _4 * k2;
-              k2 = g2 * k2 + _4 * Me, Me = D2, h5[w2 + A6] = R3 + Me, s3[w2 + A6] = I2 + k2, h5[w2 + A6 + b3] = R3 - Me, s3[w2 + A6 + b3] = I2 - k2, A6 !== l3 && (D2 = n32 * g2 - d * _4, _4 = n32 * _4 + d * g2, g2 = D2);
+              var R3 = h4[w2 + A6], I2 = s3[w2 + A6], Me = h4[w2 + A6 + b3], k2 = s3[w2 + A6 + b3], D2 = g2 * Me - _4 * k2;
+              k2 = g2 * k2 + _4 * Me, Me = D2, h4[w2 + A6] = R3 + Me, s3[w2 + A6] = I2 + k2, h4[w2 + A6 + b3] = R3 - Me, s3[w2 + A6 + b3] = I2 - k2, A6 !== l3 && (D2 = n32 * g2 - d * _4, _4 = n32 * _4 + d * g2, g2 = D2);
             }
       }, N32.prototype.guessLen13b = function(i, a2) {
-        var h5 = Math.max(a2, i) | 1, s3 = h5 & 1, u3 = 0;
-        for (h5 = h5 / 2 | 0;h5; h5 = h5 >>> 1)
+        var h4 = Math.max(a2, i) | 1, s3 = h4 & 1, u3 = 0;
+        for (h4 = h4 / 2 | 0;h4; h4 = h4 >>> 1)
           u3++;
         return 1 << u3 + 1 + s3;
-      }, N32.prototype.conjugate = function(i, a2, h5) {
-        if (!(h5 <= 1))
-          for (var s3 = 0;s3 < h5 / 2; s3++) {
+      }, N32.prototype.conjugate = function(i, a2, h4) {
+        if (!(h4 <= 1))
+          for (var s3 = 0;s3 < h4 / 2; s3++) {
             var u3 = i[s3];
-            i[s3] = i[h5 - s3 - 1], i[h5 - s3 - 1] = u3, u3 = a2[s3], a2[s3] = -a2[h5 - s3 - 1], a2[h5 - s3 - 1] = -u3;
+            i[s3] = i[h4 - s3 - 1], i[h4 - s3 - 1] = u3, u3 = a2[s3], a2[s3] = -a2[h4 - s3 - 1], a2[h4 - s3 - 1] = -u3;
           }
       }, N32.prototype.normalize13b = function(i, a2) {
-        for (var h5 = 0, s3 = 0;s3 < a2 / 2; s3++) {
-          var u3 = Math.round(i[2 * s3 + 1] / a2) * 8192 + Math.round(i[2 * s3] / a2) + h5;
-          i[s3] = u3 & 67108863, u3 < 67108864 ? h5 = 0 : h5 = u3 / 67108864 | 0;
+        for (var h4 = 0, s3 = 0;s3 < a2 / 2; s3++) {
+          var u3 = Math.round(i[2 * s3 + 1] / a2) * 8192 + Math.round(i[2 * s3] / a2) + h4;
+          i[s3] = u3 & 67108863, u3 < 67108864 ? h4 = 0 : h4 = u3 / 67108864 | 0;
         }
         return i;
-      }, N32.prototype.convert13b = function(i, a2, h5, s3) {
+      }, N32.prototype.convert13b = function(i, a2, h4, s3) {
         for (var u3 = 0, c = 0;c < a2; c++)
-          u3 = u3 + (i[c] | 0), h5[2 * c] = u3 & 8191, u3 = u3 >>> 13, h5[2 * c + 1] = u3 & 8191, u3 = u3 >>> 13;
+          u3 = u3 + (i[c] | 0), h4[2 * c] = u3 & 8191, u3 = u3 >>> 13, h4[2 * c + 1] = u3 & 8191, u3 = u3 >>> 13;
         for (c = 2 * a2;c < s3; ++c)
-          h5[c] = 0;
+          h4[c] = 0;
         r2(u3 === 0), r2((u3 & -8192) === 0);
       }, N32.prototype.stub = function(i) {
-        for (var a2 = new Array(i), h5 = 0;h5 < i; h5++)
-          a2[h5] = 0;
+        for (var a2 = new Array(i), h4 = 0;h4 < i; h4++)
+          a2[h4] = 0;
         return a2;
-      }, N32.prototype.mulp = function(i, a2, h5) {
-        var s3 = 2 * this.guessLen13b(i.length, a2.length), u3 = this.makeRBT(s3), c = this.stub(s3), b3 = new Array(s3), l3 = new Array(s3), n32 = new Array(s3), d = new Array(s3), w2 = new Array(s3), g2 = new Array(s3), _4 = h5.words;
+      }, N32.prototype.mulp = function(i, a2, h4) {
+        var s3 = 2 * this.guessLen13b(i.length, a2.length), u3 = this.makeRBT(s3), c = this.stub(s3), b3 = new Array(s3), l3 = new Array(s3), n32 = new Array(s3), d = new Array(s3), w2 = new Array(s3), g2 = new Array(s3), _4 = h4.words;
         _4.length = s3, this.convert13b(i.words, i.length, b3, s3), this.convert13b(a2.words, a2.length, d, s3), this.transform(b3, c, l3, n32, s3, u3), this.transform(d, c, w2, g2, s3, u3);
         for (var A6 = 0;A6 < s3; A6++) {
           var R3 = l3[A6] * w2[A6] - n32[A6] * g2[A6];
           n32[A6] = l3[A6] * g2[A6] + n32[A6] * w2[A6], l3[A6] = R3;
         }
-        return this.conjugate(l3, n32, s3), this.transform(l3, n32, _4, c, s3, u3), this.conjugate(_4, c, s3), this.normalize13b(_4, s3), h5.negative = i.negative ^ a2.negative, h5.length = i.length + a2.length, h5.strip();
+        return this.conjugate(l3, n32, s3), this.transform(l3, n32, _4, c, s3, u3), this.conjugate(_4, c, s3), this.normalize13b(_4, s3), h4.negative = i.negative ^ a2.negative, h4.length = i.length + a2.length, h4.strip();
       }, f3.prototype.mul = function(i) {
         var a2 = new f3(null);
         return a2.words = new Array(this.length + i.length), this.mulTo(i, a2);
@@ -14963,11 +14918,11 @@ Use Chrome, Firefox or Internet Explorer 11`);
         return this.clone().mulTo(i, this);
       }, f3.prototype.imuln = function(i) {
         r2(typeof i == "number"), r2(i < 67108864);
-        for (var a2 = 0, h5 = 0;h5 < this.length; h5++) {
-          var s3 = (this.words[h5] | 0) * i, u3 = (s3 & 67108863) + (a2 & 67108863);
-          a2 >>= 26, a2 += s3 / 67108864 | 0, a2 += u3 >>> 26, this.words[h5] = u3 & 67108863;
+        for (var a2 = 0, h4 = 0;h4 < this.length; h4++) {
+          var s3 = (this.words[h4] | 0) * i, u3 = (s3 & 67108863) + (a2 & 67108863);
+          a2 >>= 26, a2 += s3 / 67108864 | 0, a2 += u3 >>> 26, this.words[h4] = u3 & 67108863;
         }
-        return a2 !== 0 && (this.words[h5] = a2, this.length++), this;
+        return a2 !== 0 && (this.words[h4] = a2, this.length++), this;
       }, f3.prototype.muln = function(i) {
         return this.clone().imuln(i);
       }, f3.prototype.sqr = function() {
@@ -14978,15 +14933,15 @@ Use Chrome, Firefox or Internet Explorer 11`);
         var a2 = B6(i);
         if (a2.length === 0)
           return new f3(1);
-        for (var h5 = this, s3 = 0;s3 < a2.length && a2[s3] === 0; s3++, h5 = h5.sqr())
+        for (var h4 = this, s3 = 0;s3 < a2.length && a2[s3] === 0; s3++, h4 = h4.sqr())
           ;
         if (++s3 < a2.length)
-          for (var u3 = h5.sqr();s3 < a2.length; s3++, u3 = u3.sqr())
-            a2[s3] !== 0 && (h5 = h5.mul(u3));
-        return h5;
+          for (var u3 = h4.sqr();s3 < a2.length; s3++, u3 = u3.sqr())
+            a2[s3] !== 0 && (h4 = h4.mul(u3));
+        return h4;
       }, f3.prototype.iushln = function(i) {
         r2(typeof i == "number" && i >= 0);
-        var a2 = i % 26, h5 = (i - a2) / 26, s3 = 67108863 >>> 26 - a2 << 26 - a2, u3;
+        var a2 = i % 26, h4 = (i - a2) / 26, s3 = 67108863 >>> 26 - a2 << 26 - a2, u3;
         if (a2 !== 0) {
           var c = 0;
           for (u3 = 0;u3 < this.length; u3++) {
@@ -14995,21 +14950,21 @@ Use Chrome, Firefox or Internet Explorer 11`);
           }
           c && (this.words[u3] = c, this.length++);
         }
-        if (h5 !== 0) {
+        if (h4 !== 0) {
           for (u3 = this.length - 1;u3 >= 0; u3--)
-            this.words[u3 + h5] = this.words[u3];
-          for (u3 = 0;u3 < h5; u3++)
+            this.words[u3 + h4] = this.words[u3];
+          for (u3 = 0;u3 < h4; u3++)
             this.words[u3] = 0;
-          this.length += h5;
+          this.length += h4;
         }
         return this.strip();
       }, f3.prototype.ishln = function(i) {
         return r2(this.negative === 0), this.iushln(i);
-      }, f3.prototype.iushrn = function(i, a2, h5) {
+      }, f3.prototype.iushrn = function(i, a2, h4) {
         r2(typeof i == "number" && i >= 0);
         var s3;
         a2 ? s3 = (a2 - a2 % 26) / 26 : s3 = 0;
-        var u3 = i % 26, c = Math.min((i - u3) / 26, this.length), b3 = 67108863 ^ 67108863 >>> u3 << u3, l3 = h5;
+        var u3 = i % 26, c = Math.min((i - u3) / 26, this.length), b3 = 67108863 ^ 67108863 >>> u3 << u3, l3 = h4;
         if (s3 -= c, s3 = Math.max(0, s3), l3) {
           for (var n32 = 0;n32 < c; n32++)
             l3.words[n32] = this.words[n32];
@@ -15027,8 +14982,8 @@ Use Chrome, Firefox or Internet Explorer 11`);
           this.words[n32] = d << 26 - u3 | w2 >>> u3, d = w2 & b3;
         }
         return l3 && d !== 0 && (l3.words[l3.length++] = d), this.length === 0 && (this.words[0] = 0, this.length = 1), this.strip();
-      }, f3.prototype.ishrn = function(i, a2, h5) {
-        return r2(this.negative === 0), this.iushrn(i, a2, h5);
+      }, f3.prototype.ishrn = function(i, a2, h4) {
+        return r2(this.negative === 0), this.iushrn(i, a2, h4);
       }, f3.prototype.shln = function(i) {
         return this.clone().ishln(i);
       }, f3.prototype.ushln = function(i) {
@@ -15039,17 +14994,17 @@ Use Chrome, Firefox or Internet Explorer 11`);
         return this.clone().iushrn(i);
       }, f3.prototype.testn = function(i) {
         r2(typeof i == "number" && i >= 0);
-        var a2 = i % 26, h5 = (i - a2) / 26, s3 = 1 << a2;
-        if (this.length <= h5)
+        var a2 = i % 26, h4 = (i - a2) / 26, s3 = 1 << a2;
+        if (this.length <= h4)
           return false;
-        var u3 = this.words[h5];
+        var u3 = this.words[h4];
         return !!(u3 & s3);
       }, f3.prototype.imaskn = function(i) {
         r2(typeof i == "number" && i >= 0);
-        var a2 = i % 26, h5 = (i - a2) / 26;
-        if (r2(this.negative === 0, "imaskn works only with positive numbers"), this.length <= h5)
+        var a2 = i % 26, h4 = (i - a2) / 26;
+        if (r2(this.negative === 0, "imaskn works only with positive numbers"), this.length <= h4)
           return this;
-        if (a2 !== 0 && h5++, this.length = Math.min(h5, this.length), a2 !== 0) {
+        if (a2 !== 0 && h4++, this.length = Math.min(h4, this.length), a2 !== 0) {
           var s3 = 67108863 ^ 67108863 >>> a2 << a2;
           this.words[this.length - 1] &= s3;
         }
@@ -15082,25 +15037,25 @@ Use Chrome, Firefox or Internet Explorer 11`);
         return this.negative = 0, this;
       }, f3.prototype.abs = function() {
         return this.clone().iabs();
-      }, f3.prototype._ishlnsubmul = function(i, a2, h5) {
-        var s3 = i.length + h5, u3;
+      }, f3.prototype._ishlnsubmul = function(i, a2, h4) {
+        var s3 = i.length + h4, u3;
         this._expand(s3);
         var c, b3 = 0;
         for (u3 = 0;u3 < i.length; u3++) {
-          c = (this.words[u3 + h5] | 0) + b3;
+          c = (this.words[u3 + h4] | 0) + b3;
           var l3 = (i.words[u3] | 0) * a2;
-          c -= l3 & 67108863, b3 = (c >> 26) - (l3 / 67108864 | 0), this.words[u3 + h5] = c & 67108863;
+          c -= l3 & 67108863, b3 = (c >> 26) - (l3 / 67108864 | 0), this.words[u3 + h4] = c & 67108863;
         }
-        for (;u3 < this.length - h5; u3++)
-          c = (this.words[u3 + h5] | 0) + b3, b3 = c >> 26, this.words[u3 + h5] = c & 67108863;
+        for (;u3 < this.length - h4; u3++)
+          c = (this.words[u3 + h4] | 0) + b3, b3 = c >> 26, this.words[u3 + h4] = c & 67108863;
         if (b3 === 0)
           return this.strip();
         for (r2(b3 === -1), b3 = 0, u3 = 0;u3 < this.length; u3++)
           c = -(this.words[u3] | 0) + b3, b3 = c >> 26, this.words[u3] = c & 67108863;
         return this.negative = 1, this.strip();
       }, f3.prototype._wordDiv = function(i, a2) {
-        var h5 = this.length - i.length, s3 = this.clone(), u3 = i, c = u3.words[u3.length - 1] | 0, b3 = this._countBits(c);
-        h5 = 26 - b3, h5 !== 0 && (u3 = u3.ushln(h5), s3.iushln(h5), c = u3.words[u3.length - 1] | 0);
+        var h4 = this.length - i.length, s3 = this.clone(), u3 = i, c = u3.words[u3.length - 1] | 0, b3 = this._countBits(c);
+        h4 = 26 - b3, h4 !== 0 && (u3 = u3.ushln(h4), s3.iushln(h4), c = u3.words[u3.length - 1] | 0);
         var l3 = s3.length - u3.length, n32;
         if (a2 !== "mod") {
           n32 = new f3(null), n32.length = l3 + 1, n32.words = new Array(n32.length);
@@ -15115,12 +15070,12 @@ Use Chrome, Firefox or Internet Explorer 11`);
             _4--, s3.negative = 0, s3._ishlnsubmul(u3, 1, g2), s3.isZero() || (s3.negative ^= 1);
           n32 && (n32.words[g2] = _4);
         }
-        return n32 && n32.strip(), s3.strip(), a2 !== "div" && h5 !== 0 && s3.iushrn(h5), { div: n32 || null, mod: s3 };
-      }, f3.prototype.divmod = function(i, a2, h5) {
+        return n32 && n32.strip(), s3.strip(), a2 !== "div" && h4 !== 0 && s3.iushrn(h4), { div: n32 || null, mod: s3 };
+      }, f3.prototype.divmod = function(i, a2, h4) {
         if (r2(!i.isZero()), this.isZero())
           return { div: new f3(0), mod: new f3(0) };
         var s3, u3, c;
-        return this.negative !== 0 && i.negative === 0 ? (c = this.neg().divmod(i, a2), a2 !== "mod" && (s3 = c.div.neg()), a2 !== "div" && (u3 = c.mod.neg(), h5 && u3.negative !== 0 && u3.iadd(i)), { div: s3, mod: u3 }) : this.negative === 0 && i.negative !== 0 ? (c = this.divmod(i.neg(), a2), a2 !== "mod" && (s3 = c.div.neg()), { div: s3, mod: c.mod }) : (this.negative & i.negative) !== 0 ? (c = this.neg().divmod(i.neg(), a2), a2 !== "div" && (u3 = c.mod.neg(), h5 && u3.negative !== 0 && u3.isub(i)), { div: c.div, mod: u3 }) : i.length > this.length || this.cmp(i) < 0 ? { div: new f3(0), mod: this } : i.length === 1 ? a2 === "div" ? { div: this.divn(i.words[0]), mod: null } : a2 === "mod" ? { div: null, mod: new f3(this.modn(i.words[0])) } : { div: this.divn(i.words[0]), mod: new f3(this.modn(i.words[0])) } : this._wordDiv(i, a2);
+        return this.negative !== 0 && i.negative === 0 ? (c = this.neg().divmod(i, a2), a2 !== "mod" && (s3 = c.div.neg()), a2 !== "div" && (u3 = c.mod.neg(), h4 && u3.negative !== 0 && u3.iadd(i)), { div: s3, mod: u3 }) : this.negative === 0 && i.negative !== 0 ? (c = this.divmod(i.neg(), a2), a2 !== "mod" && (s3 = c.div.neg()), { div: s3, mod: c.mod }) : (this.negative & i.negative) !== 0 ? (c = this.neg().divmod(i.neg(), a2), a2 !== "div" && (u3 = c.mod.neg(), h4 && u3.negative !== 0 && u3.isub(i)), { div: c.div, mod: u3 }) : i.length > this.length || this.cmp(i) < 0 ? { div: new f3(0), mod: this } : i.length === 1 ? a2 === "div" ? { div: this.divn(i.words[0]), mod: null } : a2 === "mod" ? { div: null, mod: new f3(this.modn(i.words[0])) } : { div: this.divn(i.words[0]), mod: new f3(this.modn(i.words[0])) } : this._wordDiv(i, a2);
       }, f3.prototype.div = function(i) {
         return this.divmod(i, "div", false).div;
       }, f3.prototype.mod = function(i) {
@@ -15131,58 +15086,58 @@ Use Chrome, Firefox or Internet Explorer 11`);
         var a2 = this.divmod(i);
         if (a2.mod.isZero())
           return a2.div;
-        var h5 = a2.div.negative !== 0 ? a2.mod.isub(i) : a2.mod, s3 = i.ushrn(1), u3 = i.andln(1), c = h5.cmp(s3);
+        var h4 = a2.div.negative !== 0 ? a2.mod.isub(i) : a2.mod, s3 = i.ushrn(1), u3 = i.andln(1), c = h4.cmp(s3);
         return c < 0 || u3 === 1 && c === 0 ? a2.div : a2.div.negative !== 0 ? a2.div.isubn(1) : a2.div.iaddn(1);
       }, f3.prototype.modn = function(i) {
         r2(i <= 67108863);
-        for (var a2 = (1 << 26) % i, h5 = 0, s3 = this.length - 1;s3 >= 0; s3--)
-          h5 = (a2 * h5 + (this.words[s3] | 0)) % i;
-        return h5;
+        for (var a2 = (1 << 26) % i, h4 = 0, s3 = this.length - 1;s3 >= 0; s3--)
+          h4 = (a2 * h4 + (this.words[s3] | 0)) % i;
+        return h4;
       }, f3.prototype.idivn = function(i) {
         r2(i <= 67108863);
-        for (var a2 = 0, h5 = this.length - 1;h5 >= 0; h5--) {
-          var s3 = (this.words[h5] | 0) + a2 * 67108864;
-          this.words[h5] = s3 / i | 0, a2 = s3 % i;
+        for (var a2 = 0, h4 = this.length - 1;h4 >= 0; h4--) {
+          var s3 = (this.words[h4] | 0) + a2 * 67108864;
+          this.words[h4] = s3 / i | 0, a2 = s3 % i;
         }
         return this.strip();
       }, f3.prototype.divn = function(i) {
         return this.clone().idivn(i);
       }, f3.prototype.egcd = function(i) {
         r2(i.negative === 0), r2(!i.isZero());
-        var a2 = this, h5 = i.clone();
+        var a2 = this, h4 = i.clone();
         a2.negative !== 0 ? a2 = a2.umod(i) : a2 = a2.clone();
-        for (var s3 = new f3(1), u3 = new f3(0), c = new f3(0), b3 = new f3(1), l3 = 0;a2.isEven() && h5.isEven(); )
-          a2.iushrn(1), h5.iushrn(1), ++l3;
-        for (var n32 = h5.clone(), d = a2.clone();!a2.isZero(); ) {
+        for (var s3 = new f3(1), u3 = new f3(0), c = new f3(0), b3 = new f3(1), l3 = 0;a2.isEven() && h4.isEven(); )
+          a2.iushrn(1), h4.iushrn(1), ++l3;
+        for (var n32 = h4.clone(), d = a2.clone();!a2.isZero(); ) {
           for (var w2 = 0, g2 = 1;(a2.words[0] & g2) === 0 && w2 < 26; ++w2, g2 <<= 1)
             ;
           if (w2 > 0)
             for (a2.iushrn(w2);w2-- > 0; )
               (s3.isOdd() || u3.isOdd()) && (s3.iadd(n32), u3.isub(d)), s3.iushrn(1), u3.iushrn(1);
-          for (var _4 = 0, A6 = 1;(h5.words[0] & A6) === 0 && _4 < 26; ++_4, A6 <<= 1)
+          for (var _4 = 0, A6 = 1;(h4.words[0] & A6) === 0 && _4 < 26; ++_4, A6 <<= 1)
             ;
           if (_4 > 0)
-            for (h5.iushrn(_4);_4-- > 0; )
+            for (h4.iushrn(_4);_4-- > 0; )
               (c.isOdd() || b3.isOdd()) && (c.iadd(n32), b3.isub(d)), c.iushrn(1), b3.iushrn(1);
-          a2.cmp(h5) >= 0 ? (a2.isub(h5), s3.isub(c), u3.isub(b3)) : (h5.isub(a2), c.isub(s3), b3.isub(u3));
+          a2.cmp(h4) >= 0 ? (a2.isub(h4), s3.isub(c), u3.isub(b3)) : (h4.isub(a2), c.isub(s3), b3.isub(u3));
         }
-        return { a: c, b: b3, gcd: h5.iushln(l3) };
+        return { a: c, b: b3, gcd: h4.iushln(l3) };
       }, f3.prototype._invmp = function(i) {
         r2(i.negative === 0), r2(!i.isZero());
-        var a2 = this, h5 = i.clone();
+        var a2 = this, h4 = i.clone();
         a2.negative !== 0 ? a2 = a2.umod(i) : a2 = a2.clone();
-        for (var s3 = new f3(1), u3 = new f3(0), c = h5.clone();a2.cmpn(1) > 0 && h5.cmpn(1) > 0; ) {
+        for (var s3 = new f3(1), u3 = new f3(0), c = h4.clone();a2.cmpn(1) > 0 && h4.cmpn(1) > 0; ) {
           for (var b3 = 0, l3 = 1;(a2.words[0] & l3) === 0 && b3 < 26; ++b3, l3 <<= 1)
             ;
           if (b3 > 0)
             for (a2.iushrn(b3);b3-- > 0; )
               s3.isOdd() && s3.iadd(c), s3.iushrn(1);
-          for (var n32 = 0, d = 1;(h5.words[0] & d) === 0 && n32 < 26; ++n32, d <<= 1)
+          for (var n32 = 0, d = 1;(h4.words[0] & d) === 0 && n32 < 26; ++n32, d <<= 1)
             ;
           if (n32 > 0)
-            for (h5.iushrn(n32);n32-- > 0; )
+            for (h4.iushrn(n32);n32-- > 0; )
               u3.isOdd() && u3.iadd(c), u3.iushrn(1);
-          a2.cmp(h5) >= 0 ? (a2.isub(h5), s3.isub(u3)) : (h5.isub(a2), u3.isub(s3));
+          a2.cmp(h4) >= 0 ? (a2.isub(h4), s3.isub(u3)) : (h4.isub(a2), u3.isub(s3));
         }
         var w2;
         return a2.cmpn(1) === 0 ? w2 = s3 : w2 = u3, w2.cmpn(0) < 0 && w2.iadd(i), w2;
@@ -15191,24 +15146,24 @@ Use Chrome, Firefox or Internet Explorer 11`);
           return i.abs();
         if (i.isZero())
           return this.abs();
-        var a2 = this.clone(), h5 = i.clone();
-        a2.negative = 0, h5.negative = 0;
-        for (var s3 = 0;a2.isEven() && h5.isEven(); s3++)
-          a2.iushrn(1), h5.iushrn(1);
+        var a2 = this.clone(), h4 = i.clone();
+        a2.negative = 0, h4.negative = 0;
+        for (var s3 = 0;a2.isEven() && h4.isEven(); s3++)
+          a2.iushrn(1), h4.iushrn(1);
         do {
           for (;a2.isEven(); )
             a2.iushrn(1);
-          for (;h5.isEven(); )
-            h5.iushrn(1);
-          var u3 = a2.cmp(h5);
+          for (;h4.isEven(); )
+            h4.iushrn(1);
+          var u3 = a2.cmp(h4);
           if (u3 < 0) {
             var c = a2;
-            a2 = h5, h5 = c;
-          } else if (u3 === 0 || h5.cmpn(1) === 0)
+            a2 = h4, h4 = c;
+          } else if (u3 === 0 || h4.cmpn(1) === 0)
             break;
-          a2.isub(h5);
+          a2.isub(h4);
         } while (true);
-        return h5.iushln(s3);
+        return h4.iushln(s3);
       }, f3.prototype.invm = function(i) {
         return this.egcd(i).a.umod(i);
       }, f3.prototype.isEven = function() {
@@ -15219,10 +15174,10 @@ Use Chrome, Firefox or Internet Explorer 11`);
         return this.words[0] & i;
       }, f3.prototype.bincn = function(i) {
         r2(typeof i == "number");
-        var a2 = i % 26, h5 = (i - a2) / 26, s3 = 1 << a2;
-        if (this.length <= h5)
-          return this._expand(h5 + 1), this.words[h5] |= s3, this;
-        for (var u3 = s3, c = h5;u3 !== 0 && c < this.length; c++) {
+        var a2 = i % 26, h4 = (i - a2) / 26, s3 = 1 << a2;
+        if (this.length <= h4)
+          return this._expand(h4 + 1), this.words[h4] |= s3, this;
+        for (var u3 = s3, c = h4;u3 !== 0 && c < this.length; c++) {
           var b3 = this.words[c] | 0;
           b3 += u3, u3 = b3 >>> 26, b3 &= 67108863, this.words[c] = b3;
         }
@@ -15236,15 +15191,15 @@ Use Chrome, Firefox or Internet Explorer 11`);
         if (this.negative === 0 && a2)
           return 1;
         this.strip();
-        var h5;
+        var h4;
         if (this.length > 1)
-          h5 = 1;
+          h4 = 1;
         else {
           a2 && (i = -i), r2(i <= 67108863, "Number is too big");
           var s3 = this.words[0] | 0;
-          h5 = s3 === i ? 0 : s3 < i ? -1 : 1;
+          h4 = s3 === i ? 0 : s3 < i ? -1 : 1;
         }
-        return this.negative !== 0 ? -h5 | 0 : h5;
+        return this.negative !== 0 ? -h4 | 0 : h4;
       }, f3.prototype.cmp = function(i) {
         if (this.negative !== 0 && i.negative === 0)
           return -1;
@@ -15257,8 +15212,8 @@ Use Chrome, Firefox or Internet Explorer 11`);
           return 1;
         if (this.length < i.length)
           return -1;
-        for (var a2 = 0, h5 = this.length - 1;h5 >= 0; h5--) {
-          var s3 = this.words[h5] | 0, u3 = i.words[h5] | 0;
+        for (var a2 = 0, h4 = this.length - 1;h4 >= 0; h4--) {
+          var s3 = this.words[h4] | 0, u3 = i.words[h4] | 0;
           if (s3 !== u3) {
             s3 < u3 ? a2 = -1 : s3 > u3 && (a2 = 1);
             break;
@@ -15330,11 +15285,11 @@ Use Chrome, Firefox or Internet Explorer 11`);
         var i = new f3(null);
         return i.words = new Array(Math.ceil(this.n / 13)), i;
       }, ye.prototype.ireduce = function(i) {
-        var a2 = i, h5;
+        var a2 = i, h4;
         do
-          this.split(a2, this.tmp), a2 = this.imulK(a2), a2 = a2.iadd(this.tmp), h5 = a2.bitLength();
-        while (h5 > this.n);
-        var s3 = h5 < this.n ? -1 : a2.ucmp(this.p);
+          this.split(a2, this.tmp), a2 = this.imulK(a2), a2 = a2.iadd(this.tmp), h4 = a2.bitLength();
+        while (h4 > this.n);
+        var s3 = h4 < this.n ? -1 : a2.ucmp(this.p);
         return s3 === 0 ? (a2.words[0] = 0, a2.length = 1) : s3 > 0 ? a2.isub(this.p) : a2.strip !== undefined ? a2.strip() : a2._strip(), a2;
       }, ye.prototype.split = function(i, a2) {
         i.iushrn(this.n, 0, a2);
@@ -15345,23 +15300,23 @@ Use Chrome, Firefox or Internet Explorer 11`);
         ye.call(this, "k256", "ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff fffffffe fffffc2f");
       }
       o2(xe, ye), xe.prototype.split = function(i, a2) {
-        for (var h5 = 4194303, s3 = Math.min(i.length, 9), u3 = 0;u3 < s3; u3++)
+        for (var h4 = 4194303, s3 = Math.min(i.length, 9), u3 = 0;u3 < s3; u3++)
           a2.words[u3] = i.words[u3];
         if (a2.length = s3, i.length <= 9) {
           i.words[0] = 0, i.length = 1;
           return;
         }
         var c = i.words[9];
-        for (a2.words[a2.length++] = c & h5, u3 = 10;u3 < i.length; u3++) {
+        for (a2.words[a2.length++] = c & h4, u3 = 10;u3 < i.length; u3++) {
           var b3 = i.words[u3] | 0;
-          i.words[u3 - 10] = (b3 & h5) << 4 | c >>> 22, c = b3;
+          i.words[u3 - 10] = (b3 & h4) << 4 | c >>> 22, c = b3;
         }
         c >>>= 22, i.words[u3 - 10] = c, c === 0 && i.length > 10 ? i.length -= 10 : i.length -= 9;
       }, xe.prototype.imulK = function(i) {
         i.words[i.length] = 0, i.words[i.length + 1] = 0, i.length += 2;
-        for (var a2 = 0, h5 = 0;h5 < i.length; h5++) {
-          var s3 = i.words[h5] | 0;
-          a2 += s3 * 977, i.words[h5] = a2 & 67108863, a2 = s3 * 64 + (a2 / 67108864 | 0);
+        for (var a2 = 0, h4 = 0;h4 < i.length; h4++) {
+          var s3 = i.words[h4] | 0;
+          a2 += s3 * 977, i.words[h4] = a2 & 67108863, a2 = s3 * 64 + (a2 / 67108864 | 0);
         }
         return i.words[i.length - 1] === 0 && (i.length--, i.words[i.length - 1] === 0 && i.length--), i;
       };
@@ -15377,9 +15332,9 @@ Use Chrome, Firefox or Internet Explorer 11`);
         ye.call(this, "25519", "7fffffffffffffff ffffffffffffffff ffffffffffffffff ffffffffffffffed");
       }
       o2(Ae, ye), Ae.prototype.imulK = function(i) {
-        for (var a2 = 0, h5 = 0;h5 < i.length; h5++) {
-          var s3 = (i.words[h5] | 0) * 19 + a2, u3 = s3 & 67108863;
-          s3 >>>= 26, i.words[h5] = u3, a2 = s3;
+        for (var a2 = 0, h4 = 0;h4 < i.length; h4++) {
+          var s3 = (i.words[h4] | 0) * 19 + a2, u3 = s3 & 67108863;
+          s3 >>>= 26, i.words[h4] = u3, a2 = s3;
         }
         return a2 !== 0 && (i.words[i.length++] = a2), i;
       }, f3._prime = function(i) {
@@ -15415,20 +15370,20 @@ Use Chrome, Firefox or Internet Explorer 11`);
         return i.isZero() ? i.clone() : this.m.sub(i)._forceRed(this);
       }, P2.prototype.add = function(i, a2) {
         this._verify2(i, a2);
-        var h5 = i.add(a2);
-        return h5.cmp(this.m) >= 0 && h5.isub(this.m), h5._forceRed(this);
+        var h4 = i.add(a2);
+        return h4.cmp(this.m) >= 0 && h4.isub(this.m), h4._forceRed(this);
       }, P2.prototype.iadd = function(i, a2) {
         this._verify2(i, a2);
-        var h5 = i.iadd(a2);
-        return h5.cmp(this.m) >= 0 && h5.isub(this.m), h5;
+        var h4 = i.iadd(a2);
+        return h4.cmp(this.m) >= 0 && h4.isub(this.m), h4;
       }, P2.prototype.sub = function(i, a2) {
         this._verify2(i, a2);
-        var h5 = i.sub(a2);
-        return h5.cmpn(0) < 0 && h5.iadd(this.m), h5._forceRed(this);
+        var h4 = i.sub(a2);
+        return h4.cmpn(0) < 0 && h4.iadd(this.m), h4._forceRed(this);
       }, P2.prototype.isub = function(i, a2) {
         this._verify2(i, a2);
-        var h5 = i.isub(a2);
-        return h5.cmpn(0) < 0 && h5.iadd(this.m), h5;
+        var h4 = i.isub(a2);
+        return h4.cmpn(0) < 0 && h4.iadd(this.m), h4;
       }, P2.prototype.shl = function(i, a2) {
         return this._verify1(i), this.imod(i.ushln(a2));
       }, P2.prototype.imul = function(i, a2) {
@@ -15444,8 +15399,8 @@ Use Chrome, Firefox or Internet Explorer 11`);
           return i.clone();
         var a2 = this.m.andln(3);
         if (r2(a2 % 2 === 1), a2 === 3) {
-          var h5 = this.m.add(new f3(1)).iushrn(2);
-          return this.pow(i, h5);
+          var h4 = this.m.add(new f3(1)).iushrn(2);
+          return this.pow(i, h4);
         }
         for (var s3 = this.m.subn(1), u3 = 0;!s3.isZero() && s3.andln(1) === 0; )
           u3++, s3.iushrn(1);
@@ -15469,7 +15424,7 @@ Use Chrome, Firefox or Internet Explorer 11`);
           return new f3(1).toRed(this);
         if (a2.cmpn(1) === 0)
           return i.clone();
-        var h5 = 4, s3 = new Array(1 << h5);
+        var h4 = 4, s3 = new Array(1 << h4);
         s3[0] = new f3(1).toRed(this), s3[1] = i;
         for (var u3 = 2;u3 < s3.length; u3++)
           s3[u3] = this.mul(s3[u3 - 1], i);
@@ -15481,7 +15436,7 @@ Use Chrome, Firefox or Internet Explorer 11`);
               l3 = 0;
               continue;
             }
-            b3 <<= 1, b3 |= g2, l3++, !(l3 !== h5 && (u3 !== 0 || w2 !== 0)) && (c = this.mul(c, s3[b3]), l3 = 0, b3 = 0);
+            b3 <<= 1, b3 |= g2, l3++, !(l3 !== h4 && (u3 !== 0 || w2 !== 0)) && (c = this.mul(c, s3[b3]), l3 = 0, b3 = 0);
           }
           n32 = 26;
         }
@@ -15506,12 +15461,12 @@ Use Chrome, Firefox or Internet Explorer 11`);
       }, Se.prototype.imul = function(i, a2) {
         if (i.isZero() || a2.isZero())
           return i.words[0] = 0, i.length = 1, i;
-        var h5 = i.imul(a2), s3 = h5.maskn(this.shift).mul(this.minv).imaskn(this.shift).mul(this.m), u3 = h5.isub(s3).iushrn(this.shift), c = u3;
+        var h4 = i.imul(a2), s3 = h4.maskn(this.shift).mul(this.minv).imaskn(this.shift).mul(this.m), u3 = h4.isub(s3).iushrn(this.shift), c = u3;
         return u3.cmp(this.m) >= 0 ? c = u3.isub(this.m) : u3.cmpn(0) < 0 && (c = u3.iadd(this.m)), c._forceRed(this);
       }, Se.prototype.mul = function(i, a2) {
         if (i.isZero() || a2.isZero())
           return new f3(0)._forceRed(this);
-        var h5 = i.mul(a2), s3 = h5.maskn(this.shift).mul(this.minv).imaskn(this.shift).mul(this.m), u3 = h5.isub(s3).iushrn(this.shift), c = u3;
+        var h4 = i.mul(a2), s3 = h4.maskn(this.shift).mul(this.minv).imaskn(this.shift).mul(this.m), u3 = h4.isub(s3).iushrn(this.shift), c = u3;
         return u3.cmp(this.m) >= 0 ? c = u3.isub(this.m) : u3.cmpn(0) < 0 && (c = u3.iadd(this.m)), c._forceRed(this);
       }, Se.prototype.invm = function(i) {
         var a2 = this.imod(i._invmp(this.m).mul(this.r2));
@@ -16726,27 +16681,27 @@ Use Chrome, Firefox or Internet Explorer 11`);
         return i.cmp(a2) > 0 ? i : a2;
       }, f3.min = function(i, a2) {
         return i.cmp(a2) < 0 ? i : a2;
-      }, f3.prototype._init = function(i, a2, h5) {
+      }, f3.prototype._init = function(i, a2, h4) {
         if (typeof i == "number")
-          return this._initNumber(i, a2, h5);
+          return this._initNumber(i, a2, h4);
         if (typeof i == "object")
-          return this._initArray(i, a2, h5);
+          return this._initArray(i, a2, h4);
         a2 === "hex" && (a2 = 16), r2(a2 === (a2 | 0) && a2 >= 2 && a2 <= 36), i = i.toString().replace(/\s+/g, "");
         var s3 = 0;
-        i[0] === "-" && (s3++, this.negative = 1), s3 < i.length && (a2 === 16 ? this._parseHex(i, s3, h5) : (this._parseBase(i, a2, s3), h5 === "le" && this._initArray(this.toArray(), a2, h5)));
-      }, f3.prototype._initNumber = function(i, a2, h5) {
-        i < 0 && (this.negative = 1, i = -i), i < 67108864 ? (this.words = [i & 67108863], this.length = 1) : i < 4503599627370496 ? (this.words = [i & 67108863, i / 67108864 & 67108863], this.length = 2) : (r2(i < 9007199254740992), this.words = [i & 67108863, i / 67108864 & 67108863, 1], this.length = 3), h5 === "le" && this._initArray(this.toArray(), a2, h5);
-      }, f3.prototype._initArray = function(i, a2, h5) {
+        i[0] === "-" && (s3++, this.negative = 1), s3 < i.length && (a2 === 16 ? this._parseHex(i, s3, h4) : (this._parseBase(i, a2, s3), h4 === "le" && this._initArray(this.toArray(), a2, h4)));
+      }, f3.prototype._initNumber = function(i, a2, h4) {
+        i < 0 && (this.negative = 1, i = -i), i < 67108864 ? (this.words = [i & 67108863], this.length = 1) : i < 4503599627370496 ? (this.words = [i & 67108863, i / 67108864 & 67108863], this.length = 2) : (r2(i < 9007199254740992), this.words = [i & 67108863, i / 67108864 & 67108863, 1], this.length = 3), h4 === "le" && this._initArray(this.toArray(), a2, h4);
+      }, f3.prototype._initArray = function(i, a2, h4) {
         if (r2(typeof i.length == "number"), i.length <= 0)
           return this.words = [0], this.length = 1, this;
         this.length = Math.ceil(i.length / 3), this.words = new Array(this.length);
         for (var s3 = 0;s3 < this.length; s3++)
           this.words[s3] = 0;
         var u3, c, b3 = 0;
-        if (h5 === "be")
+        if (h4 === "be")
           for (s3 = i.length - 1, u3 = 0;s3 >= 0; s3 -= 3)
             c = i[s3] | i[s3 - 1] << 8 | i[s3 - 2] << 16, this.words[u3] |= c << b3 & 67108863, this.words[u3 + 1] = c >>> 26 - b3 & 67108863, b3 += 24, b3 >= 26 && (b3 -= 26, u3++);
-        else if (h5 === "le")
+        else if (h4 === "le")
           for (s3 = 0, u3 = 0;s3 < i.length; s3 += 3)
             c = i[s3] | i[s3 + 1] << 8 | i[s3 + 2] << 16, this.words[u3] |= c << b3 & 67108863, this.words[u3 + 1] = c >>> 26 - b3 & 67108863, b3 += 24, b3 >= 26 && (b3 -= 26, u3++);
         return this.strip();
@@ -16756,15 +16711,15 @@ Use Chrome, Firefox or Internet Explorer 11`);
         return a2 >= 65 && a2 <= 70 ? a2 - 55 : a2 >= 97 && a2 <= 102 ? a2 - 87 : a2 - 48 & 15;
       }
       function y3(v4, i, a2) {
-        var h5 = m4(v4, a2);
-        return a2 - 1 >= i && (h5 |= m4(v4, a2 - 1) << 4), h5;
+        var h4 = m4(v4, a2);
+        return a2 - 1 >= i && (h4 |= m4(v4, a2 - 1) << 4), h4;
       }
-      f3.prototype._parseHex = function(i, a2, h5) {
+      f3.prototype._parseHex = function(i, a2, h4) {
         this.length = Math.ceil((i.length - a2) / 6), this.words = new Array(this.length);
         for (var s3 = 0;s3 < this.length; s3++)
           this.words[s3] = 0;
         var u3 = 0, c = 0, b3;
-        if (h5 === "be")
+        if (h4 === "be")
           for (s3 = i.length - 1;s3 >= a2; s3 -= 2)
             b3 = y3(i, a2, s3) << u3, this.words[c] |= b3 & 67108863, u3 >= 18 ? (u3 -= 18, c += 1, this.words[c] |= b3 >>> 26) : u3 += 8;
         else {
@@ -16774,19 +16729,19 @@ Use Chrome, Firefox or Internet Explorer 11`);
         }
         this.strip();
       };
-      function M3(v4, i, a2, h5) {
+      function M3(v4, i, a2, h4) {
         for (var s3 = 0, u3 = Math.min(v4.length, a2), c = i;c < u3; c++) {
           var b3 = v4.charCodeAt(c) - 48;
-          s3 *= h5, b3 >= 49 ? s3 += b3 - 49 + 10 : b3 >= 17 ? s3 += b3 - 17 + 10 : s3 += b3;
+          s3 *= h4, b3 >= 49 ? s3 += b3 - 49 + 10 : b3 >= 17 ? s3 += b3 - 17 + 10 : s3 += b3;
         }
         return s3;
       }
-      f3.prototype._parseBase = function(i, a2, h5) {
+      f3.prototype._parseBase = function(i, a2, h4) {
         this.words = [0], this.length = 1;
         for (var s3 = 0, u3 = 1;u3 <= 67108863; u3 *= a2)
           s3++;
         s3--, u3 = u3 / a2 | 0;
-        for (var c = i.length - h5, b3 = c % s3, l3 = Math.min(c, c - b3) + h5, n4 = 0, d = h5;d < l3; d += s3)
+        for (var c = i.length - h4, b3 = c % s3, l3 = Math.min(c, c - b3) + h4, n4 = 0, d = h4;d < l3; d += s3)
           n4 = M3(i, d, d + s3, a2), this.imuln(u3), this.words[0] + n4 < 67108864 ? this.words[0] += n4 : this._iaddn(n4);
         if (b3 !== 0) {
           var w2 = 1;
@@ -16819,28 +16774,28 @@ Use Chrome, Firefox or Internet Explorer 11`);
       var x3 = ["", "0", "00", "000", "0000", "00000", "000000", "0000000", "00000000", "000000000", "0000000000", "00000000000", "000000000000", "0000000000000", "00000000000000", "000000000000000", "0000000000000000", "00000000000000000", "000000000000000000", "0000000000000000000", "00000000000000000000", "000000000000000000000", "0000000000000000000000", "00000000000000000000000", "000000000000000000000000", "0000000000000000000000000"], S3 = [0, 0, 25, 16, 12, 11, 10, 9, 8, 8, 7, 7, 7, 7, 6, 6, 6, 6, 6, 6, 6, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5], E3 = [0, 0, 33554432, 43046721, 16777216, 48828125, 60466176, 40353607, 16777216, 43046721, 1e7, 19487171, 35831808, 62748517, 7529536, 11390625, 16777216, 24137569, 34012224, 47045881, 64000000, 4084101, 5153632, 6436343, 7962624, 9765625, 11881376, 14348907, 17210368, 20511149, 24300000, 28629151, 33554432, 39135393, 45435424, 52521875, 60466176];
       f3.prototype.toString = function(i, a2) {
         i = i || 10, a2 = a2 | 0 || 1;
-        var h5;
+        var h4;
         if (i === 16 || i === "hex") {
-          h5 = "";
+          h4 = "";
           for (var s3 = 0, u3 = 0, c = 0;c < this.length; c++) {
             var b3 = this.words[c], l3 = ((b3 << s3 | u3) & 16777215).toString(16);
-            u3 = b3 >>> 24 - s3 & 16777215, u3 !== 0 || c !== this.length - 1 ? h5 = x3[6 - l3.length] + l3 + h5 : h5 = l3 + h5, s3 += 2, s3 >= 26 && (s3 -= 26, c--);
+            u3 = b3 >>> 24 - s3 & 16777215, u3 !== 0 || c !== this.length - 1 ? h4 = x3[6 - l3.length] + l3 + h4 : h4 = l3 + h4, s3 += 2, s3 >= 26 && (s3 -= 26, c--);
           }
-          for (u3 !== 0 && (h5 = u3.toString(16) + h5);h5.length % a2 !== 0; )
-            h5 = "0" + h5;
-          return this.negative !== 0 && (h5 = "-" + h5), h5;
+          for (u3 !== 0 && (h4 = u3.toString(16) + h4);h4.length % a2 !== 0; )
+            h4 = "0" + h4;
+          return this.negative !== 0 && (h4 = "-" + h4), h4;
         }
         if (i === (i | 0) && i >= 2 && i <= 36) {
           var n4 = S3[i], d = E3[i];
-          h5 = "";
+          h4 = "";
           var w2 = this.clone();
           for (w2.negative = 0;!w2.isZero(); ) {
             var g2 = w2.modn(d).toString(i);
-            w2 = w2.idivn(d), w2.isZero() ? h5 = g2 + h5 : h5 = x3[n4 - g2.length] + g2 + h5;
+            w2 = w2.idivn(d), w2.isZero() ? h4 = g2 + h4 : h4 = x3[n4 - g2.length] + g2 + h4;
           }
-          for (this.isZero() && (h5 = "0" + h5);h5.length % a2 !== 0; )
-            h5 = "0" + h5;
-          return this.negative !== 0 && (h5 = "-" + h5), h5;
+          for (this.isZero() && (h4 = "0" + h4);h4.length % a2 !== 0; )
+            h4 = "0" + h4;
+          return this.negative !== 0 && (h4 = "-" + h4), h4;
         }
         r2(false, "Base should be between 2 and 36");
       }, f3.prototype.toNumber = function() {
@@ -16852,8 +16807,8 @@ Use Chrome, Firefox or Internet Explorer 11`);
         return r2(typeof p2 < "u"), this.toArrayLike(p2, i, a2);
       }, f3.prototype.toArray = function(i, a2) {
         return this.toArrayLike(Array, i, a2);
-      }, f3.prototype.toArrayLike = function(i, a2, h5) {
-        var s3 = this.byteLength(), u3 = h5 || Math.max(1, s3);
+      }, f3.prototype.toArrayLike = function(i, a2, h4) {
+        var s3 = this.byteLength(), u3 = h4 || Math.max(1, s3);
         r2(s3 <= u3, "byte array longer than desired length"), r2(u3 > 0, "Requested array length <= 0"), this.strip();
         var c = a2 === "le", b3 = new i(u3), l3, n4, d = this.clone();
         if (c) {
@@ -16871,21 +16826,21 @@ Use Chrome, Firefox or Internet Explorer 11`);
       }, Math.clz32 ? f3.prototype._countBits = function(i) {
         return 32 - Math.clz32(i);
       } : f3.prototype._countBits = function(i) {
-        var a2 = i, h5 = 0;
-        return a2 >= 4096 && (h5 += 13, a2 >>>= 13), a2 >= 64 && (h5 += 7, a2 >>>= 7), a2 >= 8 && (h5 += 4, a2 >>>= 4), a2 >= 2 && (h5 += 2, a2 >>>= 2), h5 + a2;
+        var a2 = i, h4 = 0;
+        return a2 >= 4096 && (h4 += 13, a2 >>>= 13), a2 >= 64 && (h4 += 7, a2 >>>= 7), a2 >= 8 && (h4 += 4, a2 >>>= 4), a2 >= 2 && (h4 += 2, a2 >>>= 2), h4 + a2;
       }, f3.prototype._zeroBits = function(i) {
         if (i === 0)
           return 26;
-        var a2 = i, h5 = 0;
-        return (a2 & 8191) === 0 && (h5 += 13, a2 >>>= 13), (a2 & 127) === 0 && (h5 += 7, a2 >>>= 7), (a2 & 15) === 0 && (h5 += 4, a2 >>>= 4), (a2 & 3) === 0 && (h5 += 2, a2 >>>= 2), (a2 & 1) === 0 && h5++, h5;
+        var a2 = i, h4 = 0;
+        return (a2 & 8191) === 0 && (h4 += 13, a2 >>>= 13), (a2 & 127) === 0 && (h4 += 7, a2 >>>= 7), (a2 & 15) === 0 && (h4 += 4, a2 >>>= 4), (a2 & 3) === 0 && (h4 += 2, a2 >>>= 2), (a2 & 1) === 0 && h4++, h4;
       }, f3.prototype.bitLength = function() {
         var i = this.words[this.length - 1], a2 = this._countBits(i);
         return (this.length - 1) * 26 + a2;
       };
       function B6(v4) {
         for (var i = new Array(v4.bitLength()), a2 = 0;a2 < i.length; a2++) {
-          var h5 = a2 / 26 | 0, s3 = a2 % 26;
-          i[a2] = (v4.words[h5] & 1 << s3) >>> s3;
+          var h4 = a2 / 26 | 0, s3 = a2 % 26;
+          i[a2] = (v4.words[h4] & 1 << s3) >>> s3;
         }
         return i;
       }
@@ -16893,8 +16848,8 @@ Use Chrome, Firefox or Internet Explorer 11`);
         if (this.isZero())
           return 0;
         for (var i = 0, a2 = 0;a2 < this.length; a2++) {
-          var h5 = this._zeroBits(this.words[a2]);
-          if (i += h5, h5 !== 26)
+          var h4 = this._zeroBits(this.words[a2]);
+          if (i += h4, h4 !== 26)
             break;
         }
         return i;
@@ -16925,8 +16880,8 @@ Use Chrome, Firefox or Internet Explorer 11`);
       }, f3.prototype.iuand = function(i) {
         var a2;
         this.length > i.length ? a2 = i : a2 = this;
-        for (var h5 = 0;h5 < a2.length; h5++)
-          this.words[h5] = this.words[h5] & i.words[h5];
+        for (var h4 = 0;h4 < a2.length; h4++)
+          this.words[h4] = this.words[h4] & i.words[h4];
         return this.length = a2.length, this.strip();
       }, f3.prototype.iand = function(i) {
         return r2((this.negative | i.negative) === 0), this.iuand(i);
@@ -16935,10 +16890,10 @@ Use Chrome, Firefox or Internet Explorer 11`);
       }, f3.prototype.uand = function(i) {
         return this.length > i.length ? this.clone().iuand(i) : i.clone().iuand(this);
       }, f3.prototype.iuxor = function(i) {
-        var a2, h5;
-        this.length > i.length ? (a2 = this, h5 = i) : (a2 = i, h5 = this);
-        for (var s3 = 0;s3 < h5.length; s3++)
-          this.words[s3] = a2.words[s3] ^ h5.words[s3];
+        var a2, h4;
+        this.length > i.length ? (a2 = this, h4 = i) : (a2 = i, h4 = this);
+        for (var s3 = 0;s3 < h4.length; s3++)
+          this.words[s3] = a2.words[s3] ^ h4.words[s3];
         if (this !== a2)
           for (;s3 < a2.length; s3++)
             this.words[s3] = a2.words[s3];
@@ -16951,34 +16906,34 @@ Use Chrome, Firefox or Internet Explorer 11`);
         return this.length > i.length ? this.clone().iuxor(i) : i.clone().iuxor(this);
       }, f3.prototype.inotn = function(i) {
         r2(typeof i == "number" && i >= 0);
-        var a2 = Math.ceil(i / 26) | 0, h5 = i % 26;
-        this._expand(a2), h5 > 0 && a2--;
+        var a2 = Math.ceil(i / 26) | 0, h4 = i % 26;
+        this._expand(a2), h4 > 0 && a2--;
         for (var s3 = 0;s3 < a2; s3++)
           this.words[s3] = ~this.words[s3] & 67108863;
-        return h5 > 0 && (this.words[s3] = ~this.words[s3] & 67108863 >> 26 - h5), this.strip();
+        return h4 > 0 && (this.words[s3] = ~this.words[s3] & 67108863 >> 26 - h4), this.strip();
       }, f3.prototype.notn = function(i) {
         return this.clone().inotn(i);
       }, f3.prototype.setn = function(i, a2) {
         r2(typeof i == "number" && i >= 0);
-        var h5 = i / 26 | 0, s3 = i % 26;
-        return this._expand(h5 + 1), a2 ? this.words[h5] = this.words[h5] | 1 << s3 : this.words[h5] = this.words[h5] & ~(1 << s3), this.strip();
+        var h4 = i / 26 | 0, s3 = i % 26;
+        return this._expand(h4 + 1), a2 ? this.words[h4] = this.words[h4] | 1 << s3 : this.words[h4] = this.words[h4] & ~(1 << s3), this.strip();
       }, f3.prototype.iadd = function(i) {
         var a2;
         if (this.negative !== 0 && i.negative === 0)
           return this.negative = 0, a2 = this.isub(i), this.negative ^= 1, this._normSign();
         if (this.negative === 0 && i.negative !== 0)
           return i.negative = 0, a2 = this.isub(i), i.negative = 1, a2._normSign();
-        var h5, s3;
-        this.length > i.length ? (h5 = this, s3 = i) : (h5 = i, s3 = this);
+        var h4, s3;
+        this.length > i.length ? (h4 = this, s3 = i) : (h4 = i, s3 = this);
         for (var u3 = 0, c = 0;c < s3.length; c++)
-          a2 = (h5.words[c] | 0) + (s3.words[c] | 0) + u3, this.words[c] = a2 & 67108863, u3 = a2 >>> 26;
-        for (;u3 !== 0 && c < h5.length; c++)
-          a2 = (h5.words[c] | 0) + u3, this.words[c] = a2 & 67108863, u3 = a2 >>> 26;
-        if (this.length = h5.length, u3 !== 0)
+          a2 = (h4.words[c] | 0) + (s3.words[c] | 0) + u3, this.words[c] = a2 & 67108863, u3 = a2 >>> 26;
+        for (;u3 !== 0 && c < h4.length; c++)
+          a2 = (h4.words[c] | 0) + u3, this.words[c] = a2 & 67108863, u3 = a2 >>> 26;
+        if (this.length = h4.length, u3 !== 0)
           this.words[this.length] = u3, this.length++;
-        else if (h5 !== this)
-          for (;c < h5.length; c++)
-            this.words[c] = h5.words[c];
+        else if (h4 !== this)
+          for (;c < h4.length; c++)
+            this.words[c] = h4.words[c];
         return this;
       }, f3.prototype.add = function(i) {
         var a2;
@@ -16990,11 +16945,11 @@ Use Chrome, Firefox or Internet Explorer 11`);
           return i.negative = 1, a2._normSign();
         } else if (this.negative !== 0)
           return this.negative = 0, this.iadd(i), this.negative = 1, this._normSign();
-        var h5 = this.cmp(i);
-        if (h5 === 0)
+        var h4 = this.cmp(i);
+        if (h4 === 0)
           return this.negative = 0, this.length = 1, this.words[0] = 0, this;
         var s3, u3;
-        h5 > 0 ? (s3 = this, u3 = i) : (s3 = i, u3 = this);
+        h4 > 0 ? (s3 = this, u3 = i) : (s3 = i, u3 = this);
         for (var c = 0, b3 = 0;b3 < u3.length; b3++)
           a2 = (s3.words[b3] | 0) - (u3.words[b3] | 0) + c, c = a2 >> 26, this.words[b3] = a2 & 67108863;
         for (;c !== 0 && b3 < s3.length; b3++)
@@ -17008,11 +16963,11 @@ Use Chrome, Firefox or Internet Explorer 11`);
       };
       function q2(v4, i, a2) {
         a2.negative = i.negative ^ v4.negative;
-        var h5 = v4.length + i.length | 0;
-        a2.length = h5, h5 = h5 - 1 | 0;
+        var h4 = v4.length + i.length | 0;
+        a2.length = h4, h4 = h4 - 1 | 0;
         var s3 = v4.words[0] | 0, u3 = i.words[0] | 0, c = s3 * u3, b3 = c & 67108863, l3 = c / 67108864 | 0;
         a2.words[0] = b3;
-        for (var n4 = 1;n4 < h5; n4++) {
+        for (var n4 = 1;n4 < h4; n4++) {
           for (var d = l3 >>> 26, w2 = l3 & 67108863, g2 = Math.min(n4, i.length - 1), _4 = Math.max(0, n4 - v4.length + 1);_4 <= g2; _4++) {
             var A6 = n4 - _4 | 0;
             s3 = v4.words[A6] | 0, u3 = i.words[_4] | 0, c = s3 * u3 + w2, d += c / 67108864 | 0, w2 = c & 67108863;
@@ -17021,9 +16976,9 @@ Use Chrome, Firefox or Internet Explorer 11`);
         }
         return l3 !== 0 ? a2.words[n4] = l3 | 0 : a2.length--, a2.strip();
       }
-      var L4 = function(i, a2, h5) {
-        var s3 = i.words, u3 = a2.words, c = h5.words, b3 = 0, l3, n4, d, w2 = s3[0] | 0, g2 = w2 & 8191, _4 = w2 >>> 13, A6 = s3[1] | 0, R3 = A6 & 8191, I2 = A6 >>> 13, Me = s3[2] | 0, k2 = Me & 8191, D2 = Me >>> 13, nt = s3[3] | 0, C3 = nt & 8191, O3 = nt >>> 13, vt = s3[4] | 0, F = vt & 8191, U2 = vt >>> 13, bt = s3[5] | 0, z3 = bt & 8191, H4 = bt >>> 13, mt = s3[6] | 0, W3 = mt & 8191, K = mt >>> 13, gt = s3[7] | 0, j2 = gt & 8191, Z4 = gt >>> 13, yt = s3[8] | 0, V5 = yt & 8191, $4 = yt >>> 13, wt = s3[9] | 0, G5 = wt & 8191, Y2 = wt >>> 13, Mt = u3[0] | 0, X4 = Mt & 8191, J = Mt >>> 13, _t = u3[1] | 0, Q3 = _t & 8191, ee = _t >>> 13, xt = u3[2] | 0, te = xt & 8191, re = xt >>> 13, St = u3[3] | 0, ie = St & 8191, ne = St >>> 13, Et = u3[4] | 0, fe = Et & 8191, ae = Et >>> 13, At = u3[5] | 0, oe = At & 8191, se = At >>> 13, Rt = u3[6] | 0, he = Rt & 8191, ue = Rt >>> 13, Bt = u3[7] | 0, le = Bt & 8191, de = Bt >>> 13, qt = u3[8] | 0, ce = qt & 8191, pe = qt >>> 13, It = u3[9] | 0, ve = It & 8191, be = It >>> 13;
-        h5.negative = i.negative ^ a2.negative, h5.length = 19, l3 = Math.imul(g2, X4), n4 = Math.imul(g2, J), n4 = n4 + Math.imul(_4, X4) | 0, d = Math.imul(_4, J);
+      var L4 = function(i, a2, h4) {
+        var s3 = i.words, u3 = a2.words, c = h4.words, b3 = 0, l3, n4, d, w2 = s3[0] | 0, g2 = w2 & 8191, _4 = w2 >>> 13, A6 = s3[1] | 0, R3 = A6 & 8191, I2 = A6 >>> 13, Me = s3[2] | 0, k2 = Me & 8191, D2 = Me >>> 13, nt = s3[3] | 0, C3 = nt & 8191, O3 = nt >>> 13, vt = s3[4] | 0, F = vt & 8191, U2 = vt >>> 13, bt = s3[5] | 0, z3 = bt & 8191, H4 = bt >>> 13, mt = s3[6] | 0, W3 = mt & 8191, K = mt >>> 13, gt = s3[7] | 0, j2 = gt & 8191, Z4 = gt >>> 13, yt = s3[8] | 0, V5 = yt & 8191, $4 = yt >>> 13, wt = s3[9] | 0, G5 = wt & 8191, Y2 = wt >>> 13, Mt = u3[0] | 0, X4 = Mt & 8191, J = Mt >>> 13, _t = u3[1] | 0, Q3 = _t & 8191, ee = _t >>> 13, xt = u3[2] | 0, te = xt & 8191, re = xt >>> 13, St = u3[3] | 0, ie = St & 8191, ne = St >>> 13, Et = u3[4] | 0, fe = Et & 8191, ae = Et >>> 13, At = u3[5] | 0, oe = At & 8191, se = At >>> 13, Rt = u3[6] | 0, he = Rt & 8191, ue = Rt >>> 13, Bt = u3[7] | 0, le = Bt & 8191, de = Bt >>> 13, qt = u3[8] | 0, ce = qt & 8191, pe = qt >>> 13, It = u3[9] | 0, ve = It & 8191, be = It >>> 13;
+        h4.negative = i.negative ^ a2.negative, h4.length = 19, l3 = Math.imul(g2, X4), n4 = Math.imul(g2, J), n4 = n4 + Math.imul(_4, X4) | 0, d = Math.imul(_4, J);
         var ft = (b3 + l3 | 0) + ((n4 & 8191) << 13) | 0;
         b3 = (d + (n4 >>> 13) | 0) + (ft >>> 26) | 0, ft &= 67108863, l3 = Math.imul(R3, X4), n4 = Math.imul(R3, J), n4 = n4 + Math.imul(I2, X4) | 0, d = Math.imul(I2, J), l3 = l3 + Math.imul(g2, Q3) | 0, n4 = n4 + Math.imul(g2, ee) | 0, n4 = n4 + Math.imul(_4, Q3) | 0, d = d + Math.imul(_4, ee) | 0;
         var Be = (b3 + l3 | 0) + ((n4 & 8191) << 13) | 0;
@@ -17061,89 +17016,89 @@ Use Chrome, Firefox or Internet Explorer 11`);
         var tt = (b3 + l3 | 0) + ((n4 & 8191) << 13) | 0;
         b3 = (d + (n4 >>> 13) | 0) + (tt >>> 26) | 0, tt &= 67108863, l3 = Math.imul(G5, ve), n4 = Math.imul(G5, be), n4 = n4 + Math.imul(Y2, ve) | 0, d = Math.imul(Y2, be);
         var rt = (b3 + l3 | 0) + ((n4 & 8191) << 13) | 0;
-        return b3 = (d + (n4 >>> 13) | 0) + (rt >>> 26) | 0, rt &= 67108863, c[0] = ft, c[1] = Be, c[2] = qe, c[3] = ze, c[4] = He, c[5] = We, c[6] = Ke, c[7] = je, c[8] = Ze, c[9] = Ve, c[10] = $e, c[11] = Ge, c[12] = Ye, c[13] = Xe, c[14] = Je, c[15] = Qe, c[16] = et, c[17] = tt, c[18] = rt, b3 !== 0 && (c[19] = b3, h5.length++), h5;
+        return b3 = (d + (n4 >>> 13) | 0) + (rt >>> 26) | 0, rt &= 67108863, c[0] = ft, c[1] = Be, c[2] = qe, c[3] = ze, c[4] = He, c[5] = We, c[6] = Ke, c[7] = je, c[8] = Ze, c[9] = Ve, c[10] = $e, c[11] = Ge, c[12] = Ye, c[13] = Xe, c[14] = Je, c[15] = Qe, c[16] = et, c[17] = tt, c[18] = rt, b3 !== 0 && (c[19] = b3, h4.length++), h4;
       };
       Math.imul || (L4 = q2);
       function ge(v4, i, a2) {
         a2.negative = i.negative ^ v4.negative, a2.length = v4.length + i.length;
-        for (var h5 = 0, s3 = 0, u3 = 0;u3 < a2.length - 1; u3++) {
+        for (var h4 = 0, s3 = 0, u3 = 0;u3 < a2.length - 1; u3++) {
           var c = s3;
           s3 = 0;
-          for (var b3 = h5 & 67108863, l3 = Math.min(u3, i.length - 1), n4 = Math.max(0, u3 - v4.length + 1);n4 <= l3; n4++) {
+          for (var b3 = h4 & 67108863, l3 = Math.min(u3, i.length - 1), n4 = Math.max(0, u3 - v4.length + 1);n4 <= l3; n4++) {
             var d = u3 - n4, w2 = v4.words[d] | 0, g2 = i.words[n4] | 0, _4 = w2 * g2, A6 = _4 & 67108863;
             c = c + (_4 / 67108864 | 0) | 0, A6 = A6 + b3 | 0, b3 = A6 & 67108863, c = c + (A6 >>> 26) | 0, s3 += c >>> 26, c &= 67108863;
           }
-          a2.words[u3] = b3, h5 = c, c = s3;
+          a2.words[u3] = b3, h4 = c, c = s3;
         }
-        return h5 !== 0 ? a2.words[u3] = h5 : a2.length--, a2.strip();
+        return h4 !== 0 ? a2.words[u3] = h4 : a2.length--, a2.strip();
       }
       function _e(v4, i, a2) {
-        var h5 = new N4;
-        return h5.mulp(v4, i, a2);
+        var h4 = new N4;
+        return h4.mulp(v4, i, a2);
       }
       f3.prototype.mulTo = function(i, a2) {
-        var h5, s3 = this.length + i.length;
-        return this.length === 10 && i.length === 10 ? h5 = L4(this, i, a2) : s3 < 63 ? h5 = q2(this, i, a2) : s3 < 1024 ? h5 = ge(this, i, a2) : h5 = _e(this, i, a2), h5;
+        var h4, s3 = this.length + i.length;
+        return this.length === 10 && i.length === 10 ? h4 = L4(this, i, a2) : s3 < 63 ? h4 = q2(this, i, a2) : s3 < 1024 ? h4 = ge(this, i, a2) : h4 = _e(this, i, a2), h4;
       };
       function N4(v4, i) {
         this.x = v4, this.y = i;
       }
       N4.prototype.makeRBT = function(i) {
-        for (var a2 = new Array(i), h5 = f3.prototype._countBits(i) - 1, s3 = 0;s3 < i; s3++)
-          a2[s3] = this.revBin(s3, h5, i);
+        for (var a2 = new Array(i), h4 = f3.prototype._countBits(i) - 1, s3 = 0;s3 < i; s3++)
+          a2[s3] = this.revBin(s3, h4, i);
         return a2;
-      }, N4.prototype.revBin = function(i, a2, h5) {
-        if (i === 0 || i === h5 - 1)
+      }, N4.prototype.revBin = function(i, a2, h4) {
+        if (i === 0 || i === h4 - 1)
           return i;
         for (var s3 = 0, u3 = 0;u3 < a2; u3++)
           s3 |= (i & 1) << a2 - u3 - 1, i >>= 1;
         return s3;
-      }, N4.prototype.permute = function(i, a2, h5, s3, u3, c) {
+      }, N4.prototype.permute = function(i, a2, h4, s3, u3, c) {
         for (var b3 = 0;b3 < c; b3++)
-          s3[b3] = a2[i[b3]], u3[b3] = h5[i[b3]];
-      }, N4.prototype.transform = function(i, a2, h5, s3, u3, c) {
-        this.permute(c, i, a2, h5, s3, u3);
+          s3[b3] = a2[i[b3]], u3[b3] = h4[i[b3]];
+      }, N4.prototype.transform = function(i, a2, h4, s3, u3, c) {
+        this.permute(c, i, a2, h4, s3, u3);
         for (var b3 = 1;b3 < u3; b3 <<= 1)
           for (var l3 = b3 << 1, n4 = Math.cos(2 * Math.PI / l3), d = Math.sin(2 * Math.PI / l3), w2 = 0;w2 < u3; w2 += l3)
             for (var g2 = n4, _4 = d, A6 = 0;A6 < b3; A6++) {
-              var R3 = h5[w2 + A6], I2 = s3[w2 + A6], Me = h5[w2 + A6 + b3], k2 = s3[w2 + A6 + b3], D2 = g2 * Me - _4 * k2;
-              k2 = g2 * k2 + _4 * Me, Me = D2, h5[w2 + A6] = R3 + Me, s3[w2 + A6] = I2 + k2, h5[w2 + A6 + b3] = R3 - Me, s3[w2 + A6 + b3] = I2 - k2, A6 !== l3 && (D2 = n4 * g2 - d * _4, _4 = n4 * _4 + d * g2, g2 = D2);
+              var R3 = h4[w2 + A6], I2 = s3[w2 + A6], Me = h4[w2 + A6 + b3], k2 = s3[w2 + A6 + b3], D2 = g2 * Me - _4 * k2;
+              k2 = g2 * k2 + _4 * Me, Me = D2, h4[w2 + A6] = R3 + Me, s3[w2 + A6] = I2 + k2, h4[w2 + A6 + b3] = R3 - Me, s3[w2 + A6 + b3] = I2 - k2, A6 !== l3 && (D2 = n4 * g2 - d * _4, _4 = n4 * _4 + d * g2, g2 = D2);
             }
       }, N4.prototype.guessLen13b = function(i, a2) {
-        var h5 = Math.max(a2, i) | 1, s3 = h5 & 1, u3 = 0;
-        for (h5 = h5 / 2 | 0;h5; h5 = h5 >>> 1)
+        var h4 = Math.max(a2, i) | 1, s3 = h4 & 1, u3 = 0;
+        for (h4 = h4 / 2 | 0;h4; h4 = h4 >>> 1)
           u3++;
         return 1 << u3 + 1 + s3;
-      }, N4.prototype.conjugate = function(i, a2, h5) {
-        if (!(h5 <= 1))
-          for (var s3 = 0;s3 < h5 / 2; s3++) {
+      }, N4.prototype.conjugate = function(i, a2, h4) {
+        if (!(h4 <= 1))
+          for (var s3 = 0;s3 < h4 / 2; s3++) {
             var u3 = i[s3];
-            i[s3] = i[h5 - s3 - 1], i[h5 - s3 - 1] = u3, u3 = a2[s3], a2[s3] = -a2[h5 - s3 - 1], a2[h5 - s3 - 1] = -u3;
+            i[s3] = i[h4 - s3 - 1], i[h4 - s3 - 1] = u3, u3 = a2[s3], a2[s3] = -a2[h4 - s3 - 1], a2[h4 - s3 - 1] = -u3;
           }
       }, N4.prototype.normalize13b = function(i, a2) {
-        for (var h5 = 0, s3 = 0;s3 < a2 / 2; s3++) {
-          var u3 = Math.round(i[2 * s3 + 1] / a2) * 8192 + Math.round(i[2 * s3] / a2) + h5;
-          i[s3] = u3 & 67108863, u3 < 67108864 ? h5 = 0 : h5 = u3 / 67108864 | 0;
+        for (var h4 = 0, s3 = 0;s3 < a2 / 2; s3++) {
+          var u3 = Math.round(i[2 * s3 + 1] / a2) * 8192 + Math.round(i[2 * s3] / a2) + h4;
+          i[s3] = u3 & 67108863, u3 < 67108864 ? h4 = 0 : h4 = u3 / 67108864 | 0;
         }
         return i;
-      }, N4.prototype.convert13b = function(i, a2, h5, s3) {
+      }, N4.prototype.convert13b = function(i, a2, h4, s3) {
         for (var u3 = 0, c = 0;c < a2; c++)
-          u3 = u3 + (i[c] | 0), h5[2 * c] = u3 & 8191, u3 = u3 >>> 13, h5[2 * c + 1] = u3 & 8191, u3 = u3 >>> 13;
+          u3 = u3 + (i[c] | 0), h4[2 * c] = u3 & 8191, u3 = u3 >>> 13, h4[2 * c + 1] = u3 & 8191, u3 = u3 >>> 13;
         for (c = 2 * a2;c < s3; ++c)
-          h5[c] = 0;
+          h4[c] = 0;
         r2(u3 === 0), r2((u3 & -8192) === 0);
       }, N4.prototype.stub = function(i) {
-        for (var a2 = new Array(i), h5 = 0;h5 < i; h5++)
-          a2[h5] = 0;
+        for (var a2 = new Array(i), h4 = 0;h4 < i; h4++)
+          a2[h4] = 0;
         return a2;
-      }, N4.prototype.mulp = function(i, a2, h5) {
-        var s3 = 2 * this.guessLen13b(i.length, a2.length), u3 = this.makeRBT(s3), c = this.stub(s3), b3 = new Array(s3), l3 = new Array(s3), n4 = new Array(s3), d = new Array(s3), w2 = new Array(s3), g2 = new Array(s3), _4 = h5.words;
+      }, N4.prototype.mulp = function(i, a2, h4) {
+        var s3 = 2 * this.guessLen13b(i.length, a2.length), u3 = this.makeRBT(s3), c = this.stub(s3), b3 = new Array(s3), l3 = new Array(s3), n4 = new Array(s3), d = new Array(s3), w2 = new Array(s3), g2 = new Array(s3), _4 = h4.words;
         _4.length = s3, this.convert13b(i.words, i.length, b3, s3), this.convert13b(a2.words, a2.length, d, s3), this.transform(b3, c, l3, n4, s3, u3), this.transform(d, c, w2, g2, s3, u3);
         for (var A6 = 0;A6 < s3; A6++) {
           var R3 = l3[A6] * w2[A6] - n4[A6] * g2[A6];
           n4[A6] = l3[A6] * g2[A6] + n4[A6] * w2[A6], l3[A6] = R3;
         }
-        return this.conjugate(l3, n4, s3), this.transform(l3, n4, _4, c, s3, u3), this.conjugate(_4, c, s3), this.normalize13b(_4, s3), h5.negative = i.negative ^ a2.negative, h5.length = i.length + a2.length, h5.strip();
+        return this.conjugate(l3, n4, s3), this.transform(l3, n4, _4, c, s3, u3), this.conjugate(_4, c, s3), this.normalize13b(_4, s3), h4.negative = i.negative ^ a2.negative, h4.length = i.length + a2.length, h4.strip();
       }, f3.prototype.mul = function(i) {
         var a2 = new f3(null);
         return a2.words = new Array(this.length + i.length), this.mulTo(i, a2);
@@ -17154,11 +17109,11 @@ Use Chrome, Firefox or Internet Explorer 11`);
         return this.clone().mulTo(i, this);
       }, f3.prototype.imuln = function(i) {
         r2(typeof i == "number"), r2(i < 67108864);
-        for (var a2 = 0, h5 = 0;h5 < this.length; h5++) {
-          var s3 = (this.words[h5] | 0) * i, u3 = (s3 & 67108863) + (a2 & 67108863);
-          a2 >>= 26, a2 += s3 / 67108864 | 0, a2 += u3 >>> 26, this.words[h5] = u3 & 67108863;
+        for (var a2 = 0, h4 = 0;h4 < this.length; h4++) {
+          var s3 = (this.words[h4] | 0) * i, u3 = (s3 & 67108863) + (a2 & 67108863);
+          a2 >>= 26, a2 += s3 / 67108864 | 0, a2 += u3 >>> 26, this.words[h4] = u3 & 67108863;
         }
-        return a2 !== 0 && (this.words[h5] = a2, this.length++), this;
+        return a2 !== 0 && (this.words[h4] = a2, this.length++), this;
       }, f3.prototype.muln = function(i) {
         return this.clone().imuln(i);
       }, f3.prototype.sqr = function() {
@@ -17169,15 +17124,15 @@ Use Chrome, Firefox or Internet Explorer 11`);
         var a2 = B6(i);
         if (a2.length === 0)
           return new f3(1);
-        for (var h5 = this, s3 = 0;s3 < a2.length && a2[s3] === 0; s3++, h5 = h5.sqr())
+        for (var h4 = this, s3 = 0;s3 < a2.length && a2[s3] === 0; s3++, h4 = h4.sqr())
           ;
         if (++s3 < a2.length)
-          for (var u3 = h5.sqr();s3 < a2.length; s3++, u3 = u3.sqr())
-            a2[s3] !== 0 && (h5 = h5.mul(u3));
-        return h5;
+          for (var u3 = h4.sqr();s3 < a2.length; s3++, u3 = u3.sqr())
+            a2[s3] !== 0 && (h4 = h4.mul(u3));
+        return h4;
       }, f3.prototype.iushln = function(i) {
         r2(typeof i == "number" && i >= 0);
-        var a2 = i % 26, h5 = (i - a2) / 26, s3 = 67108863 >>> 26 - a2 << 26 - a2, u3;
+        var a2 = i % 26, h4 = (i - a2) / 26, s3 = 67108863 >>> 26 - a2 << 26 - a2, u3;
         if (a2 !== 0) {
           var c = 0;
           for (u3 = 0;u3 < this.length; u3++) {
@@ -17186,21 +17141,21 @@ Use Chrome, Firefox or Internet Explorer 11`);
           }
           c && (this.words[u3] = c, this.length++);
         }
-        if (h5 !== 0) {
+        if (h4 !== 0) {
           for (u3 = this.length - 1;u3 >= 0; u3--)
-            this.words[u3 + h5] = this.words[u3];
-          for (u3 = 0;u3 < h5; u3++)
+            this.words[u3 + h4] = this.words[u3];
+          for (u3 = 0;u3 < h4; u3++)
             this.words[u3] = 0;
-          this.length += h5;
+          this.length += h4;
         }
         return this.strip();
       }, f3.prototype.ishln = function(i) {
         return r2(this.negative === 0), this.iushln(i);
-      }, f3.prototype.iushrn = function(i, a2, h5) {
+      }, f3.prototype.iushrn = function(i, a2, h4) {
         r2(typeof i == "number" && i >= 0);
         var s3;
         a2 ? s3 = (a2 - a2 % 26) / 26 : s3 = 0;
-        var u3 = i % 26, c = Math.min((i - u3) / 26, this.length), b3 = 67108863 ^ 67108863 >>> u3 << u3, l3 = h5;
+        var u3 = i % 26, c = Math.min((i - u3) / 26, this.length), b3 = 67108863 ^ 67108863 >>> u3 << u3, l3 = h4;
         if (s3 -= c, s3 = Math.max(0, s3), l3) {
           for (var n4 = 0;n4 < c; n4++)
             l3.words[n4] = this.words[n4];
@@ -17218,8 +17173,8 @@ Use Chrome, Firefox or Internet Explorer 11`);
           this.words[n4] = d << 26 - u3 | w2 >>> u3, d = w2 & b3;
         }
         return l3 && d !== 0 && (l3.words[l3.length++] = d), this.length === 0 && (this.words[0] = 0, this.length = 1), this.strip();
-      }, f3.prototype.ishrn = function(i, a2, h5) {
-        return r2(this.negative === 0), this.iushrn(i, a2, h5);
+      }, f3.prototype.ishrn = function(i, a2, h4) {
+        return r2(this.negative === 0), this.iushrn(i, a2, h4);
       }, f3.prototype.shln = function(i) {
         return this.clone().ishln(i);
       }, f3.prototype.ushln = function(i) {
@@ -17230,17 +17185,17 @@ Use Chrome, Firefox or Internet Explorer 11`);
         return this.clone().iushrn(i);
       }, f3.prototype.testn = function(i) {
         r2(typeof i == "number" && i >= 0);
-        var a2 = i % 26, h5 = (i - a2) / 26, s3 = 1 << a2;
-        if (this.length <= h5)
+        var a2 = i % 26, h4 = (i - a2) / 26, s3 = 1 << a2;
+        if (this.length <= h4)
           return false;
-        var u3 = this.words[h5];
+        var u3 = this.words[h4];
         return !!(u3 & s3);
       }, f3.prototype.imaskn = function(i) {
         r2(typeof i == "number" && i >= 0);
-        var a2 = i % 26, h5 = (i - a2) / 26;
-        if (r2(this.negative === 0, "imaskn works only with positive numbers"), this.length <= h5)
+        var a2 = i % 26, h4 = (i - a2) / 26;
+        if (r2(this.negative === 0, "imaskn works only with positive numbers"), this.length <= h4)
           return this;
-        if (a2 !== 0 && h5++, this.length = Math.min(h5, this.length), a2 !== 0) {
+        if (a2 !== 0 && h4++, this.length = Math.min(h4, this.length), a2 !== 0) {
           var s3 = 67108863 ^ 67108863 >>> a2 << a2;
           this.words[this.length - 1] &= s3;
         }
@@ -17273,25 +17228,25 @@ Use Chrome, Firefox or Internet Explorer 11`);
         return this.negative = 0, this;
       }, f3.prototype.abs = function() {
         return this.clone().iabs();
-      }, f3.prototype._ishlnsubmul = function(i, a2, h5) {
-        var s3 = i.length + h5, u3;
+      }, f3.prototype._ishlnsubmul = function(i, a2, h4) {
+        var s3 = i.length + h4, u3;
         this._expand(s3);
         var c, b3 = 0;
         for (u3 = 0;u3 < i.length; u3++) {
-          c = (this.words[u3 + h5] | 0) + b3;
+          c = (this.words[u3 + h4] | 0) + b3;
           var l3 = (i.words[u3] | 0) * a2;
-          c -= l3 & 67108863, b3 = (c >> 26) - (l3 / 67108864 | 0), this.words[u3 + h5] = c & 67108863;
+          c -= l3 & 67108863, b3 = (c >> 26) - (l3 / 67108864 | 0), this.words[u3 + h4] = c & 67108863;
         }
-        for (;u3 < this.length - h5; u3++)
-          c = (this.words[u3 + h5] | 0) + b3, b3 = c >> 26, this.words[u3 + h5] = c & 67108863;
+        for (;u3 < this.length - h4; u3++)
+          c = (this.words[u3 + h4] | 0) + b3, b3 = c >> 26, this.words[u3 + h4] = c & 67108863;
         if (b3 === 0)
           return this.strip();
         for (r2(b3 === -1), b3 = 0, u3 = 0;u3 < this.length; u3++)
           c = -(this.words[u3] | 0) + b3, b3 = c >> 26, this.words[u3] = c & 67108863;
         return this.negative = 1, this.strip();
       }, f3.prototype._wordDiv = function(i, a2) {
-        var h5 = this.length - i.length, s3 = this.clone(), u3 = i, c = u3.words[u3.length - 1] | 0, b3 = this._countBits(c);
-        h5 = 26 - b3, h5 !== 0 && (u3 = u3.ushln(h5), s3.iushln(h5), c = u3.words[u3.length - 1] | 0);
+        var h4 = this.length - i.length, s3 = this.clone(), u3 = i, c = u3.words[u3.length - 1] | 0, b3 = this._countBits(c);
+        h4 = 26 - b3, h4 !== 0 && (u3 = u3.ushln(h4), s3.iushln(h4), c = u3.words[u3.length - 1] | 0);
         var l3 = s3.length - u3.length, n4;
         if (a2 !== "mod") {
           n4 = new f3(null), n4.length = l3 + 1, n4.words = new Array(n4.length);
@@ -17306,12 +17261,12 @@ Use Chrome, Firefox or Internet Explorer 11`);
             _4--, s3.negative = 0, s3._ishlnsubmul(u3, 1, g2), s3.isZero() || (s3.negative ^= 1);
           n4 && (n4.words[g2] = _4);
         }
-        return n4 && n4.strip(), s3.strip(), a2 !== "div" && h5 !== 0 && s3.iushrn(h5), { div: n4 || null, mod: s3 };
-      }, f3.prototype.divmod = function(i, a2, h5) {
+        return n4 && n4.strip(), s3.strip(), a2 !== "div" && h4 !== 0 && s3.iushrn(h4), { div: n4 || null, mod: s3 };
+      }, f3.prototype.divmod = function(i, a2, h4) {
         if (r2(!i.isZero()), this.isZero())
           return { div: new f3(0), mod: new f3(0) };
         var s3, u3, c;
-        return this.negative !== 0 && i.negative === 0 ? (c = this.neg().divmod(i, a2), a2 !== "mod" && (s3 = c.div.neg()), a2 !== "div" && (u3 = c.mod.neg(), h5 && u3.negative !== 0 && u3.iadd(i)), { div: s3, mod: u3 }) : this.negative === 0 && i.negative !== 0 ? (c = this.divmod(i.neg(), a2), a2 !== "mod" && (s3 = c.div.neg()), { div: s3, mod: c.mod }) : (this.negative & i.negative) !== 0 ? (c = this.neg().divmod(i.neg(), a2), a2 !== "div" && (u3 = c.mod.neg(), h5 && u3.negative !== 0 && u3.isub(i)), { div: c.div, mod: u3 }) : i.length > this.length || this.cmp(i) < 0 ? { div: new f3(0), mod: this } : i.length === 1 ? a2 === "div" ? { div: this.divn(i.words[0]), mod: null } : a2 === "mod" ? { div: null, mod: new f3(this.modn(i.words[0])) } : { div: this.divn(i.words[0]), mod: new f3(this.modn(i.words[0])) } : this._wordDiv(i, a2);
+        return this.negative !== 0 && i.negative === 0 ? (c = this.neg().divmod(i, a2), a2 !== "mod" && (s3 = c.div.neg()), a2 !== "div" && (u3 = c.mod.neg(), h4 && u3.negative !== 0 && u3.iadd(i)), { div: s3, mod: u3 }) : this.negative === 0 && i.negative !== 0 ? (c = this.divmod(i.neg(), a2), a2 !== "mod" && (s3 = c.div.neg()), { div: s3, mod: c.mod }) : (this.negative & i.negative) !== 0 ? (c = this.neg().divmod(i.neg(), a2), a2 !== "div" && (u3 = c.mod.neg(), h4 && u3.negative !== 0 && u3.isub(i)), { div: c.div, mod: u3 }) : i.length > this.length || this.cmp(i) < 0 ? { div: new f3(0), mod: this } : i.length === 1 ? a2 === "div" ? { div: this.divn(i.words[0]), mod: null } : a2 === "mod" ? { div: null, mod: new f3(this.modn(i.words[0])) } : { div: this.divn(i.words[0]), mod: new f3(this.modn(i.words[0])) } : this._wordDiv(i, a2);
       }, f3.prototype.div = function(i) {
         return this.divmod(i, "div", false).div;
       }, f3.prototype.mod = function(i) {
@@ -17322,58 +17277,58 @@ Use Chrome, Firefox or Internet Explorer 11`);
         var a2 = this.divmod(i);
         if (a2.mod.isZero())
           return a2.div;
-        var h5 = a2.div.negative !== 0 ? a2.mod.isub(i) : a2.mod, s3 = i.ushrn(1), u3 = i.andln(1), c = h5.cmp(s3);
+        var h4 = a2.div.negative !== 0 ? a2.mod.isub(i) : a2.mod, s3 = i.ushrn(1), u3 = i.andln(1), c = h4.cmp(s3);
         return c < 0 || u3 === 1 && c === 0 ? a2.div : a2.div.negative !== 0 ? a2.div.isubn(1) : a2.div.iaddn(1);
       }, f3.prototype.modn = function(i) {
         r2(i <= 67108863);
-        for (var a2 = (1 << 26) % i, h5 = 0, s3 = this.length - 1;s3 >= 0; s3--)
-          h5 = (a2 * h5 + (this.words[s3] | 0)) % i;
-        return h5;
+        for (var a2 = (1 << 26) % i, h4 = 0, s3 = this.length - 1;s3 >= 0; s3--)
+          h4 = (a2 * h4 + (this.words[s3] | 0)) % i;
+        return h4;
       }, f3.prototype.idivn = function(i) {
         r2(i <= 67108863);
-        for (var a2 = 0, h5 = this.length - 1;h5 >= 0; h5--) {
-          var s3 = (this.words[h5] | 0) + a2 * 67108864;
-          this.words[h5] = s3 / i | 0, a2 = s3 % i;
+        for (var a2 = 0, h4 = this.length - 1;h4 >= 0; h4--) {
+          var s3 = (this.words[h4] | 0) + a2 * 67108864;
+          this.words[h4] = s3 / i | 0, a2 = s3 % i;
         }
         return this.strip();
       }, f3.prototype.divn = function(i) {
         return this.clone().idivn(i);
       }, f3.prototype.egcd = function(i) {
         r2(i.negative === 0), r2(!i.isZero());
-        var a2 = this, h5 = i.clone();
+        var a2 = this, h4 = i.clone();
         a2.negative !== 0 ? a2 = a2.umod(i) : a2 = a2.clone();
-        for (var s3 = new f3(1), u3 = new f3(0), c = new f3(0), b3 = new f3(1), l3 = 0;a2.isEven() && h5.isEven(); )
-          a2.iushrn(1), h5.iushrn(1), ++l3;
-        for (var n4 = h5.clone(), d = a2.clone();!a2.isZero(); ) {
+        for (var s3 = new f3(1), u3 = new f3(0), c = new f3(0), b3 = new f3(1), l3 = 0;a2.isEven() && h4.isEven(); )
+          a2.iushrn(1), h4.iushrn(1), ++l3;
+        for (var n4 = h4.clone(), d = a2.clone();!a2.isZero(); ) {
           for (var w2 = 0, g2 = 1;(a2.words[0] & g2) === 0 && w2 < 26; ++w2, g2 <<= 1)
             ;
           if (w2 > 0)
             for (a2.iushrn(w2);w2-- > 0; )
               (s3.isOdd() || u3.isOdd()) && (s3.iadd(n4), u3.isub(d)), s3.iushrn(1), u3.iushrn(1);
-          for (var _4 = 0, A6 = 1;(h5.words[0] & A6) === 0 && _4 < 26; ++_4, A6 <<= 1)
+          for (var _4 = 0, A6 = 1;(h4.words[0] & A6) === 0 && _4 < 26; ++_4, A6 <<= 1)
             ;
           if (_4 > 0)
-            for (h5.iushrn(_4);_4-- > 0; )
+            for (h4.iushrn(_4);_4-- > 0; )
               (c.isOdd() || b3.isOdd()) && (c.iadd(n4), b3.isub(d)), c.iushrn(1), b3.iushrn(1);
-          a2.cmp(h5) >= 0 ? (a2.isub(h5), s3.isub(c), u3.isub(b3)) : (h5.isub(a2), c.isub(s3), b3.isub(u3));
+          a2.cmp(h4) >= 0 ? (a2.isub(h4), s3.isub(c), u3.isub(b3)) : (h4.isub(a2), c.isub(s3), b3.isub(u3));
         }
-        return { a: c, b: b3, gcd: h5.iushln(l3) };
+        return { a: c, b: b3, gcd: h4.iushln(l3) };
       }, f3.prototype._invmp = function(i) {
         r2(i.negative === 0), r2(!i.isZero());
-        var a2 = this, h5 = i.clone();
+        var a2 = this, h4 = i.clone();
         a2.negative !== 0 ? a2 = a2.umod(i) : a2 = a2.clone();
-        for (var s3 = new f3(1), u3 = new f3(0), c = h5.clone();a2.cmpn(1) > 0 && h5.cmpn(1) > 0; ) {
+        for (var s3 = new f3(1), u3 = new f3(0), c = h4.clone();a2.cmpn(1) > 0 && h4.cmpn(1) > 0; ) {
           for (var b3 = 0, l3 = 1;(a2.words[0] & l3) === 0 && b3 < 26; ++b3, l3 <<= 1)
             ;
           if (b3 > 0)
             for (a2.iushrn(b3);b3-- > 0; )
               s3.isOdd() && s3.iadd(c), s3.iushrn(1);
-          for (var n4 = 0, d = 1;(h5.words[0] & d) === 0 && n4 < 26; ++n4, d <<= 1)
+          for (var n4 = 0, d = 1;(h4.words[0] & d) === 0 && n4 < 26; ++n4, d <<= 1)
             ;
           if (n4 > 0)
-            for (h5.iushrn(n4);n4-- > 0; )
+            for (h4.iushrn(n4);n4-- > 0; )
               u3.isOdd() && u3.iadd(c), u3.iushrn(1);
-          a2.cmp(h5) >= 0 ? (a2.isub(h5), s3.isub(u3)) : (h5.isub(a2), u3.isub(s3));
+          a2.cmp(h4) >= 0 ? (a2.isub(h4), s3.isub(u3)) : (h4.isub(a2), u3.isub(s3));
         }
         var w2;
         return a2.cmpn(1) === 0 ? w2 = s3 : w2 = u3, w2.cmpn(0) < 0 && w2.iadd(i), w2;
@@ -17382,24 +17337,24 @@ Use Chrome, Firefox or Internet Explorer 11`);
           return i.abs();
         if (i.isZero())
           return this.abs();
-        var a2 = this.clone(), h5 = i.clone();
-        a2.negative = 0, h5.negative = 0;
-        for (var s3 = 0;a2.isEven() && h5.isEven(); s3++)
-          a2.iushrn(1), h5.iushrn(1);
+        var a2 = this.clone(), h4 = i.clone();
+        a2.negative = 0, h4.negative = 0;
+        for (var s3 = 0;a2.isEven() && h4.isEven(); s3++)
+          a2.iushrn(1), h4.iushrn(1);
         do {
           for (;a2.isEven(); )
             a2.iushrn(1);
-          for (;h5.isEven(); )
-            h5.iushrn(1);
-          var u3 = a2.cmp(h5);
+          for (;h4.isEven(); )
+            h4.iushrn(1);
+          var u3 = a2.cmp(h4);
           if (u3 < 0) {
             var c = a2;
-            a2 = h5, h5 = c;
-          } else if (u3 === 0 || h5.cmpn(1) === 0)
+            a2 = h4, h4 = c;
+          } else if (u3 === 0 || h4.cmpn(1) === 0)
             break;
-          a2.isub(h5);
+          a2.isub(h4);
         } while (true);
-        return h5.iushln(s3);
+        return h4.iushln(s3);
       }, f3.prototype.invm = function(i) {
         return this.egcd(i).a.umod(i);
       }, f3.prototype.isEven = function() {
@@ -17410,10 +17365,10 @@ Use Chrome, Firefox or Internet Explorer 11`);
         return this.words[0] & i;
       }, f3.prototype.bincn = function(i) {
         r2(typeof i == "number");
-        var a2 = i % 26, h5 = (i - a2) / 26, s3 = 1 << a2;
-        if (this.length <= h5)
-          return this._expand(h5 + 1), this.words[h5] |= s3, this;
-        for (var u3 = s3, c = h5;u3 !== 0 && c < this.length; c++) {
+        var a2 = i % 26, h4 = (i - a2) / 26, s3 = 1 << a2;
+        if (this.length <= h4)
+          return this._expand(h4 + 1), this.words[h4] |= s3, this;
+        for (var u3 = s3, c = h4;u3 !== 0 && c < this.length; c++) {
           var b3 = this.words[c] | 0;
           b3 += u3, u3 = b3 >>> 26, b3 &= 67108863, this.words[c] = b3;
         }
@@ -17427,15 +17382,15 @@ Use Chrome, Firefox or Internet Explorer 11`);
         if (this.negative === 0 && a2)
           return 1;
         this.strip();
-        var h5;
+        var h4;
         if (this.length > 1)
-          h5 = 1;
+          h4 = 1;
         else {
           a2 && (i = -i), r2(i <= 67108863, "Number is too big");
           var s3 = this.words[0] | 0;
-          h5 = s3 === i ? 0 : s3 < i ? -1 : 1;
+          h4 = s3 === i ? 0 : s3 < i ? -1 : 1;
         }
-        return this.negative !== 0 ? -h5 | 0 : h5;
+        return this.negative !== 0 ? -h4 | 0 : h4;
       }, f3.prototype.cmp = function(i) {
         if (this.negative !== 0 && i.negative === 0)
           return -1;
@@ -17448,8 +17403,8 @@ Use Chrome, Firefox or Internet Explorer 11`);
           return 1;
         if (this.length < i.length)
           return -1;
-        for (var a2 = 0, h5 = this.length - 1;h5 >= 0; h5--) {
-          var s3 = this.words[h5] | 0, u3 = i.words[h5] | 0;
+        for (var a2 = 0, h4 = this.length - 1;h4 >= 0; h4--) {
+          var s3 = this.words[h4] | 0, u3 = i.words[h4] | 0;
           if (s3 !== u3) {
             s3 < u3 ? a2 = -1 : s3 > u3 && (a2 = 1);
             break;
@@ -17521,11 +17476,11 @@ Use Chrome, Firefox or Internet Explorer 11`);
         var i = new f3(null);
         return i.words = new Array(Math.ceil(this.n / 13)), i;
       }, ye.prototype.ireduce = function(i) {
-        var a2 = i, h5;
+        var a2 = i, h4;
         do
-          this.split(a2, this.tmp), a2 = this.imulK(a2), a2 = a2.iadd(this.tmp), h5 = a2.bitLength();
-        while (h5 > this.n);
-        var s3 = h5 < this.n ? -1 : a2.ucmp(this.p);
+          this.split(a2, this.tmp), a2 = this.imulK(a2), a2 = a2.iadd(this.tmp), h4 = a2.bitLength();
+        while (h4 > this.n);
+        var s3 = h4 < this.n ? -1 : a2.ucmp(this.p);
         return s3 === 0 ? (a2.words[0] = 0, a2.length = 1) : s3 > 0 ? a2.isub(this.p) : a2.strip !== undefined ? a2.strip() : a2._strip(), a2;
       }, ye.prototype.split = function(i, a2) {
         i.iushrn(this.n, 0, a2);
@@ -17536,23 +17491,23 @@ Use Chrome, Firefox or Internet Explorer 11`);
         ye.call(this, "k256", "ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff fffffffe fffffc2f");
       }
       o2(xe, ye), xe.prototype.split = function(i, a2) {
-        for (var h5 = 4194303, s3 = Math.min(i.length, 9), u3 = 0;u3 < s3; u3++)
+        for (var h4 = 4194303, s3 = Math.min(i.length, 9), u3 = 0;u3 < s3; u3++)
           a2.words[u3] = i.words[u3];
         if (a2.length = s3, i.length <= 9) {
           i.words[0] = 0, i.length = 1;
           return;
         }
         var c = i.words[9];
-        for (a2.words[a2.length++] = c & h5, u3 = 10;u3 < i.length; u3++) {
+        for (a2.words[a2.length++] = c & h4, u3 = 10;u3 < i.length; u3++) {
           var b3 = i.words[u3] | 0;
-          i.words[u3 - 10] = (b3 & h5) << 4 | c >>> 22, c = b3;
+          i.words[u3 - 10] = (b3 & h4) << 4 | c >>> 22, c = b3;
         }
         c >>>= 22, i.words[u3 - 10] = c, c === 0 && i.length > 10 ? i.length -= 10 : i.length -= 9;
       }, xe.prototype.imulK = function(i) {
         i.words[i.length] = 0, i.words[i.length + 1] = 0, i.length += 2;
-        for (var a2 = 0, h5 = 0;h5 < i.length; h5++) {
-          var s3 = i.words[h5] | 0;
-          a2 += s3 * 977, i.words[h5] = a2 & 67108863, a2 = s3 * 64 + (a2 / 67108864 | 0);
+        for (var a2 = 0, h4 = 0;h4 < i.length; h4++) {
+          var s3 = i.words[h4] | 0;
+          a2 += s3 * 977, i.words[h4] = a2 & 67108863, a2 = s3 * 64 + (a2 / 67108864 | 0);
         }
         return i.words[i.length - 1] === 0 && (i.length--, i.words[i.length - 1] === 0 && i.length--), i;
       };
@@ -17568,9 +17523,9 @@ Use Chrome, Firefox or Internet Explorer 11`);
         ye.call(this, "25519", "7fffffffffffffff ffffffffffffffff ffffffffffffffff ffffffffffffffed");
       }
       o2(Ae, ye), Ae.prototype.imulK = function(i) {
-        for (var a2 = 0, h5 = 0;h5 < i.length; h5++) {
-          var s3 = (i.words[h5] | 0) * 19 + a2, u3 = s3 & 67108863;
-          s3 >>>= 26, i.words[h5] = u3, a2 = s3;
+        for (var a2 = 0, h4 = 0;h4 < i.length; h4++) {
+          var s3 = (i.words[h4] | 0) * 19 + a2, u3 = s3 & 67108863;
+          s3 >>>= 26, i.words[h4] = u3, a2 = s3;
         }
         return a2 !== 0 && (i.words[i.length++] = a2), i;
       }, f3._prime = function(i) {
@@ -17606,20 +17561,20 @@ Use Chrome, Firefox or Internet Explorer 11`);
         return i.isZero() ? i.clone() : this.m.sub(i)._forceRed(this);
       }, P2.prototype.add = function(i, a2) {
         this._verify2(i, a2);
-        var h5 = i.add(a2);
-        return h5.cmp(this.m) >= 0 && h5.isub(this.m), h5._forceRed(this);
+        var h4 = i.add(a2);
+        return h4.cmp(this.m) >= 0 && h4.isub(this.m), h4._forceRed(this);
       }, P2.prototype.iadd = function(i, a2) {
         this._verify2(i, a2);
-        var h5 = i.iadd(a2);
-        return h5.cmp(this.m) >= 0 && h5.isub(this.m), h5;
+        var h4 = i.iadd(a2);
+        return h4.cmp(this.m) >= 0 && h4.isub(this.m), h4;
       }, P2.prototype.sub = function(i, a2) {
         this._verify2(i, a2);
-        var h5 = i.sub(a2);
-        return h5.cmpn(0) < 0 && h5.iadd(this.m), h5._forceRed(this);
+        var h4 = i.sub(a2);
+        return h4.cmpn(0) < 0 && h4.iadd(this.m), h4._forceRed(this);
       }, P2.prototype.isub = function(i, a2) {
         this._verify2(i, a2);
-        var h5 = i.isub(a2);
-        return h5.cmpn(0) < 0 && h5.iadd(this.m), h5;
+        var h4 = i.isub(a2);
+        return h4.cmpn(0) < 0 && h4.iadd(this.m), h4;
       }, P2.prototype.shl = function(i, a2) {
         return this._verify1(i), this.imod(i.ushln(a2));
       }, P2.prototype.imul = function(i, a2) {
@@ -17635,8 +17590,8 @@ Use Chrome, Firefox or Internet Explorer 11`);
           return i.clone();
         var a2 = this.m.andln(3);
         if (r2(a2 % 2 === 1), a2 === 3) {
-          var h5 = this.m.add(new f3(1)).iushrn(2);
-          return this.pow(i, h5);
+          var h4 = this.m.add(new f3(1)).iushrn(2);
+          return this.pow(i, h4);
         }
         for (var s3 = this.m.subn(1), u3 = 0;!s3.isZero() && s3.andln(1) === 0; )
           u3++, s3.iushrn(1);
@@ -17660,7 +17615,7 @@ Use Chrome, Firefox or Internet Explorer 11`);
           return new f3(1).toRed(this);
         if (a2.cmpn(1) === 0)
           return i.clone();
-        var h5 = 4, s3 = new Array(1 << h5);
+        var h4 = 4, s3 = new Array(1 << h4);
         s3[0] = new f3(1).toRed(this), s3[1] = i;
         for (var u3 = 2;u3 < s3.length; u3++)
           s3[u3] = this.mul(s3[u3 - 1], i);
@@ -17672,7 +17627,7 @@ Use Chrome, Firefox or Internet Explorer 11`);
               l3 = 0;
               continue;
             }
-            b3 <<= 1, b3 |= g2, l3++, !(l3 !== h5 && (u3 !== 0 || w2 !== 0)) && (c = this.mul(c, s3[b3]), l3 = 0, b3 = 0);
+            b3 <<= 1, b3 |= g2, l3++, !(l3 !== h4 && (u3 !== 0 || w2 !== 0)) && (c = this.mul(c, s3[b3]), l3 = 0, b3 = 0);
           }
           n4 = 26;
         }
@@ -17697,12 +17652,12 @@ Use Chrome, Firefox or Internet Explorer 11`);
       }, Se.prototype.imul = function(i, a2) {
         if (i.isZero() || a2.isZero())
           return i.words[0] = 0, i.length = 1, i;
-        var h5 = i.imul(a2), s3 = h5.maskn(this.shift).mul(this.minv).imaskn(this.shift).mul(this.m), u3 = h5.isub(s3).iushrn(this.shift), c = u3;
+        var h4 = i.imul(a2), s3 = h4.maskn(this.shift).mul(this.minv).imaskn(this.shift).mul(this.m), u3 = h4.isub(s3).iushrn(this.shift), c = u3;
         return u3.cmp(this.m) >= 0 ? c = u3.isub(this.m) : u3.cmpn(0) < 0 && (c = u3.iadd(this.m)), c._forceRed(this);
       }, Se.prototype.mul = function(i, a2) {
         if (i.isZero() || a2.isZero())
           return new f3(0)._forceRed(this);
-        var h5 = i.mul(a2), s3 = h5.maskn(this.shift).mul(this.minv).imaskn(this.shift).mul(this.m), u3 = h5.isub(s3).iushrn(this.shift), c = u3;
+        var h4 = i.mul(a2), s3 = h4.maskn(this.shift).mul(this.minv).imaskn(this.shift).mul(this.m), u3 = h4.isub(s3).iushrn(this.shift), c = u3;
         return u3.cmp(this.m) >= 0 ? c = u3.isub(this.m) : u3.cmpn(0) < 0 && (c = u3.iadd(this.m)), c._forceRed(this);
       }, Se.prototype.invm = function(i) {
         var a2 = this.imod(i._invmp(this.m).mul(this.r2));
@@ -17805,27 +17760,27 @@ Use Chrome, Firefox or Internet Explorer 11`);
         return i.cmp(a2) > 0 ? i : a2;
       }, f3.min = function(i, a2) {
         return i.cmp(a2) < 0 ? i : a2;
-      }, f3.prototype._init = function(i, a2, h5) {
+      }, f3.prototype._init = function(i, a2, h4) {
         if (typeof i == "number")
-          return this._initNumber(i, a2, h5);
+          return this._initNumber(i, a2, h4);
         if (typeof i == "object")
-          return this._initArray(i, a2, h5);
+          return this._initArray(i, a2, h4);
         a2 === "hex" && (a2 = 16), r2(a2 === (a2 | 0) && a2 >= 2 && a2 <= 36), i = i.toString().replace(/\s+/g, "");
         var s3 = 0;
-        i[0] === "-" && (s3++, this.negative = 1), s3 < i.length && (a2 === 16 ? this._parseHex(i, s3, h5) : (this._parseBase(i, a2, s3), h5 === "le" && this._initArray(this.toArray(), a2, h5)));
-      }, f3.prototype._initNumber = function(i, a2, h5) {
-        i < 0 && (this.negative = 1, i = -i), i < 67108864 ? (this.words = [i & 67108863], this.length = 1) : i < 4503599627370496 ? (this.words = [i & 67108863, i / 67108864 & 67108863], this.length = 2) : (r2(i < 9007199254740992), this.words = [i & 67108863, i / 67108864 & 67108863, 1], this.length = 3), h5 === "le" && this._initArray(this.toArray(), a2, h5);
-      }, f3.prototype._initArray = function(i, a2, h5) {
+        i[0] === "-" && (s3++, this.negative = 1), s3 < i.length && (a2 === 16 ? this._parseHex(i, s3, h4) : (this._parseBase(i, a2, s3), h4 === "le" && this._initArray(this.toArray(), a2, h4)));
+      }, f3.prototype._initNumber = function(i, a2, h4) {
+        i < 0 && (this.negative = 1, i = -i), i < 67108864 ? (this.words = [i & 67108863], this.length = 1) : i < 4503599627370496 ? (this.words = [i & 67108863, i / 67108864 & 67108863], this.length = 2) : (r2(i < 9007199254740992), this.words = [i & 67108863, i / 67108864 & 67108863, 1], this.length = 3), h4 === "le" && this._initArray(this.toArray(), a2, h4);
+      }, f3.prototype._initArray = function(i, a2, h4) {
         if (r2(typeof i.length == "number"), i.length <= 0)
           return this.words = [0], this.length = 1, this;
         this.length = Math.ceil(i.length / 3), this.words = new Array(this.length);
         for (var s3 = 0;s3 < this.length; s3++)
           this.words[s3] = 0;
         var u3, c, b3 = 0;
-        if (h5 === "be")
+        if (h4 === "be")
           for (s3 = i.length - 1, u3 = 0;s3 >= 0; s3 -= 3)
             c = i[s3] | i[s3 - 1] << 8 | i[s3 - 2] << 16, this.words[u3] |= c << b3 & 67108863, this.words[u3 + 1] = c >>> 26 - b3 & 67108863, b3 += 24, b3 >= 26 && (b3 -= 26, u3++);
-        else if (h5 === "le")
+        else if (h4 === "le")
           for (s3 = 0, u3 = 0;s3 < i.length; s3 += 3)
             c = i[s3] | i[s3 + 1] << 8 | i[s3 + 2] << 16, this.words[u3] |= c << b3 & 67108863, this.words[u3 + 1] = c >>> 26 - b3 & 67108863, b3 += 24, b3 >= 26 && (b3 -= 26, u3++);
         return this.strip();
@@ -17835,15 +17790,15 @@ Use Chrome, Firefox or Internet Explorer 11`);
         return a2 >= 65 && a2 <= 70 ? a2 - 55 : a2 >= 97 && a2 <= 102 ? a2 - 87 : a2 - 48 & 15;
       }
       function y3(v4, i, a2) {
-        var h5 = m4(v4, a2);
-        return a2 - 1 >= i && (h5 |= m4(v4, a2 - 1) << 4), h5;
+        var h4 = m4(v4, a2);
+        return a2 - 1 >= i && (h4 |= m4(v4, a2 - 1) << 4), h4;
       }
-      f3.prototype._parseHex = function(i, a2, h5) {
+      f3.prototype._parseHex = function(i, a2, h4) {
         this.length = Math.ceil((i.length - a2) / 6), this.words = new Array(this.length);
         for (var s3 = 0;s3 < this.length; s3++)
           this.words[s3] = 0;
         var u3 = 0, c = 0, b3;
-        if (h5 === "be")
+        if (h4 === "be")
           for (s3 = i.length - 1;s3 >= a2; s3 -= 2)
             b3 = y3(i, a2, s3) << u3, this.words[c] |= b3 & 67108863, u3 >= 18 ? (u3 -= 18, c += 1, this.words[c] |= b3 >>> 26) : u3 += 8;
         else {
@@ -17853,19 +17808,19 @@ Use Chrome, Firefox or Internet Explorer 11`);
         }
         this.strip();
       };
-      function M3(v4, i, a2, h5) {
+      function M3(v4, i, a2, h4) {
         for (var s3 = 0, u3 = Math.min(v4.length, a2), c = i;c < u3; c++) {
           var b3 = v4.charCodeAt(c) - 48;
-          s3 *= h5, b3 >= 49 ? s3 += b3 - 49 + 10 : b3 >= 17 ? s3 += b3 - 17 + 10 : s3 += b3;
+          s3 *= h4, b3 >= 49 ? s3 += b3 - 49 + 10 : b3 >= 17 ? s3 += b3 - 17 + 10 : s3 += b3;
         }
         return s3;
       }
-      f3.prototype._parseBase = function(i, a2, h5) {
+      f3.prototype._parseBase = function(i, a2, h4) {
         this.words = [0], this.length = 1;
         for (var s3 = 0, u3 = 1;u3 <= 67108863; u3 *= a2)
           s3++;
         s3--, u3 = u3 / a2 | 0;
-        for (var c = i.length - h5, b3 = c % s3, l3 = Math.min(c, c - b3) + h5, n4 = 0, d = h5;d < l3; d += s3)
+        for (var c = i.length - h4, b3 = c % s3, l3 = Math.min(c, c - b3) + h4, n4 = 0, d = h4;d < l3; d += s3)
           n4 = M3(i, d, d + s3, a2), this.imuln(u3), this.words[0] + n4 < 67108864 ? this.words[0] += n4 : this._iaddn(n4);
         if (b3 !== 0) {
           var w2 = 1;
@@ -17898,28 +17853,28 @@ Use Chrome, Firefox or Internet Explorer 11`);
       var x3 = ["", "0", "00", "000", "0000", "00000", "000000", "0000000", "00000000", "000000000", "0000000000", "00000000000", "000000000000", "0000000000000", "00000000000000", "000000000000000", "0000000000000000", "00000000000000000", "000000000000000000", "0000000000000000000", "00000000000000000000", "000000000000000000000", "0000000000000000000000", "00000000000000000000000", "000000000000000000000000", "0000000000000000000000000"], S3 = [0, 0, 25, 16, 12, 11, 10, 9, 8, 8, 7, 7, 7, 7, 6, 6, 6, 6, 6, 6, 6, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5], E3 = [0, 0, 33554432, 43046721, 16777216, 48828125, 60466176, 40353607, 16777216, 43046721, 1e7, 19487171, 35831808, 62748517, 7529536, 11390625, 16777216, 24137569, 34012224, 47045881, 64000000, 4084101, 5153632, 6436343, 7962624, 9765625, 11881376, 14348907, 17210368, 20511149, 24300000, 28629151, 33554432, 39135393, 45435424, 52521875, 60466176];
       f3.prototype.toString = function(i, a2) {
         i = i || 10, a2 = a2 | 0 || 1;
-        var h5;
+        var h4;
         if (i === 16 || i === "hex") {
-          h5 = "";
+          h4 = "";
           for (var s3 = 0, u3 = 0, c = 0;c < this.length; c++) {
             var b3 = this.words[c], l3 = ((b3 << s3 | u3) & 16777215).toString(16);
-            u3 = b3 >>> 24 - s3 & 16777215, u3 !== 0 || c !== this.length - 1 ? h5 = x3[6 - l3.length] + l3 + h5 : h5 = l3 + h5, s3 += 2, s3 >= 26 && (s3 -= 26, c--);
+            u3 = b3 >>> 24 - s3 & 16777215, u3 !== 0 || c !== this.length - 1 ? h4 = x3[6 - l3.length] + l3 + h4 : h4 = l3 + h4, s3 += 2, s3 >= 26 && (s3 -= 26, c--);
           }
-          for (u3 !== 0 && (h5 = u3.toString(16) + h5);h5.length % a2 !== 0; )
-            h5 = "0" + h5;
-          return this.negative !== 0 && (h5 = "-" + h5), h5;
+          for (u3 !== 0 && (h4 = u3.toString(16) + h4);h4.length % a2 !== 0; )
+            h4 = "0" + h4;
+          return this.negative !== 0 && (h4 = "-" + h4), h4;
         }
         if (i === (i | 0) && i >= 2 && i <= 36) {
           var n4 = S3[i], d = E3[i];
-          h5 = "";
+          h4 = "";
           var w2 = this.clone();
           for (w2.negative = 0;!w2.isZero(); ) {
             var g2 = w2.modn(d).toString(i);
-            w2 = w2.idivn(d), w2.isZero() ? h5 = g2 + h5 : h5 = x3[n4 - g2.length] + g2 + h5;
+            w2 = w2.idivn(d), w2.isZero() ? h4 = g2 + h4 : h4 = x3[n4 - g2.length] + g2 + h4;
           }
-          for (this.isZero() && (h5 = "0" + h5);h5.length % a2 !== 0; )
-            h5 = "0" + h5;
-          return this.negative !== 0 && (h5 = "-" + h5), h5;
+          for (this.isZero() && (h4 = "0" + h4);h4.length % a2 !== 0; )
+            h4 = "0" + h4;
+          return this.negative !== 0 && (h4 = "-" + h4), h4;
         }
         r2(false, "Base should be between 2 and 36");
       }, f3.prototype.toNumber = function() {
@@ -17931,8 +17886,8 @@ Use Chrome, Firefox or Internet Explorer 11`);
         return r2(typeof p2 < "u"), this.toArrayLike(p2, i, a2);
       }, f3.prototype.toArray = function(i, a2) {
         return this.toArrayLike(Array, i, a2);
-      }, f3.prototype.toArrayLike = function(i, a2, h5) {
-        var s3 = this.byteLength(), u3 = h5 || Math.max(1, s3);
+      }, f3.prototype.toArrayLike = function(i, a2, h4) {
+        var s3 = this.byteLength(), u3 = h4 || Math.max(1, s3);
         r2(s3 <= u3, "byte array longer than desired length"), r2(u3 > 0, "Requested array length <= 0"), this.strip();
         var c = a2 === "le", b3 = new i(u3), l3, n4, d = this.clone();
         if (c) {
@@ -17950,21 +17905,21 @@ Use Chrome, Firefox or Internet Explorer 11`);
       }, Math.clz32 ? f3.prototype._countBits = function(i) {
         return 32 - Math.clz32(i);
       } : f3.prototype._countBits = function(i) {
-        var a2 = i, h5 = 0;
-        return a2 >= 4096 && (h5 += 13, a2 >>>= 13), a2 >= 64 && (h5 += 7, a2 >>>= 7), a2 >= 8 && (h5 += 4, a2 >>>= 4), a2 >= 2 && (h5 += 2, a2 >>>= 2), h5 + a2;
+        var a2 = i, h4 = 0;
+        return a2 >= 4096 && (h4 += 13, a2 >>>= 13), a2 >= 64 && (h4 += 7, a2 >>>= 7), a2 >= 8 && (h4 += 4, a2 >>>= 4), a2 >= 2 && (h4 += 2, a2 >>>= 2), h4 + a2;
       }, f3.prototype._zeroBits = function(i) {
         if (i === 0)
           return 26;
-        var a2 = i, h5 = 0;
-        return (a2 & 8191) === 0 && (h5 += 13, a2 >>>= 13), (a2 & 127) === 0 && (h5 += 7, a2 >>>= 7), (a2 & 15) === 0 && (h5 += 4, a2 >>>= 4), (a2 & 3) === 0 && (h5 += 2, a2 >>>= 2), (a2 & 1) === 0 && h5++, h5;
+        var a2 = i, h4 = 0;
+        return (a2 & 8191) === 0 && (h4 += 13, a2 >>>= 13), (a2 & 127) === 0 && (h4 += 7, a2 >>>= 7), (a2 & 15) === 0 && (h4 += 4, a2 >>>= 4), (a2 & 3) === 0 && (h4 += 2, a2 >>>= 2), (a2 & 1) === 0 && h4++, h4;
       }, f3.prototype.bitLength = function() {
         var i = this.words[this.length - 1], a2 = this._countBits(i);
         return (this.length - 1) * 26 + a2;
       };
       function B6(v4) {
         for (var i = new Array(v4.bitLength()), a2 = 0;a2 < i.length; a2++) {
-          var h5 = a2 / 26 | 0, s3 = a2 % 26;
-          i[a2] = (v4.words[h5] & 1 << s3) >>> s3;
+          var h4 = a2 / 26 | 0, s3 = a2 % 26;
+          i[a2] = (v4.words[h4] & 1 << s3) >>> s3;
         }
         return i;
       }
@@ -17972,8 +17927,8 @@ Use Chrome, Firefox or Internet Explorer 11`);
         if (this.isZero())
           return 0;
         for (var i = 0, a2 = 0;a2 < this.length; a2++) {
-          var h5 = this._zeroBits(this.words[a2]);
-          if (i += h5, h5 !== 26)
+          var h4 = this._zeroBits(this.words[a2]);
+          if (i += h4, h4 !== 26)
             break;
         }
         return i;
@@ -18004,8 +17959,8 @@ Use Chrome, Firefox or Internet Explorer 11`);
       }, f3.prototype.iuand = function(i) {
         var a2;
         this.length > i.length ? a2 = i : a2 = this;
-        for (var h5 = 0;h5 < a2.length; h5++)
-          this.words[h5] = this.words[h5] & i.words[h5];
+        for (var h4 = 0;h4 < a2.length; h4++)
+          this.words[h4] = this.words[h4] & i.words[h4];
         return this.length = a2.length, this.strip();
       }, f3.prototype.iand = function(i) {
         return r2((this.negative | i.negative) === 0), this.iuand(i);
@@ -18014,10 +17969,10 @@ Use Chrome, Firefox or Internet Explorer 11`);
       }, f3.prototype.uand = function(i) {
         return this.length > i.length ? this.clone().iuand(i) : i.clone().iuand(this);
       }, f3.prototype.iuxor = function(i) {
-        var a2, h5;
-        this.length > i.length ? (a2 = this, h5 = i) : (a2 = i, h5 = this);
-        for (var s3 = 0;s3 < h5.length; s3++)
-          this.words[s3] = a2.words[s3] ^ h5.words[s3];
+        var a2, h4;
+        this.length > i.length ? (a2 = this, h4 = i) : (a2 = i, h4 = this);
+        for (var s3 = 0;s3 < h4.length; s3++)
+          this.words[s3] = a2.words[s3] ^ h4.words[s3];
         if (this !== a2)
           for (;s3 < a2.length; s3++)
             this.words[s3] = a2.words[s3];
@@ -18030,34 +17985,34 @@ Use Chrome, Firefox or Internet Explorer 11`);
         return this.length > i.length ? this.clone().iuxor(i) : i.clone().iuxor(this);
       }, f3.prototype.inotn = function(i) {
         r2(typeof i == "number" && i >= 0);
-        var a2 = Math.ceil(i / 26) | 0, h5 = i % 26;
-        this._expand(a2), h5 > 0 && a2--;
+        var a2 = Math.ceil(i / 26) | 0, h4 = i % 26;
+        this._expand(a2), h4 > 0 && a2--;
         for (var s3 = 0;s3 < a2; s3++)
           this.words[s3] = ~this.words[s3] & 67108863;
-        return h5 > 0 && (this.words[s3] = ~this.words[s3] & 67108863 >> 26 - h5), this.strip();
+        return h4 > 0 && (this.words[s3] = ~this.words[s3] & 67108863 >> 26 - h4), this.strip();
       }, f3.prototype.notn = function(i) {
         return this.clone().inotn(i);
       }, f3.prototype.setn = function(i, a2) {
         r2(typeof i == "number" && i >= 0);
-        var h5 = i / 26 | 0, s3 = i % 26;
-        return this._expand(h5 + 1), a2 ? this.words[h5] = this.words[h5] | 1 << s3 : this.words[h5] = this.words[h5] & ~(1 << s3), this.strip();
+        var h4 = i / 26 | 0, s3 = i % 26;
+        return this._expand(h4 + 1), a2 ? this.words[h4] = this.words[h4] | 1 << s3 : this.words[h4] = this.words[h4] & ~(1 << s3), this.strip();
       }, f3.prototype.iadd = function(i) {
         var a2;
         if (this.negative !== 0 && i.negative === 0)
           return this.negative = 0, a2 = this.isub(i), this.negative ^= 1, this._normSign();
         if (this.negative === 0 && i.negative !== 0)
           return i.negative = 0, a2 = this.isub(i), i.negative = 1, a2._normSign();
-        var h5, s3;
-        this.length > i.length ? (h5 = this, s3 = i) : (h5 = i, s3 = this);
+        var h4, s3;
+        this.length > i.length ? (h4 = this, s3 = i) : (h4 = i, s3 = this);
         for (var u3 = 0, c = 0;c < s3.length; c++)
-          a2 = (h5.words[c] | 0) + (s3.words[c] | 0) + u3, this.words[c] = a2 & 67108863, u3 = a2 >>> 26;
-        for (;u3 !== 0 && c < h5.length; c++)
-          a2 = (h5.words[c] | 0) + u3, this.words[c] = a2 & 67108863, u3 = a2 >>> 26;
-        if (this.length = h5.length, u3 !== 0)
+          a2 = (h4.words[c] | 0) + (s3.words[c] | 0) + u3, this.words[c] = a2 & 67108863, u3 = a2 >>> 26;
+        for (;u3 !== 0 && c < h4.length; c++)
+          a2 = (h4.words[c] | 0) + u3, this.words[c] = a2 & 67108863, u3 = a2 >>> 26;
+        if (this.length = h4.length, u3 !== 0)
           this.words[this.length] = u3, this.length++;
-        else if (h5 !== this)
-          for (;c < h5.length; c++)
-            this.words[c] = h5.words[c];
+        else if (h4 !== this)
+          for (;c < h4.length; c++)
+            this.words[c] = h4.words[c];
         return this;
       }, f3.prototype.add = function(i) {
         var a2;
@@ -18069,11 +18024,11 @@ Use Chrome, Firefox or Internet Explorer 11`);
           return i.negative = 1, a2._normSign();
         } else if (this.negative !== 0)
           return this.negative = 0, this.iadd(i), this.negative = 1, this._normSign();
-        var h5 = this.cmp(i);
-        if (h5 === 0)
+        var h4 = this.cmp(i);
+        if (h4 === 0)
           return this.negative = 0, this.length = 1, this.words[0] = 0, this;
         var s3, u3;
-        h5 > 0 ? (s3 = this, u3 = i) : (s3 = i, u3 = this);
+        h4 > 0 ? (s3 = this, u3 = i) : (s3 = i, u3 = this);
         for (var c = 0, b3 = 0;b3 < u3.length; b3++)
           a2 = (s3.words[b3] | 0) - (u3.words[b3] | 0) + c, c = a2 >> 26, this.words[b3] = a2 & 67108863;
         for (;c !== 0 && b3 < s3.length; b3++)
@@ -18087,11 +18042,11 @@ Use Chrome, Firefox or Internet Explorer 11`);
       };
       function q2(v4, i, a2) {
         a2.negative = i.negative ^ v4.negative;
-        var h5 = v4.length + i.length | 0;
-        a2.length = h5, h5 = h5 - 1 | 0;
+        var h4 = v4.length + i.length | 0;
+        a2.length = h4, h4 = h4 - 1 | 0;
         var s3 = v4.words[0] | 0, u3 = i.words[0] | 0, c = s3 * u3, b3 = c & 67108863, l3 = c / 67108864 | 0;
         a2.words[0] = b3;
-        for (var n4 = 1;n4 < h5; n4++) {
+        for (var n4 = 1;n4 < h4; n4++) {
           for (var d = l3 >>> 26, w2 = l3 & 67108863, g2 = Math.min(n4, i.length - 1), _4 = Math.max(0, n4 - v4.length + 1);_4 <= g2; _4++) {
             var A6 = n4 - _4 | 0;
             s3 = v4.words[A6] | 0, u3 = i.words[_4] | 0, c = s3 * u3 + w2, d += c / 67108864 | 0, w2 = c & 67108863;
@@ -18100,9 +18055,9 @@ Use Chrome, Firefox or Internet Explorer 11`);
         }
         return l3 !== 0 ? a2.words[n4] = l3 | 0 : a2.length--, a2.strip();
       }
-      var L3 = function(i, a2, h5) {
-        var s3 = i.words, u3 = a2.words, c = h5.words, b3 = 0, l3, n4, d, w2 = s3[0] | 0, g2 = w2 & 8191, _4 = w2 >>> 13, A6 = s3[1] | 0, R3 = A6 & 8191, I2 = A6 >>> 13, Me = s3[2] | 0, k2 = Me & 8191, D2 = Me >>> 13, nt = s3[3] | 0, C3 = nt & 8191, O3 = nt >>> 13, vt = s3[4] | 0, F = vt & 8191, U2 = vt >>> 13, bt = s3[5] | 0, z3 = bt & 8191, H4 = bt >>> 13, mt = s3[6] | 0, W3 = mt & 8191, K = mt >>> 13, gt = s3[7] | 0, j2 = gt & 8191, Z4 = gt >>> 13, yt = s3[8] | 0, V5 = yt & 8191, $4 = yt >>> 13, wt = s3[9] | 0, G5 = wt & 8191, Y2 = wt >>> 13, Mt = u3[0] | 0, X4 = Mt & 8191, J = Mt >>> 13, _t = u3[1] | 0, Q3 = _t & 8191, ee = _t >>> 13, xt = u3[2] | 0, te = xt & 8191, re = xt >>> 13, St = u3[3] | 0, ie = St & 8191, ne = St >>> 13, Et = u3[4] | 0, fe = Et & 8191, ae = Et >>> 13, At = u3[5] | 0, oe = At & 8191, se = At >>> 13, Rt = u3[6] | 0, he = Rt & 8191, ue = Rt >>> 13, Bt = u3[7] | 0, le = Bt & 8191, de = Bt >>> 13, qt = u3[8] | 0, ce = qt & 8191, pe = qt >>> 13, It = u3[9] | 0, ve = It & 8191, be = It >>> 13;
-        h5.negative = i.negative ^ a2.negative, h5.length = 19, l3 = Math.imul(g2, X4), n4 = Math.imul(g2, J), n4 = n4 + Math.imul(_4, X4) | 0, d = Math.imul(_4, J);
+      var L3 = function(i, a2, h4) {
+        var s3 = i.words, u3 = a2.words, c = h4.words, b3 = 0, l3, n4, d, w2 = s3[0] | 0, g2 = w2 & 8191, _4 = w2 >>> 13, A6 = s3[1] | 0, R3 = A6 & 8191, I2 = A6 >>> 13, Me = s3[2] | 0, k2 = Me & 8191, D2 = Me >>> 13, nt = s3[3] | 0, C3 = nt & 8191, O3 = nt >>> 13, vt = s3[4] | 0, F = vt & 8191, U2 = vt >>> 13, bt = s3[5] | 0, z3 = bt & 8191, H4 = bt >>> 13, mt = s3[6] | 0, W3 = mt & 8191, K = mt >>> 13, gt = s3[7] | 0, j2 = gt & 8191, Z4 = gt >>> 13, yt = s3[8] | 0, V5 = yt & 8191, $4 = yt >>> 13, wt = s3[9] | 0, G5 = wt & 8191, Y2 = wt >>> 13, Mt = u3[0] | 0, X4 = Mt & 8191, J = Mt >>> 13, _t = u3[1] | 0, Q3 = _t & 8191, ee = _t >>> 13, xt = u3[2] | 0, te = xt & 8191, re = xt >>> 13, St = u3[3] | 0, ie = St & 8191, ne = St >>> 13, Et = u3[4] | 0, fe = Et & 8191, ae = Et >>> 13, At = u3[5] | 0, oe = At & 8191, se = At >>> 13, Rt = u3[6] | 0, he = Rt & 8191, ue = Rt >>> 13, Bt = u3[7] | 0, le = Bt & 8191, de = Bt >>> 13, qt = u3[8] | 0, ce = qt & 8191, pe = qt >>> 13, It = u3[9] | 0, ve = It & 8191, be = It >>> 13;
+        h4.negative = i.negative ^ a2.negative, h4.length = 19, l3 = Math.imul(g2, X4), n4 = Math.imul(g2, J), n4 = n4 + Math.imul(_4, X4) | 0, d = Math.imul(_4, J);
         var ft = (b3 + l3 | 0) + ((n4 & 8191) << 13) | 0;
         b3 = (d + (n4 >>> 13) | 0) + (ft >>> 26) | 0, ft &= 67108863, l3 = Math.imul(R3, X4), n4 = Math.imul(R3, J), n4 = n4 + Math.imul(I2, X4) | 0, d = Math.imul(I2, J), l3 = l3 + Math.imul(g2, Q3) | 0, n4 = n4 + Math.imul(g2, ee) | 0, n4 = n4 + Math.imul(_4, Q3) | 0, d = d + Math.imul(_4, ee) | 0;
         var Be = (b3 + l3 | 0) + ((n4 & 8191) << 13) | 0;
@@ -18140,89 +18095,89 @@ Use Chrome, Firefox or Internet Explorer 11`);
         var tt = (b3 + l3 | 0) + ((n4 & 8191) << 13) | 0;
         b3 = (d + (n4 >>> 13) | 0) + (tt >>> 26) | 0, tt &= 67108863, l3 = Math.imul(G5, ve), n4 = Math.imul(G5, be), n4 = n4 + Math.imul(Y2, ve) | 0, d = Math.imul(Y2, be);
         var rt = (b3 + l3 | 0) + ((n4 & 8191) << 13) | 0;
-        return b3 = (d + (n4 >>> 13) | 0) + (rt >>> 26) | 0, rt &= 67108863, c[0] = ft, c[1] = Be, c[2] = qe, c[3] = ze, c[4] = He, c[5] = We, c[6] = Ke, c[7] = je, c[8] = Ze, c[9] = Ve, c[10] = $e, c[11] = Ge, c[12] = Ye, c[13] = Xe, c[14] = Je, c[15] = Qe, c[16] = et, c[17] = tt, c[18] = rt, b3 !== 0 && (c[19] = b3, h5.length++), h5;
+        return b3 = (d + (n4 >>> 13) | 0) + (rt >>> 26) | 0, rt &= 67108863, c[0] = ft, c[1] = Be, c[2] = qe, c[3] = ze, c[4] = He, c[5] = We, c[6] = Ke, c[7] = je, c[8] = Ze, c[9] = Ve, c[10] = $e, c[11] = Ge, c[12] = Ye, c[13] = Xe, c[14] = Je, c[15] = Qe, c[16] = et, c[17] = tt, c[18] = rt, b3 !== 0 && (c[19] = b3, h4.length++), h4;
       };
       Math.imul || (L3 = q2);
       function ge(v4, i, a2) {
         a2.negative = i.negative ^ v4.negative, a2.length = v4.length + i.length;
-        for (var h5 = 0, s3 = 0, u3 = 0;u3 < a2.length - 1; u3++) {
+        for (var h4 = 0, s3 = 0, u3 = 0;u3 < a2.length - 1; u3++) {
           var c = s3;
           s3 = 0;
-          for (var b3 = h5 & 67108863, l3 = Math.min(u3, i.length - 1), n4 = Math.max(0, u3 - v4.length + 1);n4 <= l3; n4++) {
+          for (var b3 = h4 & 67108863, l3 = Math.min(u3, i.length - 1), n4 = Math.max(0, u3 - v4.length + 1);n4 <= l3; n4++) {
             var d = u3 - n4, w2 = v4.words[d] | 0, g2 = i.words[n4] | 0, _4 = w2 * g2, A6 = _4 & 67108863;
             c = c + (_4 / 67108864 | 0) | 0, A6 = A6 + b3 | 0, b3 = A6 & 67108863, c = c + (A6 >>> 26) | 0, s3 += c >>> 26, c &= 67108863;
           }
-          a2.words[u3] = b3, h5 = c, c = s3;
+          a2.words[u3] = b3, h4 = c, c = s3;
         }
-        return h5 !== 0 ? a2.words[u3] = h5 : a2.length--, a2.strip();
+        return h4 !== 0 ? a2.words[u3] = h4 : a2.length--, a2.strip();
       }
       function _e(v4, i, a2) {
-        var h5 = new N4;
-        return h5.mulp(v4, i, a2);
+        var h4 = new N4;
+        return h4.mulp(v4, i, a2);
       }
       f3.prototype.mulTo = function(i, a2) {
-        var h5, s3 = this.length + i.length;
-        return this.length === 10 && i.length === 10 ? h5 = L3(this, i, a2) : s3 < 63 ? h5 = q2(this, i, a2) : s3 < 1024 ? h5 = ge(this, i, a2) : h5 = _e(this, i, a2), h5;
+        var h4, s3 = this.length + i.length;
+        return this.length === 10 && i.length === 10 ? h4 = L3(this, i, a2) : s3 < 63 ? h4 = q2(this, i, a2) : s3 < 1024 ? h4 = ge(this, i, a2) : h4 = _e(this, i, a2), h4;
       };
       function N4(v4, i) {
         this.x = v4, this.y = i;
       }
       N4.prototype.makeRBT = function(i) {
-        for (var a2 = new Array(i), h5 = f3.prototype._countBits(i) - 1, s3 = 0;s3 < i; s3++)
-          a2[s3] = this.revBin(s3, h5, i);
+        for (var a2 = new Array(i), h4 = f3.prototype._countBits(i) - 1, s3 = 0;s3 < i; s3++)
+          a2[s3] = this.revBin(s3, h4, i);
         return a2;
-      }, N4.prototype.revBin = function(i, a2, h5) {
-        if (i === 0 || i === h5 - 1)
+      }, N4.prototype.revBin = function(i, a2, h4) {
+        if (i === 0 || i === h4 - 1)
           return i;
         for (var s3 = 0, u3 = 0;u3 < a2; u3++)
           s3 |= (i & 1) << a2 - u3 - 1, i >>= 1;
         return s3;
-      }, N4.prototype.permute = function(i, a2, h5, s3, u3, c) {
+      }, N4.prototype.permute = function(i, a2, h4, s3, u3, c) {
         for (var b3 = 0;b3 < c; b3++)
-          s3[b3] = a2[i[b3]], u3[b3] = h5[i[b3]];
-      }, N4.prototype.transform = function(i, a2, h5, s3, u3, c) {
-        this.permute(c, i, a2, h5, s3, u3);
+          s3[b3] = a2[i[b3]], u3[b3] = h4[i[b3]];
+      }, N4.prototype.transform = function(i, a2, h4, s3, u3, c) {
+        this.permute(c, i, a2, h4, s3, u3);
         for (var b3 = 1;b3 < u3; b3 <<= 1)
           for (var l3 = b3 << 1, n4 = Math.cos(2 * Math.PI / l3), d = Math.sin(2 * Math.PI / l3), w2 = 0;w2 < u3; w2 += l3)
             for (var g2 = n4, _4 = d, A6 = 0;A6 < b3; A6++) {
-              var R3 = h5[w2 + A6], I2 = s3[w2 + A6], Me = h5[w2 + A6 + b3], k2 = s3[w2 + A6 + b3], D2 = g2 * Me - _4 * k2;
-              k2 = g2 * k2 + _4 * Me, Me = D2, h5[w2 + A6] = R3 + Me, s3[w2 + A6] = I2 + k2, h5[w2 + A6 + b3] = R3 - Me, s3[w2 + A6 + b3] = I2 - k2, A6 !== l3 && (D2 = n4 * g2 - d * _4, _4 = n4 * _4 + d * g2, g2 = D2);
+              var R3 = h4[w2 + A6], I2 = s3[w2 + A6], Me = h4[w2 + A6 + b3], k2 = s3[w2 + A6 + b3], D2 = g2 * Me - _4 * k2;
+              k2 = g2 * k2 + _4 * Me, Me = D2, h4[w2 + A6] = R3 + Me, s3[w2 + A6] = I2 + k2, h4[w2 + A6 + b3] = R3 - Me, s3[w2 + A6 + b3] = I2 - k2, A6 !== l3 && (D2 = n4 * g2 - d * _4, _4 = n4 * _4 + d * g2, g2 = D2);
             }
       }, N4.prototype.guessLen13b = function(i, a2) {
-        var h5 = Math.max(a2, i) | 1, s3 = h5 & 1, u3 = 0;
-        for (h5 = h5 / 2 | 0;h5; h5 = h5 >>> 1)
+        var h4 = Math.max(a2, i) | 1, s3 = h4 & 1, u3 = 0;
+        for (h4 = h4 / 2 | 0;h4; h4 = h4 >>> 1)
           u3++;
         return 1 << u3 + 1 + s3;
-      }, N4.prototype.conjugate = function(i, a2, h5) {
-        if (!(h5 <= 1))
-          for (var s3 = 0;s3 < h5 / 2; s3++) {
+      }, N4.prototype.conjugate = function(i, a2, h4) {
+        if (!(h4 <= 1))
+          for (var s3 = 0;s3 < h4 / 2; s3++) {
             var u3 = i[s3];
-            i[s3] = i[h5 - s3 - 1], i[h5 - s3 - 1] = u3, u3 = a2[s3], a2[s3] = -a2[h5 - s3 - 1], a2[h5 - s3 - 1] = -u3;
+            i[s3] = i[h4 - s3 - 1], i[h4 - s3 - 1] = u3, u3 = a2[s3], a2[s3] = -a2[h4 - s3 - 1], a2[h4 - s3 - 1] = -u3;
           }
       }, N4.prototype.normalize13b = function(i, a2) {
-        for (var h5 = 0, s3 = 0;s3 < a2 / 2; s3++) {
-          var u3 = Math.round(i[2 * s3 + 1] / a2) * 8192 + Math.round(i[2 * s3] / a2) + h5;
-          i[s3] = u3 & 67108863, u3 < 67108864 ? h5 = 0 : h5 = u3 / 67108864 | 0;
+        for (var h4 = 0, s3 = 0;s3 < a2 / 2; s3++) {
+          var u3 = Math.round(i[2 * s3 + 1] / a2) * 8192 + Math.round(i[2 * s3] / a2) + h4;
+          i[s3] = u3 & 67108863, u3 < 67108864 ? h4 = 0 : h4 = u3 / 67108864 | 0;
         }
         return i;
-      }, N4.prototype.convert13b = function(i, a2, h5, s3) {
+      }, N4.prototype.convert13b = function(i, a2, h4, s3) {
         for (var u3 = 0, c = 0;c < a2; c++)
-          u3 = u3 + (i[c] | 0), h5[2 * c] = u3 & 8191, u3 = u3 >>> 13, h5[2 * c + 1] = u3 & 8191, u3 = u3 >>> 13;
+          u3 = u3 + (i[c] | 0), h4[2 * c] = u3 & 8191, u3 = u3 >>> 13, h4[2 * c + 1] = u3 & 8191, u3 = u3 >>> 13;
         for (c = 2 * a2;c < s3; ++c)
-          h5[c] = 0;
+          h4[c] = 0;
         r2(u3 === 0), r2((u3 & -8192) === 0);
       }, N4.prototype.stub = function(i) {
-        for (var a2 = new Array(i), h5 = 0;h5 < i; h5++)
-          a2[h5] = 0;
+        for (var a2 = new Array(i), h4 = 0;h4 < i; h4++)
+          a2[h4] = 0;
         return a2;
-      }, N4.prototype.mulp = function(i, a2, h5) {
-        var s3 = 2 * this.guessLen13b(i.length, a2.length), u3 = this.makeRBT(s3), c = this.stub(s3), b3 = new Array(s3), l3 = new Array(s3), n4 = new Array(s3), d = new Array(s3), w2 = new Array(s3), g2 = new Array(s3), _4 = h5.words;
+      }, N4.prototype.mulp = function(i, a2, h4) {
+        var s3 = 2 * this.guessLen13b(i.length, a2.length), u3 = this.makeRBT(s3), c = this.stub(s3), b3 = new Array(s3), l3 = new Array(s3), n4 = new Array(s3), d = new Array(s3), w2 = new Array(s3), g2 = new Array(s3), _4 = h4.words;
         _4.length = s3, this.convert13b(i.words, i.length, b3, s3), this.convert13b(a2.words, a2.length, d, s3), this.transform(b3, c, l3, n4, s3, u3), this.transform(d, c, w2, g2, s3, u3);
         for (var A6 = 0;A6 < s3; A6++) {
           var R3 = l3[A6] * w2[A6] - n4[A6] * g2[A6];
           n4[A6] = l3[A6] * g2[A6] + n4[A6] * w2[A6], l3[A6] = R3;
         }
-        return this.conjugate(l3, n4, s3), this.transform(l3, n4, _4, c, s3, u3), this.conjugate(_4, c, s3), this.normalize13b(_4, s3), h5.negative = i.negative ^ a2.negative, h5.length = i.length + a2.length, h5.strip();
+        return this.conjugate(l3, n4, s3), this.transform(l3, n4, _4, c, s3, u3), this.conjugate(_4, c, s3), this.normalize13b(_4, s3), h4.negative = i.negative ^ a2.negative, h4.length = i.length + a2.length, h4.strip();
       }, f3.prototype.mul = function(i) {
         var a2 = new f3(null);
         return a2.words = new Array(this.length + i.length), this.mulTo(i, a2);
@@ -18233,11 +18188,11 @@ Use Chrome, Firefox or Internet Explorer 11`);
         return this.clone().mulTo(i, this);
       }, f3.prototype.imuln = function(i) {
         r2(typeof i == "number"), r2(i < 67108864);
-        for (var a2 = 0, h5 = 0;h5 < this.length; h5++) {
-          var s3 = (this.words[h5] | 0) * i, u3 = (s3 & 67108863) + (a2 & 67108863);
-          a2 >>= 26, a2 += s3 / 67108864 | 0, a2 += u3 >>> 26, this.words[h5] = u3 & 67108863;
+        for (var a2 = 0, h4 = 0;h4 < this.length; h4++) {
+          var s3 = (this.words[h4] | 0) * i, u3 = (s3 & 67108863) + (a2 & 67108863);
+          a2 >>= 26, a2 += s3 / 67108864 | 0, a2 += u3 >>> 26, this.words[h4] = u3 & 67108863;
         }
-        return a2 !== 0 && (this.words[h5] = a2, this.length++), this;
+        return a2 !== 0 && (this.words[h4] = a2, this.length++), this;
       }, f3.prototype.muln = function(i) {
         return this.clone().imuln(i);
       }, f3.prototype.sqr = function() {
@@ -18248,15 +18203,15 @@ Use Chrome, Firefox or Internet Explorer 11`);
         var a2 = B6(i);
         if (a2.length === 0)
           return new f3(1);
-        for (var h5 = this, s3 = 0;s3 < a2.length && a2[s3] === 0; s3++, h5 = h5.sqr())
+        for (var h4 = this, s3 = 0;s3 < a2.length && a2[s3] === 0; s3++, h4 = h4.sqr())
           ;
         if (++s3 < a2.length)
-          for (var u3 = h5.sqr();s3 < a2.length; s3++, u3 = u3.sqr())
-            a2[s3] !== 0 && (h5 = h5.mul(u3));
-        return h5;
+          for (var u3 = h4.sqr();s3 < a2.length; s3++, u3 = u3.sqr())
+            a2[s3] !== 0 && (h4 = h4.mul(u3));
+        return h4;
       }, f3.prototype.iushln = function(i) {
         r2(typeof i == "number" && i >= 0);
-        var a2 = i % 26, h5 = (i - a2) / 26, s3 = 67108863 >>> 26 - a2 << 26 - a2, u3;
+        var a2 = i % 26, h4 = (i - a2) / 26, s3 = 67108863 >>> 26 - a2 << 26 - a2, u3;
         if (a2 !== 0) {
           var c = 0;
           for (u3 = 0;u3 < this.length; u3++) {
@@ -18265,21 +18220,21 @@ Use Chrome, Firefox or Internet Explorer 11`);
           }
           c && (this.words[u3] = c, this.length++);
         }
-        if (h5 !== 0) {
+        if (h4 !== 0) {
           for (u3 = this.length - 1;u3 >= 0; u3--)
-            this.words[u3 + h5] = this.words[u3];
-          for (u3 = 0;u3 < h5; u3++)
+            this.words[u3 + h4] = this.words[u3];
+          for (u3 = 0;u3 < h4; u3++)
             this.words[u3] = 0;
-          this.length += h5;
+          this.length += h4;
         }
         return this.strip();
       }, f3.prototype.ishln = function(i) {
         return r2(this.negative === 0), this.iushln(i);
-      }, f3.prototype.iushrn = function(i, a2, h5) {
+      }, f3.prototype.iushrn = function(i, a2, h4) {
         r2(typeof i == "number" && i >= 0);
         var s3;
         a2 ? s3 = (a2 - a2 % 26) / 26 : s3 = 0;
-        var u3 = i % 26, c = Math.min((i - u3) / 26, this.length), b3 = 67108863 ^ 67108863 >>> u3 << u3, l3 = h5;
+        var u3 = i % 26, c = Math.min((i - u3) / 26, this.length), b3 = 67108863 ^ 67108863 >>> u3 << u3, l3 = h4;
         if (s3 -= c, s3 = Math.max(0, s3), l3) {
           for (var n4 = 0;n4 < c; n4++)
             l3.words[n4] = this.words[n4];
@@ -18297,8 +18252,8 @@ Use Chrome, Firefox or Internet Explorer 11`);
           this.words[n4] = d << 26 - u3 | w2 >>> u3, d = w2 & b3;
         }
         return l3 && d !== 0 && (l3.words[l3.length++] = d), this.length === 0 && (this.words[0] = 0, this.length = 1), this.strip();
-      }, f3.prototype.ishrn = function(i, a2, h5) {
-        return r2(this.negative === 0), this.iushrn(i, a2, h5);
+      }, f3.prototype.ishrn = function(i, a2, h4) {
+        return r2(this.negative === 0), this.iushrn(i, a2, h4);
       }, f3.prototype.shln = function(i) {
         return this.clone().ishln(i);
       }, f3.prototype.ushln = function(i) {
@@ -18309,17 +18264,17 @@ Use Chrome, Firefox or Internet Explorer 11`);
         return this.clone().iushrn(i);
       }, f3.prototype.testn = function(i) {
         r2(typeof i == "number" && i >= 0);
-        var a2 = i % 26, h5 = (i - a2) / 26, s3 = 1 << a2;
-        if (this.length <= h5)
+        var a2 = i % 26, h4 = (i - a2) / 26, s3 = 1 << a2;
+        if (this.length <= h4)
           return false;
-        var u3 = this.words[h5];
+        var u3 = this.words[h4];
         return !!(u3 & s3);
       }, f3.prototype.imaskn = function(i) {
         r2(typeof i == "number" && i >= 0);
-        var a2 = i % 26, h5 = (i - a2) / 26;
-        if (r2(this.negative === 0, "imaskn works only with positive numbers"), this.length <= h5)
+        var a2 = i % 26, h4 = (i - a2) / 26;
+        if (r2(this.negative === 0, "imaskn works only with positive numbers"), this.length <= h4)
           return this;
-        if (a2 !== 0 && h5++, this.length = Math.min(h5, this.length), a2 !== 0) {
+        if (a2 !== 0 && h4++, this.length = Math.min(h4, this.length), a2 !== 0) {
           var s3 = 67108863 ^ 67108863 >>> a2 << a2;
           this.words[this.length - 1] &= s3;
         }
@@ -18352,25 +18307,25 @@ Use Chrome, Firefox or Internet Explorer 11`);
         return this.negative = 0, this;
       }, f3.prototype.abs = function() {
         return this.clone().iabs();
-      }, f3.prototype._ishlnsubmul = function(i, a2, h5) {
-        var s3 = i.length + h5, u3;
+      }, f3.prototype._ishlnsubmul = function(i, a2, h4) {
+        var s3 = i.length + h4, u3;
         this._expand(s3);
         var c, b3 = 0;
         for (u3 = 0;u3 < i.length; u3++) {
-          c = (this.words[u3 + h5] | 0) + b3;
+          c = (this.words[u3 + h4] | 0) + b3;
           var l3 = (i.words[u3] | 0) * a2;
-          c -= l3 & 67108863, b3 = (c >> 26) - (l3 / 67108864 | 0), this.words[u3 + h5] = c & 67108863;
+          c -= l3 & 67108863, b3 = (c >> 26) - (l3 / 67108864 | 0), this.words[u3 + h4] = c & 67108863;
         }
-        for (;u3 < this.length - h5; u3++)
-          c = (this.words[u3 + h5] | 0) + b3, b3 = c >> 26, this.words[u3 + h5] = c & 67108863;
+        for (;u3 < this.length - h4; u3++)
+          c = (this.words[u3 + h4] | 0) + b3, b3 = c >> 26, this.words[u3 + h4] = c & 67108863;
         if (b3 === 0)
           return this.strip();
         for (r2(b3 === -1), b3 = 0, u3 = 0;u3 < this.length; u3++)
           c = -(this.words[u3] | 0) + b3, b3 = c >> 26, this.words[u3] = c & 67108863;
         return this.negative = 1, this.strip();
       }, f3.prototype._wordDiv = function(i, a2) {
-        var h5 = this.length - i.length, s3 = this.clone(), u3 = i, c = u3.words[u3.length - 1] | 0, b3 = this._countBits(c);
-        h5 = 26 - b3, h5 !== 0 && (u3 = u3.ushln(h5), s3.iushln(h5), c = u3.words[u3.length - 1] | 0);
+        var h4 = this.length - i.length, s3 = this.clone(), u3 = i, c = u3.words[u3.length - 1] | 0, b3 = this._countBits(c);
+        h4 = 26 - b3, h4 !== 0 && (u3 = u3.ushln(h4), s3.iushln(h4), c = u3.words[u3.length - 1] | 0);
         var l3 = s3.length - u3.length, n4;
         if (a2 !== "mod") {
           n4 = new f3(null), n4.length = l3 + 1, n4.words = new Array(n4.length);
@@ -18385,12 +18340,12 @@ Use Chrome, Firefox or Internet Explorer 11`);
             _4--, s3.negative = 0, s3._ishlnsubmul(u3, 1, g2), s3.isZero() || (s3.negative ^= 1);
           n4 && (n4.words[g2] = _4);
         }
-        return n4 && n4.strip(), s3.strip(), a2 !== "div" && h5 !== 0 && s3.iushrn(h5), { div: n4 || null, mod: s3 };
-      }, f3.prototype.divmod = function(i, a2, h5) {
+        return n4 && n4.strip(), s3.strip(), a2 !== "div" && h4 !== 0 && s3.iushrn(h4), { div: n4 || null, mod: s3 };
+      }, f3.prototype.divmod = function(i, a2, h4) {
         if (r2(!i.isZero()), this.isZero())
           return { div: new f3(0), mod: new f3(0) };
         var s3, u3, c;
-        return this.negative !== 0 && i.negative === 0 ? (c = this.neg().divmod(i, a2), a2 !== "mod" && (s3 = c.div.neg()), a2 !== "div" && (u3 = c.mod.neg(), h5 && u3.negative !== 0 && u3.iadd(i)), { div: s3, mod: u3 }) : this.negative === 0 && i.negative !== 0 ? (c = this.divmod(i.neg(), a2), a2 !== "mod" && (s3 = c.div.neg()), { div: s3, mod: c.mod }) : (this.negative & i.negative) !== 0 ? (c = this.neg().divmod(i.neg(), a2), a2 !== "div" && (u3 = c.mod.neg(), h5 && u3.negative !== 0 && u3.isub(i)), { div: c.div, mod: u3 }) : i.length > this.length || this.cmp(i) < 0 ? { div: new f3(0), mod: this } : i.length === 1 ? a2 === "div" ? { div: this.divn(i.words[0]), mod: null } : a2 === "mod" ? { div: null, mod: new f3(this.modn(i.words[0])) } : { div: this.divn(i.words[0]), mod: new f3(this.modn(i.words[0])) } : this._wordDiv(i, a2);
+        return this.negative !== 0 && i.negative === 0 ? (c = this.neg().divmod(i, a2), a2 !== "mod" && (s3 = c.div.neg()), a2 !== "div" && (u3 = c.mod.neg(), h4 && u3.negative !== 0 && u3.iadd(i)), { div: s3, mod: u3 }) : this.negative === 0 && i.negative !== 0 ? (c = this.divmod(i.neg(), a2), a2 !== "mod" && (s3 = c.div.neg()), { div: s3, mod: c.mod }) : (this.negative & i.negative) !== 0 ? (c = this.neg().divmod(i.neg(), a2), a2 !== "div" && (u3 = c.mod.neg(), h4 && u3.negative !== 0 && u3.isub(i)), { div: c.div, mod: u3 }) : i.length > this.length || this.cmp(i) < 0 ? { div: new f3(0), mod: this } : i.length === 1 ? a2 === "div" ? { div: this.divn(i.words[0]), mod: null } : a2 === "mod" ? { div: null, mod: new f3(this.modn(i.words[0])) } : { div: this.divn(i.words[0]), mod: new f3(this.modn(i.words[0])) } : this._wordDiv(i, a2);
       }, f3.prototype.div = function(i) {
         return this.divmod(i, "div", false).div;
       }, f3.prototype.mod = function(i) {
@@ -18401,58 +18356,58 @@ Use Chrome, Firefox or Internet Explorer 11`);
         var a2 = this.divmod(i);
         if (a2.mod.isZero())
           return a2.div;
-        var h5 = a2.div.negative !== 0 ? a2.mod.isub(i) : a2.mod, s3 = i.ushrn(1), u3 = i.andln(1), c = h5.cmp(s3);
+        var h4 = a2.div.negative !== 0 ? a2.mod.isub(i) : a2.mod, s3 = i.ushrn(1), u3 = i.andln(1), c = h4.cmp(s3);
         return c < 0 || u3 === 1 && c === 0 ? a2.div : a2.div.negative !== 0 ? a2.div.isubn(1) : a2.div.iaddn(1);
       }, f3.prototype.modn = function(i) {
         r2(i <= 67108863);
-        for (var a2 = (1 << 26) % i, h5 = 0, s3 = this.length - 1;s3 >= 0; s3--)
-          h5 = (a2 * h5 + (this.words[s3] | 0)) % i;
-        return h5;
+        for (var a2 = (1 << 26) % i, h4 = 0, s3 = this.length - 1;s3 >= 0; s3--)
+          h4 = (a2 * h4 + (this.words[s3] | 0)) % i;
+        return h4;
       }, f3.prototype.idivn = function(i) {
         r2(i <= 67108863);
-        for (var a2 = 0, h5 = this.length - 1;h5 >= 0; h5--) {
-          var s3 = (this.words[h5] | 0) + a2 * 67108864;
-          this.words[h5] = s3 / i | 0, a2 = s3 % i;
+        for (var a2 = 0, h4 = this.length - 1;h4 >= 0; h4--) {
+          var s3 = (this.words[h4] | 0) + a2 * 67108864;
+          this.words[h4] = s3 / i | 0, a2 = s3 % i;
         }
         return this.strip();
       }, f3.prototype.divn = function(i) {
         return this.clone().idivn(i);
       }, f3.prototype.egcd = function(i) {
         r2(i.negative === 0), r2(!i.isZero());
-        var a2 = this, h5 = i.clone();
+        var a2 = this, h4 = i.clone();
         a2.negative !== 0 ? a2 = a2.umod(i) : a2 = a2.clone();
-        for (var s3 = new f3(1), u3 = new f3(0), c = new f3(0), b3 = new f3(1), l3 = 0;a2.isEven() && h5.isEven(); )
-          a2.iushrn(1), h5.iushrn(1), ++l3;
-        for (var n4 = h5.clone(), d = a2.clone();!a2.isZero(); ) {
+        for (var s3 = new f3(1), u3 = new f3(0), c = new f3(0), b3 = new f3(1), l3 = 0;a2.isEven() && h4.isEven(); )
+          a2.iushrn(1), h4.iushrn(1), ++l3;
+        for (var n4 = h4.clone(), d = a2.clone();!a2.isZero(); ) {
           for (var w2 = 0, g2 = 1;(a2.words[0] & g2) === 0 && w2 < 26; ++w2, g2 <<= 1)
             ;
           if (w2 > 0)
             for (a2.iushrn(w2);w2-- > 0; )
               (s3.isOdd() || u3.isOdd()) && (s3.iadd(n4), u3.isub(d)), s3.iushrn(1), u3.iushrn(1);
-          for (var _4 = 0, A6 = 1;(h5.words[0] & A6) === 0 && _4 < 26; ++_4, A6 <<= 1)
+          for (var _4 = 0, A6 = 1;(h4.words[0] & A6) === 0 && _4 < 26; ++_4, A6 <<= 1)
             ;
           if (_4 > 0)
-            for (h5.iushrn(_4);_4-- > 0; )
+            for (h4.iushrn(_4);_4-- > 0; )
               (c.isOdd() || b3.isOdd()) && (c.iadd(n4), b3.isub(d)), c.iushrn(1), b3.iushrn(1);
-          a2.cmp(h5) >= 0 ? (a2.isub(h5), s3.isub(c), u3.isub(b3)) : (h5.isub(a2), c.isub(s3), b3.isub(u3));
+          a2.cmp(h4) >= 0 ? (a2.isub(h4), s3.isub(c), u3.isub(b3)) : (h4.isub(a2), c.isub(s3), b3.isub(u3));
         }
-        return { a: c, b: b3, gcd: h5.iushln(l3) };
+        return { a: c, b: b3, gcd: h4.iushln(l3) };
       }, f3.prototype._invmp = function(i) {
         r2(i.negative === 0), r2(!i.isZero());
-        var a2 = this, h5 = i.clone();
+        var a2 = this, h4 = i.clone();
         a2.negative !== 0 ? a2 = a2.umod(i) : a2 = a2.clone();
-        for (var s3 = new f3(1), u3 = new f3(0), c = h5.clone();a2.cmpn(1) > 0 && h5.cmpn(1) > 0; ) {
+        for (var s3 = new f3(1), u3 = new f3(0), c = h4.clone();a2.cmpn(1) > 0 && h4.cmpn(1) > 0; ) {
           for (var b3 = 0, l3 = 1;(a2.words[0] & l3) === 0 && b3 < 26; ++b3, l3 <<= 1)
             ;
           if (b3 > 0)
             for (a2.iushrn(b3);b3-- > 0; )
               s3.isOdd() && s3.iadd(c), s3.iushrn(1);
-          for (var n4 = 0, d = 1;(h5.words[0] & d) === 0 && n4 < 26; ++n4, d <<= 1)
+          for (var n4 = 0, d = 1;(h4.words[0] & d) === 0 && n4 < 26; ++n4, d <<= 1)
             ;
           if (n4 > 0)
-            for (h5.iushrn(n4);n4-- > 0; )
+            for (h4.iushrn(n4);n4-- > 0; )
               u3.isOdd() && u3.iadd(c), u3.iushrn(1);
-          a2.cmp(h5) >= 0 ? (a2.isub(h5), s3.isub(u3)) : (h5.isub(a2), u3.isub(s3));
+          a2.cmp(h4) >= 0 ? (a2.isub(h4), s3.isub(u3)) : (h4.isub(a2), u3.isub(s3));
         }
         var w2;
         return a2.cmpn(1) === 0 ? w2 = s3 : w2 = u3, w2.cmpn(0) < 0 && w2.iadd(i), w2;
@@ -18461,24 +18416,24 @@ Use Chrome, Firefox or Internet Explorer 11`);
           return i.abs();
         if (i.isZero())
           return this.abs();
-        var a2 = this.clone(), h5 = i.clone();
-        a2.negative = 0, h5.negative = 0;
-        for (var s3 = 0;a2.isEven() && h5.isEven(); s3++)
-          a2.iushrn(1), h5.iushrn(1);
+        var a2 = this.clone(), h4 = i.clone();
+        a2.negative = 0, h4.negative = 0;
+        for (var s3 = 0;a2.isEven() && h4.isEven(); s3++)
+          a2.iushrn(1), h4.iushrn(1);
         do {
           for (;a2.isEven(); )
             a2.iushrn(1);
-          for (;h5.isEven(); )
-            h5.iushrn(1);
-          var u3 = a2.cmp(h5);
+          for (;h4.isEven(); )
+            h4.iushrn(1);
+          var u3 = a2.cmp(h4);
           if (u3 < 0) {
             var c = a2;
-            a2 = h5, h5 = c;
-          } else if (u3 === 0 || h5.cmpn(1) === 0)
+            a2 = h4, h4 = c;
+          } else if (u3 === 0 || h4.cmpn(1) === 0)
             break;
-          a2.isub(h5);
+          a2.isub(h4);
         } while (true);
-        return h5.iushln(s3);
+        return h4.iushln(s3);
       }, f3.prototype.invm = function(i) {
         return this.egcd(i).a.umod(i);
       }, f3.prototype.isEven = function() {
@@ -18489,10 +18444,10 @@ Use Chrome, Firefox or Internet Explorer 11`);
         return this.words[0] & i;
       }, f3.prototype.bincn = function(i) {
         r2(typeof i == "number");
-        var a2 = i % 26, h5 = (i - a2) / 26, s3 = 1 << a2;
-        if (this.length <= h5)
-          return this._expand(h5 + 1), this.words[h5] |= s3, this;
-        for (var u3 = s3, c = h5;u3 !== 0 && c < this.length; c++) {
+        var a2 = i % 26, h4 = (i - a2) / 26, s3 = 1 << a2;
+        if (this.length <= h4)
+          return this._expand(h4 + 1), this.words[h4] |= s3, this;
+        for (var u3 = s3, c = h4;u3 !== 0 && c < this.length; c++) {
           var b3 = this.words[c] | 0;
           b3 += u3, u3 = b3 >>> 26, b3 &= 67108863, this.words[c] = b3;
         }
@@ -18506,15 +18461,15 @@ Use Chrome, Firefox or Internet Explorer 11`);
         if (this.negative === 0 && a2)
           return 1;
         this.strip();
-        var h5;
+        var h4;
         if (this.length > 1)
-          h5 = 1;
+          h4 = 1;
         else {
           a2 && (i = -i), r2(i <= 67108863, "Number is too big");
           var s3 = this.words[0] | 0;
-          h5 = s3 === i ? 0 : s3 < i ? -1 : 1;
+          h4 = s3 === i ? 0 : s3 < i ? -1 : 1;
         }
-        return this.negative !== 0 ? -h5 | 0 : h5;
+        return this.negative !== 0 ? -h4 | 0 : h4;
       }, f3.prototype.cmp = function(i) {
         if (this.negative !== 0 && i.negative === 0)
           return -1;
@@ -18527,8 +18482,8 @@ Use Chrome, Firefox or Internet Explorer 11`);
           return 1;
         if (this.length < i.length)
           return -1;
-        for (var a2 = 0, h5 = this.length - 1;h5 >= 0; h5--) {
-          var s3 = this.words[h5] | 0, u3 = i.words[h5] | 0;
+        for (var a2 = 0, h4 = this.length - 1;h4 >= 0; h4--) {
+          var s3 = this.words[h4] | 0, u3 = i.words[h4] | 0;
           if (s3 !== u3) {
             s3 < u3 ? a2 = -1 : s3 > u3 && (a2 = 1);
             break;
@@ -18600,11 +18555,11 @@ Use Chrome, Firefox or Internet Explorer 11`);
         var i = new f3(null);
         return i.words = new Array(Math.ceil(this.n / 13)), i;
       }, ye.prototype.ireduce = function(i) {
-        var a2 = i, h5;
+        var a2 = i, h4;
         do
-          this.split(a2, this.tmp), a2 = this.imulK(a2), a2 = a2.iadd(this.tmp), h5 = a2.bitLength();
-        while (h5 > this.n);
-        var s3 = h5 < this.n ? -1 : a2.ucmp(this.p);
+          this.split(a2, this.tmp), a2 = this.imulK(a2), a2 = a2.iadd(this.tmp), h4 = a2.bitLength();
+        while (h4 > this.n);
+        var s3 = h4 < this.n ? -1 : a2.ucmp(this.p);
         return s3 === 0 ? (a2.words[0] = 0, a2.length = 1) : s3 > 0 ? a2.isub(this.p) : a2.strip !== undefined ? a2.strip() : a2._strip(), a2;
       }, ye.prototype.split = function(i, a2) {
         i.iushrn(this.n, 0, a2);
@@ -18615,23 +18570,23 @@ Use Chrome, Firefox or Internet Explorer 11`);
         ye.call(this, "k256", "ffffffff ffffffff ffffffff ffffffff ffffffff ffffffff fffffffe fffffc2f");
       }
       o2(xe, ye), xe.prototype.split = function(i, a2) {
-        for (var h5 = 4194303, s3 = Math.min(i.length, 9), u3 = 0;u3 < s3; u3++)
+        for (var h4 = 4194303, s3 = Math.min(i.length, 9), u3 = 0;u3 < s3; u3++)
           a2.words[u3] = i.words[u3];
         if (a2.length = s3, i.length <= 9) {
           i.words[0] = 0, i.length = 1;
           return;
         }
         var c = i.words[9];
-        for (a2.words[a2.length++] = c & h5, u3 = 10;u3 < i.length; u3++) {
+        for (a2.words[a2.length++] = c & h4, u3 = 10;u3 < i.length; u3++) {
           var b3 = i.words[u3] | 0;
-          i.words[u3 - 10] = (b3 & h5) << 4 | c >>> 22, c = b3;
+          i.words[u3 - 10] = (b3 & h4) << 4 | c >>> 22, c = b3;
         }
         c >>>= 22, i.words[u3 - 10] = c, c === 0 && i.length > 10 ? i.length -= 10 : i.length -= 9;
       }, xe.prototype.imulK = function(i) {
         i.words[i.length] = 0, i.words[i.length + 1] = 0, i.length += 2;
-        for (var a2 = 0, h5 = 0;h5 < i.length; h5++) {
-          var s3 = i.words[h5] | 0;
-          a2 += s3 * 977, i.words[h5] = a2 & 67108863, a2 = s3 * 64 + (a2 / 67108864 | 0);
+        for (var a2 = 0, h4 = 0;h4 < i.length; h4++) {
+          var s3 = i.words[h4] | 0;
+          a2 += s3 * 977, i.words[h4] = a2 & 67108863, a2 = s3 * 64 + (a2 / 67108864 | 0);
         }
         return i.words[i.length - 1] === 0 && (i.length--, i.words[i.length - 1] === 0 && i.length--), i;
       };
@@ -18647,9 +18602,9 @@ Use Chrome, Firefox or Internet Explorer 11`);
         ye.call(this, "25519", "7fffffffffffffff ffffffffffffffff ffffffffffffffff ffffffffffffffed");
       }
       o2(Ae, ye), Ae.prototype.imulK = function(i) {
-        for (var a2 = 0, h5 = 0;h5 < i.length; h5++) {
-          var s3 = (i.words[h5] | 0) * 19 + a2, u3 = s3 & 67108863;
-          s3 >>>= 26, i.words[h5] = u3, a2 = s3;
+        for (var a2 = 0, h4 = 0;h4 < i.length; h4++) {
+          var s3 = (i.words[h4] | 0) * 19 + a2, u3 = s3 & 67108863;
+          s3 >>>= 26, i.words[h4] = u3, a2 = s3;
         }
         return a2 !== 0 && (i.words[i.length++] = a2), i;
       }, f3._prime = function(i) {
@@ -18685,20 +18640,20 @@ Use Chrome, Firefox or Internet Explorer 11`);
         return i.isZero() ? i.clone() : this.m.sub(i)._forceRed(this);
       }, P2.prototype.add = function(i, a2) {
         this._verify2(i, a2);
-        var h5 = i.add(a2);
-        return h5.cmp(this.m) >= 0 && h5.isub(this.m), h5._forceRed(this);
+        var h4 = i.add(a2);
+        return h4.cmp(this.m) >= 0 && h4.isub(this.m), h4._forceRed(this);
       }, P2.prototype.iadd = function(i, a2) {
         this._verify2(i, a2);
-        var h5 = i.iadd(a2);
-        return h5.cmp(this.m) >= 0 && h5.isub(this.m), h5;
+        var h4 = i.iadd(a2);
+        return h4.cmp(this.m) >= 0 && h4.isub(this.m), h4;
       }, P2.prototype.sub = function(i, a2) {
         this._verify2(i, a2);
-        var h5 = i.sub(a2);
-        return h5.cmpn(0) < 0 && h5.iadd(this.m), h5._forceRed(this);
+        var h4 = i.sub(a2);
+        return h4.cmpn(0) < 0 && h4.iadd(this.m), h4._forceRed(this);
       }, P2.prototype.isub = function(i, a2) {
         this._verify2(i, a2);
-        var h5 = i.isub(a2);
-        return h5.cmpn(0) < 0 && h5.iadd(this.m), h5;
+        var h4 = i.isub(a2);
+        return h4.cmpn(0) < 0 && h4.iadd(this.m), h4;
       }, P2.prototype.shl = function(i, a2) {
         return this._verify1(i), this.imod(i.ushln(a2));
       }, P2.prototype.imul = function(i, a2) {
@@ -18714,8 +18669,8 @@ Use Chrome, Firefox or Internet Explorer 11`);
           return i.clone();
         var a2 = this.m.andln(3);
         if (r2(a2 % 2 === 1), a2 === 3) {
-          var h5 = this.m.add(new f3(1)).iushrn(2);
-          return this.pow(i, h5);
+          var h4 = this.m.add(new f3(1)).iushrn(2);
+          return this.pow(i, h4);
         }
         for (var s3 = this.m.subn(1), u3 = 0;!s3.isZero() && s3.andln(1) === 0; )
           u3++, s3.iushrn(1);
@@ -18739,7 +18694,7 @@ Use Chrome, Firefox or Internet Explorer 11`);
           return new f3(1).toRed(this);
         if (a2.cmpn(1) === 0)
           return i.clone();
-        var h5 = 4, s3 = new Array(1 << h5);
+        var h4 = 4, s3 = new Array(1 << h4);
         s3[0] = new f3(1).toRed(this), s3[1] = i;
         for (var u3 = 2;u3 < s3.length; u3++)
           s3[u3] = this.mul(s3[u3 - 1], i);
@@ -18751,7 +18706,7 @@ Use Chrome, Firefox or Internet Explorer 11`);
               l3 = 0;
               continue;
             }
-            b3 <<= 1, b3 |= g2, l3++, !(l3 !== h5 && (u3 !== 0 || w2 !== 0)) && (c = this.mul(c, s3[b3]), l3 = 0, b3 = 0);
+            b3 <<= 1, b3 |= g2, l3++, !(l3 !== h4 && (u3 !== 0 || w2 !== 0)) && (c = this.mul(c, s3[b3]), l3 = 0, b3 = 0);
           }
           n4 = 26;
         }
@@ -18776,12 +18731,12 @@ Use Chrome, Firefox or Internet Explorer 11`);
       }, Se.prototype.imul = function(i, a2) {
         if (i.isZero() || a2.isZero())
           return i.words[0] = 0, i.length = 1, i;
-        var h5 = i.imul(a2), s3 = h5.maskn(this.shift).mul(this.minv).imaskn(this.shift).mul(this.m), u3 = h5.isub(s3).iushrn(this.shift), c = u3;
+        var h4 = i.imul(a2), s3 = h4.maskn(this.shift).mul(this.minv).imaskn(this.shift).mul(this.m), u3 = h4.isub(s3).iushrn(this.shift), c = u3;
         return u3.cmp(this.m) >= 0 ? c = u3.isub(this.m) : u3.cmpn(0) < 0 && (c = u3.iadd(this.m)), c._forceRed(this);
       }, Se.prototype.mul = function(i, a2) {
         if (i.isZero() || a2.isZero())
           return new f3(0)._forceRed(this);
-        var h5 = i.mul(a2), s3 = h5.maskn(this.shift).mul(this.minv).imaskn(this.shift).mul(this.m), u3 = h5.isub(s3).iushrn(this.shift), c = u3;
+        var h4 = i.mul(a2), s3 = h4.maskn(this.shift).mul(this.minv).imaskn(this.shift).mul(this.m), u3 = h4.isub(s3).iushrn(this.shift), c = u3;
         return u3.cmp(this.m) >= 0 ? c = u3.isub(this.m) : u3.cmpn(0) < 0 && (c = u3.iadd(this.m)), c._forceRed(this);
       }, Se.prototype.invm = function(i) {
         var a2 = this.imod(i._invmp(this.m).mul(this.r2));
@@ -20685,6 +20640,9 @@ class TextureUpdateHandler {
     return mediaInfos.map(({ mediaData }) => mediaData);
   }
 }
+var WK = function(K, O2) {
+  return Math.round(K / O2) * O2;
+};
 var H0 = function() {
   var K = new R2(9);
   if (R2 != Float32Array)
@@ -23821,10 +23779,27 @@ class FollowAuxiliary extends Looper {
     }
   }
 }
+var Face;
+(function(Face2) {
+  Face2[Face2["LEFT"] = 0] = "LEFT";
+  Face2[Face2["RIGHT"] = 1] = "RIGHT";
+  Face2[Face2["FAR"] = 2] = "FAR";
+  Face2[Face2["NEAR"] = 3] = "NEAR";
+  Face2[Face2["TOP"] = 4] = "TOP";
+  Face2[Face2["BOTTOM"] = 5] = "BOTTOM";
+})(Face || (Face = {}));
 
 class DisplayBox {
   #sprites;
-  constructor({ box, imageId, insideImageId }) {
+  constructor({ box, imageId, insideImageId, faces = [
+    Face.BOTTOM,
+    Face.TOP,
+    Face.LEFT,
+    Face.RIGHT,
+    Face.FAR,
+    Face.NEAR
+  ] }) {
+    const faceSet = new Set(faces);
     if (!box.disabled) {
       const cX = (box.left + box.right) / 2;
       const cY = (box.top + box.bottom) / 2;
@@ -23832,22 +23807,22 @@ class DisplayBox {
       const groundScale = [box.right - box.left, 2, box.near - box.far];
       const sideScale = [2, box.top - box.bottom, box.near - box.far];
       const faceScale = [box.right - box.left, box.top - box.bottom, 2];
-      const outside = [
-        f2.create().translate(cX, box.bottom, cZ).scale(...groundScale).scale(0.5).rotateX(Math.PI / 2),
-        f2.create().translate(cX, box.top, cZ).scale(...groundScale).scale(0.5).rotateX(-Math.PI / 2),
-        f2.create().translate(box.left, cY, cZ).scale(...sideScale).scale(0.5).rotateY(-Math.PI / 2),
-        f2.create().translate(box.right, cY, cZ).scale(...sideScale).scale(0.5).rotateY(Math.PI / 2),
-        f2.create().translate(cX, cY, box.near).scale(...faceScale).scale(0.5).rotateY(0),
-        f2.create().translate(cX, cY, box.far).scale(...faceScale).scale(0.5).rotateY(Math.PI)
-      ].map((transform) => ({ imageId, transform }));
+      const outside = !imageId ? [] : [
+        faceSet.has(Face.BOTTOM) && f2.create().translate(cX, box.bottom, cZ).scale(...groundScale).scale(0.5).rotateX(Math.PI / 2),
+        faceSet.has(Face.TOP) && f2.create().translate(cX, box.top, cZ).scale(...groundScale).scale(0.5).rotateX(-Math.PI / 2),
+        faceSet.has(Face.LEFT) && f2.create().translate(box.left, cY, cZ).scale(...sideScale).scale(0.5).rotateY(-Math.PI / 2),
+        faceSet.has(Face.RIGHT) && f2.create().translate(box.right, cY, cZ).scale(...sideScale).scale(0.5).rotateY(Math.PI / 2),
+        faceSet.has(Face.NEAR) && f2.create().translate(cX, cY, box.near).scale(...faceScale).scale(0.5).rotateY(0),
+        faceSet.has(Face.FAR) && f2.create().translate(cX, cY, box.far).scale(...faceScale).scale(0.5).rotateY(Math.PI)
+      ].filter((a2) => !!a2).map((transform) => ({ imageId, transform }));
       const inside = !insideImageId ? [] : [
-        f2.create().translate(cX, box.bottom, cZ).scale(...groundScale).scale(0.5).rotateX(-Math.PI / 2),
-        f2.create().translate(cX, box.top, cZ).scale(...groundScale).scale(0.5).rotateX(+Math.PI / 2),
-        f2.create().translate(box.left, cY, cZ).scale(...sideScale).scale(0.5).rotateY(+Math.PI / 2),
-        f2.create().translate(box.right, cY, cZ).scale(...sideScale).scale(0.5).rotateY(-Math.PI / 2),
-        f2.create().translate(cX, cY, box.near).scale(...faceScale).scale(0.5).rotateY(Math.PI),
-        f2.create().translate(cX, cY, box.far).scale(...faceScale).scale(0.5).rotateY(0)
-      ].map((transform) => ({ imageId: insideImageId, transform }));
+        faceSet.has(Face.BOTTOM) && f2.create().translate(cX, box.bottom, cZ).scale(...groundScale).scale(0.5).rotateX(-Math.PI / 2),
+        faceSet.has(Face.TOP) && f2.create().translate(cX, box.top, cZ).scale(...groundScale).scale(0.5).rotateX(+Math.PI / 2),
+        faceSet.has(Face.LEFT) && f2.create().translate(box.left, cY, cZ).scale(...sideScale).scale(0.5).rotateY(+Math.PI / 2),
+        faceSet.has(Face.RIGHT) && f2.create().translate(box.right, cY, cZ).scale(...sideScale).scale(0.5).rotateY(-Math.PI / 2),
+        faceSet.has(Face.NEAR) && f2.create().translate(cX, cY, box.near).scale(...faceScale).scale(0.5).rotateY(Math.PI),
+        faceSet.has(Face.FAR) && f2.create().translate(cX, cY, box.far).scale(...faceScale).scale(0.5).rotateY(0)
+      ].filter((a2) => !!a2).map((transform) => ({ imageId: insideImageId, transform }));
       this.#sprites = [...inside, ...outside];
     } else {
       this.#sprites = [];
@@ -23983,114 +23958,6 @@ var k = (m32) => {
     m32.putImageData(j, 0, 0);
   }
 };
-
-class h3 {
-  i;
-  f;
-  warningLimit = 50000;
-  #i = new Set;
-  #f = [];
-  constructor(i, f3) {
-    this.initCall = i;
-    this.onRecycle = f3;
-  }
-  create(...i) {
-    const f3 = this.#f.pop();
-    if (f3)
-      return this.#i.add(f3), this.initCall(f3, ...i);
-    const v32 = this.initCall(undefined, ...i);
-    return this.#i.add(v32), this.#v(), v32;
-  }
-  recycle(i) {
-    this.#i.delete(i), this.#h(i);
-  }
-  recycleAll() {
-    for (let i of this.#i)
-      this.#h(i);
-    this.#i.clear();
-  }
-  clear() {
-    this.#f.length = 0, this.#i.clear();
-  }
-  countObjectsInExistence() {
-    return this.#i.size + this.#f.length;
-  }
-  #h(i) {
-    this.#f.push(i), this.onRecycle?.(i);
-  }
-  #v() {
-    if (this.countObjectsInExistence() === this.warningLimit)
-      console.warn("ObjectPool already created", this.#i.size + this.#f.length, "in", this.constructor.name);
-  }
-}
-
-class SpriteCellCreator extends X2 {
-  factory;
-  slots = [];
-  slotPool;
-  constructor({ factory, slotPool }) {
-    super();
-    this.factory = factory;
-    this.slotPool = slotPool ?? new SlotPool(copySprite);
-  }
-  trackCell(cell) {
-    return this.#createCell(cell);
-  }
-  untrackCells(cellTags) {
-    return this.#destroyCells(cellTags);
-  }
-  get length() {
-    return this.slots.length;
-  }
-  at(index) {
-    return this.slots[index]?.elem;
-  }
-  deactivate() {
-    this.slots.forEach((slot) => this.slotPool.recycle(slot));
-    this.slots.length = 0;
-  }
-  #createCell(cell) {
-    let count = 0;
-    const { tag } = cell;
-    const elems = this.factory.getElemsAtCell(cell);
-    A2(elems, (elem) => {
-      if (elem) {
-        const slot = this.slotPool.create(elem, tag);
-        const spriteId = this.slots.length;
-        this.slots.push(slot);
-        this.informUpdate(spriteId);
-        count++;
-      }
-    });
-    this.factory.doneCellTracking?.(cell);
-    return !!count;
-  }
-  #destroyCells(tags) {
-    for (let i = this.slots.length - 1;i >= 0; i--) {
-      const slot = this.slots[i];
-      if (tags.has(slot.tag)) {
-        this.informUpdate(i);
-        this.informUpdate(this.slots.length - 1, SpriteUpdateType.TRANSFORM);
-        this.slots[i] = this.slots[this.slots.length - 1];
-        this.slots.pop();
-        this.slotPool.recycle(slot);
-      }
-    }
-  }
-}
-
-class SlotPool extends h3 {
-  constructor(copy) {
-    super((slot, elem, tag) => {
-      if (!slot) {
-        return { elem: copy(elem), tag };
-      }
-      slot.elem = copy(elem, slot.elem);
-      slot.tag = tag;
-      return slot;
-    });
-  }
-}
 var B5 = function(m32, H4, J, K) {
   const Q3 = N2(m32, H4, J, K), $4 = m32 * K, w2 = H4 * K, R3 = J * K;
   return { pos: [m32, H4, J, K], worldPosition: [$4, w2, R3], tag: Q3 };
@@ -24363,7 +24230,7 @@ class _3 {
   }
 }
 
-class h4 {
+class h3 {
   minX;
   maxX;
   minY;
@@ -24469,42 +24336,49 @@ class E2 {
     }
   }
 }
-
-class FixedSpriteFactory extends AuxiliaryHolder {
-  config;
-  spritesPerCell = new Map;
-  spritesList;
-  constructor(config, ...spritesList) {
-    super();
-    this.config = config;
-    this.spritesList = spritesList;
-    this.config = config;
-    spritesList.forEach((sprites) => this.addAuxiliary(sprites));
-  }
-  activate() {
-    super.activate();
-    const vector = [0, 0, 0];
-    this.spritesList.forEach((sprites) => {
-      A2(sprites, (sprite) => {
-        if (sprite) {
-          B0(sprite.transform, vector);
-          const cellSize = this.config.cellSize ?? 1;
-          const cell = B5(V4(vector[0], cellSize), V4(vector[1], cellSize), V4(vector[2], cellSize), cellSize);
-          if (!this.spritesPerCell.has(cell.tag)) {
-            this.spritesPerCell.set(cell.tag, []);
-          }
-          this.spritesPerCell.get(cell.tag)?.push(copySprite(sprite));
-        }
-      });
-    });
-  }
-  getElemsAtCell(cell) {
-    return this.spritesPerCell.get(cell.tag);
-  }
-}
 var import_seedrandom = __toESM(require_seedrandom2(), 1);
 
-class SpritePool extends h3 {
+class h4 {
+  i;
+  f;
+  warningLimit = 50000;
+  #i = new Set;
+  #f = [];
+  constructor(i, f3) {
+    this.initCall = i;
+    this.onRecycle = f3;
+  }
+  create(...i) {
+    const f3 = this.#f.pop();
+    if (f3)
+      return this.#i.add(f3), this.initCall(f3, ...i);
+    const v4 = this.initCall(undefined, ...i);
+    return this.#i.add(v4), this.#v(), v4;
+  }
+  recycle(i) {
+    this.#i.delete(i), this.#h(i);
+  }
+  recycleAll() {
+    for (let i of this.#i)
+      this.#h(i);
+    this.#i.clear();
+  }
+  clear() {
+    this.#f.length = 0, this.#i.clear();
+  }
+  countObjectsInExistence() {
+    return this.#i.size + this.#f.length;
+  }
+  #h(i) {
+    this.#f.push(i), this.onRecycle?.(i);
+  }
+  #v() {
+    if (this.countObjectsInExistence() === this.warningLimit)
+      console.warn("ObjectPool already created", this.#i.size + this.#f.length, "in", this.constructor.name);
+  }
+}
+
+class SpritePool extends h4 {
   constructor() {
     super((sprite, imageId) => {
       if (!sprite) {
@@ -24625,6 +24499,7 @@ class CellTrigger {
     cells,
     triggerBox,
     blockerBox,
+    displayBox,
     heroBox,
     onCollide,
     onEnter,
@@ -24633,8 +24508,9 @@ class CellTrigger {
     wireframeImageId,
     worldColliders,
     spritesAccumulator,
-    blockImage,
-    blockShift = [0, 0, 0]
+    boxImage,
+    blockShift = [0, 0, 0],
+    displayShift = [0, 0, 0]
   }) {
     this.cells = cells;
     const colliders = [];
@@ -24643,14 +24519,13 @@ class CellTrigger {
       if (!cell) {
         return;
       }
-      const cellSize = cell.pos[3];
       const position = cell.worldPosition;
       const blockerPosition = [
         position[0] + blockShift[0],
         position[1] + blockShift[1],
         position[2] + blockShift[2]
       ];
-      const posMatrix = new t0().movedTo(position[0], position[1], position[2]);
+      const posMatrix = new t0().movedTo(position[0] + displayShift[0], position[1] + displayShift[1], position[2] + displayShift[2]);
       if (blockerBox) {
         colliders.push(new CollisionDetector({
           blockerBox,
@@ -24676,15 +24551,19 @@ class CellTrigger {
           transform: f2.create().translate(0, -0.3, -1)
         }], posMatrix));
       }
-      if (blockImage && blockerBox) {
+      const boxToDisplay = displayBox ?? blockerBox;
+      if (boxImage && boxToDisplay) {
         sprites.add(new SpriteGroup(new DisplayBox({
-          box: blockerBox,
-          imageId: blockImage.outside,
-          insideImageId: blockImage.inside
+          box: boxToDisplay,
+          imageId: boxImage.outside,
+          insideImageId: boxImage.inside,
+          faces: boxImage.faces
         }), posMatrix));
       }
-      if (triggerBox && wireframeImageId !== undefined) {
-        sprites.add(new SpriteGroup(new DisplayBox({ box: triggerBox, imageId: wireframeImageId, insideImageId: wireframeImageId }), posMatrix));
+      if (triggerBox) {
+        if (triggerBox && wireframeImageId !== undefined) {
+          sprites.add(new SpriteGroup(new DisplayBox({ box: triggerBox, imageId: wireframeImageId, insideImageId: wireframeImageId }), posMatrix));
+        }
       }
       if (blockerBox && wireframeImageId !== undefined) {
         sprites.add(new SpriteGroup(new DisplayBox({ box: blockerBox, imageId: wireframeImageId, insideImageId: wireframeImageId }), new t0().movedTo(blockerPosition[0], blockerPosition[1], blockerPosition[2])));
@@ -52356,6 +52235,200 @@ class ProgressiveText extends HTMLElement {
 }
 customElements.define("progressive-text", ProgressiveText);
 var PERIOD = 30;
+
+class TurnStepAuxiliary extends ControlledLooper {
+  turnCount = 0;
+  constructor({ controls, turn, motor }, config = {}) {
+    super(motor, controls, (controls2) => controls2.turnLeft || controls2.turnRight, { controls, turn, step: config.step ?? Math.PI / 2 });
+  }
+  refresh({ deltaTime, data, stopUpdate }) {
+    const { turnLeft, turnRight } = data.controls;
+    let dTurn = 0;
+    if (turnLeft) {
+      dTurn--;
+    }
+    if (turnRight) {
+      dTurn++;
+    }
+    const { step } = data;
+    const turnAngleVal = data.turn.angle;
+    const turn = WK(turnAngleVal.valueOf(), step);
+    if (dTurn || this.turnCount > 0) {
+      turnAngleVal.progressTowards(WK(turn + step * dTurn, step), dTurn ? 0.005 : 0.01, this);
+    }
+    if (!dTurn) {
+      this.turnCount = 0;
+    }
+    if (turnAngleVal.update(deltaTime)) {
+      const newTurn = WK(turnAngleVal.valueOf(), step);
+      if (newTurn !== turn) {
+        this.turnCount++;
+      }
+    } else {
+      stopUpdate();
+    }
+  }
+}
+var QUICK_TAP_TIME = 200;
+
+class Keyboard extends AuxiliaryHolder {
+  keys = {};
+  keysUp = {};
+  keyDownListener = new Set;
+  keyUpListener = new Set;
+  quickTapListener = new Set;
+  timeProvider;
+  isActive = false;
+  constructor({ motor }) {
+    super();
+    this.keyDown = this.keyDown.bind(this);
+    this.keyUp = this.keyUp.bind(this);
+    this.timeProvider = motor;
+  }
+  keyDown(e2) {
+    if (!this.keys[e2.code]) {
+      const time = this.timeProvider.time;
+      this.keys[e2.code] = time;
+      this.keyDownListener.forEach((listener) => listener.onKeyDown?.(e2.code, time));
+    }
+    e2.preventDefault();
+  }
+  keyUp(e2) {
+    const quickTap = this.timeProvider.time - this.keys[e2.code] < QUICK_TAP_TIME;
+    this.keysUp[e2.code] = this.timeProvider.time;
+    this.keys[e2.code] = 0;
+    this.keyUpListener.forEach((listener) => listener.onKeyUp?.(e2.code, this.timeProvider.time));
+    if (quickTap) {
+      this.quickTapListener.forEach((listener) => listener.onQuickTap?.(e2.code, this.timeProvider.time));
+    }
+  }
+  activate() {
+    if (!this.isActive) {
+      super.activate();
+      this.isActive = true;
+      document.addEventListener("keydown", this.keyDown);
+      document.addEventListener("keyup", this.keyUp);
+    }
+  }
+  deactivate() {
+    if (this.isActive) {
+      document.removeEventListener("keydown", this.keyDown);
+      document.removeEventListener("keyup", this.keyUp);
+      this.isActive = false;
+      super.deactivate();
+    }
+  }
+  addListener(listener) {
+    if (listener.onKeyDown) {
+      this.keyDownListener.add(listener);
+    }
+    if (listener.onKeyUp) {
+      this.keyUpListener.add(listener);
+    }
+    if (listener.onQuickTap) {
+      this.quickTapListener.add(listener);
+    }
+    return () => {
+      this.removeListener(listener);
+    };
+  }
+  removeListener(listener) {
+    this.keyDownListener.delete(listener);
+    this.keyUpListener.delete(listener);
+    this.quickTapListener.delete(listener);
+  }
+}
+
+class KeyboardControls {
+  keyboard;
+  #listeners = new Set;
+  keys = {};
+  #enabled = false;
+  constructor(keyboard) {
+    this.keyboard = keyboard;
+  }
+  setEnabled(enabled) {
+    if (this.#enabled === enabled) {
+      return;
+    }
+    this.#enabled = enabled;
+    this.keys = enabled ? this.keyboard.keys : {};
+    if (enabled) {
+      this.keyboard.addListener(this);
+    } else {
+      this.onActionUp();
+      this.keyboard.removeListener(this);
+    }
+  }
+  onQuickTap(keyCode) {
+    switch (keyCode) {
+      case "Space":
+        this.#listeners.forEach((listener) => listener.onQuickAction?.());
+        break;
+      case "ShiftRight":
+        this.#listeners.forEach((listener) => listener.onQuickTiltReset?.());
+        break;
+    }
+  }
+  onKeyDown(_keyCode, _time) {
+    this.onAction();
+  }
+  onKeyUp(_keyCode, _time) {
+    this.onActionUp();
+  }
+  onAction() {
+    this.#listeners.forEach((listener) => listener.onAction?.(this));
+  }
+  onActionUp() {
+    this.#listeners.forEach((listener) => listener.onAction?.(this));
+  }
+  addListener(listener) {
+    this.#listeners.add(listener);
+  }
+  removeListener(listener) {
+    this.#listeners.delete(listener);
+  }
+  get forward() {
+    const { keys } = this;
+    return !!(keys.KeyW || keys.ArrowUp && !keys.ShiftRight);
+  }
+  get backward() {
+    const { keys } = this;
+    return !!(keys.KeyS || keys.ArrowDown && !keys.ShiftRight);
+  }
+  get left() {
+    const { keys } = this;
+    return !!(keys.KeyA || keys.ArrowLeft && !keys.ShiftRight);
+  }
+  get right() {
+    const { keys } = this;
+    return !!(keys.KeyD || keys.ArrowRight && !keys.ShiftRight);
+  }
+  get turnLeft() {
+    const { keys } = this;
+    return !!(keys.KeyQ || keys.ArrowLeft && keys.ShiftRight);
+  }
+  get turnRight() {
+    const { keys } = this;
+    return !!(keys.KeyE || keys.ArrowRight && keys.ShiftRight);
+  }
+  get up() {
+    const { keys } = this;
+    return !!(keys.ArrowUp && keys.ShiftRight);
+  }
+  get down() {
+    const { keys } = this;
+    return !!(keys.ArrowDown && keys.ShiftRight);
+  }
+  get action() {
+    const { keys } = this;
+    return !!keys.Space;
+  }
+  get exit() {
+    const { keys } = this;
+    return !!keys.Escape;
+  }
+}
 var Assets;
 (function(Assets2) {
   Assets2[Assets2["DOBUKI"] = 0] = "DOBUKI";
@@ -52390,17 +52463,12 @@ var CELLSIZE = 2;
 class DemoGame extends AuxiliaryHolder {
   api = {};
   camera;
-  constructor({ engine, motor, keyboard, controls }) {
+  constructor({ engine, motor }) {
     super();
-    const controlActivator = (active) => {
-      if (active) {
-        controls.activate?.();
-      } else {
-        controls.deactivate?.();
-      }
-    };
+    const keyboard = new Keyboard({ motor });
+    const gameControls = new KeyboardControls(keyboard);
     const popupControl = new PopupControl;
-    popupControl.registerActive(controlActivator);
+    popupControl.registerActive((enabled) => gameControls.setEnabled(enabled));
     const keyboardControl = new KeyboardControl(popupControl);
     const mediaAccumulator = new H2({
       elems: [
@@ -52820,7 +52888,7 @@ class DemoGame extends AuxiliaryHolder {
         [1, 0, 0]
       ].map(([x4, y4, z4]) => B5(x4, y4, z4, CELLSIZE)),
       heroBox,
-      blockImage: {
+      boxImage: {
         outside: Assets.GROUND,
         inside: Assets.BRICK
       },
@@ -52831,23 +52899,51 @@ class DemoGame extends AuxiliaryHolder {
         displayBox.setImageId(collided ? Assets.WIREFRAME_RED : Assets.WIREFRAME);
       }
     }));
-    {
-      const factory = new FixedSpriteFactory({ cellSize: CELLSIZE }, [
-        f2.create().translate(-3.01, 0, 0).rotateY(Math.PI / 2),
-        f2.create().translate(-3.01, 0, 0).rotateY(-Math.PI / 2),
-        f2.create().translate(3.01, 0, 0).rotateY(Math.PI / 2),
-        f2.create().translate(3.01, 0, 0).rotateY(-Math.PI / 2)
-      ].map((transform) => ({ imageId: Assets.LOGO, transform })), [
-        f2.create().translate(0, -0.9, 0).rotateX(-Math.PI / 2),
-        f2.create().translate(0, -0.9, 2).rotateX(-Math.PI / 2),
-        f2.create().translate(-2, -0.9, 2).rotateX(-Math.PI / 2),
-        f2.create().translate(2, -0.9, 2).rotateX(-Math.PI / 2)
-      ].map((transform) => ({ imageId: Assets.GRASS_GROUND, transform })));
-      const creator = new SpriteCellCreator({ factory });
-      spritesAccumulator.add(creator);
-      cellTrackers.add(creator);
-      this.addAuxiliary(factory);
-    }
+    cellTriggerTracker.addTrigger(new CellTrigger({
+      cells: [
+        [1, 0, 0]
+      ].map(([x4, y4, z4]) => B5(x4, y4, z4, CELLSIZE)),
+      heroBox,
+      displayBox: blockBox,
+      displayShift: [0.1, 0, 0],
+      boxImage: {
+        outside: Assets.LOGO,
+        faces: [Face.RIGHT]
+      },
+      worldColliders,
+      spritesAccumulator
+    }));
+    cellTriggerTracker.addTrigger(new CellTrigger({
+      cells: [
+        [-1, 0, 0]
+      ].map(([x4, y4, z4]) => B5(x4, y4, z4, CELLSIZE)),
+      heroBox,
+      displayBox: blockBox,
+      displayShift: [-0.1, 0, 0],
+      boxImage: {
+        outside: Assets.LOGO,
+        faces: [Face.LEFT]
+      },
+      worldColliders,
+      spritesAccumulator
+    }));
+    cellTriggerTracker.addTrigger(new CellTrigger({
+      cells: [
+        [0, 0, 0],
+        [0, 0, 1],
+        [-1, 0, 1],
+        [1, 0, 1]
+      ].map(([x4, y4, z4]) => B5(x4, y4, z4, CELLSIZE)),
+      heroBox,
+      displayBox: blockBox,
+      displayShift: [0, 0.01, 0],
+      boxImage: {
+        inside: Assets.GRASS_GROUND,
+        faces: [Face.BOTTOM]
+      },
+      worldColliders,
+      spritesAccumulator
+    }));
     const camPosition = new t0;
     const camera = this.camera = new Camera({
       engine,
@@ -52863,8 +52959,8 @@ class DemoGame extends AuxiliaryHolder {
     });
     this.addAuxiliary(camera);
     {
-      const arrayPool = new h3((a2) => a2 ?? [], (a2) => a2.length = 0);
-      const arrayPool2 = new h3((a2) => a2 ?? [], (a2) => a2.length = 0);
+      const arrayPool = new h4((a2) => a2 ?? [], (a2) => a2.length = 0);
+      const arrayPool2 = new h4((a2) => a2 ?? [], (a2) => a2.length = 0);
       const spritePool = new SpritePool;
       const spritesMap = new Map;
       const collidersMap = new Map;
@@ -52938,7 +53034,7 @@ class DemoGame extends AuxiliaryHolder {
             }
           });
         }
-      }, new h4({ yRange: [0, 0] })));
+      }, new h3({ yRange: [0, 0] })));
     }
     const heroPos = new t0({ blockers: worldColliders }).movedTo(0, 0, 3);
     const heroSprites = new SpriteGroup([{
@@ -52980,27 +53076,27 @@ class DemoGame extends AuxiliaryHolder {
     ]));
     const controlledMotor = new ControlledMotor(motor, { policy: Policy.INCOMING_CYCLE_PRIORITY });
     const stepBack = new StepBackAuxiliary({ motor: controlledMotor, position: heroPos });
-    const posStep = new PositionStepAuxiliary({ motor: controlledMotor, controls, positionStep: new PositionStep({ position: heroPos }), turnGoal: camera.turn.angle }, { speed: 1.5, airBoost: 1.5 });
+    const posStep = new PositionStepAuxiliary({ motor: controlledMotor, controls: gameControls, positionStep: new PositionStep({ position: heroPos }), turnGoal: camera.turn.angle }, { speed: 1.5, airBoost: 1.5 });
     this.addAuxiliary(keyboard).addAuxiliary(new ToggleAuxiliary({ keyboard }, {
       auxiliariesMap: [
         {
           key: "Tab",
-          aux: () => Auxiliaries.from(posStep, stepBack, new SmoothFollowAuxiliary({ motor, follower: camPosition, followee: heroPos }, { speed: 0.05, followY: false }), new JumpAuxiliary({ motor, controls, position: heroPos }, { gravity: -2, jump: 3 }))
+          aux: () => Auxiliaries.from(posStep, stepBack, new SmoothFollowAuxiliary({ motor, follower: camPosition, followee: heroPos }, { speed: 0.05, followY: false }), new JumpAuxiliary({ motor, controls: gameControls, position: heroPos }, { gravity: -2, jump: 3 }), new TurnStepAuxiliary({ motor, controls: gameControls, turn: camera.turn }))
         },
         {
           key: "Tab",
-          aux: () => Auxiliaries.from(new TurnAuxiliary({ motor, controls, turn: camera.turn }), new TiltAuxiliary({ motor, controls, tilt: camera.tilt }), new MoveAuxiliary({ motor, controls, direction: camera.turn, position: heroPos }), new JumpAuxiliary({ motor, controls, position: heroPos }), new TiltResetAuxiliary({ motor, controls, tilt: camera.tilt }), new SmoothFollowAuxiliary({ motor, follower: camPosition, followee: heroPos }, { speed: 0.05 }))
+          aux: () => Auxiliaries.from(new TurnAuxiliary({ motor, controls: gameControls, turn: camera.turn }), new TiltAuxiliary({ motor, controls: gameControls, tilt: camera.tilt }), new MoveAuxiliary({ motor, controls: gameControls, direction: camera.turn, position: heroPos }), new JumpAuxiliary({ motor, controls: gameControls, position: heroPos }), new TiltResetAuxiliary({ motor, controls: gameControls, tilt: camera.tilt }), new SmoothFollowAuxiliary({ motor, follower: camPosition, followee: heroPos }, { speed: 0.05 }))
         }
       ]
-    })).addAuxiliary(new DirAuxiliary({ controls }, (dx) => {
+    })).addAuxiliary(new DirAuxiliary({ controls: gameControls }, (dx) => {
       heroSprites.setOrientation(dx);
       shadowHeroSprites.setOrientation(dx);
-    })).addAuxiliary(new MotionAuxiliary({ controls }, (moving) => {
+    })).addAuxiliary(new MotionAuxiliary({ controls: gameControls }, (moving) => {
       const animId = moving ? Anims.RUN : Anims.STILL;
       heroSprites.setAnimationId(animId);
       shadowHeroSprites.setAnimationId(animId);
     })).addAuxiliary(stepBack).addAuxiliary(new L2({ positionMatrix: heroPos }, { cellSize: CELLSIZE }).addListener(new A5({ cellTrack: cellTrackers }, {
-      cellLimit: 200,
+      cellLimit: 100,
       range: [7, 3, 7],
       cellSize: CELLSIZE
     })).addListener(stepBack)).addAuxiliary(new TimeAuxiliary({ motor, engine })).addAuxiliary(new FadeApiAuxiliary({ camera, motor, api: this.api }));
@@ -53038,6 +53134,24 @@ class ResizeAux {
     }
   }
 }
+var z4 = function(j4, { onCall: h5, onProp: i, onSet: c }) {
+  return new Proxy(j4, { get(k4, b3) {
+    const d = k4, f4 = d[b3];
+    if (typeof f4 === "function")
+      return (...B7) => {
+        const D3 = f4.apply(d, B7);
+        return h5?.(b3, B7, D3), D3;
+      };
+    else
+      return i?.(b3, f4), f4;
+  }, set(k4, b3, d) {
+    const f4 = k4, q3 = f4[b3] = d;
+    return c?.(b3, d, q3), d === q3;
+  } });
+};
+var E4 = function(j4, h5) {
+  return z4(j4, { onCall: (i, c, A7) => console.log(`${h5}.${String(i)}(`, c, ") =", A7), onProp: (i, c) => console.log(`${h5}.${String(i)} =`, c), onSet: (i, c) => console.log(`set ${h5}.${String(i)} =`, c) });
+};
 var DEFAULT_ATTRIBUTES = {
   alpha: true,
   antialias: true,
@@ -53049,181 +53163,14 @@ var DEFAULT_ATTRIBUTES = {
   stencil: false
 };
 
-class WebGlCanvas extends AuxiliaryHolder {
+class WebGlCanvas {
   canvas;
   gl;
   constructor(canvas, { attributes } = {}, config) {
-    super();
     this.canvas = canvas;
     const gl = canvas.getContext("webgl2", { ...DEFAULT_ATTRIBUTES, ...attributes });
-    this.gl = config?.logGL ? logProxy(gl) : gl;
+    this.gl = config?.logGL ? E4(gl, "gl") : gl;
     canvas.style.pointerEvents = "none";
-  }
-}
-var QUICK_TAP_TIME = 200;
-
-class Keyboard extends AuxiliaryHolder {
-  keys = {};
-  keysUp = {};
-  keyDownListener = new Set;
-  keyUpListener = new Set;
-  quickTapListener = new Set;
-  timeProvider;
-  isActive = false;
-  constructor({ motor }) {
-    super();
-    this.keyDown = this.keyDown.bind(this);
-    this.keyUp = this.keyUp.bind(this);
-    this.timeProvider = motor;
-  }
-  keyDown(e2) {
-    if (!this.keys[e2.code]) {
-      const time = this.timeProvider.time;
-      this.keys[e2.code] = time;
-      this.keyDownListener.forEach((listener) => listener.onKeyDown?.(e2.code, time));
-    }
-    e2.preventDefault();
-  }
-  keyUp(e2) {
-    const quickTap = this.timeProvider.time - this.keys[e2.code] < QUICK_TAP_TIME;
-    this.keysUp[e2.code] = this.timeProvider.time;
-    this.keys[e2.code] = 0;
-    this.keyUpListener.forEach((listener) => listener.onKeyUp?.(e2.code, this.timeProvider.time));
-    if (quickTap) {
-      this.quickTapListener.forEach((listener) => listener.onQuickTap?.(e2.code, this.timeProvider.time));
-    }
-  }
-  activate() {
-    if (!this.isActive) {
-      super.activate();
-      this.isActive = true;
-      document.addEventListener("keydown", this.keyDown);
-      document.addEventListener("keyup", this.keyUp);
-    }
-  }
-  deactivate() {
-    if (this.isActive) {
-      document.removeEventListener("keydown", this.keyDown);
-      document.removeEventListener("keyup", this.keyUp);
-      this.isActive = false;
-      super.deactivate();
-    }
-  }
-  addListener(listener) {
-    if (listener.onKeyDown) {
-      this.keyDownListener.add(listener);
-    }
-    if (listener.onKeyUp) {
-      this.keyUpListener.add(listener);
-    }
-    if (listener.onQuickTap) {
-      this.quickTapListener.add(listener);
-    }
-    return () => {
-      this.removeListener(listener);
-    };
-  }
-  removeListener(listener) {
-    this.keyDownListener.delete(listener);
-    this.keyUpListener.delete(listener);
-    this.quickTapListener.delete(listener);
-  }
-}
-
-class KeyboardControls {
-  keyboard;
-  listeners = new Set;
-  keys = {};
-  #enabled = false;
-  constructor(keyboard) {
-    this.keyboard = keyboard;
-  }
-  activate() {
-    this.enabled = true;
-  }
-  deactivate() {
-    this.enabled = false;
-  }
-  set enabled(enabled) {
-    if (this.#enabled === enabled) {
-      return;
-    }
-    this.#enabled = enabled;
-    this.keys = enabled ? this.keyboard.keys : {};
-    if (enabled) {
-      this.keyboard.addListener(this);
-    } else {
-      this.onActionUp();
-      this.keyboard.removeListener(this);
-    }
-  }
-  onQuickTap(keyCode) {
-    switch (keyCode) {
-      case "Space":
-        this.listeners.forEach((listener) => listener.onQuickAction?.());
-        break;
-      case "ShiftRight":
-        this.listeners.forEach((listener) => listener.onQuickTiltReset?.());
-        break;
-    }
-  }
-  onKeyDown(_keyCode, _time) {
-    this.onAction();
-  }
-  onKeyUp(_keyCode, _time) {
-    this.onActionUp();
-  }
-  onAction() {
-    this.listeners.forEach((listener) => listener.onAction?.(this));
-  }
-  onActionUp() {
-    this.listeners.forEach((listener) => listener.onAction?.(this));
-  }
-  addListener(listener) {
-    this.listeners.add(listener);
-  }
-  removeListener(listener) {
-    this.listeners.delete(listener);
-  }
-  get forward() {
-    const { keys } = this;
-    return !!(keys.KeyW || keys.ArrowUp && !keys.ShiftRight);
-  }
-  get backward() {
-    const { keys } = this;
-    return !!(keys.KeyS || keys.ArrowDown && !keys.ShiftRight);
-  }
-  get left() {
-    const { keys } = this;
-    return !!(keys.KeyA || keys.ArrowLeft && !keys.ShiftRight);
-  }
-  get right() {
-    const { keys } = this;
-    return !!(keys.KeyD || keys.ArrowRight && !keys.ShiftRight);
-  }
-  get turnLeft() {
-    const { keys } = this;
-    return !!(keys.KeyQ || keys.ArrowLeft && keys.ShiftRight);
-  }
-  get turnRight() {
-    const { keys } = this;
-    return !!(keys.KeyE || keys.ArrowRight && keys.ShiftRight);
-  }
-  get up() {
-    const { keys } = this;
-    return !!(keys.ArrowUp && keys.ShiftRight);
-  }
-  get down() {
-    const { keys } = this;
-    return !!(keys.ArrowDown && keys.ShiftRight);
-  }
-  get action() {
-    const { keys } = this;
-    return !!keys.Space;
-  }
-  get exit() {
-    const { keys } = this;
-    return !!keys.Escape;
   }
 }
 var onStop;

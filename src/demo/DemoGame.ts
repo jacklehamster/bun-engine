@@ -26,14 +26,11 @@ import { MotionAuxiliary } from "world/aux/MotionAuxiliary";
 import { FollowAuxiliary } from "world/aux/FollowAuxiliary";
 import { ItemsGroup } from "world/sprite/aux/ItemsGroup";
 import { ICollisionDetector, IPositionMatrix, Matrix, PositionMatrix } from "dok-matrix";
-import { DisplayBox } from "world/collision/DisplayBox";
+import { DisplayBox, Face } from "world/collision/DisplayBox";
 import { CollisionDetector } from "world/collision/CollisionDetector";
-import { IControls } from "controls/IControls";
 import { IFade, FadeApiAuxiliary } from "world/aux/FadeApiAuxiliary";
 import { IBox } from "world/collision/IBox";
 import { shadowProcessor } from "canvas-processor";
-import { SpriteCellCreator } from "world/sprite/aux/SpriteCellCreator";
-import { FixedSpriteFactory } from "world/sprite/aux/FixedSpriteFactory";
 import { SurroundingTracker, CellTrackers, Cell, CellBoundary, filter, Tag, CellChangeDetector, createCell, CellTriggerTracker } from "cell-tracker";
 import { alea } from "seedrandom";
 import { SpritePool } from "world/sprite/pools/SpritePool";
@@ -42,9 +39,11 @@ import { Accumulator } from "list-accumulator";
 import { StepBackAuxiliary } from "world/aux/StepBackAuxiliary";
 import { goBackAction } from "world/aux/GoBack";
 import { PositionStep } from "world/aux/PositionStep";
-import { IKeyboard } from "controls/IKeyboard";
 import { CellTrigger } from "world/aux/CellTrigger";
 import { KeyboardControl, openMenu, PopupControl } from "dialog-system";
+import { TurnStepAuxiliary } from "world/aux/TurnStepAuxiliary";
+import { Keyboard } from "controls/Keyboard";
+import { KeyboardControls } from "controls/KeyboardControls";
 
 enum Assets {
   DOBUKI = 0,
@@ -80,25 +79,19 @@ const CELLSIZE = 2;
 interface Props {
   engine: IGraphicsEngine;
   motor: IMotor;
-  keyboard: IKeyboard;
-  controls: IControls;
 }
 
 export class DemoGame extends AuxiliaryHolder {
   api: IFade = {};
   camera: ICamera;
-  constructor({ engine, motor, keyboard, controls }: Props) {
+  constructor({ engine, motor }: Props) {
     super();
 
-    const controlActivator = (active: boolean) => {
-      if (active) {
-        controls.activate?.();
-      } else {
-        controls.deactivate?.();
-      }
-    }
+    const keyboard = new Keyboard({ motor });
+    const gameControls = new KeyboardControls(keyboard);
+
     const popupControl = new PopupControl();
-    popupControl.registerActive(controlActivator);
+    popupControl.registerActive((enabled: boolean) => gameControls.setEnabled(enabled));
     const keyboardControl = new KeyboardControl(popupControl);
 
     //  Add medias
@@ -542,7 +535,7 @@ export class DemoGame extends AuxiliaryHolder {
         [1, 0, 0],
       ].map(([x, y, z]) => createCell(x, y, z, CELLSIZE)),
       heroBox,
-      blockImage: {
+      boxImage: {
         outside: Assets.GROUND,
         inside: Assets.BRICK,
       },
@@ -554,46 +547,64 @@ export class DemoGame extends AuxiliaryHolder {
       },
     }));
 
-    {
-      const factory = new FixedSpriteFactory({ cellSize: CELLSIZE },
-        //  Side walls with happy face logo
-        [
-          Matrix.create().translate(-3.01, 0, 0).rotateY(Math.PI / 2),
-          Matrix.create().translate(-3.01, 0, 0).rotateY(-Math.PI / 2),
-          Matrix.create().translate(3.01, 0, 0).rotateY(Math.PI / 2),
-          Matrix.create().translate(3.01, 0, 0).rotateY(-Math.PI / 2),
-        ].map(transform => ({ imageId: Assets.LOGO, transform })),
-        //  floor
-        [
-          Matrix.create().translate(0, -.9, 0).rotateX(-Math.PI / 2),
-          Matrix.create().translate(0, -.9, 2).rotateX(-Math.PI / 2),
-          Matrix.create().translate(-2, -.9, 2).rotateX(-Math.PI / 2),
-          Matrix.create().translate(2, -.9, 2).rotateX(-Math.PI / 2),
-        ].map(transform => ({ imageId: Assets.GRASS_GROUND, transform })),
-      );
+    cellTriggerTracker.addTrigger(new CellTrigger({
+      cells: [
+        [1, 0, 0],
+      ].map(([x, y, z]) => createCell(x, y, z, CELLSIZE)),
+      heroBox,
+      displayBox: blockBox,
+      displayShift: [.1, 0, 0],
+      boxImage: {
+        outside: Assets.LOGO,
+        faces: [Face.RIGHT],
+      },
+      worldColliders,
+      spritesAccumulator,
+    }));
 
-      const creator = new SpriteCellCreator({ factory });
-      spritesAccumulator.add(creator);
-      cellTrackers.add(creator);
-      this.addAuxiliary(factory);
-    }
+    cellTriggerTracker.addTrigger(new CellTrigger({
+      cells: [
+        [-1, 0, 0],
+      ].map(([x, y, z]) => createCell(x, y, z, CELLSIZE)),
+      heroBox,
+      displayBox: blockBox,
+      displayShift: [-.1, 0, 0],
+      boxImage: {
+        outside: Assets.LOGO,
+        faces: [Face.LEFT],
+      },
+      worldColliders,
+      spritesAccumulator,
+    }));
 
-    // cellTriggerTracker.addTrigger(new CellTrigger({
-    //   cells: [
-    //     [0, 0, 0],
-    //     [0, 0, 2],
-    //     [-2, 0, 2],
-    //     [2, 0, 2],
-    //   ].map(([x, y, z]) => createCell(x, y, z, CELLSIZE)),
-    //   heroBox,
-    //   spriteImageId: Assets.GRASS_GROUND,
-    //   worldColliders,
-    //   spritesAccumulator,
-    // }));
+    cellTriggerTracker.addTrigger(new CellTrigger({
+      cells: [
+        [0, 0, 0],
+        [0, 0, 1],
+        [-1, 0, 1],
+        [1, 0, 1],
+      ].map(([x, y, z]) => createCell(x, y, z, CELLSIZE)),
+      heroBox,
+      displayBox: blockBox,
+      displayShift: [0, .01, 0],
+      boxImage: {
+        inside: Assets.GRASS_GROUND,
+        faces: [Face.BOTTOM],
+      },
+      worldColliders,
+      spritesAccumulator,
+    }));
 
     const camPosition: IPositionMatrix = new PositionMatrix();
     const camera: ICamera = this.camera = new Camera({
       engine, motor, position: camPosition,
+      // config: {
+      //   distance: 0,
+      //   tilt: .2,
+      //   zoom: .25,
+      //   perspective: .05,
+      //   backgroundColor: 0,
+      // },
       config: {
         distance: 15,
         tilt: .8,
@@ -746,7 +757,7 @@ export class DemoGame extends AuxiliaryHolder {
 
     const controlledMotor = new ControlledMotor(motor, { policy: Policy.INCOMING_CYCLE_PRIORITY });
     const stepBack = new StepBackAuxiliary({ motor: controlledMotor, position: heroPos });
-    const posStep = new PositionStepAuxiliary({ motor: controlledMotor, controls, positionStep: new PositionStep({ position: heroPos }), turnGoal: camera.turn.angle }, { speed: 1.5, airBoost: 1.5 });
+    const posStep = new PositionStepAuxiliary({ motor: controlledMotor, controls: gameControls, positionStep: new PositionStep({ position: heroPos }), turnGoal: camera.turn.angle }, { speed: 1.5, airBoost: 1.5 });
 
 
     //  Toggle auxiliary
@@ -764,26 +775,27 @@ export class DemoGame extends AuxiliaryHolder {
                 posStep,
                 stepBack,
                 new SmoothFollowAuxiliary({ motor, follower: camPosition, followee: heroPos }, { speed: .05, followY: false }),
-                new JumpAuxiliary({ motor, controls, position: heroPos }, { gravity: -2, jump: 3 }),
+                new JumpAuxiliary({ motor, controls: gameControls, position: heroPos }, { gravity: -2, jump: 3 }),
+                new TurnStepAuxiliary({ motor, controls: gameControls, turn: camera.turn }),
               ),
             },
             {
               key: "Tab", aux: () => Auxiliaries.from(
-                new TurnAuxiliary({ motor, controls, turn: camera.turn }),
-                new TiltAuxiliary({ motor, controls, tilt: camera.tilt }),
-                new MoveAuxiliary({ motor, controls, direction: camera.turn, position: heroPos }),
-                new JumpAuxiliary({ motor, controls, position: heroPos }),
-                new TiltResetAuxiliary({ motor, controls, tilt: camera.tilt }),
+                new TurnAuxiliary({ motor, controls: gameControls, turn: camera.turn }),
+                new TiltAuxiliary({ motor, controls: gameControls, tilt: camera.tilt }),
+                new MoveAuxiliary({ motor, controls: gameControls, direction: camera.turn, position: heroPos }),
+                new JumpAuxiliary({ motor, controls: gameControls, position: heroPos }),
+                new TiltResetAuxiliary({ motor, controls: gameControls, tilt: camera.tilt }),
                 new SmoothFollowAuxiliary({ motor, follower: camPosition, followee: heroPos }, { speed: .05 }),
               ),
             },
           ],
         }))
-      .addAuxiliary(new DirAuxiliary({ controls }, dx => {
+      .addAuxiliary(new DirAuxiliary({ controls: gameControls }, dx => {
         heroSprites.setOrientation(dx);
         shadowHeroSprites.setOrientation(dx);
       }))
-      .addAuxiliary(new MotionAuxiliary({ controls }, moving => {
+      .addAuxiliary(new MotionAuxiliary({ controls: gameControls }, moving => {
         const animId = moving ? Anims.RUN : Anims.STILL;
         heroSprites.setAnimationId(animId);
         shadowHeroSprites.setAnimationId(animId);
@@ -791,7 +803,7 @@ export class DemoGame extends AuxiliaryHolder {
       .addAuxiliary(stepBack)
       .addAuxiliary(new CellChangeDetector({ positionMatrix: heroPos }, { cellSize: CELLSIZE })
         .addListener(new SurroundingTracker({ cellTrack: cellTrackers }, {
-          cellLimit: 200,
+          cellLimit: 100,
           range: [7, 3, 7],
           cellSize: CELLSIZE,
         }))
