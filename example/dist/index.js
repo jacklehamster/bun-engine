@@ -22264,6 +22264,7 @@ class KK extends f2 {
 var VERTICES_PER_SPRITE = 6;
 var TEX_BUFFER_ELEMS = 4;
 var EMPTY_TEX = new Float32Array(TEX_BUFFER_ELEMS).fill(0);
+var CLEARBIT = GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT;
 
 class GraphicsEngine extends Disposable {
   gl;
@@ -22507,17 +22508,9 @@ class GraphicsEngine extends Disposable {
     const [r2, g2, b2, _a] = this._pixel;
     return r2 * 65536 + g2 * 256 + b2;
   }
-  static clearBit = GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT;
   refresh(updatePayload) {
     if (updatePayload.renderFrame) {
       this.#redraw();
-    }
-  }
-  #redraw() {
-    this.gl.clear(GraphicsEngine.clearBit);
-    if (this.visibleSprites.length) {
-      this.#drawElementsInstanced(VERTICES_PER_SPRITE, this.visibleSprites.length);
-      this.pixelListener?.setPixel(this.getPixel(this.pixelListener.x, this.pixelListener.y));
     }
   }
   createMatrixUniformHandler(name, matrix) {
@@ -22537,6 +22530,13 @@ class GraphicsEngine extends Disposable {
       gl: this.gl,
       program: this.programs.getProgram(this.programs.activeProgramId)
     }, { name }, vector);
+  }
+  #redraw() {
+    this.gl.clear(CLEARBIT);
+    if (this.visibleSprites.length) {
+      this.#drawElementsInstanced(VERTICES_PER_SPRITE, this.visibleSprites.length);
+      this.pixelListener?.setPixel(this.getPixel(this.pixelListener.x, this.pixelListener.y));
+    }
   }
   #drawElementsInstanced(vertexCount, instances) {
     this.gl.drawElementsInstanced(GL.TRIANGLES, vertexCount, GL.UNSIGNED_SHORT, 0, instances);
@@ -27440,7 +27440,7 @@ var useInitLayoutContext = function() {
   const layoutModels = import_react12.useMemo(() => ({}), []);
   const getLayout = import_react12.useCallback((layout) => {
     if (typeof layout === "string") {
-      return layoutModels[layout] ?? {};
+      return layoutModels[layout] ?? undefined;
     }
     if (layout.name) {
       layoutModels[layout.name] = layout;
@@ -27457,21 +27457,21 @@ var useInitLayoutContext = function() {
 var usePopupLayout = function({ layout, setVisible }) {
   const { getLayout, uniqueLayout } = useLayoutContext();
   const layoutModel = getLayout(layout);
-  const x3 = layoutModel.position?.[0] ?? DEFAULT_HORIZONTAL_PADDING;
-  const y3 = layoutModel.position?.[1] ?? DEFAULT_VERTICAL_PADDING;
-  const left = layoutModel.positionFromRight ? `calc(100% - ${x3}px)` : x3;
-  const top = layoutModel.positionFromBottom ? `calc(100% - ${y3}px)` : y3;
+  const x3 = layoutModel?.position?.[0] ?? DEFAULT_HORIZONTAL_PADDING;
+  const y3 = layoutModel?.position?.[1] ?? DEFAULT_VERTICAL_PADDING;
+  const left = layoutModel?.positionFromRight ? `calc(100% - ${x3}px)` : x3;
+  const top = layoutModel?.positionFromBottom ? `calc(100% - ${y3}px)` : y3;
   const right = DEFAULT_HORIZONTAL_PADDING;
   const bottom = DEFAULT_VERTICAL_PADDING;
-  const width = layoutModel.size?.[0] || undefined;
-  const height = layoutModel.size?.[1] || undefined;
+  const width = layoutModel?.size?.[0] || undefined;
+  const height = layoutModel?.size?.[1] || undefined;
   import_react10.useEffect(() => {
     const uid = typeof layout === "string" ? layout : layout.name;
     if (uid) {
       return uniqueLayout.registerLayout(uid, setVisible);
     }
   }, [setVisible, uniqueLayout]);
-  return { left, top, right, bottom, width, height };
+  return { left, top, right, bottom, width, height, valid: !!layoutModel };
 };
 var Popup2 = function({
   children,
@@ -27492,7 +27492,7 @@ var Popup2 = function({
     requestAnimationFrame(() => setH(100));
   }, [setH]);
   const [localVisible, setLocalVisible] = import_react9.useState(true);
-  const { top, left, right, bottom, width, height } = usePopupLayout({
+  const { top, left, right, bottom, width, height, valid } = usePopupLayout({
     layout,
     setVisible: setVisible ?? setLocalVisible
   });
@@ -27528,7 +27528,7 @@ var Popup2 = function({
           width,
           height: fit ? 0 : height,
           fontSize: style?.fontSize ?? DEFAULT_FONT_SIZE,
-          display: visible ?? localVisible ? "" : "none"
+          display: valid && (visible ?? localVisible) ? "" : "none"
         },
         children: jsx_dev_runtime3.jsxDEV("div", {
           className: "pop-up",
@@ -28844,10 +28844,9 @@ var Container2 = function({
   }, [menu, dialog, prompt2, onSelect, onNext]);
   import_react14.useEffect(() => {
     if (elems.length && index >= elems.length) {
-      setIndex(0);
       onClose();
     }
-  }, [index, setIndex, elems, onClose]);
+  }, [index, elems, onClose]);
   return jsx_dev_runtime13.jsxDEV(jsx_dev_runtime13.Fragment, {
     children: [
       elems[index],
@@ -29272,7 +29271,7 @@ var Menu2 = function({
   onClose
 }) {
   const { removed, remove } = useRemove();
-  const [sub, setSub] = import_react8.useState({});
+  const [sub, setSub] = import_react8.useState();
   const [postClose, setPostClose] = import_react8.useState();
   const [hidden, setHidden] = import_react8.useState(false);
   const onBack = import_react8.useCallback((force) => {
@@ -29294,7 +29293,7 @@ var Menu2 = function({
         setPostClose(rest);
       } else {
         setPostClose(undefined);
-        setSub({});
+        setSub(undefined);
         onSelect(item);
         if (item.back) {
           onBack(true);
@@ -29306,7 +29305,7 @@ var Menu2 = function({
   }, [onSelect, setSub, onBack, setPostClose, setHidden]);
   const { scroll, scrollUp, scrollDown, selectedItem, select, disabled, mouseHoverEnabled, enableMouseHover, onMenuAction } = useMenu({ items, maxRows, onSelect: executeMenuItem, onBack, active });
   const onCloseSub = import_react8.useCallback(async () => {
-    setSub({});
+    setSub(undefined);
     if (postClose) {
       executeMenuItem(postClose);
     }
@@ -29394,7 +29393,7 @@ var Menu2 = function({
           }, undefined, false, undefined, this)
         ]
       }, undefined, true, undefined, this),
-      jsx_dev_runtime15.jsxDEV(Container2, {
+      sub && jsx_dev_runtime15.jsxDEV(Container2, {
         menu: sub.menu,
         dialog: sub.dialog,
         prompt: sub.prompt,
@@ -29529,11 +29528,12 @@ var Dialog = function({ dialog, onSelect, onClose, onPrompt, focusLess }) {
     setPrompt(message?.prompt);
   }, [message, setMenu, setPrompt, setSubDialog]);
   const { removed, remove } = useRemove();
+  const { visible, setVisible } = useHideMessage({ message });
   import_react31.useEffect(() => {
-    if (index >= messages.length.valueOf()) {
+    if (index >= messages.length.valueOf() && visible) {
       remove(onClose);
     }
-  }, [messages, index, remove, onClose]);
+  }, [messages, index, remove, onClose, visible]);
   const onCloseMenu = import_react31.useCallback(async () => {
     setMenu(undefined);
     nextMessage();
@@ -29591,69 +29591,70 @@ var Dialog = function({ dialog, onSelect, onClose, onPrompt, focusLess }) {
     ]
   }), [message, index, popupControl, editMessage, insertMessage, deleteMessage]);
   const pictures = import_react31.useMemo(() => [...B6(dialog.pictures ?? [], (p32) => p32), ...B6(message?.pictures ?? [], (p32) => p32)].filter((p32) => !!p32), [dialog, message]);
-  const { visible, setVisible } = useHideMessage({ message });
   return jsx_dev_runtime16.jsxDEV(jsx_dev_runtime16.Fragment, {
-    children: [
-      message?.text && jsx_dev_runtime16.jsxDEV(Popup2, {
-        layout: dialog.layout ?? {},
-        style: dialog.style,
-        disabled: lockState === LockStatus.LOCKED,
-        removed,
-        onBack: dialog.backEnabled ? next2 : undefined,
-        clickThrough: focusLess,
-        leaveBorderUnchanged: true,
-        visible,
-        setVisible,
-        children: jsx_dev_runtime16.jsxDEV("div", {
-          style: {
-            width: "100%",
-            height: "100%",
-            display: "flex",
-            padding: 10
-          },
-          onClick: () => popupControl.onAction(),
-          children: [
-            !waitingForAction && jsx_dev_runtime16.jsxDEV("div", {
-              style: { flex: 1 },
-              children: jsx_dev_runtime16.jsxDEV("progressive-text", {
-                period: `${PERIOD}`,
-                children: message?.text
+    children: message?.text && jsx_dev_runtime16.jsxDEV(jsx_dev_runtime16.Fragment, {
+      children: [
+        jsx_dev_runtime16.jsxDEV(Popup2, {
+          layout: dialog.layout ?? {},
+          style: dialog.style,
+          disabled: lockState === LockStatus.LOCKED,
+          removed,
+          onBack: dialog.backEnabled ? next2 : undefined,
+          clickThrough: focusLess,
+          leaveBorderUnchanged: true,
+          visible,
+          setVisible,
+          children: jsx_dev_runtime16.jsxDEV("div", {
+            style: {
+              width: "100%",
+              height: "100%",
+              display: "flex",
+              padding: 10
+            },
+            onClick: () => popupControl.onAction(),
+            children: [
+              !waitingForAction && jsx_dev_runtime16.jsxDEV("div", {
+                style: { flex: 1 },
+                children: jsx_dev_runtime16.jsxDEV("progressive-text", {
+                  period: `${PERIOD}`,
+                  children: message?.text
+                }, undefined, false, undefined, this)
+              }, undefined, false, undefined, this),
+              editing && active && jsx_dev_runtime16.jsxDEV("div", {
+                style: {
+                  textAlign: "center",
+                  backgroundColor: "blue",
+                  borderRadius: "50%",
+                  width: "30px",
+                  height: "30px",
+                  color: "white"
+                },
+                children: "E"
               }, undefined, false, undefined, this)
-            }, undefined, false, undefined, this),
-            editing && active && jsx_dev_runtime16.jsxDEV("div", {
-              style: {
-                textAlign: "center",
-                backgroundColor: "blue",
-                borderRadius: "50%",
-                width: "30px",
-                height: "30px",
-                color: "white"
-              },
-              children: "E"
-            }, undefined, false, undefined, this)
-          ]
-        }, undefined, true, undefined, this)
-      }, undefined, false, undefined, this),
-      subdialog && jsx_dev_runtime16.jsxDEV(Container2, {
-        dialog: subdialog,
-        focusLess: true,
-        removed
-      }, undefined, false, undefined, this),
-      jsx_dev_runtime16.jsxDEV(Container2, {
-        pictures,
-        menu: !textProgressing ? menu : undefined,
-        prompt: !textProgressing ? prompt2 : undefined,
-        onSelect,
-        onClose: onCloseMenu,
-        onPrompt,
-        removed
-      }, undefined, false, undefined, this),
-      editDialogOn && jsx_dev_runtime16.jsxDEV(Container2, {
-        menu: editMenu,
-        onClose: () => setEditDialogOn(false)
-      }, undefined, false, undefined, this)
-    ]
-  }, undefined, true, undefined, this);
+            ]
+          }, undefined, true, undefined, this)
+        }, undefined, false, undefined, this),
+        subdialog && jsx_dev_runtime16.jsxDEV(Container2, {
+          dialog: subdialog,
+          focusLess: true,
+          removed
+        }, undefined, false, undefined, this),
+        jsx_dev_runtime16.jsxDEV(Container2, {
+          pictures,
+          menu: !textProgressing ? menu : undefined,
+          prompt: !textProgressing ? prompt2 : undefined,
+          onSelect,
+          onClose: onCloseMenu,
+          onPrompt,
+          removed
+        }, undefined, false, undefined, this),
+        editDialogOn && jsx_dev_runtime16.jsxDEV(Container2, {
+          menu: editMenu,
+          onClose: () => setEditDialogOn(false)
+        }, undefined, false, undefined, this)
+      ]
+    }, undefined, true, undefined, this)
+  }, undefined, false, undefined, this);
 };
 var __create22 = Object.create;
 var __defProp22 = Object.defineProperty;
@@ -51260,7 +51261,7 @@ var LockStatus;
   LockStatus2[LockStatus2["LOCKED"] = 1] = "LOCKED";
 })(LockStatus || (LockStatus = {}));
 var DEFAULT_GAME_CONTEXT = {
-  getLayout: (layout) => typeof layout === "object" ? layout : {},
+  getLayout: (layout) => typeof layout === "object" ? layout : undefined,
   uniqueLayout: new x22
 };
 var Context2 = import_react11.default.createContext(DEFAULT_GAME_CONTEXT);
@@ -52776,13 +52777,13 @@ class DemoGame extends AuxiliaryHolder {
                 autoNext: 0
               },
               {
-                action: async () => console.log("Changing scene."),
-                autoNext: 0
-              },
-              {
                 action: async () => {
                   this.deactivate();
                 },
+                autoNext: 0
+              },
+              {
+                action: async () => console.log("Changing scene."),
                 autoNext: 0
               }
             ]
@@ -52900,9 +52901,7 @@ class DemoGame extends AuxiliaryHolder {
       }
     }));
     cellTriggerTracker.addTrigger(new CellTrigger({
-      cells: [
-        [1, 0, 0]
-      ].map(([x4, y4, z4]) => B5(x4, y4, z4, CELLSIZE)),
+      cells: [B5(1, 0, 0, CELLSIZE)],
       heroBox,
       displayBox: blockBox,
       displayShift: [0.1, 0, 0],
@@ -52914,9 +52913,7 @@ class DemoGame extends AuxiliaryHolder {
       spritesAccumulator
     }));
     cellTriggerTracker.addTrigger(new CellTrigger({
-      cells: [
-        [-1, 0, 0]
-      ].map(([x4, y4, z4]) => B5(x4, y4, z4, CELLSIZE)),
+      cells: [B5(-1, 0, 0, CELLSIZE)],
       heroBox,
       displayBox: blockBox,
       displayShift: [-0.1, 0, 0],
@@ -53052,13 +53049,11 @@ class DemoGame extends AuxiliaryHolder {
     const displayBox = new SpriteGroup(new DisplayBox({ box: heroBox, imageId: Assets.WIREFRAME }), heroPos);
     spritesAccumulator.add(displayBox);
     const shadowPos = new t0({});
-    const shadowHeroSprites = new SpriteGroup([
-      {
-        imageId: Assets.DODO_SHADOW,
-        transform: f2.create().translate(0, -0.89, 0.5).rotateX(-Math.PI / 2).scale(1, 0.3, 1),
-        animationId: Anims.STILL
-      }
-    ], shadowPos);
+    const shadowHeroSprites = new SpriteGroup([{
+      imageId: Assets.DODO_SHADOW,
+      transform: f2.create().translate(0, -0.89, 0.5).rotateX(-Math.PI / 2).scale(1, 0.3, 1),
+      animationId: Anims.STILL
+    }], shadowPos);
     this.addAuxiliary(new FollowAuxiliary({
       motor,
       follower: shadowPos,
@@ -53067,13 +53062,11 @@ class DemoGame extends AuxiliaryHolder {
       followY: false
     }));
     spritesAccumulator.add(shadowHeroSprites);
-    spritesAccumulator.add(new SpriteGroup([
-      {
-        imageId: Assets.VIDEO,
-        spriteType: SpriteType.DISTANT,
-        transform: f2.create().translate(3000, 1000, -5000).scale(480, 270, 1)
-      }
-    ]));
+    spritesAccumulator.add(new SpriteGroup([{
+      imageId: Assets.VIDEO,
+      spriteType: SpriteType.DISTANT,
+      transform: f2.create().translate(3000, 1000, -5000).scale(480, 270, 1)
+    }]));
     const controlledMotor = new ControlledMotor(motor, { policy: Policy.INCOMING_CYCLE_PRIORITY });
     const stepBack = new StepBackAuxiliary({ motor: controlledMotor, position: heroPos });
     const posStep = new PositionStepAuxiliary({ motor: controlledMotor, controls: gameControls, positionStep: new PositionStep({ position: heroPos }), turnGoal: camera.turn.angle }, { speed: 1.5, airBoost: 1.5 });

@@ -421,16 +421,16 @@ export class DemoGame extends AuxiliaryHolder {
                 autoNext: 0,
               },
               {
-                action: async () => console.log("Changing scene."),
-                autoNext: 0,
-              },
-              {
                 action: async () => {
                   this.deactivate();
                 },
                 autoNext: 0,
               },
-            ]
+              {
+                action: async () => console.log("Changing scene."),
+                autoNext: 0,
+              },
+            ],
           }
         });
       },
@@ -548,9 +548,7 @@ export class DemoGame extends AuxiliaryHolder {
     }));
 
     cellTriggerTracker.addTrigger(new CellTrigger({
-      cells: [
-        [1, 0, 0],
-      ].map(([x, y, z]) => createCell(x, y, z, CELLSIZE)),
+      cells: [createCell(1, 0, 0, CELLSIZE)],
       heroBox,
       displayBox: blockBox,
       displayShift: [.1, 0, 0],
@@ -563,9 +561,7 @@ export class DemoGame extends AuxiliaryHolder {
     }));
 
     cellTriggerTracker.addTrigger(new CellTrigger({
-      cells: [
-        [-1, 0, 0],
-      ].map(([x, y, z]) => createCell(x, y, z, CELLSIZE)),
+      cells: [createCell(-1, 0, 0, CELLSIZE)],
       heroBox,
       displayBox: blockBox,
       displayShift: [-.1, 0, 0],
@@ -616,13 +612,13 @@ export class DemoGame extends AuxiliaryHolder {
     this.addAuxiliary(camera);
 
     {
-      const arrayPool: ObjectPool<Sprite[]> = new ObjectPool((a) => a ?? [], a => a.length = 0);
-      const arrayPool2: ObjectPool<ICollisionDetector[]> = new ObjectPool((a) => a ?? [], a => a.length = 0);
-      const spritePool: SpritePool = new SpritePool();
+      const arrayPool = new ObjectPool<Sprite[]>(a => a ?? [], a => a.length = 0);
+      const arrayPool2 = new ObjectPool<ICollisionDetector[]>(a => a ?? [], a => a.length = 0);
+      const spritePool = new SpritePool();
       const spritesMap = new Map<Tag, Sprite[]>();
       const collidersMap = new Map<Tag, ICollisionDetector[]>();
       cellTrackers.add(filter({
-        trackCell: (cell: Cell): boolean => {
+        trackCell: (cell): boolean => {
           const rng = alea(cell.tag);
           const sprites: Sprite[] = arrayPool.create();
           const cellPos = cell.pos;
@@ -651,10 +647,8 @@ export class DemoGame extends AuxiliaryHolder {
             const bun = spritePool.create(Assets.BUN);
             bun.spriteType = SpriteType.SPRITE;
             bun.transform.translate(px, -.7, pz).scale(.5);
-
             const bunShadow = spritePool.create(Assets.BUN_SHADOW);
             bunShadow.transform.translate(px, -1, pz).rotateX(-Math.PI / 2).scale(.5);
-
             sprites.push(bun, bunShadow);
           }
 
@@ -664,10 +658,8 @@ export class DemoGame extends AuxiliaryHolder {
             const wolf = spritePool.create(Assets.WOLF);
             wolf.spriteType = SpriteType.SPRITE;
             wolf.transform.translate(px, 0, pz).scale(scale);
-
             const shadow = spritePool.create(Assets.WOLF_SHADOW);
             shadow.transform.translate(px, -.99, pz - .5).rotateX(-Math.PI / 2).scale(scale);
-
             sprites.push(wolf, shadow);
           }
 
@@ -712,7 +704,7 @@ export class DemoGame extends AuxiliaryHolder {
       spriteType: SpriteType.SPRITE,
       transform: Matrix.create().translate(0, -.3, 0),
       animationId: Anims.STILL,
-    },], heroPos);
+    }], heroPos);
     spritesAccumulator.add(heroSprites);
     this.addAuxiliary({
       activate() {
@@ -725,13 +717,11 @@ export class DemoGame extends AuxiliaryHolder {
     spritesAccumulator.add(displayBox);
 
     const shadowPos: IPositionMatrix = new PositionMatrix({});
-    const shadowHeroSprites = new SpriteGroup([
-      {
-        imageId: Assets.DODO_SHADOW,
-        transform: Matrix.create().translate(0, -.89, .5).rotateX(-Math.PI / 2).scale(1, .3, 1),
-        animationId: Anims.STILL,
-      },
-    ], shadowPos);
+    const shadowHeroSprites = new SpriteGroup([{
+      imageId: Assets.DODO_SHADOW,
+      transform: Matrix.create().translate(0, -.89, .5).rotateX(-Math.PI / 2).scale(1, .3, 1),
+      animationId: Anims.STILL,
+    }], shadowPos);
 
     this.addAuxiliary(new FollowAuxiliary({
       motor,
@@ -745,20 +735,17 @@ export class DemoGame extends AuxiliaryHolder {
     //  Static Sprites
     //  * Those are just sprites, which will appear regardless of where
     //  * you are in the scene.
-    spritesAccumulator.add(new SpriteGroup([
-      {
-        imageId: Assets.VIDEO,
-        spriteType: SpriteType.DISTANT,
-        transform: Matrix.create()
-          .translate(3000, 1000, -5000)
-          .scale(480, 270, 1),
-      },
-    ]));
+    spritesAccumulator.add(new SpriteGroup([{
+      imageId: Assets.VIDEO,
+      spriteType: SpriteType.DISTANT,
+      transform: Matrix.create()
+        .translate(3000, 1000, -5000)
+        .scale(480, 270, 1),
+    }]));
 
     const controlledMotor = new ControlledMotor(motor, { policy: Policy.INCOMING_CYCLE_PRIORITY });
     const stepBack = new StepBackAuxiliary({ motor: controlledMotor, position: heroPos });
     const posStep = new PositionStepAuxiliary({ motor: controlledMotor, controls: gameControls, positionStep: new PositionStep({ position: heroPos }), turnGoal: camera.turn.angle }, { speed: 1.5, airBoost: 1.5 });
-
 
     //  Toggle auxiliary
     //  * Pressing the "Tab" button switches between two modes of movement below
@@ -767,30 +754,29 @@ export class DemoGame extends AuxiliaryHolder {
     //  * CamMoveAuxiliary is a more free-form way to move.
     //  * JumpAuxiliary lets you jump
     this.addAuxiliary(keyboard)
-      .addAuxiliary(
-        new ToggleAuxiliary({ keyboard }, {
-          auxiliariesMap: [
-            {
-              key: "Tab", aux: () => Auxiliaries.from(
-                posStep,
-                stepBack,
-                new SmoothFollowAuxiliary({ motor, follower: camPosition, followee: heroPos }, { speed: .05, followY: false }),
-                new JumpAuxiliary({ motor, controls: gameControls, position: heroPos }, { gravity: -2, jump: 3 }),
-                new TurnStepAuxiliary({ motor, controls: gameControls, turn: camera.turn }),
-              ),
-            },
-            {
-              key: "Tab", aux: () => Auxiliaries.from(
-                new TurnAuxiliary({ motor, controls: gameControls, turn: camera.turn }),
-                new TiltAuxiliary({ motor, controls: gameControls, tilt: camera.tilt }),
-                new MoveAuxiliary({ motor, controls: gameControls, direction: camera.turn, position: heroPos }),
-                new JumpAuxiliary({ motor, controls: gameControls, position: heroPos }),
-                new TiltResetAuxiliary({ motor, controls: gameControls, tilt: camera.tilt }),
-                new SmoothFollowAuxiliary({ motor, follower: camPosition, followee: heroPos }, { speed: .05 }),
-              ),
-            },
-          ],
-        }))
+      .addAuxiliary(new ToggleAuxiliary({ keyboard }, {
+        auxiliariesMap: [
+          {
+            key: "Tab", aux: () => Auxiliaries.from(
+              posStep,
+              stepBack,
+              new SmoothFollowAuxiliary({ motor, follower: camPosition, followee: heroPos }, { speed: .05, followY: false }),
+              new JumpAuxiliary({ motor, controls: gameControls, position: heroPos }, { gravity: -2, jump: 3 }),
+              new TurnStepAuxiliary({ motor, controls: gameControls, turn: camera.turn }),
+            ),
+          },
+          {
+            key: "Tab", aux: () => Auxiliaries.from(
+              new TurnAuxiliary({ motor, controls: gameControls, turn: camera.turn }),
+              new TiltAuxiliary({ motor, controls: gameControls, tilt: camera.tilt }),
+              new MoveAuxiliary({ motor, controls: gameControls, direction: camera.turn, position: heroPos }),
+              new JumpAuxiliary({ motor, controls: gameControls, position: heroPos }),
+              new TiltResetAuxiliary({ motor, controls: gameControls, tilt: camera.tilt }),
+              new SmoothFollowAuxiliary({ motor, follower: camPosition, followee: heroPos }, { speed: .05 }),
+            ),
+          },
+        ],
+      }))
       .addAuxiliary(new DirAuxiliary({ controls: gameControls }, dx => {
         heroSprites.setOrientation(dx);
         shadowHeroSprites.setOrientation(dx);
