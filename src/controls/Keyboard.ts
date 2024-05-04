@@ -1,6 +1,6 @@
 import { Time, IMotor } from "motor-loop";
 import { IKeyboard, KeyListener } from "./IKeyboard";
-import { AuxiliaryHolder } from "world/aux/AuxiliaryHolder";
+import { Active } from "dok-types";
 
 const QUICK_TAP_TIME = 200;
 
@@ -8,7 +8,7 @@ interface Props {
   motor: IMotor;
 }
 
-export class Keyboard extends AuxiliaryHolder implements IKeyboard {
+export class Keyboard implements IKeyboard, Active {
   readonly keys: Record<string, Time> = {};
   readonly keysUp: Record<string, Time> = {};
 
@@ -20,7 +20,6 @@ export class Keyboard extends AuxiliaryHolder implements IKeyboard {
   isActive: boolean = false;
 
   constructor({ motor }: Props) {
-    super();
     this.keyDown = this.keyDown.bind(this);
     this.keyUp = this.keyUp.bind(this);
     this.timeProvider = motor;
@@ -47,7 +46,6 @@ export class Keyboard extends AuxiliaryHolder implements IKeyboard {
 
   activate(): void {
     if (!this.isActive) {
-      super.activate();
       this.isActive = true;
       document.addEventListener('keydown', this.keyDown);
       document.addEventListener('keyup', this.keyUp);
@@ -59,7 +57,6 @@ export class Keyboard extends AuxiliaryHolder implements IKeyboard {
       document.removeEventListener('keydown', this.keyDown);
       document.removeEventListener('keyup', this.keyUp);
       this.isActive = false;
-      super.deactivate();
     }
   }
 

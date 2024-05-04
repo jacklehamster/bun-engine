@@ -1,13 +1,13 @@
-import { Auxiliary } from "world/aux/Auxiliary";
 import { UpdateRegistry } from "updates/UpdateRegistry";
 import { IUpdatableList, IUpdateListener } from "list-accumulator";
+import { Active } from "dok-types";
 
 interface Props {
   updateRegistry: UpdateRegistry;
   elems: IUpdatableList<any>;
 }
 
-export class Updater implements Auxiliary, IUpdateListener {
+export class Updater implements Active, IUpdateListener {
   private readonly elems: IUpdatableList<any>;
   private readonly updateRegistry: UpdateRegistry;
 

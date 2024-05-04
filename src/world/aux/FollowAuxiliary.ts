@@ -1,7 +1,7 @@
 import { IMatrix, IPositionMatrix } from "dok-matrix";
-import { Auxiliary } from "./Auxiliary";
 import { Looper, IMotor, UpdatePayload } from "motor-loop";
 import { IChangeListener } from "change-listener";
+import { Active } from "dok-types";
 
 interface Props {
   followee: IPositionMatrix;
@@ -21,7 +21,7 @@ interface Data {
   follower: IPositionMatrix;
 }
 
-export class FollowAuxiliary extends Looper<Data> implements Auxiliary {
+export class FollowAuxiliary extends Looper<Data> implements Active {
   private readonly followee;
   private readonly config: Config;
   private listener: IChangeListener<IMatrix> = {

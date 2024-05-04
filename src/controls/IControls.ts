@@ -1,4 +1,3 @@
-import { Auxiliary } from "world/aux/Auxiliary";
 import { ControlsListener } from "./ControlsListener";
 
 export enum StateEnum {
@@ -6,7 +5,7 @@ export enum StateEnum {
   PRESS_DOWN = 1,
 }
 
-export interface IControls extends Auxiliary {
+export interface IControls {
   get forward(): boolean;
   get backward(): boolean;
   get left(): boolean;

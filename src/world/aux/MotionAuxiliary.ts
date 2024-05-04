@@ -1,4 +1,3 @@
-import { Auxiliary } from "./Auxiliary";
 import { IControls } from "controls/IControls";
 import { ControlsListener } from "controls/ControlsListener";
 
@@ -6,7 +5,7 @@ interface Props {
   controls: IControls;
 }
 
-export class MotionAuxiliary implements Auxiliary, ControlsListener {
+export class MotionAuxiliary implements ControlsListener {
   readonly #controls: IControls;
   #moving: boolean = false;
 

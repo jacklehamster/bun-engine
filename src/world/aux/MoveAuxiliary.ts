@@ -1,5 +1,4 @@
 import { UpdatePayload, IMotor } from "motor-loop";
-import { Auxiliary } from "./Auxiliary";
 import { IControls } from "controls/IControls";
 import { ControlledLooper } from "updates/ControlledLooper";
 import { IMatrix, IPositionMatrix } from "dok-matrix";
@@ -22,7 +21,7 @@ interface Data {
   speed: number;
 }
 
-export class MoveAuxiliary extends ControlledLooper<Data> implements Auxiliary {
+export class MoveAuxiliary extends ControlledLooper<Data> {
   constructor({ controls, direction, motor, position }: Props, config?: Partial<Config>) {
     super(motor, controls, ({ forward, backward, left, right }) => forward || backward || left || right,
       { controls, direction, position, speed: config?.speed ?? 1 });

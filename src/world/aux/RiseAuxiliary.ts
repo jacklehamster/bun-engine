@@ -1,8 +1,8 @@
 import { UpdatePayload, IMotor, Looper } from "motor-loop";
-import { Auxiliary } from "./Auxiliary";
 import { IControls } from "controls/IControls";
 import { ControlsListener } from "controls/ControlsListener";
 import { IPositionMatrix } from "dok-matrix";
+import { Active } from "dok-types";
 
 interface Props {
   controls: IControls;
@@ -15,7 +15,7 @@ interface Data {
   position: IPositionMatrix;
 }
 
-export class RiseAuxiliary extends Looper<Data> implements Auxiliary {
+export class RiseAuxiliary extends Looper<Data> implements Active {
   private readonly controls;
   private readonly listener: ControlsListener = {
     onQuickAction: () => this.start(),

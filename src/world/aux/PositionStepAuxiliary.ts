@@ -1,5 +1,4 @@
 import { UpdatePayload, IMotor } from "motor-loop";
-import { Auxiliary } from "./Auxiliary";
 import { IControls } from "controls/IControls";
 import { MoveResult } from "dok-matrix";
 import { NumVal } from "progressive-value";
@@ -28,7 +27,7 @@ interface Data {
   airBoost: number;
 }
 
-export class PositionStepAuxiliary extends ControlledLooper<Data> implements Auxiliary {
+export class PositionStepAuxiliary extends ControlledLooper<Data> {
   constructor({ controls, positionStep, turnGoal, motor }: Props, config: Partial<Config> = {}) {
     super(motor, controls, ({ backward, forward, left, right }) => backward || forward || left || right,
       { controls, positionStep, turnGoal, step: config.step ?? 2, speed: config.speed ?? 1, airBoost: config?.airBoost ?? 1 });

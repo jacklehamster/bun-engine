@@ -1,8 +1,7 @@
-import { createTiltMatrix, createTurnMatrix, ProjectionMatrix, Matrix, IMatrix, InvertMatrix } from "dok-matrix";
+import { createTiltMatrix, createTurnMatrix, ProjectionMatrix, IMatrix, InvertMatrix } from "dok-matrix";
 import { ICamera } from "./ICamera";
 import { IGraphicsEngine } from "graphics/IGraphicsEngine";
 import { IMotor } from "motor-loop";
-import { AuxiliaryHolder } from "world/aux/AuxiliaryHolder";
 import { NumVal } from "progressive-value";
 import { UpdateRegistry } from "updates/UpdateRegistry";
 import { PositionMatrix, IPositionMatrix } from "dok-matrix";
@@ -29,7 +28,7 @@ interface Props {
   config?: Config;
 }
 
-export class Camera extends AuxiliaryHolder implements ICamera {
+export class Camera implements ICamera {
   readonly position;
   readonly projection;
   readonly tilt = createTiltMatrix(() => this.#updateInformer.informUpdate(MatrixUniform.CAM_TILT));
@@ -37,7 +36,7 @@ export class Camera extends AuxiliaryHolder implements ICamera {
   readonly curvature = new NumVal(0.05, () => this.#updateInformerFloat.informUpdate(FloatUniform.CURVATURE));
   readonly distance = new NumVal(.5, () => this.#updateInformerFloat.informUpdate(FloatUniform.CAM_DISTANCE));
   readonly blur = new NumVal(1, () => this.#updateInformerFloat.informUpdate(FloatUniform.BG_BLUR));
-  readonly fade = new NumVal(0, () => this.#updateInformerFloat.informUpdate(FloatUniform.FADE));
+  readonly fadeOut: () => Promise<void>;
 
   readonly #camMatrix;
   readonly #bgColor: Vector = [0, 0, 0];
@@ -52,9 +51,9 @@ export class Camera extends AuxiliaryHolder implements ICamera {
   readonly #projectionChangeListener: IChangeListener<IMatrix> = {
     onChange: () => this.#updateInformer.informUpdate(MatrixUniform.PROJECTION)
   };
+  readonly #fade = new NumVal(0, () => this.#updateInformerFloat.informUpdate(FloatUniform.FADE));
 
   constructor({ engine, motor, position = new PositionMatrix, projection = new ProjectionMatrix(), config = {} }: Props) {
-    super();
     this.#engine = engine;
     this.position = position;
     this.projection = projection;
@@ -85,7 +84,7 @@ export class Camera extends AuxiliaryHolder implements ICamera {
       [FloatUniform.CAM_DISTANCE]: engine.createFloatUniformHandler(CAM_DISTANCE_LOC, this.distance),
       [FloatUniform.CURVATURE]: engine.createFloatUniformHandler(CAM_CURVATURE_LOC, this.curvature),
       [FloatUniform.TIME]: undefined,
-      [FloatUniform.FADE]: engine.createFloatUniformHandler(FADE_LOC, this.fade),
+      [FloatUniform.FADE]: engine.createFloatUniformHandler(FADE_LOC, this.#fade),
     };
     this.#updateInformerFloat = new UpdateRegistry<FloatUniform>(ids => {
       ids.forEach(type => {
@@ -94,6 +93,11 @@ export class Camera extends AuxiliaryHolder implements ICamera {
       ids.clear();
     }, motor);
 
+    this.fadeOut = () => new Promise(resolve => {
+      this.#fade.progressTowards(1, .005, {
+        onRelease: resolve,
+      }, motor);
+    });
 
     if (config.distance) {
       this.distance.setValue(config.distance);
@@ -113,7 +117,6 @@ export class Camera extends AuxiliaryHolder implements ICamera {
   }
 
   activate() {
-    super.activate();
     this.#updateInformer.informUpdate(MatrixUniform.PROJECTION);
     this.#updateInformer.informUpdate(MatrixUniform.CAM_POS);
     this.#updateInformer.informUpdate(MatrixUniform.CAM_TURN);
@@ -131,7 +134,6 @@ export class Camera extends AuxiliaryHolder implements ICamera {
     this.#camMatrix.deactivate();
     this.projection.removeChangeListener(this.#projectionChangeListener);
     this.position.removeChangeListener(this.#positionChangeListener);
-    super.deactivate();
   }
 
   resizeViewport(width: number, height: number) {

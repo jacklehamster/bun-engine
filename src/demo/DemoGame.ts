@@ -2,7 +2,6 @@ import { IGraphicsEngine } from "graphics/IGraphicsEngine";
 import { IMotor, ControlledMotor, Policy } from "motor-loop";
 import { Camera } from "camera/Camera";
 import { Auxiliaries } from "world/aux/Auxiliaries";
-import { AuxiliaryHolder } from "world/aux/AuxiliaryHolder";
 import { TurnAuxiliary } from "world/aux/TurnAuxiliary";
 import { PositionStepAuxiliary } from "world/aux/PositionStepAuxiliary";
 import { TiltResetAuxiliary } from "world/aux/TiltResetAuxiliary";
@@ -28,10 +27,9 @@ import { ItemsGroup } from "world/sprite/aux/ItemsGroup";
 import { ICollisionDetector, IPositionMatrix, Matrix, PositionMatrix } from "dok-matrix";
 import { DisplayBox, Face } from "world/collision/DisplayBox";
 import { CollisionDetector } from "world/collision/CollisionDetector";
-import { IFade, FadeApiAuxiliary } from "world/aux/FadeApiAuxiliary";
 import { IBox } from "world/collision/IBox";
 import { shadowProcessor } from "canvas-processor";
-import { SurroundingTracker, CellTrackers, Cell, CellBoundary, filter, Tag, CellChangeDetector, createCell, CellTriggerTracker } from "cell-tracker";
+import { SurroundingTracker, CellTrackers, CellBoundary, filter, Tag, CellChangeDetector, createCell, CellTriggerTracker } from "cell-tracker";
 import { alea } from "seedrandom";
 import { SpritePool } from "world/sprite/pools/SpritePool";
 import { ObjectPool } from "bun-pool";
@@ -81,8 +79,7 @@ interface Props {
   motor: IMotor;
 }
 
-export class DemoGame extends AuxiliaryHolder {
-  api: IFade = {};
+export class DemoGame extends Auxiliaries {
   camera: ICamera;
   constructor({ engine, motor }: Props) {
     super();
@@ -91,7 +88,7 @@ export class DemoGame extends AuxiliaryHolder {
     const gameControls = new KeyboardControls(keyboard);
 
     const popupControl = new PopupControl();
-    popupControl.registerActive((enabled: boolean) => gameControls.setEnabled(enabled));
+    popupControl.registerActive(enabled => gameControls.setEnabled(enabled));
     const keyboardControl = new KeyboardControl(popupControl);
 
     //  Add medias
@@ -344,7 +341,7 @@ export class DemoGame extends AuxiliaryHolder {
 
     const cellTrackers = new CellTrackers();
     const spritesAccumulator = new Accumulator<Sprite>({
-      onChange: (value) => engine.setMaxSpriteCount(value),
+      onChange: value => engine.setMaxSpriteCount(value),
     });
     this.addAuxiliary({
       deactivate() {
@@ -413,11 +410,7 @@ export class DemoGame extends AuxiliaryHolder {
             messages: [
               "Going down...",
               {
-                action: () => new Promise(resolve => {
-                  camera.fade.progressTowards(1, .005, {
-                    onRelease: resolve,
-                  }, motor);
-                }),
+                action: camera.fadeOut,
                 autoNext: 0,
               },
               {
@@ -755,27 +748,24 @@ export class DemoGame extends AuxiliaryHolder {
     //  * JumpAuxiliary lets you jump
     this.addAuxiliary(keyboard)
       .addAuxiliary(new ToggleAuxiliary({ keyboard }, {
-        auxiliariesMap: [
-          {
-            key: "Tab", aux: () => Auxiliaries.from(
-              posStep,
-              stepBack,
-              new SmoothFollowAuxiliary({ motor, follower: camPosition, followee: heroPos }, { speed: .05, followY: false }),
-              new JumpAuxiliary({ motor, controls: gameControls, position: heroPos }, { gravity: -2, jump: 3 }),
-              new TurnStepAuxiliary({ motor, controls: gameControls, turn: camera.turn }),
-            ),
-          },
-          {
-            key: "Tab", aux: () => Auxiliaries.from(
-              new TurnAuxiliary({ motor, controls: gameControls, turn: camera.turn }),
-              new TiltAuxiliary({ motor, controls: gameControls, tilt: camera.tilt }),
-              new MoveAuxiliary({ motor, controls: gameControls, direction: camera.turn, position: heroPos }),
-              new JumpAuxiliary({ motor, controls: gameControls, position: heroPos }),
-              new TiltResetAuxiliary({ motor, controls: gameControls, tilt: camera.tilt }),
-              new SmoothFollowAuxiliary({ motor, follower: camPosition, followee: heroPos }, { speed: .05 }),
-            ),
-          },
-        ],
+        auxiliariesMap: [{
+          key: "Tab", aux: () => Auxiliaries.from(
+            posStep,
+            stepBack,
+            new SmoothFollowAuxiliary({ motor, follower: camPosition, followee: heroPos }, { speed: .05, followY: false }),
+            new JumpAuxiliary({ motor, controls: gameControls, position: heroPos }, { gravity: -2, jump: 3 }),
+            new TurnStepAuxiliary({ motor, controls: gameControls, turn: camera.turn }),
+          ),
+        }, {
+          key: "Tab", aux: () => Auxiliaries.from(
+            new TurnAuxiliary({ motor, controls: gameControls, turn: camera.turn }),
+            new TiltAuxiliary({ motor, controls: gameControls, tilt: camera.tilt }),
+            new MoveAuxiliary({ motor, controls: gameControls, direction: camera.turn, position: heroPos }),
+            new JumpAuxiliary({ motor, controls: gameControls, position: heroPos }),
+            new TiltResetAuxiliary({ motor, controls: gameControls, tilt: camera.tilt }),
+            new SmoothFollowAuxiliary({ motor, follower: camPosition, followee: heroPos }, { speed: .05 }),
+          ),
+        }],
       }))
       .addAuxiliary(new DirAuxiliary({ controls: gameControls }, dx => {
         heroSprites.setOrientation(dx);
@@ -794,7 +784,6 @@ export class DemoGame extends AuxiliaryHolder {
           cellSize: CELLSIZE,
         }))
         .addListener(stepBack))
-      .addAuxiliary(new TimeAuxiliary({ motor, engine }))
-      .addAuxiliary(new FadeApiAuxiliary({ camera, motor, api: this.api }));
+      .addAuxiliary(new TimeAuxiliary({ motor, engine }));
   }
 }

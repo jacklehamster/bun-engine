@@ -1,8 +1,8 @@
 import { NumVal } from "progressive-value";
 import { ProjectionMatrix, IPositionMatrix, IAngleMatrix } from "dok-matrix";
-import { Auxiliary } from "world/aux/Auxiliary";
+import { Active } from "dok-types";
 
-export interface ICamera extends Auxiliary {
+export interface ICamera extends Active {
   readonly position: IPositionMatrix;
   readonly tilt: IAngleMatrix;
   readonly turn: IAngleMatrix;
@@ -10,7 +10,7 @@ export interface ICamera extends Auxiliary {
   readonly curvature: NumVal;
   readonly distance: NumVal;
   readonly blur: NumVal;
-  readonly fade: NumVal;
+  readonly fadeOut: () => Promise<void>;
   resizeViewport(width: number, height: number): void;
   setBackgroundColor(rgb: number): void;
 }

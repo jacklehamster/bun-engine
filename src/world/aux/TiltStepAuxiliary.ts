@@ -1,5 +1,4 @@
 import { UpdatePayload, IMotor } from "motor-loop";
-import { Auxiliary } from "./Auxiliary";
 import { IControls } from "controls/IControls";
 import { IAngleMatrix, angleStep } from "dok-matrix";
 import { ControlledLooper } from "updates/ControlledLooper";
@@ -20,7 +19,7 @@ interface Data {
   step: number;
 }
 
-export class TiltStepAuxiliary extends ControlledLooper<Data> implements Auxiliary {
+export class TiltStepAuxiliary extends ControlledLooper<Data> {
   private tiltCount: number = 0;
 
   constructor({ controls, tilt, motor }: Props, config: Partial<Config> = {}) {

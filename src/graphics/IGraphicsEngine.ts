@@ -1,6 +1,5 @@
 import { Animation, AnimationId } from "animation/Animation";
 import { MediaId, Media, MediaData } from "gl-texture-manager";
-import { Auxiliary } from "world/aux/Auxiliary";
 import { Sprite, SpriteId } from "world/sprite/Sprite";
 import { List } from "abstract-list";
 import { LocationName } from "gl/attributes/GLAttributeBuffers";
@@ -10,8 +9,9 @@ import { Val } from "dok-types";
 import { VectorUniformHandler } from "gl/uniforms/update/VectorUniformHandler";
 import { Vector } from "dok-types";
 import { IMatrix } from "dok-matrix";
+import { Active } from "dok-types";
 
-export interface IGraphicsEngine extends Auxiliary {
+export interface IGraphicsEngine extends Active {
   setMaxSpriteCount(spriteCount: number): void;
   setBgColor(rgb: Vector): void;
   updateTextures(imageIds: Set<MediaId>, medias: List<Media>): Promise<MediaData[]>;

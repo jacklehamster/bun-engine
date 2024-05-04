@@ -1,8 +1,8 @@
-import { Auxiliary } from "./Auxiliary";
 import { IControls } from "controls/IControls";
 import { ControlsListener } from "controls/ControlsListener";
 import { IAngleMatrix } from "dok-matrix";
 import { IMotor } from "motor-loop";
+import { Active } from "dok-types";
 
 interface Props {
   motor: IMotor;
@@ -10,7 +10,7 @@ interface Props {
   tilt: IAngleMatrix;
 }
 
-export class TiltResetAuxiliary implements Auxiliary {
+export class TiltResetAuxiliary implements Active {
   private readonly controls: IControls;
   private readonly listener: ControlsListener;
 

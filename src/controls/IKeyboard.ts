@@ -1,6 +1,4 @@
-import { Auxiliary } from "world/aux/Auxiliary";
-
-export interface IKeyboard extends Auxiliary {
+export interface IKeyboard {
   readonly keys: Record<string, number>;
   readonly keysUp: Record<string, number>;
   addListener(listener: KeyListener): () => void;

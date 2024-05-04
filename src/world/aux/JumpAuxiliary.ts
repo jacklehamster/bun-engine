@@ -1,5 +1,4 @@
 import { UpdatePayload, IMotor } from "motor-loop";
-import { Auxiliary } from "./Auxiliary";
 import { IControls } from "controls/IControls";
 import { IPositionMatrix } from "dok-matrix";
 import { ControlledLooper } from "updates/ControlledLooper";
@@ -24,7 +23,7 @@ interface Data {
   plane: number;
 }
 
-export class JumpAuxiliary extends ControlledLooper<Data> implements Auxiliary {
+export class JumpAuxiliary extends ControlledLooper<Data> {
   private dy: number;
 
   constructor({ controls, position, motor }: Props, config?: Partial<Config>) {

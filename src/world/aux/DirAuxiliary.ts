@@ -1,11 +1,11 @@
-import { Auxiliary } from "./Auxiliary";
 import { IControls } from "controls/IControls";
+import { Active } from "dok-types";
 
 interface Props {
   controls: IControls;
 }
 
-export class DirAuxiliary implements Auxiliary {
+export class DirAuxiliary implements Active {
   private readonly controls: IControls;
   private dx: number = 0;
   constructor({ controls }: Props, private onFlip?: (dx: number) => void) {

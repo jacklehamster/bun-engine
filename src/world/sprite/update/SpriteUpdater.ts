@@ -2,10 +2,10 @@ import { IGraphicsEngine } from "graphics/IGraphicsEngine";
 import { IMotor } from "motor-loop";
 import { UpdateRegistry } from "updates/UpdateRegistry";
 import { SpriteUpdateType } from "./SpriteUpdateType";
-import { Auxiliary } from "world/aux/Auxiliary";
 import { Sprite, SpriteId } from "../Sprite";
 import { FULL_UPDATE } from "dok-types";
 import { IUpdatableList, IUpdateListener, UpdateNotifier } from "list-accumulator";
+import { Active } from "dok-types";
 
 interface Props {
   engine: IGraphicsEngine;
@@ -13,7 +13,7 @@ interface Props {
   sprites: IUpdatableList<Sprite>;
 }
 
-export class SpriteUpdater extends UpdateNotifier implements Auxiliary, IUpdateListener {
+export class SpriteUpdater extends UpdateNotifier implements Active, IUpdateListener {
   readonly #sprites: IUpdatableList<Sprite>;
   readonly #updateRegisteries: Record<SpriteUpdateType, UpdateRegistry>;
 

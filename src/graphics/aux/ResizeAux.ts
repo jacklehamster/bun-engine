@@ -1,6 +1,6 @@
 import { IGraphicsEngine } from "graphics/IGraphicsEngine";
 import { ICamera } from "camera/ICamera";
-import { Auxiliary } from "world/aux/Auxiliary";
+import { Active } from "dok-types";
 
 interface Props {
   engine: IGraphicsEngine;
@@ -8,7 +8,7 @@ interface Props {
   canvas: HTMLCanvasElement;
 }
 
-export class ResizeAux implements Auxiliary {
+export class ResizeAux implements Active {
   private readonly engine: IGraphicsEngine;
   private readonly camera: ICamera;
   private readonly canvas: HTMLCanvasElement;

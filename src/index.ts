@@ -1,11 +1,9 @@
 import { GraphicsEngine } from 'graphics/GraphicsEngine';
 import { Motor } from 'motor-loop';
 import { DemoGame } from 'demo/DemoGame';
-import { AuxiliaryHolder } from 'world/aux/AuxiliaryHolder';
 import { ResizeAux } from 'graphics/aux/ResizeAux';
 import { WebGlCanvas } from 'graphics/WebGlCanvas';
-import { Keyboard } from 'controls/Keyboard';
-import { KeyboardControls } from 'controls/KeyboardControls';
+import { Auxiliaries } from 'world/aux/Auxiliaries';
 
 export async function hello() {
   console.info(`Welcome!
@@ -37,12 +35,13 @@ export async function testCanvas(canvas: HTMLCanvasElement) {
 
   const engine = new GraphicsEngine(webGlCanvas.gl);
   // engine.setPixelListener(pixelListener);
-  const core = new AuxiliaryHolder();
+  const core = new Auxiliaries();
   const world = new DemoGame({
     engine,
     motor,
   });
   core.addAuxiliary(motor);
+  core.addAuxiliary(engine);
   core.addAuxiliary(
     new ResizeAux({
       engine,
@@ -50,7 +49,6 @@ export async function testCanvas(canvas: HTMLCanvasElement) {
       canvas: webGlCanvas.canvas,
     }),
   );
-  core.addAuxiliary(engine);
 
   core.addAuxiliary(world);
 

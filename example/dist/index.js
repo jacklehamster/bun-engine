@@ -53,18 +53,18 @@ async function testCanvas(canvas) {
     pixelListener.y = y4;
   });
   const engine = new GraphicsEngine(webGlCanvas.gl);
-  const core = new AuxiliaryHolder;
+  const core = new Auxiliaries;
   const world = new DemoGame({
     engine,
     motor
   });
   core.addAuxiliary(motor);
+  core.addAuxiliary(engine);
   core.addAuxiliary(new ResizeAux({
     engine,
     camera: world.camera,
     canvas: webGlCanvas.canvas
   }));
-  core.addAuxiliary(engine);
   core.addAuxiliary(world);
   core.activate();
   motor.loop(engine, undefined);
@@ -22543,45 +22543,6 @@ class GraphicsEngine extends Disposable {
   }
 }
 
-class AuxiliaryHolder {
-  auxiliaries = [];
-  active = false;
-  activate() {
-    if (this.active) {
-      return;
-    }
-    this.active = true;
-    this.auxiliaries.forEach((aux) => aux.activate?.());
-  }
-  deactivate() {
-    if (!this.active) {
-      return;
-    }
-    this.active = false;
-    this.auxiliaries.forEach((aux) => aux.deactivate?.());
-  }
-  addAuxiliary(aux) {
-    this.auxiliaries.push(aux);
-    if (this.active) {
-      aux.activate?.();
-    }
-    return this;
-  }
-  removeAuxiliary(aux) {
-    let j = 0;
-    for (let i = 0;i < this.auxiliaries.length; i++) {
-      const a2 = this.auxiliaries[i];
-      if (a2 !== aux) {
-        this.auxiliaries[j] = a2;
-        j++;
-      } else {
-        a2.deactivate?.();
-      }
-    }
-    this.auxiliaries.length = j;
-  }
-}
-
 class y {
   q;
   w;
@@ -22984,7 +22945,7 @@ class UpdateRegistry extends X2 {
   }
 }
 
-class Camera extends AuxiliaryHolder {
+class Camera {
   position;
   projection;
   tilt = QW(() => this.#updateInformer.informUpdate(MatrixUniform.CAM_TILT));
@@ -22992,7 +22953,7 @@ class Camera extends AuxiliaryHolder {
   curvature = new B3(0.05, () => this.#updateInformerFloat.informUpdate(FloatUniform.CURVATURE));
   distance = new B3(0.5, () => this.#updateInformerFloat.informUpdate(FloatUniform.CAM_DISTANCE));
   blur = new B3(1, () => this.#updateInformerFloat.informUpdate(FloatUniform.BG_BLUR));
-  fade = new B3(0, () => this.#updateInformerFloat.informUpdate(FloatUniform.FADE));
+  fadeOut;
   #camMatrix;
   #bgColor = [0, 0, 0];
   #viewportSize = [0, 0];
@@ -23006,8 +22967,8 @@ class Camera extends AuxiliaryHolder {
   #projectionChangeListener = {
     onChange: () => this.#updateInformer.informUpdate(MatrixUniform.PROJECTION)
   };
+  #fade = new B3(0, () => this.#updateInformerFloat.informUpdate(FloatUniform.FADE));
   constructor({ engine, motor, position = new t0, projection = new a0, config = {} }) {
-    super();
     this.#engine = engine;
     this.position = position;
     this.projection = projection;
@@ -23034,7 +22995,7 @@ class Camera extends AuxiliaryHolder {
       [FloatUniform.CAM_DISTANCE]: engine.createFloatUniformHandler(CAM_DISTANCE_LOC, this.distance),
       [FloatUniform.CURVATURE]: engine.createFloatUniformHandler(CAM_CURVATURE_LOC, this.curvature),
       [FloatUniform.TIME]: undefined,
-      [FloatUniform.FADE]: engine.createFloatUniformHandler(FADE_LOC, this.fade)
+      [FloatUniform.FADE]: engine.createFloatUniformHandler(FADE_LOC, this.#fade)
     };
     this.#updateInformerFloat = new UpdateRegistry((ids) => {
       ids.forEach((type) => {
@@ -23042,6 +23003,11 @@ class Camera extends AuxiliaryHolder {
       });
       ids.clear();
     }, motor);
+    this.fadeOut = () => new Promise((resolve) => {
+      this.#fade.progressTowards(1, 0.005, {
+        onRelease: resolve
+      }, motor);
+    });
     if (config.distance) {
       this.distance.setValue(config.distance);
     }
@@ -23059,7 +23025,6 @@ class Camera extends AuxiliaryHolder {
     }
   }
   activate() {
-    super.activate();
     this.#updateInformer.informUpdate(MatrixUniform.PROJECTION);
     this.#updateInformer.informUpdate(MatrixUniform.CAM_POS);
     this.#updateInformer.informUpdate(MatrixUniform.CAM_TURN);
@@ -23076,7 +23041,6 @@ class Camera extends AuxiliaryHolder {
     this.#camMatrix.deactivate();
     this.projection.removeChangeListener(this.#projectionChangeListener);
     this.position.removeChangeListener(this.#positionChangeListener);
-    super.deactivate();
   }
   resizeViewport(width, height) {
     if (this.#viewportSize[0] !== width || this.#viewportSize[1] !== height) {
@@ -23118,7 +23082,8 @@ var FloatUniform;
 
 class Auxiliaries {
   auxiliaries;
-  constructor(auxiliaries) {
+  #active = false;
+  constructor(auxiliaries = []) {
     this.auxiliaries = auxiliaries;
   }
   static from(...aux) {
@@ -23131,10 +23096,38 @@ class Auxiliaries {
     return this.auxiliaries.at(index);
   }
   activate() {
+    if (this.#active) {
+      return;
+    }
+    this.#active = true;
     A2(this.auxiliaries, (aux) => aux?.activate?.());
   }
   deactivate() {
+    if (!this.#active) {
+      return;
+    }
+    this.#active = false;
     A2(this.auxiliaries, (aux) => aux?.deactivate?.());
+  }
+  addAuxiliary(aux) {
+    this.auxiliaries.push(aux);
+    if (this.#active) {
+      aux.activate?.();
+    }
+    return this;
+  }
+  removeAuxiliary(aux) {
+    let j = 0;
+    for (let i = 0;i < this.auxiliaries.length; i++) {
+      const a2 = this.auxiliaries[i];
+      if (a2 !== aux) {
+        this.auxiliaries[j] = a2;
+        j++;
+      } else {
+        a2.deactivate?.();
+      }
+    }
+    this.auxiliaries.length = j;
   }
 }
 
@@ -23910,44 +23903,6 @@ class CollisionDetector {
       }
     }
     return this.#config.shouldBlock ? collide : false;
-  }
-}
-var FADE_RATE = 0.002;
-
-class FadeApiAuxiliary {
-  camera;
-  config;
-  motor;
-  api;
-  constructor({ camera, motor, api }, config) {
-    this.camera = camera;
-    this.motor = motor;
-    this.api = api;
-    this.config = {
-      speed: config?.speed ?? 1
-    };
-    this.fadeIn = this.fadeIn.bind(this);
-    this.fadeOut = this.fadeOut.bind(this);
-  }
-  activate() {
-    const api = this.api;
-    api.fadeIn = this.fadeIn;
-    api.fadeOut = this.fadeOut;
-  }
-  deactivate() {
-    const api = this.api;
-    if (api.fadeIn === this.fadeIn) {
-      delete api.fadeIn;
-    }
-    if (api.fadeOut === this.fadeOut) {
-      delete api.fadeOut;
-    }
-  }
-  fadeOut() {
-    this.camera.fade.progressTowards(1, this.config.speed * FADE_RATE, this, this.motor);
-  }
-  fadeIn() {
-    this.camera.fade.progressTowards(0, this.config.speed * FADE_RATE, this, this.motor);
   }
 }
 var k = (m32) => {
@@ -52272,7 +52227,7 @@ class TurnStepAuxiliary extends ControlledLooper {
 }
 var QUICK_TAP_TIME = 200;
 
-class Keyboard extends AuxiliaryHolder {
+class Keyboard {
   keys = {};
   keysUp = {};
   keyDownListener = new Set;
@@ -52281,7 +52236,6 @@ class Keyboard extends AuxiliaryHolder {
   timeProvider;
   isActive = false;
   constructor({ motor }) {
-    super();
     this.keyDown = this.keyDown.bind(this);
     this.keyUp = this.keyUp.bind(this);
     this.timeProvider = motor;
@@ -52305,7 +52259,6 @@ class Keyboard extends AuxiliaryHolder {
   }
   activate() {
     if (!this.isActive) {
-      super.activate();
       this.isActive = true;
       document.addEventListener("keydown", this.keyDown);
       document.addEventListener("keyup", this.keyUp);
@@ -52316,7 +52269,6 @@ class Keyboard extends AuxiliaryHolder {
       document.removeEventListener("keydown", this.keyDown);
       document.removeEventListener("keyup", this.keyUp);
       this.isActive = false;
-      super.deactivate();
     }
   }
   addListener(listener) {
@@ -52461,8 +52413,7 @@ var Anims;
 var LOGO_SIZE = 512;
 var CELLSIZE = 2;
 
-class DemoGame extends AuxiliaryHolder {
-  api = {};
+class DemoGame extends Auxiliaries {
   camera;
   constructor({ engine, motor }) {
     super();
@@ -52769,11 +52720,7 @@ class DemoGame extends AuxiliaryHolder {
             messages: [
               "Going down...",
               {
-                action: () => new Promise((resolve) => {
-                  camera.fade.progressTowards(1, 0.005, {
-                    onRelease: resolve
-                  }, motor);
-                }),
+                action: camera.fadeOut,
                 autoNext: 0
               },
               {
@@ -53071,16 +53018,13 @@ class DemoGame extends AuxiliaryHolder {
     const stepBack = new StepBackAuxiliary({ motor: controlledMotor, position: heroPos });
     const posStep = new PositionStepAuxiliary({ motor: controlledMotor, controls: gameControls, positionStep: new PositionStep({ position: heroPos }), turnGoal: camera.turn.angle }, { speed: 1.5, airBoost: 1.5 });
     this.addAuxiliary(keyboard).addAuxiliary(new ToggleAuxiliary({ keyboard }, {
-      auxiliariesMap: [
-        {
-          key: "Tab",
-          aux: () => Auxiliaries.from(posStep, stepBack, new SmoothFollowAuxiliary({ motor, follower: camPosition, followee: heroPos }, { speed: 0.05, followY: false }), new JumpAuxiliary({ motor, controls: gameControls, position: heroPos }, { gravity: -2, jump: 3 }), new TurnStepAuxiliary({ motor, controls: gameControls, turn: camera.turn }))
-        },
-        {
-          key: "Tab",
-          aux: () => Auxiliaries.from(new TurnAuxiliary({ motor, controls: gameControls, turn: camera.turn }), new TiltAuxiliary({ motor, controls: gameControls, tilt: camera.tilt }), new MoveAuxiliary({ motor, controls: gameControls, direction: camera.turn, position: heroPos }), new JumpAuxiliary({ motor, controls: gameControls, position: heroPos }), new TiltResetAuxiliary({ motor, controls: gameControls, tilt: camera.tilt }), new SmoothFollowAuxiliary({ motor, follower: camPosition, followee: heroPos }, { speed: 0.05 }))
-        }
-      ]
+      auxiliariesMap: [{
+        key: "Tab",
+        aux: () => Auxiliaries.from(posStep, stepBack, new SmoothFollowAuxiliary({ motor, follower: camPosition, followee: heroPos }, { speed: 0.05, followY: false }), new JumpAuxiliary({ motor, controls: gameControls, position: heroPos }, { gravity: -2, jump: 3 }), new TurnStepAuxiliary({ motor, controls: gameControls, turn: camera.turn }))
+      }, {
+        key: "Tab",
+        aux: () => Auxiliaries.from(new TurnAuxiliary({ motor, controls: gameControls, turn: camera.turn }), new TiltAuxiliary({ motor, controls: gameControls, tilt: camera.tilt }), new MoveAuxiliary({ motor, controls: gameControls, direction: camera.turn, position: heroPos }), new JumpAuxiliary({ motor, controls: gameControls, position: heroPos }), new TiltResetAuxiliary({ motor, controls: gameControls, tilt: camera.tilt }), new SmoothFollowAuxiliary({ motor, follower: camPosition, followee: heroPos }, { speed: 0.05 }))
+      }]
     })).addAuxiliary(new DirAuxiliary({ controls: gameControls }, (dx) => {
       heroSprites.setOrientation(dx);
       shadowHeroSprites.setOrientation(dx);
@@ -53092,7 +53036,7 @@ class DemoGame extends AuxiliaryHolder {
       cellLimit: 100,
       range: [7, 3, 7],
       cellSize: CELLSIZE
-    })).addListener(stepBack)).addAuxiliary(new TimeAuxiliary({ motor, engine })).addAuxiliary(new FadeApiAuxiliary({ camera, motor, api: this.api }));
+    })).addListener(stepBack)).addAuxiliary(new TimeAuxiliary({ motor, engine }));
   }
 }
 

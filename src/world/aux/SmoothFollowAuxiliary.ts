@@ -1,7 +1,7 @@
 import { IMatrix, IPositionMatrix } from "dok-matrix";
-import { Auxiliary } from "./Auxiliary";
 import { Looper, IMotor, UpdatePayload } from "motor-loop";
 import { IChangeListener } from "change-listener";
+import { Active } from "dok-types";
 
 interface Props {
   followee: IPositionMatrix;
@@ -22,7 +22,7 @@ interface Data {
   config: Config;
 }
 
-export class SmoothFollowAuxiliary extends Looper<Data> implements Auxiliary {
+export class SmoothFollowAuxiliary extends Looper<Data> implements Active {
   private followee: IPositionMatrix;
   private listener: IChangeListener<IMatrix> = { onChange: () => this.start() };
 

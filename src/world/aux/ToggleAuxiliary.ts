@@ -1,6 +1,6 @@
 import { IKeyboard, KeyListener } from "controls/IKeyboard";
-import { Auxiliary } from "./Auxiliary";
 import { List, map } from "abstract-list";
+import { Active } from "dok-types";
 
 type KeyMap = { key: string; aux: AuxFactory };
 
@@ -13,12 +13,12 @@ interface Props {
   keyboard: IKeyboard;
 }
 
-export type AuxFactory = () => Auxiliary;
+export type AuxFactory = () => Active;
 
-export class ToggleAuxiliary implements Auxiliary {
+export class ToggleAuxiliary implements Active {
   #active: boolean = false;
   #toggleIndex: number;
-  #auxiliary: Auxiliary = {};
+  #auxiliary: Active = {};
   readonly #keyboard: IKeyboard;
   readonly #keys: (string | undefined)[];
   readonly #auxiliaryFactories: List<AuxFactory>;

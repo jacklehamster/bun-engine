@@ -1,9 +1,9 @@
 import { IPositionMatrix, MoveResult } from "dok-matrix";
-import { Auxiliary } from "./Auxiliary";
 import { IMotor, Looper, UpdatePayload } from "motor-loop";
 import { Cell, IVisitableCell, toCell } from "cell-tracker";
 import { Vector } from "dok-types";
 import { GoBack } from "./GoBack";
+import { Active } from "dok-types";
 
 interface Props {
   position: IPositionMatrix & GoBack;
@@ -21,7 +21,7 @@ interface Config {
   speed: number;
 }
 
-export class StepBackAuxiliary extends Looper<Data> implements Auxiliary, IVisitableCell {
+export class StepBackAuxiliary extends Looper<Data> implements Active, IVisitableCell {
   #previousCellPos: Vector;
   #curCellPos: Vector;
 

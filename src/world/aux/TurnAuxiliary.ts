@@ -1,5 +1,4 @@
 import { UpdatePayload, IMotor } from "motor-loop";
-import { Auxiliary } from "./Auxiliary";
 import { IControls } from "controls/IControls";
 import { ControlledLooper } from "updates/ControlledLooper";
 import { IAngleMatrix } from "dok-matrix";
@@ -15,7 +14,7 @@ interface Data {
   turn: IAngleMatrix;
 }
 
-export class TurnAuxiliary extends ControlledLooper<Data> implements Auxiliary {
+export class TurnAuxiliary extends ControlledLooper<Data> {
   constructor({ controls, turn, motor }: Props) {
     super(motor, controls, ({ turnLeft, turnRight }) => turnLeft || turnRight, { controls, turn });
   }
