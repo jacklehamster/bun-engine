@@ -11,12 +11,12 @@
     "bun-types": "latest"
   },
   "peerDependencies": {
-    "typescript": "^5.0.0"
+    "typescript": "^5.0.0",
+    "bun-engine": "link:bun-engine"
   },
   "dependencies": {
     "baojs": "^0.2.1",
     "png-to-ico": "^2.1.8",
-    "serve-static-bun": "^0.5.3",
-    "bun-engine": "file:.."
+    "serve-static-bun": "^0.5.3"
   }
 }
