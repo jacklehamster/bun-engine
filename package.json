@@ -7,14 +7,11 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "keywords": [
-    "game",
-    "engine",
-    "webgl",
     "bun",
-    "napl",
-    "json",
-    "typescript",
-    "javascript"
+    "game-development",
+    "game-engine",
+    "javascript",
+    "typescript"
   ],
   "scripts": {
     "start": "bun run src/index.ts",
@@ -34,12 +31,12 @@
     "dist"
   ],
   "devDependencies": {
-    "@dobuki/auto-publish": "^1.0.7",
-    "@types/bun": "^1.0.12",
-    "@types/jest": "^29.5.12",
-    "@types/mocha": "^10.0.6",
-    "@types/react": "^18.2.75",
-    "@types/react-dom": "^18.2.24",
+    "@dobuki/auto-publish": "^1.0.22",
+    "@types/bun": "^1.2.8",
+    "@types/jest": "^29.5.14",
+    "@types/mocha": "^10.0.10",
+    "@types/react": "^19.0.12",
+    "@types/react-dom": "^19.0.4",
     "@types/seedrandom": "^3.0.8",
     "@types/uuid": "^9.0.7",
     "bun": "^1.1.3",
@@ -59,7 +56,7 @@
     "dialog-system": "^1.0.23",
     "dok-matrix": "^1.0.26",
     "gl-texture-manager": "^1.0.16",
-    "list-accumulator": "^1.0.25",
+    "list-accumulator": "^1.0.27",
     "seedrandom": "^3.0.5"
   },
   "engines": {
